@@ -89,7 +89,7 @@ userSchema.index({ username: 1});
 userSchema.index({ company: 1});
 userSchema.index({ type: 1});
 
-// Virual for vehicles owned by the user (if conductor)
+// Virtual for vehicles owned by the user (if conductor)
 userSchema.virtual('vehicle', {
     ref: 'Vehicle',
     localField: '_id',
