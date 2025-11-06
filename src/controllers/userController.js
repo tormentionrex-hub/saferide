@@ -1,3 +1,4 @@
+const passport = require("passport");
 const { User, Vehicle } = require("../models");
 const { uploadToBlob, deleteFromBlob } = require("../services/blobService");
 
@@ -144,8 +145,124 @@ exports.uploadProfileImage = async (req, res, next) => {
             });
         }
 
-        
+        const user = await User.findById(id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+        }
+
+        // Delete old image if exists
+
+        if (user.profileImage) {
+            await deleteFromBlob(user.profileImage, 'profile-images');
+        }
+
+        // Upload new image
+
+        const imageUrl = await uploadToBlob(
+            req.file.buffer,
+            `profile-${id}-${Date.now()}.jpg`,
+            'profile-images',
+            req.file.mimetype
+        );
+
+        user.profileImage = imageUrl;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Profile image uploaded successfully',
+            data: { imageUrl },
+        });
+                
     } catch (error) {
         next(error);
     }
-}
+};
+
+// @desc Delete user
+// @route DELETE /api/v1/users/:id
+// @access Private/Admin
+
+exports.deleteUser = async ( req, res, next) => {
+    try {
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+        }
+
+        // Soft delete: set active to false
+        user.isActive = false;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'User deactivated successfully',
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'User deactivated successfully',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc Get user statistics
+// @route GET /api/v1/users/:id/stats
+// @access Private
+
+exports.getUserStats = async (req, res, next) => {
+    try {
+        const { Ride, Booking, Review, Metrics } = require("../models");
+        const userId = req.params.id;
+
+        // Get rides as driver
+        const ridesAsDriver = await Ride.countDocuments({
+            driver_id: userId,
+            status: 'completed',
+        });
+
+        // Get rides as passenger
+        const ridesAsPassenger = await Booking.countDocuments({
+            passenger_id: userId,
+            status: 'completed',
+        });
+
+        // Get average rating
+        const reviews = await Review.find({
+            reviewee_id: userId,
+        });
+        const avgRating = reviews.length > 0
+            ? reviews.reduce((sum, r) => sum + r.rating, 0)/ reviews.length
+            :0;
+
+        // Get Metrics
+        const metrics = await Metrics.findOne({
+            user_id: userId,
+            period: 'total',
+        });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                ridesAsDriver,
+                ridesAsPassenger,
+                totalRides: ridesAsDriver + ridesAsPassenger,
+                averageRating: avgRating.toFixed(2),
+                kilometersShared: metrics?.kilometers_driven || 0,
+                carbonSaved: metrics?.carbon_footprint || 0,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
