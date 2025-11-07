@@ -65,7 +65,83 @@ exports.getVehicleByDriver = async (req, res, next) => {
                 message: 'Vehicle not found',
             });
         }
+
+        res.status(200).json({
+            success: true,
+            data: vehicle,
+        });
     } catch (error) {
         next(error);
     }
 };
+
+// @desc Get vehicle by ID
+// @route GET /api/v1/vehicles/:id
+// @access Private
+
+exports.getVehiclebyId = async (req, res, next) => {
+    try {
+        const vehicle = await Vehicle.findById(req.params.id)
+        .populate('driver_id', 'name username email phone rating');
+
+        if (!vehicle) {
+            return res.status(404).json({
+                success: false,
+                message: 'Vehicle not found',
+            });
+        }
+        res.status(200).json({
+            success: true,
+            data: vehicle,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc Update vehicle
+// @route PUT /api/v1/vehicles/:id
+// @access Private/Conductor
+
+exports.updateVehicle = async (req, res, next) => {
+    try {
+        const vehicle = await Vehicle.findById(req.params.id);
+
+        if (!vehicle) {
+            return res.status(404).json({
+                success: false,
+                message: 'Vehicle not found',
+            });
+        }
+
+        // Check if user owns the vehicle
+        if (vehicle.driver_id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access Denied',
+            });
+        }
+
+        // Fields that can be updated
+        const allowedUpdates = ['brand', 'model', 'color', 'year'];
+        const updates = {};
+
+        allowedUpdates.forEach(field => {
+            if (req.body[field] !== undefined) {
+                updates[field] = req.body[field];
+            }
+        });
+        Object.assign(vehicle, updates);
+        await vehicle.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Vehicle updated successfully',
+            data: vehicle,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
