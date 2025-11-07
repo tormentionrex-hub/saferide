@@ -144,4 +144,91 @@ exports.updateVehicle = async (req, res, next) => {
     }
 };
 
+// @desc Upload vehicle image
+// @route POST /api/v1/vehicles/:id/image
+// @access Private/Conductor
+
+exports.uploadVehicleImage = async (req, res, next) => {
+    try {
+        const vehicle = await Vehicle.findById(req.params.id);
+
+        if (!vehicle) {
+            return res.status(404).json({
+                success: false,
+                message: 'Vehicle not found',
+            });
+        }
+
+        // Check if user owns the vehicle
+        if (vehicle.driver_id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access Denied',
+            });
+        }
+
+        // Delete old image if exists
+        if (vehicle.vehicleImage) {
+            await deleteFromBlob(vehicle.vehicleImage, 'vehicle-images');
+        }
+
+        // Upload new image
+        const imageUrl = await uploadToBlob(req.file.buffer, 
+            `vehicle-${vehicle._id}-${Date.now()}.jpg`,
+            'vehicle-images',
+            req.file.mimetype
+        );
+
+        vehicle.vehicleImage = imageUrl;
+        await vehicle.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Vehicle image uploaded successfully',
+            data: { imageUrl },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc Delete vehicle
+// @route DELETE /api/v1/vehicles/:id
+// @access Private/Conductor
+
+exports.deleteVehicle = async (req, res, next) => {
+    try {
+        const vehicle = await Vehicle.findById(req.params.id);
+
+        if (!vehicle) {
+            return res.status(404).json({
+                success: false,
+                message: 'Vehicle not found',
+            });
+        }
+
+        // Check if user owns the vehicle or is admin
+        if (vehicle.driver_id.toString() !== req.user.id.toString() &&
+    req.user.type !== 'administrador') {
+            return res.status(403).json({
+                success: false,
+                message: 'Access Denied',
+            });
+        }
+        // Delete vehicle image if exists
+        if (vehicle.vehicleImage) {
+            await deleteFromBlob(vehicle.vehicleImage, 'vehicle-images');
+        }
+
+        await vehicle.deleteOne();
+
+        res.status(200).json({
+            success: true,
+            message: 'Vehicle deleted successfully',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 
