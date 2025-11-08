@@ -54,8 +54,8 @@ const vehicleSchema = new mongoose.Schema({
 });
 
 // Indices
-vehicleSchema.index({ driver_id: 1 });
-vehicleSchema.index({ license_plate: 1 });
+// Note: driver_id and license_plate already have unique indexes from the schema definition (unique: true)
+// Only add additional non-unique indexes here if needed
 
 const Vehicle = mongoose.model('Vehicle', vehicleSchema);
 

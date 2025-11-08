@@ -84,8 +84,8 @@ const userSchema = new mongoose.Schema({
 });
 
 // Índices
-userSchema.index({ email: 1});
-userSchema.index({ username: 1});
+// Note: email and username already have unique indexes from the schema definition (unique: true)
+// Only add non-unique indexes here
 userSchema.index({ company: 1});
 userSchema.index({ type: 1});
 

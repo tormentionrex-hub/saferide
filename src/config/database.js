@@ -1,63 +1,117 @@
 const mongoose = require('mongoose');
+const logger = require('../utils/logger');
 require('dotenv').config();
 
 const connectDB = async () => {
-    try {
-        const options = {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000,
-            maxPoolSize: 10,
-        };
+  try {
+    // Connection string para Cosmos DB for MongoDB (vCore)
+    let connectionString = process.env.COSMOS_CONNECTION_STRING;
+    const dbName = process.env.COSMOS_DATABASE || 'Safe-RideDB';
 
-        let conn = null;
-
-        // 1) If COSMOS_CONNECTION_STRING provided, use it directly.
-        if (process.env.COSMOS_CONNECTION_STRING) {
-            conn = process.env.COSMOS_CONNECTION_STRING;
-        }
-        // 2) If COSMOS_ENDPOINT already contains a mongodb:// connection string, use it.
-        else if (process.env.COSMOS_ENDPOINT && process.env.COSMOS_ENDPOINT.includes('mongodb')) {
-            conn = process.env.COSMOS_ENDPOINT;
-        }
-        // 3) Otherwise construct from endpoint + database + key (password).
-        else if (process.env.COSMOS_ENDPOINT && process.env.COSMOS_DATABASE && process.env.COSMOS_KEY) {
-            // Normalize endpoint to host (remove protocol, trailing slash and optional port)
-            let host = process.env.COSMOS_ENDPOINT.replace(/^https?:\/\//, '').replace(/\/$/, '');
-            host = host.split('/')[0].replace(/:\d+$/, '');
-
-            const db = process.env.COSMOS_DATABASE;
-            const pass = encodeURIComponent(process.env.COSMOS_KEY);
-
-            // Determine username:
-            // - Prefer COSMOS_USERNAME if provided
-            // - Otherwise fall back to account name (first label of host)
-            const account = host.split('.')[0];
-            const user = encodeURIComponent(process.env.COSMOS_USERNAME || account);
-
-            // Build Cosmos DB (MongoDB API) connection string (Azure typically listens on port 10255)
-            conn = `mongodb://${user}:${pass}@${host}:10255/${db}?ssl=true&replicaSet=globaldb&retryWrites=false&maxIdleTimeMS=120000&appName=@${account}@&authSource=admin`;
-        } else {
-            throw new Error(
-                'Cosmos DB configuration missing. Provide COSMOS_CONNECTION_STRING, or COSMOS_ENDPOINT + COSMOS_DATABASE + COSMOS_KEY (optionally COSMOS_USERNAME).'
-            );
-        }
-
-        await mongoose.connect(conn, options);
-
-        console.log('✅ Cosmos DB connected successfully');
-
-        mongoose.connection.on('error', (err) => {
-            console.error('❌ MongoDB connection error:', err);
-        });
-
-        mongoose.connection.on('disconnected', () => {
-            console.warn('⚠️ MongoDB disconnected. Attempting to reconnect...');
-        });
-    } catch (error) {
-        console.error('❌ Error connecting to Cosmos DB:', error.message);
-        process.exit(1);
+    if (!connectionString) {
+      throw new Error('COSMOS_CONNECTION_STRING is not defined in environment variables');
     }
+
+    // Asegurar que el connection string incluya el nombre de la base de datos
+    // Si la URL no tiene un path (termina en .com/ o no tiene /), agregar el nombre de la BD
+    if (!connectionString.includes('?')) {
+      // No hay query string, agregar /<dbname>?
+      connectionString = connectionString.replace(/\/?$/, `/${dbName}?`);
+    } else if (!connectionString.match(/\/[^\/]+\?/)) {
+      // Hay query string pero no hay nombre de BD entre / y ?
+      connectionString = connectionString.replace('?', `/${dbName}?`);
+    }
+
+    // Opciones de conexión optimizadas para Cosmos DB vCore
+    const options = {
+      // Especificar el nombre de la base de datos explícitamente
+      dbName: dbName,
+      
+      // Timeout configurations
+      serverSelectionTimeoutMS: 10000, // 10 segundos
+      socketTimeoutMS: 45000, // 45 segundos
+      connectTimeoutMS: 10000, // 10 segundos
+      
+      // Connection pool
+      maxPoolSize: 10, // Máximo de conexiones simultáneas
+      minPoolSize: 2,  // Mínimo de conexiones en el pool
+      
+      // Retry configuration
+      retryWrites: false, // Cosmos DB vCore no soporta retryWrites por defecto
+      retryReads: true,
+      
+      // Additional settings
+      maxIdleTimeMS: 120000, // 2 minutos
+      compressors: ['zlib'], // Compresión de datos
+      
+      // TLS/SSL
+      tls: true,
+      tlsAllowInvalidCertificates: false,
+      
+      // Authentication
+      authSource: 'admin',
+      authMechanism: 'SCRAM-SHA-256',
+    };
+
+    // Conectar a la base de datos
+    await mongoose.connect(connectionString, options);
+
+    logger.success('✅ Cosmos DB for MongoDB (vCore) connected successfully');
+    logger.info(`📊 Database: ${mongoose.connection.name}`);
+    logger.info(`🌐 Host: ${mongoose.connection.host}`);
+
+    // Event listeners
+    mongoose.connection.on('error', (err) => {
+      logger.error('❌ MongoDB connection error:', err);
+    });
+
+    mongoose.connection.on('disconnected', () => {
+      logger.warn('⚠️  MongoDB disconnected. Attempting to reconnect...');
+    });
+
+    mongoose.connection.on('reconnected', () => {
+      logger.success('✅ MongoDB reconnected');
+    });
+
+    // Graceful shutdown
+    process.on('SIGINT', async () => {
+      await mongoose.connection.close();
+      logger.info('MongoDB connection closed through app termination');
+      process.exit(0);
+    });
+
+  } catch (error) {
+    logger.error('❌ Error connecting to Cosmos DB:', error);
+    
+    // Log additional error details
+    if (error.message.includes('authentication')) {
+      logger.error('Authentication failed. Check your username and password.');
+    } else if (error.message.includes('ENOTFOUND') || error.message.includes('ETIMEDOUT')) {
+      logger.error('Network error. Check your connection string and firewall settings.');
+    }
+    
+    // Exit process with failure
+    process.exit(1);
+  }
 };
 
-module.exports = connectDB;
+// Helper function to check database connection status
+const checkConnection = () => {
+  return mongoose.connection.readyState === 1;
+};
+
+// Helper function to get connection stats
+const getConnectionStats = () => {
+  return {
+    readyState: mongoose.connection.readyState,
+    host: mongoose.connection.host,
+    name: mongoose.connection.name,
+    models: Object.keys(mongoose.connection.models),
+  };
+};
+
+module.exports = {
+  connectDB,
+  checkConnection,
+  getConnectionStats,
+};
