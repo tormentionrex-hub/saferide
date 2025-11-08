@@ -64,29 +64,6 @@ const initDatabase = async () => {
     const collections = await mongoose.connection.db.listCollections().toArray();
     logger.info(`📚 Collections created: ${collections.map(c => c.name).join(', ')}`);
 
-    // Crear usuario administrador por defecto (si no existe)
-    const { User } = models;
-    const adminEmail = 'admin@saferide.com';
-    
-    const existingAdmin = await User.findOne({ email: adminEmail });
-    
-    if (!existingAdmin) {
-      await User.create({
-        name: 'Administrator',
-        username: 'admin',
-        email: adminEmail,
-        phone: '88888888', // 8 dígitos válidos
-        password: 'Admin@123', // Cambiar en producción
-        company: 'Intel', // Debe ser una de las empresas del enum
-        type: 'admin', // Valor correcto del enum
-      });
-      
-      logger.success('✅ Default admin user created');
-      logger.info(`📧 Email: ${adminEmail}`);
-      logger.info(`🔑 Password: Admin@123 (CHANGE THIS IN PRODUCTION)`);
-    } else {
-      logger.info('ℹ️  Admin user already exists');
-    }
 
     logger.success('🎉 Database initialization completed successfully!');
     
