@@ -37,6 +37,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.2",
     "morgan": "^1.10.1",
+    "multer": "^2.0.2",
     "passport": "^0.7.0",
     "passport-azure-ad": "^4.3.5",
     "passport-http-bearer": "^1.0.1"

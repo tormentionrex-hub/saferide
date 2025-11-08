@@ -79,7 +79,8 @@ exports.getVehicleByDriver = async (req, res, next) => {
 // @route GET /api/v1/vehicles/:id
 // @access Private
 
-exports.getVehiclebyId = async (req, res, next) => {
+// Note: route expects `getVehicleById` (capital B). Keep this name to match route files.
+exports.getVehicleById = async (req, res, next) => {
     try {
         const vehicle = await Vehicle.findById(req.params.id)
         .populate('driver_id', 'name username email phone rating');
