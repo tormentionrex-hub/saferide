@@ -34,4 +34,4 @@ build/
 .azure/
 
 # scripts
-scripts/initDatabase.js
+.scripts/initDatabase.js
