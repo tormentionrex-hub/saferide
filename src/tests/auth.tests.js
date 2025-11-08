@@ -1,14 +1,26 @@
 const request = require('supertest');
-const app = require('../src/app');
-const { User } = require('../src/models');
+const app = require('../app');
+const { User } = require('../models');
+const mongoose = require('mongoose');
 
 describe('Auth Endpoints', () => {
   beforeAll(async () => {
-    // Setup test database
+    // Setup test database connection
+    if (mongoose.connection.readyState === 0) {
+      await mongoose.connect(process.env.COSMOS_CONNECTION_STRING, {
+        dbName: 'Safe-RideDB-Test', // Use separate test database
+        serverSelectionTimeoutMS: 10000,
+        tls: true,
+        authMechanism: 'SCRAM-SHA-256',
+        retryWrites: false,
+      });
+    }
   });
 
   afterAll(async () => {
-    // Cleanup
+    // Cleanup test data and close connection
+    await User.deleteMany({ email: 'test@example.com' });
+    await mongoose.connection.close();
   });
 
   describe('POST /api/v1/auth/register', () => {
@@ -19,9 +31,9 @@ describe('Auth Endpoints', () => {
           name: 'Test User',
           username: 'testuser',
           email: 'test@example.com',
-          phone: '123456789',
-          password: 'Test@1234',
-          company: 'Company A',
+          phone: '12345678', // Must be 8 digits (Costa Rican phone format)
+          password: 'Test@1234', // Must have uppercase, lowercase, number, special char
+          company: 'Intel', // Must be a valid company from enum
           type: 'pasajero',
         });
 

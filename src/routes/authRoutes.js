@@ -12,7 +12,7 @@ const registerValidation = [
   body('name').trim().isLength({ min: 4 }).withMessage('Name must be at least 4 characters'),
   body('username').trim().isLength({ min: 4 }).withMessage('Username must be at least 4 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Invalid email address'),
-  body('phone').matches(/^\d{9}$/).withMessage('Phone must be 9 digits'),
+  body('phone').matches(/^\d{8}$/).withMessage('Phone must be 8 digits'),
   body('password')
     .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
