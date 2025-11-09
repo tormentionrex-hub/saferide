@@ -1,4 +1,5 @@
 const { Booking, Ride, Notification } = require('../models');
+const { sendNotification } = require('../workers/notificationWorker');
 
 // @desc    Create a booking
 // @route   POST /api/v1/bookings
@@ -77,6 +78,16 @@ exports.createBooking = async (req, res, next) => {
         entityId: booking._id,
       },
     });
+
+    sendNotification(
+      ride.driver_id.toString(),
+      `${req.user.name} ha reservado ${seats_booked} asiento(s) en tu viaje`,
+      'booking_confirmed',
+      {
+        entityType: 'booking',
+        entityId: booking._id,
+      }
+    );
 
     await booking.populate('ride_id passenger_id');
 
@@ -310,6 +321,16 @@ exports.cancelBooking = async (req, res, next) => {
         entityId: booking._id,
       },
     });
+
+    sendNotification(
+      ride.driver_id.toString(),
+      `${req.user.name} ha cancelado su reserva`,
+      'booking_cancelled',
+      {
+        entityType: 'booking',
+        entityId: booking._id,
+      }
+    );
 
     res.status(200).json({
       success: true,

@@ -10,7 +10,9 @@
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "db:init": "node src/scripts/initDatabase.js",
-    "db:seed": "node src/scripts/seedDatabase.js"
+    "job:metrics": "node -e 'require(\"./src/jobs\").calculateMetricsJob().then(() => process.exit(0))'",
+    "job:cleanup": "node -e 'require(\"./src/jobs\").cleanupExpiredRidesJob().then(() => process.exit(0))'",
+    "job:reminders": "node -e 'require(\"./src/jobs\").sendRideRemindersJob().then(() => process.exit(0))'"
   },
   "keywords": [
     "carpooling",
@@ -46,7 +48,9 @@
     "node-cron": "^4.2.1",
     "passport": "^0.7.0",
     "passport-azure-ad": "^4.3.5",
-    "passport-http-bearer": "^1.0.1"
+    "passport-http-bearer": "^1.0.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "eslint": "^9.39.0",
