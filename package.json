@@ -10,7 +10,9 @@
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "db:init": "node src/scripts/initDatabase.js",
-    "db:seed": "node src/scripts/seedDatabase.js"
+    "job:metrics": "node -e 'require(\"./src/jobs\").calculateMetricsJob().then(() => process.exit(0))'",
+    "job:cleanup": "node -e 'require(\"./src/jobs\").cleanupExpiredRidesJob().then(() => process.exit(0))'",
+    "job:reminders": "node -e 'require(\"./src/jobs\").sendRideRemindersJob().then(() => process.exit(0))'"
   },
   "keywords": [
     "carpooling",
@@ -29,6 +31,7 @@
     "@azure/keyvault-secrets": "^4.10.0",
     "@azure/storage-blob": "^12.29.1",
     "bcryptjs": "^3.0.2",
+    "bull": "^4.16.5",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -36,14 +39,18 @@
     "express-rate-limit": "^8.2.1",
     "express-validator": "^7.3.0",
     "helmet": "^8.1.0",
+    "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^3.7.4",
     "mongoose": "^8.19.3",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
+    "node-cron": "^4.2.1",
     "passport": "^0.7.0",
     "passport-azure-ad": "^4.3.5",
-    "passport-http-bearer": "^1.0.1"
+    "passport-http-bearer": "^1.0.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "eslint": "^9.39.0",

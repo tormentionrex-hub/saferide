@@ -10,6 +10,25 @@ const metricsRoutes = require('./metricsRoutes');
 
 const router = express.Router();
 
+if (process.env.NODE_ENV === 'development') {
+  const { runJobManually } = require('../jobs');
+
+  router.post('/jobs/run/:jobName', async (req, res) => {
+    try {
+      const result = await runJobManually(req.params.jobName);
+      res.json({
+        success: true,
+        result
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  })
+}
+
 // Health check endpoint
 router.get('/health', (req, res) => {
   res.status(200).json({

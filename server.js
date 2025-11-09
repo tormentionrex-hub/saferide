@@ -1,5 +1,6 @@
 const app = require('./src/app');
 const { connectDB } = require('./src/config/database');
+const { initScheduledJobs } = require('./src/jobs/scheduledJobs');
 const logger = require('./src/utils/logger');
 
 const PORT = process.env.PORT || 8080;
@@ -10,6 +11,11 @@ const startServer = async () => {
     // Conectar a la base de datos primero
     await connectDB();
 
+    // Inicializar tareas programadas
+    if (process.env.NODE_ENV !== 'test') {
+      initScheduledJobs();
+    }
+
     // Iniciar servidor después de la conexión exitosa
     const server = app.listen(PORT, () => {
       logger.success(`🚀 Server running on port ${PORT}`);
@@ -17,6 +23,7 @@ const startServer = async () => {
       logger.info(`📡 API Version: ${process.env.API_VERSION || 'v1'}`);
       logger.info(`🔗 URL: http://localhost:${PORT}`);
       logger.info(`📊 Health Check: http://localhost:${PORT}/api/v1/health`);
+      logger.info(`📚 API Docs: http://localhost:${PORT}/api-docs`);
     });
 
     // Handle unhandled promise rejections
