@@ -11,7 +11,7 @@ jobs:
     permissions:
       contents: read
     services:
-      mongo:
+      mongo: 
         image: mongo:6.0
         ports:
           - 27017:27017
@@ -22,7 +22,21 @@ jobs:
     env:
       NODE_ENV: test
       # Point tests to local Mongo service and disable forcing TLS in tests
-      COSMOS_CONNECTION_STRING: mongodb://localhost:27017
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      BLOB_STORAGE_CONNECTION_STRING: ${{ secrets.BLOB_STORAGE_CONNECTION_STRING }}
+      COSMOS_CONNECTION_STRING: ${{ secrets.COSMOS_CONNECTION_STRING }}
+      COSMOS_DATABASE: ${{ secrets.COSMOS_DATABASE }}
+      BLOB_CONTAINER_PROFILE: ${{ secrets.BLOB_CONTAINER_PROFILE }}
+      BLOB_CONTAINER_VEHICLE: ${{ secrets.BLOB_CONTAINER_VEHICLE}}
+      ENTRA_TENANT_ID: ${{ secrets.ENTRA_TENANT_ID }}
+      ENTRA_CLIENT_ID: ${{ secrets.ENTRA_CLIENT_ID }}
+      ENTRA_CLIENT_SECRET: ${{ secrets.ENTRA_CLIENT_SECRET }}
+      ENTRA_REDIRECT_URI: ${{ secrets.ENTRA_REDIRECT_URI}}
+      APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}
+      CORS_ORIGIN: ${{ secrets.CORS_ORIGIN }}
+      KEY_VAULT_URL: ${{ secrets.KEY_VAULT_URL }}
+      RATE_LIMIT_WINDOW_MS: ${{ secrets.RATE_LIMIT_WINDOW_MS }}
+      RATE_LIMIT_MAX_REQUESTS: ${{ secrets.RATE_LIMIT_MAX_REQUESTS }}
       COSMOS_TLS: 'false'
 
     steps:
@@ -56,3 +70,4 @@ jobs:
         with:
           name: node-app
           path: .
+
