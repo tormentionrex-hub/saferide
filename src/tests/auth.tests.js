@@ -5,17 +5,19 @@ const mongoose = require('mongoose');
 
 describe('Auth Endpoints', () => {
   beforeAll(async () => {
-    // Setup test database connection
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(process.env.COSMOS_CONNECTION_STRING, {
-        dbName: 'Safe-RideDB-Test', // Use separate test database
-        serverSelectionTimeoutMS: 10000,
-        tls: true,
-        authMechanism: 'SCRAM-SHA-256',
-        retryWrites: false,
-      });
-    }
-  });
+  // Setup test database connection
+  if (mongoose.connection.readyState === 0) {
+    const tls = process.env.COSMOS_TLS === 'true';
+    await mongoose.connect(process.env.COSMOS_CONNECTION_STRING || 'mongodb://localhost:27017', {
+      dbName: 'Safe-RideDB-Test',
+      serverSelectionTimeoutMS: 30000,
+      tls,
+      // Only set authMechanism when credentials are provided
+      ...(process.env.COSMOS_USERNAME ? { authMechanism: 'SCRAM-SHA-256' } : {}),
+      retryWrites: false,
+    });
+  }
+});
 
   afterAll(async () => {
     // Cleanup test data and close connection
