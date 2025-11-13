@@ -12,7 +12,9 @@
     "db:init": "node src/scripts/initDatabase.js",
     "job:metrics": "node -e 'require(\"./src/jobs\").calculateMetricsJob().then(() => process.exit(0))'",
     "job:cleanup": "node -e 'require(\"./src/jobs\").cleanupExpiredRidesJob().then(() => process.exit(0))'",
-    "job:reminders": "node -e 'require(\"./src/jobs\").sendRideRemindersJob().then(() => process.exit(0))'"
+    "job:reminders": "node -e 'require(\"./src/jobs\").sendRideRemindersJob().then(() => process.exit(0))'",
+    "docs:generate": "node src/scripts/generate-postman.js",
+    "docs:postman": "npm run docs:generate && openapi2postmanv2 -s swagger-spec.json -o postman-collection.json -p"
   },
   "keywords": [
     "carpooling",
