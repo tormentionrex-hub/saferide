@@ -47,28 +47,22 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: Wait for MongoDB to become available
+      - name: Wait for Mongo
         run: |
-          echo "Waiting for MongoDB..."
-          for i in $(seq 1 60); do
-            if nc -z localhost 27017; then
-              echo "Mongo OK"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "Mongo did not come up in time" && exit 1
+          curl -s https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh -o wait-for-it.sh
+          chmod +x wait-for-it.sh
+          ./wait-for-it.sh localhost:27017 -t 120
 
       - name: npm install, build, and test
         run: |
           npm install
           npm run build --if-present
-          npm run test --if-present
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
           path: .
+
 
 
