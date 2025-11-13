@@ -1,4 +1,6 @@
 const { Ride, Booking, User } = require('../models');
+const { success } = require('../utils/logger');
+const tz = require('../utils/timeZone');
 
 // @desc    Create a new ride
 // @route   POST /api/v1/rides
@@ -15,12 +17,32 @@ exports.createRide = async (req, res, next) => {
       });
     }
 
+    
+    // Parse and validate date_time using configured timezone, store in UTC
+    const requested = tz.parseIsoToZone(date_time);
+    if (!requested || !requested.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid date_time. Send a valid ISO datetime or set APP_TIMEZONE.',
+      });
+    }
+
+    const now = tz.now();
+    if (requested < now) {
+      return res.status(400).json({
+        success: false,
+        message: `date_time must be in the future according to timezone ${tz.zoneName()}`,
+      });
+    }
+
+    const requestedUtcDate = tz.toJSDate(tz.toUTC(requested));
+
     // Create ride
     const ride = await Ride.create({
       driver_id: req.user._id,
       origin,
       destination,
-      date_time: new Date(date_time),
+      date_time: requestedUtcDate,
       available_seats,
       distance_km,
       duration_minutes,
@@ -70,11 +92,21 @@ exports.getAllRides = async (req, res, next) => {
     }
 
     // Filter by date
-    if (date) {
+/*     if (date) {
       const startDate = new Date(date);
       const endDate = new Date(date);
       endDate.setHours(23, 59, 59, 999);
       query.date_time = { $gte: startDate, $lte: endDate };
+    } */
+
+    if (date) {
+      const startLocal = tz.parseIsoToZone(`${date}T00:00:00`);
+      const endLocal = tz.parseIsoToZone(`${date}T23:59:59.999`);
+      if (startLocal && startLocal.isValid && endLocal && endLocal.isValid){
+        const startUtc = tz.toJSDate(tz.toUTC(startLocal));
+        const endUtc = tz.toJSDate(tz.toUTC(endLocal));
+        query.date_time = { $gte: startUtc, $lte: endUtc };
+      }
     }
 
     // Filter by minimum available seats
@@ -172,6 +204,18 @@ exports.updateRide = async (req, res, next) => {
     allowedUpdates.forEach(field => {
       if (req.body[field] !== undefined) {
         updates[field] = req.body[field];
+        if (field === 'date_time') {
+          const parsed = tz.parseIsoToZone(req.body[field]);
+          if (!parsed || !parsed.isValid) {
+            res.status(400).json({
+              success: false,
+              message: 'Invalid date_time'
+            });
+          }
+          updates[field] = tz.toJSDate(tz.toUTC(parsed));
+        } else {
+          updates[field] = req.body[field];
+        }
       }
     });
 
