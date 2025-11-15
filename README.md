@@ -73,6 +73,18 @@ Este proyecto nace de la necesidad de facilitar el transporte compartido entre e
 - ✅ Dashboard de métricas del sistema
 - ✅ Estadísticas de usuarios, viajes y reservas
 - ✅ Análisis de uso por empresa
+- ✅ Métricas de sostenibilidad (CO2 ahorrado, km compartidos)
+
+### Jobs y Tareas Programadas
+- ✅ Cálculo automático de métricas (diario a las 2:00 AM)
+- ✅ Limpieza de viajes expirados (diario a medianoche)
+- ✅ Envío de recordatorios de viajes (cada 6 horas)
+- ✅ Sistema de cola para notificaciones
+- ✅ Worker de notificaciones en memoria
+
+### Sistema de Eventos
+- ✅ Event Emitter personalizado para eventos de aplicación
+- ✅ Arquitectura orientada a eventos
 
 ### Seguridad
 - ✅ Autenticación JWT con tokens de acceso y actualización
@@ -109,6 +121,16 @@ Este proyecto nace de la necesidad de facilitar el transporte compartido entre e
 - Supertest - Testing de APIs HTTP
 - ESLint - Linting de código
 - Nodemon - Auto-reload en desarrollo
+
+### Documentación de API
+- Swagger/OpenAPI 3.0 - Especificación de API
+- Swagger UI - Interfaz de documentación interactiva
+- Postman Collection - Colección de endpoints para testing
+
+### Jobs y Workers
+- Node-Cron - Tareas programadas (scheduled jobs)
+- Bull - Sistema de colas (para expansión futura)
+- Event Emitter - Sistema de eventos personalizado
 
 ## 📦 Requisitos Previos
 
@@ -246,8 +268,14 @@ npm run lint:fix
 # Inicializar base de datos
 npm run db:init
 
-# Poblar base de datos con datos de prueba
-npm run db:seed
+# Ejecutar jobs manualmente
+npm run job:metrics         # Calcular métricas
+npm run job:cleanup         # Limpiar viajes expirados
+npm run job:reminders       # Enviar recordatorios
+
+# Generar documentación
+npm run docs:generate       # Generar spec de Swagger/OpenAPI
+npm run docs:postman       # Generar colección de Postman
 ```
 
 ### Health Check
@@ -359,6 +387,49 @@ http://localhost:8080/api/v1
 | GET | `/metrics/users` | Estadísticas de usuarios | Sí (Admin) |
 | GET | `/metrics/rides` | Estadísticas de viajes | Sí (Admin) |
 
+## 📖 Documentación de la API
+
+### Swagger/OpenAPI
+
+La API incluye documentación interactiva completa usando Swagger UI:
+
+**Acceso a la documentación:**
+
+```
+http://localhost:8080/api-docs
+```
+
+**Características:**
+- Especificación OpenAPI 3.0 completa
+- Interfaz interactiva para probar endpoints
+- Ejemplos de requests y responses
+- Esquemas de datos detallados
+- Información de autenticación y rate limiting
+
+**Servidores disponibles:**
+- **Desarrollo Local:** `http://localhost:8080/api/v1`
+- **Azure Dev:** `https://app-saferide-api-dev.azurewebsites.net/api/v1`
+- **Azure Producción:** `https://app-safe-ride-prd-001-eeekf5h8cvfkbbha.centralus-01.azurewebsites.net/api/v1`
+
+### Colección de Postman
+
+El repositorio incluye una colección de Postman actualizada con todos los endpoints:
+
+**Archivo:** `postman-collection.json`
+
+**Para usar:**
+1. Abre Postman
+2. Importa el archivo `postman-collection.json`
+3. Configura las variables de entorno si es necesario
+4. Comienza a probar los endpoints
+
+**Generar/Actualizar la colección:**
+
+```bash
+npm run docs:generate  # Genera swagger-spec.json
+npm run docs:postman   # Convierte a colección de Postman
+```
+
 ## 📁 Estructura del Proyecto
 
 ```
@@ -368,7 +439,8 @@ saferide-backend/
 │   ├── config/                # Configuraciones
 │   │   ├── auth.js           # Configuración JWT
 │   │   ├── azure.js          # Clientes de Azure (Blob, KeyVault)
-│   │   └── database.js       # Conexión a Cosmos DB
+│   │   ├── database.js       # Conexión a Cosmos DB
+│   │   └── swagger.js        # Configuración de Swagger/OpenAPI
 │   ├── controllers/           # Controladores de las rutas
 │   │   ├── authController.js
 │   │   ├── bookingController.js
@@ -403,21 +475,38 @@ saferide-backend/
 │   │   ├── vehicleRoutes.js
 │   │   └── index.js
 │   ├── scripts/               # Scripts de utilidad
-│   │   └── initDatabase.js   # Inicialización de BD
+│   │   ├── initDatabase.js   # Inicialización de BD
+│   │   └── generate-postman.js # Generación de colección Postman
 │   ├── services/              # Lógica de negocio
 │   │   ├── blobService.js
 │   │   ├── metricsService.js
 │   │   └── notificationService.js
+│   ├── jobs/                  # Tareas programadas (cron jobs)
+│   │   ├── calculateMetrics.js    # Cálculo de métricas
+│   │   ├── cleanupExpiredRides.js # Limpieza de viajes
+│   │   ├── sendRideReminders.js   # Envío de recordatorios
+│   │   ├── scheduledJobs.js       # Configuración de cron
+│   │   └── index.js
+│   ├── workers/               # Workers de procesamiento
+│   │   └── notificationWorker.js # Worker de notificaciones
+│   ├── events/                # Sistema de eventos
+│   │   └── eventEmitter.js   # Event emitter personalizado
 │   ├── tests/                 # Tests
 │   │   ├── auth.tests.js
 │   │   └── setup.js
 │   └── utils/                 # Utilidades
 │       ├── logger.js          # Logger personalizado
-│       └── responseHelper.js  # Helpers de respuestas
+│       ├── responseHelper.js  # Helpers de respuestas
+│       └── timeZone.js        # Utilidades de zona horaria
+├── public/                    # Archivos estáticos
 ├── .eslintrc.js              # Configuración ESLint
 ├── .gitignore                # Archivos ignorados por Git
+├── .env.example              # Ejemplo de variables de entorno
 ├── jest.config.js            # Configuración de Jest
 ├── package.json              # Dependencias y scripts
+├── swagger-spec.json         # Especificación OpenAPI/Swagger
+├── postman-collection.json   # Colección de Postman
+├── AZURE_DEPLOYMENT.md       # Guía de despliegue en Azure
 ├── README.md                 # Este archivo
 └── server.js                 # Punto de entrada de la aplicación
 ```
@@ -444,6 +533,88 @@ Los tests incluyen:
 - Tests de endpoints de API
 - Tests de validación de datos
 - Tests de middleware
+
+## ⚙️ Jobs y Tareas Programadas
+
+El sistema incluye un conjunto de tareas programadas (cron jobs) y workers que se ejecutan automáticamente para mantener la integridad de los datos y mejorar la experiencia del usuario.
+
+### Tareas Programadas (Scheduled Jobs)
+
+Las tareas programadas se ejecutan automáticamente en intervalos específicos:
+
+**1. Cálculo de Métricas** (`calculateMetrics.js`)
+- **Frecuencia:** Diario a las 2:00 AM (hora de Costa Rica)
+- **Función:** Calcula y actualiza métricas de sostenibilidad del sistema
+- **Incluye:**
+  - CO2 ahorrado por viajes compartidos
+  - Kilómetros totales compartidos
+  - Estadísticas de usuarios activos
+  - Métricas por empresa
+
+**2. Limpieza de Viajes Expirados** (`cleanupExpiredRides.js`)
+- **Frecuencia:** Diario a medianoche (hora de Costa Rica)
+- **Función:** Limpia y actualiza el estado de viajes expirados
+- **Acciones:**
+  - Marca viajes pasados como "completados" o "cancelados"
+  - Libera recursos de viajes antiguos
+  - Mantiene la base de datos optimizada
+
+**3. Envío de Recordatorios** (`sendRideReminders.js`)
+- **Frecuencia:** Cada 6 horas
+- **Función:** Envía recordatorios automáticos a usuarios
+- **Incluye:**
+  - Recordatorios de viajes próximos (24h antes)
+  - Notificaciones de confirmación de reservas
+  - Alertas de cambios en viajes
+
+### Workers
+
+**Notification Worker** (`notificationWorker.js`)
+- **Tipo:** Worker en memoria con cola de procesamiento
+- **Función:** Procesa y envía notificaciones de forma asíncrona
+- **Características:**
+  - Cola FIFO (First In, First Out)
+  - Procesamiento automático sin bloqueo
+  - Logging detallado de cada notificación
+  - Preparado para integración con servicios de push notifications
+
+### Ejecutar Jobs Manualmente
+
+Para propósitos de testing o mantenimiento, puedes ejecutar los jobs manualmente:
+
+```bash
+# Calcular métricas
+npm run job:metrics
+
+# Limpiar viajes expirados
+npm run job:cleanup
+
+# Enviar recordatorios
+npm run job:reminders
+```
+
+### Sistema de Eventos
+
+El sistema utiliza un Event Emitter personalizado (`eventEmitter.js`) para comunicación entre componentes:
+
+**Eventos soportados:**
+- Creación de reservas
+- Confirmación de viajes
+- Actualizaciones de usuario
+- Notificaciones en tiempo real
+
+**Uso:**
+```javascript
+const eventEmitter = require('./events/eventEmitter');
+
+// Emitir evento
+eventEmitter.emit('booking:created', { bookingId, userId });
+
+// Escuchar evento
+eventEmitter.on('booking:created', (data) => {
+  // Procesar evento
+});
+```
 
 ## 🔒 Seguridad
 
@@ -490,7 +661,23 @@ Los tests incluyen:
 
 ## 🚢 Despliegue
 
+Este proyecto está desplegado en Azure App Service con múltiples ambientes.
+
+### Ambientes Disponibles
+
+**Desarrollo:**
+- URL: `https://app-saferide-api-dev.azurewebsites.net/api/v1`
+- Propósito: Testing y desarrollo
+
+**Producción:**
+- URL: `https://app-safe-ride-prd-001-eeekf5h8cvfkbbha.centralus-01.azurewebsites.net/api/v1`
+- Propósito: Producción estable
+
 ### Azure App Service
+
+Para más detalles sobre el despliegue en Azure, consulta [AZURE_DEPLOYMENT.md](./AZURE_DEPLOYMENT.md).
+
+**Pasos rápidos de despliegue:**
 
 1. **Crear App Service**
 
