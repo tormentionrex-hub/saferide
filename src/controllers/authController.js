@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
-
+// Helper function to generate access and refresh tokens
 const generateTokens = (userId) => {
     const accessToken = jwt.sign(
         { userId },
@@ -21,6 +21,7 @@ const generateTokens = (userId) => {
 // @route POST /api/v1/auth/register
 // @access Public
 
+// Function to register a new user
 exports.register = async (req, res, next) =>{
     try {
         const { name, username, email, phone, password, company, work_schedule, type}= req.body;
@@ -73,6 +74,7 @@ exports.register = async (req, res, next) =>{
 // @route POST /api/v1/auth/login
 // @access Public
 
+//Function to login a user
 exports.login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
@@ -122,6 +124,7 @@ exports.login = async (req, res, next) => {
 // @route POST /api/v1/auth/refresh-token
 // @access Public
 
+//Function to refresh access token
 exports.refreshToken = async (req, res, next) => {
     try {
         const { refreshToken} = req.body;
@@ -170,6 +173,7 @@ exports.refreshToken = async (req, res, next) => {
 // @route POST /api/v1/auth/logout
 // @access Private
 
+//Function to logout a user
 exports.logout = async (req, res, next) => {
     try {
         // Clear refresh token
@@ -189,6 +193,7 @@ exports.logout = async (req, res, next) => {
 // @route GET /api/v1/auth/me
 // @access Private
 
+//Function to get current user
 exports.getMe = async (req, res, next) => {
     try {
         res.status(200).json({
@@ -204,6 +209,7 @@ exports.getMe = async (req, res, next) => {
 // @route PUT /api/v1/auth/password
 // @access Private
 
+//Function to update user password
 exports.updatePassword = async (req, res, next) => {
     try {
         const { currentPassword, newPassword } = req.body;

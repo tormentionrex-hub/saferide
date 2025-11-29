@@ -26,7 +26,7 @@ exports.createRide = async (req, res, next) => {
         message: 'Invalid date_time. Send a valid ISO datetime or set APP_TIMEZONE.',
       });
     }
-
+    // Ensure date_time is in the future according to configured timezone
     const now = tz.now();
     if (requested < now) {
       return res.status(400).json({
@@ -34,7 +34,7 @@ exports.createRide = async (req, res, next) => {
         message: `date_time must be in the future according to timezone ${tz.zoneName()}`,
       });
     }
-
+    // Convert to UTC for storage
     const requestedUtcDate = tz.toJSDate(tz.toUTC(requested));
 
     // Create ride
@@ -47,9 +47,9 @@ exports.createRide = async (req, res, next) => {
       distance_km,
       duration_minutes,
     });
-
+    // Populate driver details
     await ride.populate('driver_id', 'name username rating profileImage');
-
+    // Respond successfully
     res.status(201).json({
       success: true,
       message: 'Ride created successfully',
@@ -63,6 +63,8 @@ exports.createRide = async (req, res, next) => {
 // @desc    Get all rides with filters
 // @route   GET /api/v1/rides
 // @access  Public
+
+//Function to get all rides
 exports.getAllRides = async (req, res, next) => {
   try {
     const {
@@ -98,7 +100,7 @@ exports.getAllRides = async (req, res, next) => {
       endDate.setHours(23, 59, 59, 999);
       query.date_time = { $gte: startDate, $lte: endDate };
     } */
-
+    // Filter by date using timezone-aware method
     if (date) {
       const startLocal = tz.parseIsoToZone(`${date}T00:00:00`);
       const endLocal = tz.parseIsoToZone(`${date}T23:59:59.999`);
@@ -113,13 +115,13 @@ exports.getAllRides = async (req, res, next) => {
     if (minSeats) {
       query.available_seats = { $gte: parseInt(minSeats) };
     }
-
+    // Fetch rides with pagination
     const rides = await Ride.find(query)
       .populate('driver_id', 'name username rating profileImage')
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ date_time: 1 });
-
+    // Get total count for pagination
     const count = await Ride.countDocuments(query);
 
     res.status(200).json({
@@ -139,6 +141,8 @@ exports.getAllRides = async (req, res, next) => {
 // @desc    Get ride by ID
 // @route   GET /api/v1/rides/:id
 // @access  Public
+
+//Function to get ride by ID
 exports.getRideById = async (req, res, next) => {
   try {
     const ride = await Ride.findById(req.params.id)
@@ -150,14 +154,14 @@ exports.getRideById = async (req, res, next) => {
           select: 'name username rating profileImage',
         },
       });
-
+      // Validate ride existence
     if (!ride) {
       return res.status(404).json({
         success: false,
         message: 'Ride not found',
       });
     }
-
+    // Respond successfully
     res.status(200).json({
       success: true,
       data: ride,
@@ -170,10 +174,12 @@ exports.getRideById = async (req, res, next) => {
 // @desc    Update ride
 // @route   PUT /api/v1/rides/:id
 // @access  Private/Conductor
+
+//Function to update ride
 exports.updateRide = async (req, res, next) => {
   try {
     const ride = await Ride.findById(req.params.id);
-
+    // Validate ride existence
     if (!ride) {
       return res.status(404).json({
         success: false,
@@ -200,7 +206,7 @@ exports.updateRide = async (req, res, next) => {
     // Fields that can be updated
     const allowedUpdates = ['date_time', 'available_seats', 'status'];
     const updates = {};
-
+    // Process updates
     allowedUpdates.forEach(field => {
       if (req.body[field] !== undefined) {
         updates[field] = req.body[field];
@@ -218,7 +224,7 @@ exports.updateRide = async (req, res, next) => {
         }
       }
     });
-
+    // Apply updates to ride
     Object.assign(ride, updates);
     await ride.save();
 
@@ -235,6 +241,8 @@ exports.updateRide = async (req, res, next) => {
 // @desc    Cancel ride
 // @route   DELETE /api/v1/rides/:id
 // @access  Private/Conductor
+
+//Function to cancel ride
 exports.cancelRide = async (req, res, next) => {
   try {
     const ride = await Ride.findById(req.params.id);
@@ -256,7 +264,7 @@ exports.cancelRide = async (req, res, next) => {
         message: 'Access denied',
       });
     }
-
+    // Can only cancel if ride is still scheduled
     ride.status = 'cancelled';
     await ride.save();
 
@@ -274,19 +282,21 @@ exports.cancelRide = async (req, res, next) => {
 // @desc    Get rides by driver
 // @route   GET /api/v1/rides/driver/:driverId
 // @access  Private
+
+//Function to get rides by driver
 exports.getRidesByDriver = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, status } = req.query;
     const query = { driver_id: req.params.driverId };
-
+    // Optional status filter
     if (status) query.status = status;
-
+    // Fetch rides with pagination
     const rides = await Ride.find(query)
       .populate('driver_id', 'name username rating')
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ date_time: -1 });
-
+    // Get total count for pagination
     const count = await Ride.countDocuments(query);
 
     res.status(200).json({
@@ -306,6 +316,8 @@ exports.getRidesByDriver = async (req, res, next) => {
 // @desc    Start ride
 // @route   PATCH /api/v1/rides/:id/start
 // @access  Private/Conductor
+
+//Function to start ride
 exports.startRide = async (req, res, next) => {
   try {
     const ride = await Ride.findById(req.params.id);
@@ -324,14 +336,14 @@ exports.startRide = async (req, res, next) => {
         message: 'Access denied',
       });
     }
-
+    // Can only start if ride is scheduled
     if (ride.status !== 'scheduled') {
       return res.status(400).json({
         success: false,
         message: 'Ride cannot be started',
       });
     }
-
+    // Update status to in_progress
     ride.status = 'in_progress';
     await ride.save();
 
@@ -348,10 +360,13 @@ exports.startRide = async (req, res, next) => {
 // @desc    Complete ride
 // @route   PATCH /api/v1/rides/:id/complete
 // @access  Private/Conductor
+
+//Function to complete ride
 exports.completeRide = async (req, res, next) => {
   try {
     const ride = await Ride.findById(req.params.id);
 
+    // Validate ride existence
     if (!ride) {
       return res.status(404).json({
         success: false,
@@ -367,6 +382,7 @@ exports.completeRide = async (req, res, next) => {
       });
     }
 
+    // Can only complete if ride is in progress
     if (ride.status !== 'in_progress') {
       return res.status(400).json({
         success: false,
@@ -374,6 +390,7 @@ exports.completeRide = async (req, res, next) => {
       });
     }
 
+    // Update status to completed
     ride.status = 'completed';
     await ride.save();
 

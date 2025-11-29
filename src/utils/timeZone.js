@@ -1,7 +1,8 @@
 const { DateTime } = require('luxon');
-
+// Get timezone from environment or default.
+//TODO: Validate if the timezone works correctly with the Front End application
 const TZ = process.env.APP_TIMEZONE || process.env.TZ || 'America/Costa_Rica';
-
+// Get current time in configured timezone
 function now() {
   return DateTime.utc().setZone(TZ);
 }
@@ -39,6 +40,7 @@ function toJSDate(dt) {
   return iso ? new Date(iso) : null;
 }
 
+// Return configured timezone name
 function zoneName() {
   return TZ;
 }

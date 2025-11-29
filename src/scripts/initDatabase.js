@@ -1,14 +1,15 @@
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 require('dotenv').config();
-
+//Script to initialize the database: create collections and indexes as per models. Note: If the databse is already initialized, it will skip existing collections/indexes.
+// Import all models
 const models = require('../models');
-
+// Main function to initialize the database
 const initDatabase = async () => {
   try {
     logger.info('🚀 Starting database initialization...');
 
-    // Conectar a la base de datos
+    // Connect to the database
     const connectionString = process.env.COSMOS_CONNECTION_STRING;
     
     await mongoose.connect(connectionString, {
@@ -20,11 +21,11 @@ const initDatabase = async () => {
 
     logger.success('✅ Connected to database');
 
-    // Crear la base de datos si no existe (automático con primera inserción)
+    // Create the database if it doesn't exist (automatic with first insertion)
     const dbName = process.env.COSMOS_DATABASE || 'SafeRideDB';
     logger.info(`📊 Using database: ${dbName}`);
 
-    // Crear colecciones e índices para cada modelo
+    // Create collections and indexes for each model
     const modelNames = Object.keys(models);
     
     for (const modelName of modelNames) {
@@ -33,10 +34,10 @@ const initDatabase = async () => {
       logger.info(`📝 Creating collection: ${Model.collection.name}`);
       
       try {
-        // Crear colección si no existe
+        // Create collection if it doesn't exist
         await Model.createCollection();
       } catch (error) {
-        // La colección ya existe, continuar
+        // Collection already exists, continue
         if (error.code !== 48) { // 48 = NamespaceExists
           throw error;
         }
@@ -44,11 +45,11 @@ const initDatabase = async () => {
       }
       
       try {
-        // Sincronizar índices (esto maneja duplicados automáticamente en mongoose 6+)
+        // Synchronize indexes (this handles duplicates automatically in mongoose 6+)
         await Model.syncIndexes();
         logger.success(`✅ Indexes synced for ${Model.collection.name}`);
       } catch (error) {
-        // Si hay conflicto de índices, intentar eliminar y recrear
+        // If there is an index conflict, try dropping and recreating
         if (error.code === 86) { // IndexKeySpecsConflict
           logger.warn(`⚠️  Index conflict detected for ${Model.collection.name}, dropping and recreating...`);
           await Model.collection.dropIndexes();
@@ -60,7 +61,7 @@ const initDatabase = async () => {
       }
     }
 
-    // Verificar colecciones creadas
+    // Verify created collections
     const collections = await mongoose.connection.db.listCollections().toArray();
     logger.info(`📚 Collections created: ${collections.map(c => c.name).join(', ')}`);
 
@@ -76,7 +77,7 @@ const initDatabase = async () => {
   }
 };
 
-// Ejecutar si se llama directamente
+// Execute if called directly
 if (require.main === module) {
   initDatabase()
     .then(() => process.exit(0))

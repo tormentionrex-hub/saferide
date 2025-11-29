@@ -220,6 +220,11 @@ Parámetros de query:
               description: 'Color del vehículo',
               example: 'Blanco',
             },
+            capacity: {
+              type: 'integer',
+              description: 'Capacidad del vehículo',
+              example: 4,
+            },
             year: {
               type: 'integer',
               minimum: 1900,

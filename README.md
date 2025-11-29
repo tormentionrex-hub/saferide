@@ -1,34 +1,38 @@
 # Safe-Ride Backend API
 
-> Backend REST API para la aplicación de carpooling empresarial Safe-Ride, desarrollada con Node.js, Express y Azure Cosmos DB.
-
+![Safe-Ride Banner](public/safe-ride-logo-inverted.png)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
 
+Backend robusto y escalable para la plataforma de carpooling **Safe-Ride**, diseñado para facilitar el transporte compartido corporativo y universitario, reduciendo la huella de carbono y optimizando la movilidad urbana.
+
 ## 📋 Tabla de Contenidos
 
-- [Descripción](#-descripción)
-- [Características](#-características)
-- [Tecnologías](#-tecnologías)
-- [Requisitos Previos](#-requisitos-previos)
-- [Instalación](#-instalación)
-- [Configuración](#-configuración)
-- [Uso](#-uso)
-- [Endpoints de la API](#-endpoints-de-la-api)
+- [Descripción del Proyecto](#-descripción-del-proyecto)
+- [Caracteristicas](#-características)
+- [Arquitectura e Infraestructura](#-arquitectura-e-infraestructura)
+- [Tecnologías Utilizadas](#-tecnologías-utilizadas)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Base de Datos](#-base-de-datos)
+- [API Endpoints](#-api-endpoints)
+- [Instalación y Configuración](#-instalación-y-configuración)
 - [Testing](#-testing)
-- [Seguridad](#-seguridad)
 - [Despliegue](#-despliegue)
-- [Contribuir](#-contribuir)
-- [Autor](#-autor)
+- [Colaboración](#-colaboración)
+- [Contacto](#-contacto)
 
-## 🚀 Descripción
+---
 
-Safe-Ride es una plataforma backend para gestionar un sistema de carpooling empresarial que conecta conductores y pasajeros de diferentes empresas en Costa Rica. El sistema permite a los usuarios registrarse, crear viajes, realizar reservas, gestionar vehículos, y proporciona un sistema completo de autenticación, notificaciones y métricas.
+## 📖 Descripción del Proyecto
 
-### Motivación
+Safe-Ride es una solución tecnológica que conecta a conductores con asientos disponibles y pasajeros que se dirigen al mismo destino. El backend gestiona toda la lógica de negocio, incluyendo:
 
-Este proyecto nace de la necesidad de facilitar el transporte compartido entre empleados de empresas como Intel, Cargill, Deloitte, Citi, Experian, 3M, DHL, BGO, WeWork, Concentrix y Nestlé en Costa Rica, promoviendo la movilidad sostenible y reduciendo costos de transporte.
+- **Gestión de Usuarios:** Perfiles de conductores y pasajeros, autenticación segura.
+- **Viajes (Rides):** Creación, búsqueda geoespacial y gestión de estados de viajes.
+- **Reservas (Bookings):** Sistema de solicitud y confirmación de asientos.
+- **Seguridad:** Validación de vehículos y licencias.
+- **Gamificación y Métricas:** Cálculo de ahorro de CO2 y kilómetros compartidos.
+- **Notificaciones:** Alertas en tiempo real sobre el estado de los viajes.
 
 ## ✨ Características
 
@@ -73,18 +77,6 @@ Este proyecto nace de la necesidad de facilitar el transporte compartido entre e
 - ✅ Dashboard de métricas del sistema
 - ✅ Estadísticas de usuarios, viajes y reservas
 - ✅ Análisis de uso por empresa
-- ✅ Métricas de sostenibilidad (CO2 ahorrado, km compartidos)
-
-### Jobs y Tareas Programadas
-- ✅ Cálculo automático de métricas (diario a las 2:00 AM)
-- ✅ Limpieza de viajes expirados (diario a medianoche)
-- ✅ Envío de recordatorios de viajes (cada 6 horas)
-- ✅ Sistema de cola para notificaciones
-- ✅ Worker de notificaciones en memoria
-
-### Sistema de Eventos
-- ✅ Event Emitter personalizado para eventos de aplicación
-- ✅ Arquitectura orientada a eventos
 
 ### Seguridad
 - ✅ Autenticación JWT con tokens de acceso y actualización
@@ -95,208 +87,182 @@ Este proyecto nace de la necesidad de facilitar el transporte compartido entre e
 - ✅ Validación de datos con express-validator
 - ✅ Integración con Azure Key Vault
 
-## 🛠️ Tecnologías
+## 🏗 Arquitectura e Infraestructura
 
-### Backend
-- **Runtime:** Node.js (>=18.0.0)
-- **Framework:** Express 5.1.0
-- **Base de Datos:** Azure Cosmos DB for MongoDB (vCore) con Mongoose 8.19.3
-- **Autenticación:** JWT, Passport, Azure AD
+El sistema está construido sobre una arquitectura monolítica modular desplegada en la nube de **Microsoft Azure**.
 
-### Servicios Azure
-- **Azure Cosmos DB:** Base de datos NoSQL
-- **Azure Blob Storage:** Almacenamiento de imágenes
-- **Azure Key Vault:** Gestión de secretos
-- **Azure Active Directory:** Autenticación empresarial
+### Diagrama de Infraestructura
 
-### Seguridad y Middleware
-- Helmet - Seguridad de headers HTTP
-- CORS - Control de acceso cross-origin
-- Express Rate Limit - Limitación de peticiones
-- Bcrypt - Hashing de contraseñas
-- Morgan - Logging de peticiones HTTP
+```mermaid
+graph TD
+    Client["Cliente Web/Móvil"] -->|HTTPS| FD["Azure Front Door"]
+    FD -->|Load Balancing| AppService["Azure App Service (Linux)"]
 
-### Desarrollo y Testing
-- Jest - Framework de testing
-- Supertest - Testing de APIs HTTP
-- ESLint - Linting de código
-- Nodemon - Auto-reload en desarrollo
+    subgraph "Azure Cloud Resource Group"
+        AppService -->|Persistencia| CosmosDB["Azure Cosmos DB for MongoDB (vCore)"]
+        AppService -->|Almacenamiento| BlobStorage["Azure Blob Storage"]
+        AppService -->|Logs & Monitoreo| AppInsights["Application Insights"]
+    end
 
-### Documentación de API
-- Swagger/OpenAPI 3.0 - Especificación de API
-- Swagger UI - Interfaz de documentación interactiva
-- Postman Collection - Colección de endpoints para testing
+    AppService -->|Timezone Handling| Luxon["Luxon (America/Costa_Rica)"]
+```
 
-### Jobs y Workers
-- Node-Cron - Tareas programadas (scheduled jobs)
-- Bull - Sistema de colas (para expansión futura)
-- Event Emitter - Sistema de eventos personalizado
+### Componentes Clave
 
-## 📦 Requisitos Previos
+- **Azure App Service:** Hospeda la aplicación Node.js en un entorno Linux.
+- **Azure Cosmos DB (vCore):** Base de datos NoSQL compatible con MongoDB para almacenamiento de alto rendimiento.
+- **Azure Front Door:** CDN y balanceador de carga global para baja latencia y seguridad.
+- **Azure Blob Storage:** Almacenamiento de imágenes de perfil y vehículos.
 
-Antes de comenzar, asegúrate de tener instalado:
+## 🛠 Tecnologías Utilizadas
 
-- **Node.js** >= 18.0.0 ([Descargar](https://nodejs.org/))
-- **npm** >= 9.0.0 (incluido con Node.js)
-- **Git** ([Descargar](https://git-scm.com/))
-- **Cuenta de Azure** (para Cosmos DB, Blob Storage y Key Vault)
+### Core
 
-## 🔧 Instalación
+- **Runtime:** [Node.js](https://nodejs.org/) (v18+)
+- **Framework:** [Express.js](https://expressjs.com/) (v5.0)
+- **Lenguaje:** JavaScript (ES6+)
 
-1. **Clonar el repositorio**
+### Base de Datos & ODM
+
+- **Mongoose:** Modelado de objetos para MongoDB.
+- **MongoDB / Azure Cosmos DB:** Base de datos principal.
+
+### Seguridad & Utilidades
+
+- **JWT (JsonWebToken):** Autenticación stateless.
+- **BcryptJS:** Hashing de contraseñas.
+- **Helmet & CORS:** Seguridad de cabeceras HTTP.
+- **Express Validator:** Validación de datos de entrada.
+- **Luxon:** Manejo preciso de zonas horarias (UTC vs Local).
+- **Multer:** Manejo de subida de archivos (imágenes).
+
+### Documentación & Testing
+
+- **Swagger (OpenAPI 3.0):** Documentación interactiva de la API.
+- **Jest:** Framework de pruebas unitarias y de integración.
+
+## 📂 Estructura del Proyecto
 
 ```bash
-git clone https://github.com/jmunozc023/saferide-backend.git
-cd saferide-backend
+saferide-backend/
+├── src/
+│   ├── app.js                 # Configuración principal de Express
+│   ├── config/                # Configuraciones
+│   │   ├── auth.js           # Configuración JWT
+│   │   ├── azure.js          # Clientes de Azure (Blob, KeyVault)
+│   │   └── database.js       # Conexión a Cosmos DB
+│   ├── controllers/           # Controladores de las rutas
+│   │   ├── authController.js
+│   │   ├── bookingController.js
+│   │   ├── metricsController.js
+│   │   ├── notificationController.js
+│   │   ├── reviewController.js
+│   │   ├── rideController.js
+│   │   ├── userController.js
+│   │   └── vehicleController.js
+│   ├── middleware/            # Middleware personalizado
+│   │   ├── auth.js           # Autenticación y autorización
+│   │   ├── errorHandler.js   # Manejo de errores
+│   │   ├── rateLimiter.js    # Rate limiting
+│   │   └── validation.js     # Validación de datos
+│   ├── models/                # Modelos de Mongoose
+│   │   ├── Bookings.js
+│   │   ├── Metics.js
+│   │   ├── Notification.js
+│   │   ├── Review.js
+│   │   ├── Ride.js
+│   │   ├── User.js
+│   │   ├── Vehicle.js
+│   │   └── index.js
+│   ├── routes/                # Definición de rutas
+│   │   ├── authRoutes.js
+│   │   ├── bookingRoutes.js
+│   │   ├── metricsRoutes.js
+│   │   ├── notificationRoutes.js
+│   │   ├── reviewRoutes.js
+│   │   ├── rideRoutes.js
+│   │   ├── userRoutes.js
+│   │   ├── vehicleRoutes.js
+│   │   └── index.js
+│   ├── scripts/               # Scripts de utilidad
+│   │   └── initDatabase.js   # Inicialización de BD
+│   ├── services/              # Lógica de negocio
+│   │   ├── blobService.js
+│   │   ├── metricsService.js
+│   │   └── notificationService.js
+│   ├── tests/                 # Tests
+│   │   ├── auth.tests.js
+│   │   └── setup.js
+│   └── utils/                 # Utilidades
+│       ├── logger.js          # Logger personalizado
+│       └── responseHelper.js  # Helpers de respuestas
+├── .eslintrc.js              # Configuración ESLint
+├── .gitignore                # Archivos ignorados por Git
+├── jest.config.js            # Configuración de Jest
+├── package.json              # Dependencias y scripts
+├── README.md                 # Este archivo
+└── server.js                 # Punto de entrada de la aplicación
 ```
 
-2. **Instalar dependencias**
+## 🗄 Base de Datos
 
-```bash
-npm install
+El modelo de datos está diseñado para ser flexible y escalable. A continuación se presenta un diagrama entidad-relación simplificado de las colecciones principales.
+
+### Diagrama de Clases / Entidades
+
+```mermaid
+classDiagram
+    class User {
+        +ObjectId _id
+        +String name
+        +String email
+        +String password
+        +String role
+        +Float rating
+    }
+    class Vehicle {
+        +ObjectId _id
+        +ObjectId driver_id
+        +String brand
+        +String model
+        +String plate
+    }
+    class Ride {
+        +ObjectId _id
+        +ObjectId driver_id
+        +Object origin
+        +Object destination
+        +Date date_time
+        +Int available_seats
+        +String status
+    }
+    class Booking {
+        +ObjectId _id
+        +ObjectId ride_id
+        +ObjectId passenger_id
+        +String status
+    }
+    class Review {
+        +ObjectId _id
+        +ObjectId ride_id
+        +ObjectId reviewer_id
+        +ObjectId reviewee_id
+        +Int rating
+    }
+
+    User "1" -- "0..*" Vehicle : owns
+    User "1" -- "0..*" Ride : drives
+    User "1" -- "0..*" Booking : makes
+    Ride "1" -- "0..*" Booking : contains
+    Ride "1" -- "0..*" Review : has
+    User "1" -- "0..*" Review : writes/receives
 ```
 
-3. **Configurar variables de entorno**
+## 🔌 API Endpoints
 
-Crear un archivo `.env` en la raíz del proyecto:
+La documentación completa e interactiva está disponible en `/api-docs` cuando el servidor está en ejecución.
 
-```bash
-cp .env.example .env
-```
-
-Editar `.env` con tus configuraciones (ver sección de [Configuración](#-configuración))
-
-4. **Inicializar la base de datos**
-
-```bash
-npm run db:init
-```
-
-## ⚙️ Configuración
-
-### Variables de Entorno
-
-Crea un archivo `.env` en la raíz del proyecto con las siguientes variables:
-
-```env
-# Servidor
-NODE_ENV=development
-PORT=8080
-API_VERSION=v1
-
-# Cosmos DB
-COSMOS_CONNECTION_STRING=mongodb://your-cosmos-account:key@your-cosmos-account.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false
-COSMOS_DATABASE=Safe-RideDB
-
-# JWT
-JWT_SECRET=your-super-secret-jwt-key-change-this
-JWT_EXPIRE=15m
-REFRESH_TOKEN_SECRET=your-super-secret-refresh-token-key
-REFRESH_TOKEN_EXPIRE=7d
-
-# Azure Blob Storage
-BLOB_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=your-account;AccountKey=your-key;EndpointSuffix=core.windows.net
-AZURE_STORAGE_ACCOUNT=your-storage-account-name
-
-# Azure Key Vault
-KEY_VAULT_URL=https://your-keyvault.vault.azure.net/
-
-# Azure AD (Entra ID)
-AZURE_AD_CLIENT_ID=your-client-id
-AZURE_AD_TENANT_ID=your-tenant-id
-
-# CORS
-CORS_ORIGIN=http://localhost:3000,https://your-frontend-domain.com
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=100
-```
-
-### Configuración de Cosmos DB
-
-1. Crear una cuenta de Azure Cosmos DB for MongoDB (vCore)
-2. Obtener la cadena de conexión desde Azure Portal
-3. Configurar firewall para permitir tu IP
-4. La base de datos se creará automáticamente al ejecutar `npm run db:init`
-
-### Configuración de Azure Blob Storage
-
-1. Crear una cuenta de Azure Storage
-2. Crear contenedores: `profile-images`, `vehicle-images`
-3. Obtener la cadena de conexión desde Azure Portal
-
-## 🚀 Uso
-
-### Desarrollo
-
-Ejecutar el servidor en modo desarrollo con auto-reload:
-
-```bash
-npm run dev
-```
-
-El servidor estará disponible en `http://localhost:8080`
-
-### Producción
-
-```bash
-npm start
-```
-
-### Scripts Disponibles
-
-```bash
-# Iniciar servidor
-npm start
-
-# Modo desarrollo con nodemon
-npm run dev
-
-# Ejecutar tests
-npm test
-
-# Ejecutar tests con coverage
-npm run test
-
-# Linting
-npm run lint
-
-# Fix linting automático
-npm run lint:fix
-
-# Inicializar base de datos
-npm run db:init
-
-# Ejecutar jobs manualmente
-npm run job:metrics         # Calcular métricas
-npm run job:cleanup         # Limpiar viajes expirados
-npm run job:reminders       # Enviar recordatorios
-
-# Generar documentación
-npm run docs:generate       # Generar spec de Swagger/OpenAPI
-npm run docs:postman       # Generar colección de Postman
-```
-
-### Health Check
-
-Verificar que la API está funcionando:
-
-```bash
-curl http://localhost:8080/api/v1/health
-```
-
-Respuesta esperada:
-```json
-{
-  "success": true,
-  "message": "Safe-Ride API is running",
-  "timestamp": "2025-11-08T07:25:00.000Z",
-  "environment": "development"
-}
-```
-
-## 📚 Endpoints de la API
+### Resumen de Módulos
 
 ### Base URL
 
@@ -387,388 +353,129 @@ http://localhost:8080/api/v1
 | GET | `/metrics/users` | Estadísticas de usuarios | Sí (Admin) |
 | GET | `/metrics/rides` | Estadísticas de viajes | Sí (Admin) |
 
-## 📖 Documentación de la API
 
-### Swagger/OpenAPI
+## 🚀 Instalación y Configuración
 
-La API incluye documentación interactiva completa usando Swagger UI:
+### Prerrequisitos
 
-**Acceso a la documentación:**
+- Node.js v18 o superior.
+- Instancia de MongoDB (Local o Atlas/Cosmos DB).
+- Cuenta de Azure Storage (opcional para imágenes).
 
-```
-http://localhost:8080/api-docs
-```
+### Pasos
 
-**Características:**
-- Especificación OpenAPI 3.0 completa
-- Interfaz interactiva para probar endpoints
-- Ejemplos de requests y responses
-- Esquemas de datos detallados
-- Información de autenticación y rate limiting
+1.  **Clonar el repositorio:**
 
-**Servidores disponibles:**
-- **Desarrollo Local:** `http://localhost:8080/api/v1`
-- **Azure Dev:** `https://app-saferide-api-dev.azurewebsites.net/api/v1`
-- **Azure Producción:** `https://app-safe-ride-prd-001-eeekf5h8cvfkbbha.centralus-01.azurewebsites.net/api/v1`
+    ```bash
+    git clone https://safe-ride-app@dev.azure.com/safe-ride-app/Safe-RideApp/_git/saferide-backend
+    Ingresar las credenciales para clonar el proyecto
+    cd saferide-backend
+    ```
 
-### Colección de Postman
+2.  **Instalar dependencias:**
 
-El repositorio incluye una colección de Postman actualizada con todos los endpoints:
+    ```bash
+    npm install
+    ```
 
-**Archivo:** `postman-collection.json`
+3.  **Configurar variables de entorno:**
+    Crea un archivo `.env` en la raíz basado en el siguiente ejemplo:
+    ```env # Server Configuration
+        NODE_ENV=production
+        PORT=8080
+        API_VERSION=v1
 
-**Para usar:**
-1. Abre Postman
-2. Importa el archivo `postman-collection.json`
-3. Configura las variables de entorno si es necesario
-4. Comienza a probar los endpoints
+        # Azure Cosmos DB
 
-**Generar/Actualizar la colección:**
+        COSMOS_ENDPOINT=https://cosmos-endpoint
+        COSMOS_KEY=Cosmos-Key
+        COSMOS_CONNECTION_STRING=cosmos-mongodb-connection-string
+        COSMOS_DATABASE=name-of-the-database
 
-```bash
-npm run docs:generate  # Genera swagger-spec.json
-npm run docs:postman   # Convierte a colección de Postman
-```
+        # Azure Blob Storage
 
-## 📁 Estructura del Proyecto
+        BLOB_STORAGE_CONNECTION_STRING=blob-connnection-string
+        BLOB_CONTAINER_PROFILE=blob-container-name
+        BLOB_CONTAINER_VEHICLE=blob-container-name
 
-```
-saferide-backend/
-├── src/
-│   ├── app.js                 # Configuración principal de Express
-│   ├── config/                # Configuraciones
-│   │   ├── auth.js           # Configuración JWT
-│   │   ├── azure.js          # Clientes de Azure (Blob, KeyVault)
-│   │   ├── database.js       # Conexión a Cosmos DB
-│   │   └── swagger.js        # Configuración de Swagger/OpenAPI
-│   ├── controllers/           # Controladores de las rutas
-│   │   ├── authController.js
-│   │   ├── bookingController.js
-│   │   ├── metricsController.js
-│   │   ├── notificationController.js
-│   │   ├── reviewController.js
-│   │   ├── rideController.js
-│   │   ├── userController.js
-│   │   └── vehicleController.js
-│   ├── middleware/            # Middleware personalizado
-│   │   ├── auth.js           # Autenticación y autorización
-│   │   ├── errorHandler.js   # Manejo de errores
-│   │   ├── rateLimiter.js    # Rate limiting
-│   │   └── validation.js     # Validación de datos
-│   ├── models/                # Modelos de Mongoose
-│   │   ├── Bookings.js
-│   │   ├── Metics.js
-│   │   ├── Notification.js
-│   │   ├── Review.js
-│   │   ├── Ride.js
-│   │   ├── User.js
-│   │   ├── Vehicle.js
-│   │   └── index.js
-│   ├── routes/                # Definición de rutas
-│   │   ├── authRoutes.js
-│   │   ├── bookingRoutes.js
-│   │   ├── metricsRoutes.js
-│   │   ├── notificationRoutes.js
-│   │   ├── reviewRoutes.js
-│   │   ├── rideRoutes.js
-│   │   ├── userRoutes.js
-│   │   ├── vehicleRoutes.js
-│   │   └── index.js
-│   ├── scripts/               # Scripts de utilidad
-│   │   ├── initDatabase.js   # Inicialización de BD
-│   │   └── generate-postman.js # Generación de colección Postman
-│   ├── services/              # Lógica de negocio
-│   │   ├── blobService.js
-│   │   ├── metricsService.js
-│   │   └── notificationService.js
-│   ├── jobs/                  # Tareas programadas (cron jobs)
-│   │   ├── calculateMetrics.js    # Cálculo de métricas
-│   │   ├── cleanupExpiredRides.js # Limpieza de viajes
-│   │   ├── sendRideReminders.js   # Envío de recordatorios
-│   │   ├── scheduledJobs.js       # Configuración de cron
-│   │   └── index.js
-│   ├── workers/               # Workers de procesamiento
-│   │   └── notificationWorker.js # Worker de notificaciones
-│   ├── events/                # Sistema de eventos
-│   │   └── eventEmitter.js   # Event emitter personalizado
-│   ├── tests/                 # Tests
-│   │   ├── auth.tests.js
-│   │   └── setup.js
-│   └── utils/                 # Utilidades
-│       ├── logger.js          # Logger personalizado
-│       ├── responseHelper.js  # Helpers de respuestas
-│       └── timeZone.js        # Utilidades de zona horaria
-├── public/                    # Archivos estáticos
-├── .eslintrc.js              # Configuración ESLint
-├── .gitignore                # Archivos ignorados por Git
-├── .env.example              # Ejemplo de variables de entorno
-├── jest.config.js            # Configuración de Jest
-├── package.json              # Dependencias y scripts
-├── swagger-spec.json         # Especificación OpenAPI/Swagger
-├── postman-collection.json   # Colección de Postman
-├── AZURE_DEPLOYMENT.md       # Guía de despliegue en Azure
-├── README.md                 # Este archivo
-└── server.js                 # Punto de entrada de la aplicación
-```
+        # Microsoft Entra ID (Azure AD)
+
+        ENTRA_TENANT_ID=tenant-id
+        ENTRA_CLIENT_ID=client-id
+        ENTRA_CLIENT_SECRET=client-secret
+        ENTRA_REDIRECT_URI=http://uri-entra-id
+
+        # JWT Configuration
+
+        JWT_SECRET=jwt-secret
+        JWT_EXPIRES_IN=24h
+        JWT_REFRESH_EXPIRES_IN=7d
+
+        # Application Insights
+
+        APPLICATIONINSIGHTS_CONNECTION_STRING=connection-string-for-application-insights
+
+        # Rate Limiting
+
+        RATE_LIMIT_WINDOW_MS=##
+        RATE_LIMIT_MAX_REQUESTS=##
+
+        # CORS
+
+        CORS_ORIGIN=cors-origin-of-the-database
+
+        # Azure Key Vault (Optional)
+
+        KEY_VAULT_URL=https://key-vault-url
+
+        APP_TIMEZONE=America/Costa_Rica
+    ```
+
+4.  **Inicializar base de datos (opcional):**
+
+    ```bash
+    npm run db:init
+    ```
+
+5.  **Iniciar el servidor:**
+    ```bash
+    npm run dev  # Modo desarrollo
+    npm start    # Modo producción
+    ```
 
 ## 🧪 Testing
 
-### Ejecutar Tests
+El proyecto utiliza **Jest** para pruebas automatizadas.
 
 ```bash
-# Todos los tests
+# Ejecutar todos los tests
 npm test
 
-# Tests con coverage
-npm run test
-
-# Tests en modo watch
-npm run test -- --watch
+# Ejecutar tests con cobertura
+npm test -- --coverage
 ```
 
-### Coverage
+## ☁️ Despliegue
 
-Los tests incluyen:
-- Tests de autenticación (registro, login, JWT)
-- Tests de endpoints de API
-- Tests de validación de datos
-- Tests de middleware
+El despliegue de la aplicacion esta automatizado por medio de GitHub Actions, todo merge realizado en el main branch desde un branch autorizado realizara el despliegue.
 
-## ⚙️ Jobs y Tareas Programadas
+## 🤝 Colaboración
 
-El sistema incluye un conjunto de tareas programadas (cron jobs) y workers que se ejecutan automáticamente para mantener la integridad de los datos y mejorar la experiencia del usuario.
+¡Las contribuciones son bienvenidas! Por favor sigue estos pasos:
 
-### Tareas Programadas (Scheduled Jobs)
+1.  Haz un Fork del repositorio.
+2.  Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`).
+3.  Commit a tus cambios (`git commit -m 'Add some AmazingFeature'`).
+4.  Push a la rama (`git push origin feature/AmazingFeature`).
+5.  Abre un Pull Request.
 
-Las tareas programadas se ejecutan automáticamente en intervalos específicos:
+## 📞 Contacto
 
-**1. Cálculo de Métricas** (`calculateMetrics.js`)
-- **Frecuencia:** Diario a las 2:00 AM (hora de Costa Rica)
-- **Función:** Calcula y actualiza métricas de sostenibilidad del sistema
-- **Incluye:**
-  - CO2 ahorrado por viajes compartidos
-  - Kilómetros totales compartidos
-  - Estadísticas de usuarios activos
-  - Métricas por empresa
+**Jose Pablo Muñoz Carvajal** - _Lead Developer_
 
-**2. Limpieza de Viajes Expirados** (`cleanupExpiredRides.js`)
-- **Frecuencia:** Diario a medianoche (hora de Costa Rica)
-- **Función:** Limpia y actualiza el estado de viajes expirados
-- **Acciones:**
-  - Marca viajes pasados como "completados" o "cancelados"
-  - Libera recursos de viajes antiguos
-  - Mantiene la base de datos optimizada
-
-**3. Envío de Recordatorios** (`sendRideReminders.js`)
-- **Frecuencia:** Cada 6 horas
-- **Función:** Envía recordatorios automáticos a usuarios
-- **Incluye:**
-  - Recordatorios de viajes próximos (24h antes)
-  - Notificaciones de confirmación de reservas
-  - Alertas de cambios en viajes
-
-### Workers
-
-**Notification Worker** (`notificationWorker.js`)
-- **Tipo:** Worker en memoria con cola de procesamiento
-- **Función:** Procesa y envía notificaciones de forma asíncrona
-- **Características:**
-  - Cola FIFO (First In, First Out)
-  - Procesamiento automático sin bloqueo
-  - Logging detallado de cada notificación
-  - Preparado para integración con servicios de push notifications
-
-### Ejecutar Jobs Manualmente
-
-Para propósitos de testing o mantenimiento, puedes ejecutar los jobs manualmente:
-
-```bash
-# Calcular métricas
-npm run job:metrics
-
-# Limpiar viajes expirados
-npm run job:cleanup
-
-# Enviar recordatorios
-npm run job:reminders
-```
-
-### Sistema de Eventos
-
-El sistema utiliza un Event Emitter personalizado (`eventEmitter.js`) para comunicación entre componentes:
-
-**Eventos soportados:**
-- Creación de reservas
-- Confirmación de viajes
-- Actualizaciones de usuario
-- Notificaciones en tiempo real
-
-**Uso:**
-```javascript
-const eventEmitter = require('./events/eventEmitter');
-
-// Emitir evento
-eventEmitter.emit('booking:created', { bookingId, userId });
-
-// Escuchar evento
-eventEmitter.on('booking:created', (data) => {
-  // Procesar evento
-});
-```
-
-## 🔒 Seguridad
-
-### Medidas Implementadas
-
-1. **Autenticación JWT**
-   - Access tokens de corta duración (15 min)
-   - Refresh tokens de larga duración (7 días)
-   - Tokens almacenados de forma segura
-
-2. **Encriptación**
-   - Contraseñas hasheadas con bcrypt (10 rounds)
-   - Conexiones HTTPS/TLS obligatorias
-   - Variables de entorno para secretos
-
-3. **Validación de Datos**
-   - Express-validator para todas las entradas
-   - Sanitización de datos
-   - Validación de tipos y formatos
-
-4. **Rate Limiting**
-   - 100 peticiones por 15 minutos (general)
-   - Rate limiting específico para autenticación
-   - Protección contra fuerza bruta
-
-5. **Headers de Seguridad**
-   - Helmet.js configurado
-   - CORS restrictivo
-   - CSP (Content Security Policy)
-
-6. **Azure Integration**
-   - Key Vault para gestión de secretos
-   - Managed Identity para autenticación
-   - Blob Storage con acceso controlado
-
-### Recomendaciones de Seguridad
-
-- Cambiar todos los secretos en producción
-- Usar variables de entorno en producción
-- Habilitar HTTPS en producción
-- Configurar firewall en Cosmos DB
-- Rotar secretos periódicamente
-- Revisar logs de seguridad
-
-## 🚢 Despliegue
-
-Este proyecto está desplegado en Azure App Service con múltiples ambientes.
-
-### Ambientes Disponibles
-
-**Desarrollo:**
-- URL: `https://app-saferide-api-dev.azurewebsites.net/api/v1`
-- Propósito: Testing y desarrollo
-
-**Producción:**
-- URL: `https://app-safe-ride-prd-001-eeekf5h8cvfkbbha.centralus-01.azurewebsites.net/api/v1`
-- Propósito: Producción estable
-
-### Azure App Service
-
-Para más detalles sobre el despliegue en Azure, consulta [AZURE_DEPLOYMENT.md](./AZURE_DEPLOYMENT.md).
-
-**Pasos rápidos de despliegue:**
-
-1. **Crear App Service**
-
-```bash
-az webapp create \
-  --name saferide-api \
-  --resource-group saferide-rg \
-  --plan saferide-plan \
-  --runtime "NODE|18-lts"
-```
-
-2. **Configurar Variables de Entorno**
-
-```bash
-az webapp config appsettings set \
-  --name saferide-api \
-  --resource-group saferide-rg \
-  --settings NODE_ENV=production \
-             COSMOS_CONNECTION_STRING="..." \
-             JWT_SECRET="..."
-```
-
-3. **Desplegar**
-
-```bash
-# Desde el directorio del proyecto
-az webapp up \
-  --name saferide-api \
-  --resource-group saferide-rg
-```
-
-### Variables de Entorno en Producción
-
-Asegúrate de configurar todas las variables de entorno en Azure App Service:
-- Variables de Cosmos DB
-- Secretos JWT
-- Configuración de Azure Blob Storage
-- URL de Key Vault
-- CORS origins de producción
-
-## 🤝 Contribuir
-
-Las contribuciones son bienvenidas. Para contribuir:
-
-1. **Fork el proyecto**
-2. **Crear una rama** para tu feature (`git checkout -b feature/AmazingFeature`)
-3. **Commit tus cambios** (`git commit -m 'Add: nueva funcionalidad increíble'`)
-4. **Push a la rama** (`git push origin feature/AmazingFeature`)
-5. **Abrir un Pull Request**
-
-### Guías de Contribución
-
-- Seguir el estilo de código existente
-- Ejecutar linting antes de commit (`npm run lint:fix`)
-- Agregar tests para nuevas funcionalidades
-- Actualizar documentación si es necesario
-- Commits descriptivos en español
-
-### Code Style
-
-- Usar ESLint configurado en el proyecto
-- Nombres de variables en camelCase
-- Nombres de archivos en camelCase
-- Comentarios en español cuando sean necesarios
-- Seguir principios SOLID
-
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia ISC.
-
-## 👤 Autor
-
-**Jose Pablo Muñoz Carvajal**
-
+- Email: [safe-ride-app@hotmail.com](mailto:safe-ride-app@hotmail.com)
 - GitHub: [@jmunozc023](https://github.com/jmunozc023)
-- Email: contacto a través de GitHub
 
 ---
 
-## 📞 Soporte
-
-Si tienes alguna pregunta o problema:
-
-1. Revisa la documentación
-2. Busca en los issues existentes
-3. Crea un nuevo issue con:
-   - Descripción del problema
-   - Pasos para reproducir
-   - Comportamiento esperado
-   - Screenshots (si aplica)
-
----
-
-**Desarrollado con ❤️ en Costa Rica para mejorar la movilidad sostenible empresarial**
+© 2025 Safe-Ride. Todos los derechos reservados.

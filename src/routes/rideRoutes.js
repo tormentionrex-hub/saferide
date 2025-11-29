@@ -333,8 +333,103 @@ router.get('/:id', optionalAuth, rideController.getRideById);
 router.use(verifyToken);
 
 router.post('/', authorize('conductor'), rideValidation, validate, rideController.createRide);
+/**
+ * @swagger
+ * /rides/{id}:
+ *   put:
+ *     summary: Actualizar viaje
+ *     description: Actualiza los detalles de un viaje programado (solo el conductor)
+ *     tags: [Rides]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/IdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               available_seats:
+ *                 type: integer
+ *               date_time:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       200:
+ *         description: Viaje actualizado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/Ride'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.put('/:id', authorize('conductor'), rideController.updateRide);
+
+/**
+ * @swagger
+ * /rides/{id}:
+ *   delete:
+ *     summary: Cancelar viaje
+ *     description: Cancela un viaje programado y notifica a los pasajeros (solo el conductor)
+ *     tags: [Rides]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/IdParam'
+ *     responses:
+ *       200:
+ *         description: Viaje cancelado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.delete('/:id', authorize('conductor'), rideController.cancelRide);
+
+/**
+ * @swagger
+ * /rides/driver/{driverId}:
+ *   get:
+ *     summary: Obtener viajes por conductor
+ *     description: Retorna el historial de viajes de un conductor
+ *     tags: [Rides]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: driverId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lista de viajes del conductor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Ride'
+ */
 router.get('/driver/:driverId', rideController.getRidesByDriver);
 router.patch('/:id/start', authorize('conductor'), rideController.startRide);
 router.patch('/:id/complete', authorize('conductor'), rideController.completeRide);

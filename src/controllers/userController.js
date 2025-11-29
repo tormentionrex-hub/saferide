@@ -6,12 +6,13 @@ const { uploadToBlob, deleteFromBlob } = require("../services/blobService");
 // @route GET /api/v1/users
 // @access Private/Admin
 
+//Function to get all users
 exports.getAllUsers = async (req, res, next) => {
     try {
         const { page = 1, limit = 10, type, company, search } = req.query;
-
+        // Build query object
         const query = {};
-
+        // Add filters if provided
         if (type) query.type = type;
         if (company) query.company = company;
         if (search) {
@@ -21,14 +22,14 @@ exports.getAllUsers = async (req, res, next) => {
                 { email: { $regex: search, $options: "i" } },
             ];
         }
-
+        // Fetch users with pagination
         const users = await User.find(query)
             .select("-password -refreshToken")
             .limit(limit * 1)
             .skip((page - 1) * limit)
-            .toSorted({ createdAt: -1 });
+            .sort({ createdAt: -1 });
         const count = await User.countDocuments(query);
-
+        // Respond with users and pagination info
         res.status(200).json({
             success: true,
             data: users,
@@ -48,19 +49,21 @@ exports.getAllUsers = async (req, res, next) => {
 // @route GET /api/v1/users/:id
 // @access Private
 
+//Function to get user by ID
 exports.getUserById = async (req, res, next) => {
     try {
         const user = await User.findById(req.params.id)
         .select('-password -refreshToken')
         .populate('vehicle');
 
+// Validate user existence
         if (!user) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
         }
-
+    // Respond with user data
         res.status(200).json({
             success: true,
             data: user,
@@ -74,6 +77,7 @@ exports.getUserById = async (req, res, next) => {
 // @route PUT /api/v1/users/:id
 // @access Private
 
+//Function to update user profile
 exports.updateUser = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -91,26 +95,26 @@ exports.updateUser = async (req, res, next) => {
 
         const allowedUpdates = ['name', 'phone', 'company', 'work_schedule'];
         const updates = {};
-
+        // Build updates object
         allowedUpdates.forEach(field => {
             if (req.body[field] !== undefined){
                 updates[field] = req.body[field];
             }
         });
-
+        // Update user
         const user = await User.findByIdAndUpdate(
             id, 
             updates,
             { new: true, runValidators: true})
             .select('-password -refreshToken');
-        
+        // Validate user existence
         if (!user) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found',
             });
         }
-
+        // Respond with updated user data
         res.status(200).json({
             success: true,
             message: 'User updated successfully',
@@ -125,6 +129,7 @@ exports.updateUser = async (req, res, next) => {
 // @route POST /api/v1/users/:id/image
 // @access Private
 
+//Function to upload profile image
 exports.uploadProfileImage = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -137,14 +142,14 @@ exports.uploadProfileImage = async (req, res, next) => {
                 message: 'Access denied',
             });
         }
-
+        // Validate file presence
         if (!req.file) {
             return res.status(400).json({
                 success: false,
                 message: 'No image file provided',
             });
         }
-
+        // Find user
         const user = await User.findById(id);
 
         if (!user) {
@@ -168,10 +173,10 @@ exports.uploadProfileImage = async (req, res, next) => {
             'profile-images',
             req.file.mimetype
         );
-
+        // Update user's profile image URL
         user.profileImage = imageUrl;
         await user.save();
-
+        // Respond with success
         res.status(200).json({
             success: true,
             message: 'Profile image uploaded successfully',
@@ -187,6 +192,7 @@ exports.uploadProfileImage = async (req, res, next) => {
 // @route DELETE /api/v1/users/:id
 // @access Private/Admin
 
+//Function to delete user
 exports.deleteUser = async ( req, res, next) => {
     try {
         const user = await User.findById(req.params.id);
@@ -201,7 +207,7 @@ exports.deleteUser = async ( req, res, next) => {
         // Soft delete: set active to false
         user.isActive = false;
         await user.save();
-
+        // Respond with success
         res.status(200).json({
             success: true,
             message: 'User deactivated successfully',
@@ -211,6 +217,10 @@ exports.deleteUser = async ( req, res, next) => {
             success: true,
             message: 'User deactivated successfully',
         });
+                // Hard delete (uncomment if needed)
+        /*
+        await user.deleteOne();
+        */
     } catch (error) {
         next(error);
     }
@@ -220,6 +230,7 @@ exports.deleteUser = async ( req, res, next) => {
 // @route GET /api/v1/users/:id/stats
 // @access Private
 
+//Function to get user statistics
 exports.getUserStats = async (req, res, next) => {
     try {
         const { Ride, Booking, Review, Metrics } = require("../models");
@@ -250,8 +261,8 @@ exports.getUserStats = async (req, res, next) => {
             user_id: userId,
             period: 'total',
         });
-
-        res.status(200).json({
+    // Respond with statistics
+        res.status(200).json({ 
             success: true,
             data: {
                 ridesAsDriver,

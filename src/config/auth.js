@@ -1,7 +1,7 @@
 const passport = require('passport');
 const { BearerStrategy: AzureBearerStrategy } = require('passport-azure-ad');
 require('dotenv').config();
-
+// Azure Entra ID Bearer Strategy configuration
 const options = {
     identityMetadata: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0/.well-known/openid-configuration`,
     clientID: process.env.ENTRA_CLIENT_ID,
@@ -12,9 +12,9 @@ const options = {
     loggingLevel: 'info',
     scope: ['openid', 'profile', 'email'],
 };
-
+// Create the Bearer Strategy
 const bearerStrategy = new AzureBearerStrategy(options, (token, done) => {
-    // Here you can implement your token validation logic
+    // TODO:Here you can implement your token validation logic
     return done(null, token, token);
 });
 
