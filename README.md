@@ -9,7 +9,7 @@ Backend robusto y escalable para la plataforma de carpooling **Safe-Ride**, dise
 ## 📋 Tabla de Contenidos
 
 - [Descripción del Proyecto](#-descripción-del-proyecto)
-- [Caracteristicas](#-caracteristicas)
+- [Caracteristicas](#-características)
 - [Arquitectura e Infraestructura](#-arquitectura-e-infraestructura)
 - [Tecnologías Utilizadas](#-tecnologías-utilizadas)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
