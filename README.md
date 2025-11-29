@@ -253,7 +253,7 @@ La documentación completa e interactiva está disponible en `/api-docs` cuando 
         KEY_VAULT_URL=https://key-vault-url
 
         APP_TIMEZONE=America/Costa_Rica
-```
+    ```
 
 4.  **Inicializar base de datos (opcional):**
 
