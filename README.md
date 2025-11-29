@@ -205,54 +205,54 @@ La documentación completa e interactiva está disponible en `/api-docs` cuando 
 3.  **Configurar variables de entorno:**
     Crea un archivo `.env` en la raíz basado en el siguiente ejemplo:
     ```env # Server Configuration
-    NODE_ENV=production
-    PORT=8080
-    API_VERSION=v1
+        NODE_ENV=production
+        PORT=8080
+        API_VERSION=v1
 
-    # Azure Cosmos DB
+        # Azure Cosmos DB
 
-    COSMOS_ENDPOINT=https://cosmos-endpoint
-    COSMOS_KEY=Cosmos-Key
-    COSMOS_CONNECTION_STRING=cosmos-mongodb-connection-string
-    COSMOS_DATABASE=name-of-the-database
+        COSMOS_ENDPOINT=https://cosmos-endpoint
+        COSMOS_KEY=Cosmos-Key
+        COSMOS_CONNECTION_STRING=cosmos-mongodb-connection-string
+        COSMOS_DATABASE=name-of-the-database
 
-    # Azure Blob Storage
+        # Azure Blob Storage
 
-    BLOB_STORAGE_CONNECTION_STRING=blob-connnection-string
-    BLOB_CONTAINER_PROFILE=blob-container-name
-    BLOB_CONTAINER_VEHICLE=blob-container-name
+        BLOB_STORAGE_CONNECTION_STRING=blob-connnection-string
+        BLOB_CONTAINER_PROFILE=blob-container-name
+        BLOB_CONTAINER_VEHICLE=blob-container-name
 
-    # Microsoft Entra ID (Azure AD)
+        # Microsoft Entra ID (Azure AD)
 
-    ENTRA_TENANT_ID=tenant-id
-    ENTRA_CLIENT_ID=client-id
-    ENTRA_CLIENT_SECRET=client-secret
-    ENTRA_REDIRECT_URI=http://uri-entra-id
+        ENTRA_TENANT_ID=tenant-id
+        ENTRA_CLIENT_ID=client-id
+        ENTRA_CLIENT_SECRET=client-secret
+        ENTRA_REDIRECT_URI=http://uri-entra-id
 
-    # JWT Configuration
+        # JWT Configuration
 
-    JWT_SECRET=jwt-secret
-    JWT_EXPIRES_IN=24h
-    JWT_REFRESH_EXPIRES_IN=7d
+        JWT_SECRET=jwt-secret
+        JWT_EXPIRES_IN=24h
+        JWT_REFRESH_EXPIRES_IN=7d
 
-    # Application Insights
+        # Application Insights
 
-    APPLICATIONINSIGHTS_CONNECTION_STRING=connection-string-for-application-insights
+        APPLICATIONINSIGHTS_CONNECTION_STRING=connection-string-for-application-insights
 
-    # Rate Limiting
+        # Rate Limiting
 
-    RATE_LIMIT_WINDOW_MS=##
-    RATE_LIMIT_MAX_REQUESTS=##
+        RATE_LIMIT_WINDOW_MS=##
+        RATE_LIMIT_MAX_REQUESTS=##
 
-    # CORS
+        # CORS
 
-    CORS_ORIGIN=cors-origin-of-the-database
+        CORS_ORIGIN=cors-origin-of-the-database
 
-    # Azure Key Vault (Optional)
+        # Azure Key Vault (Optional)
 
-    KEY_VAULT_URL=https://key-vault-url
+        KEY_VAULT_URL=https://key-vault-url
 
-    APP_TIMEZONE=America/Costa_Rica
+        APP_TIMEZONE=America/Costa_Rica
 ```
 
 4.  **Inicializar base de datos (opcional):**
