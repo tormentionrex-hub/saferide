@@ -5,12 +5,12 @@ const cleanupExpiredRidesJob = require('./cleanupExpiredRides');
 const sendRideRemindersJob = require('./sendRideReminders');
 
 /**
- * Inicializar todas las tareas programadas
+ * Initialize all scheduled jobs
  */
 const initScheduledJobs = () => {
   logger.info('⏰ Initializing scheduled jobs...');
 
-  // Calcular métricas: Todos los días a las 2:00 AM
+  // Calculate metrics: Daily at 2:00 AM
   cron.schedule('0 2 * * *', async () => {
     logger.info('📊 Running scheduled metrics calculation...');
     await calculateMetricsJob();
@@ -18,7 +18,7 @@ const initScheduledJobs = () => {
     timezone: 'America/Costa_Rica'
   });
 
-  // Limpieza de viajes: Todos los días a medianoche
+  // Cleanup expired rides: Daily at midnight
   cron.schedule('0 0 * * *', async () => {
     logger.info('🧹 Running scheduled cleanup...');
     await cleanupExpiredRidesJob();
@@ -26,14 +26,14 @@ const initScheduledJobs = () => {
     timezone: 'America/Costa_Rica'
   });
 
-  // Recordatorios: Cada 6 horas
+  // Send ride reminders: Every 6 hours
   cron.schedule('0 */6 * * *', async () => {
     logger.info('⏰ Running scheduled reminders check...');
     await sendRideRemindersJob();
   }, {
     timezone: 'America/Costa_Rica'
   });
-
+  // Log active jobs
   logger.success('✅ Scheduled jobs initialized successfully');
   logger.info('📋 Active jobs:');
   logger.info('   - Metrics calculation: Daily at 2:00 AM');
@@ -42,7 +42,7 @@ const initScheduledJobs = () => {
 };
 
 /**
- * Ejecutar job manualmente (útil para testing)
+ * Run job manually (useful for testing)
  */
 const runJobManually = async (jobName) => {
   logger.info(`🔧 Manually running job: ${jobName}`);

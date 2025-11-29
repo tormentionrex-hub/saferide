@@ -2,16 +2,17 @@ const { Ride, Booking } = require('../models');
 const { sendBulkNotifications } = require('../workers/notificationWorker');
 const logger = require('../utils/logger');
 
+// Job to send ride reminders
 const sendRideRemindersJob = async () => {
   const startTime = Date.now();
   logger.info('⏰ Checking for ride reminders...');
-
+  // Current date and time
   try {
     const now = new Date();
     const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
     const fourHoursLater = new Date(now.getTime() + 4 * 60 * 60 * 1000);
 
-    // Buscar viajes próximos
+    // Find upcoming rides
     const upcomingRides = await Ride.find({
       status: 'scheduled',
       date_time: {
@@ -21,10 +22,10 @@ const sendRideRemindersJob = async () => {
     });
 
     let remindersSent = 0;
-
+    // Process each ride
     for (const ride of upcomingRides) {
       try {
-        // Verificar si ya se envió recordatorio en las últimas 24 horas
+        // Verify if the reminder has been sent in the last 24 hours
         const { Notification } = require('../models');
         const recentReminder = await Notification.findOne({
           'relatedEntity.entityId': ride._id,
@@ -36,7 +37,7 @@ const sendRideRemindersJob = async () => {
           continue;
         }
 
-        // Obtener pasajeros
+        // Get passengers
         const bookings = await Booking.find({
           ride_id: ride._id,
           status: 'confirmed',
@@ -45,12 +46,12 @@ const sendRideRemindersJob = async () => {
         const passengerIds = bookings.map(b => b.passenger_id.toString());
         const allUserIds = [ride.driver_id.toString(), ...passengerIds];
 
-        // Calcular horas hasta el viaje
+        // Calculate hours until the ride
         const hoursUntilRide = Math.round((ride.date_time - now) / (60 * 60 * 1000));
 
         const message = `Recordatorio: Tu viaje es en ${hoursUntilRide} horas`;
 
-        // Enviar notificaciones
+        // Send notifications
         sendBulkNotifications(allUserIds, message, 'ride_reminder');
 
         remindersSent += allUserIds.length;
@@ -59,7 +60,7 @@ const sendRideRemindersJob = async () => {
         logger.error(`Error processing ride ${ride._id}:`, error);
       }
     }
-
+    // Log job duration and summary
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     logger.success(
       `✅ Reminders check completed in ${duration}s. Rides checked: ${upcomingRides.length}, Reminders sent: ${remindersSent}`

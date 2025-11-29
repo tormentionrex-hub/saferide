@@ -7,9 +7,8 @@ require('dotenv').config();
 let blobServiceClient = null;
 
 // Check for connection string in environment variables
-// Your .env uses BLOB_STORAGE_CONNECTION_STRING (not BLOB_CONNECTION_STRING)
 const connectionString = process.env.BLOB_STORAGE_CONNECTION_STRING || process.env.BLOB_CONNECTION_STRING;
-
+// Initialize BlobServiceClient
 if (connectionString) {
     blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
 } else if (process.env.AZURE_STORAGE_ACCOUNT) {
@@ -17,10 +16,9 @@ if (connectionString) {
     const credential = new DefaultAzureCredential();
     blobServiceClient = new BlobServiceClient(accountUrl, credential);
 } else {
-    // Not configured; do not throw at import time, but surface clear errors when used.
     console.warn('Azure Blob Storage not configured. Set BLOB_STORAGE_CONNECTION_STRING or AZURE_STORAGE_ACCOUNT in environment.');
 }
-
+// Function to get container client
 const getContainerClient = (containerName) => {
     if (!blobServiceClient) {
         throw new Error('Azure Blob Storage client not configured. Set BLOB_STORAGE_CONNECTION_STRING or AZURE_STORAGE_ACCOUNT.');
@@ -29,13 +27,13 @@ const getContainerClient = (containerName) => {
 };
 
 // Key Vault Client
-
+// Initialize SecretClient if KEY_VAULT_URL is provided
 let secretClient = null;
 if (process.env.KEY_VAULT_URL) {
     const credential = new DefaultAzureCredential();
     secretClient = new SecretClient(process.env.KEY_VAULT_URL, credential);
 }
-
+// Function to get secret from Key Vault
 const getSecret = async (secretName) => {
     if (!secretClient) {
         throw new Error('Key Vault not configured.');

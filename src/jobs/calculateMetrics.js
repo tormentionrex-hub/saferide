@@ -1,44 +1,45 @@
 const { User, Ride, Booking, Metrics } = require('../models');
 const logger = require('../utils/logger');
-
+// Constants for carbon footprint calculation
 const AVG_CAR_EMISSION = 0.12; // kg CO2 per km
 const AVG_CARPOOLING_FACTOR = 0.6; // 60% reduction
-
+// Function to calculate carbon saved
 const calculateCarbonSaved = (kilometers, passengers) => {
     return kilometers * AVG_CAR_EMISSION * AVG_CARPOOLING_FACTOR * passengers;
 };
-
+// Job to calculate and update metrics for all drivers
 const calculateMetricsJob = async () => {
     const startTime = Date.now();
     logger.info('🚀 Starting metrics calculation job...');
+    // Fetch all active drivers
     try {
         const drivers = await User.find({ type: 'conductor', isActive: true});
-
+        // Process each driver
         let totalProcessed = 0;
         let totalErrors = 0;
-
+        // Iterate through drivers
         for (const driver of drivers) {
             try {
-                // Obtener viajes completados
+                // Get completed rides
                 const completedRides = await Ride.find({
                     driver_id: driver._id,
                     status: 'completed',
                 });
-
+                // If no rides, continue
                 if (completedRides.length === 0) {
                     continue;
                 }
 
-                // Calcular kilometros
+                // Calculate kilometers driven
                 const kilometers_driven = completedRides.reduce((sum, ride) => sum + (ride.distance_km || 0), 0);
 
-                // Contar pasajeros
+                // Count passengers
                 const total_passengers = await Booking.countDocuments({
                     ride_id: { $in: completedRides.map(r => r._id) },
                     status: 'completed',
                 });
 
-                // Calcular huella de carbono
+                // Calculate carbon footprint
                 const carbon_footprint = calculateCarbonSaved(
                     kilometers_driven,
                     total_passengers,
@@ -57,7 +58,7 @@ const calculateMetricsJob = async () => {
                         upsert: true, new: true,
                     }
                 );
-
+                // Increment processed count
                 totalProcessed++;
 
             } catch (error) {
@@ -66,7 +67,7 @@ const calculateMetricsJob = async () => {
             }
             
         }
-
+        // Log job duration and summary
         const duration = ((Date.now() - startTime) / 1000).toFixed(2);
         logger.success(`✅ Metrics calculation job completed in ${duration} seconds. Processed: ${totalProcessed}, Errors: ${totalErrors}`);
         return { success: true, processed: totalProcessed, errors: totalErrors};

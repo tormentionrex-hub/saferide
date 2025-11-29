@@ -7,6 +7,8 @@ const AVG_CARPOOLING_FACTOR = 0.6; // 60% reduction with carpooling
 // @desc    Get user metrics
 // @route   GET /api/v1/metrics/user/:userId
 // @access  Private
+
+//Function to get user metrics
 exports.getUserMetrics = async (req, res, next) => {
   try {
     const userId = req.params.userId;
@@ -22,7 +24,7 @@ exports.getUserMetrics = async (req, res, next) => {
         message: 'Access denied',
       });
     }
-
+    // Fetch metrics
     const metrics = await Metrics.findOne({
       user_id: userId,
       period,
@@ -53,6 +55,8 @@ exports.getUserMetrics = async (req, res, next) => {
 // @desc    Calculate and update metrics for a user
 // @route   POST /api/v1/metrics/calculate/:userId
 // @access  Private/Admin
+
+//Function to calculate and update user metrics
 exports.calculateMetrics = async (req, res, next) => {
   try {
     const userId = req.params.userId;
@@ -105,6 +109,8 @@ exports.calculateMetrics = async (req, res, next) => {
 // @desc    Get global metrics (Admin only)
 // @route   GET /api/v1/metrics/global
 // @access  Private/Admin
+
+//Function to get global metrics
 exports.getGlobalMetrics = async (req, res, next) => {
   try {
     const totalMetrics = await Metrics.aggregate([
@@ -119,7 +125,7 @@ exports.getGlobalMetrics = async (req, res, next) => {
         },
       },
     ]);
-
+    // Get total users and drivers
     const totalUsers = await require('../models').User.countDocuments({ isActive: true });
     const totalDrivers = await require('../models').User.countDocuments({
       type: 'conductor',
@@ -142,10 +148,12 @@ exports.getGlobalMetrics = async (req, res, next) => {
 // @desc    Get leaderboard (top contributors)
 // @route   GET /api/v1/metrics/leaderboard
 // @access  Public
+
+//Function to get leaderboard
 exports.getLeaderboard = async (req, res, next) => {
   try {
     const { limit = 10, sortBy = 'carbon_footprint' } = req.query;
-
+    // Fetch top users based on specified metric
     const leaderboard = await Metrics.find({ period: 'total' })
       .populate('user_id', 'name username profileImage rating')
       .sort({ [sortBy]: -1 })

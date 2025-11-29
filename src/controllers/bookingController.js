@@ -4,6 +4,8 @@ const { sendNotification } = require('../workers/notificationWorker');
 // @desc    Create a booking
 // @route   POST /api/v1/bookings
 // @access  Private/Pasajero
+
+//Function to create a booking
 exports.createBooking = async (req, res, next) => {
   try {
     const { ride_id, seats_booked = 1 } = req.body;
@@ -104,6 +106,8 @@ exports.createBooking = async (req, res, next) => {
 // @desc    Get all bookings (Admin or filtered by user)
 // @route   GET /api/v1/bookings
 // @access  Private
+
+//Function to get all bookings
 exports.getAllBookings = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, status, userId } = req.query;
@@ -117,7 +121,7 @@ exports.getAllBookings = async (req, res, next) => {
     } else if (userId) {
       query.passenger_id = userId;
     }
-
+    // Fetch bookings with pagination
     const bookings = await Booking.find(query)
       .populate('ride_id')
       .populate('passenger_id', 'name username rating profileImage')
@@ -126,7 +130,7 @@ exports.getAllBookings = async (req, res, next) => {
       .sort({ createdAt: -1 });
 
     const count = await Booking.countDocuments(query);
-
+    // Return paginated results
     res.status(200).json({
       success: true,
       data: bookings,
@@ -144,6 +148,8 @@ exports.getAllBookings = async (req, res, next) => {
 // @desc    Get booking by ID
 // @route   GET /api/v1/bookings/:id
 // @access  Private
+
+//Function to get booking by ID
 exports.getBookingById = async (req, res, next) => {
   try {
     const booking = await Booking.findById(req.params.id)
@@ -174,7 +180,7 @@ exports.getBookingById = async (req, res, next) => {
         message: 'Access denied',
       });
     }
-
+    // Return booking details
     res.status(200).json({
       success: true,
       data: booking,
@@ -187,6 +193,8 @@ exports.getBookingById = async (req, res, next) => {
 // @desc    Get bookings by passenger
 // @route   GET /api/v1/bookings/passenger/:passengerId
 // @access  Private
+
+//Function to get bookings by passenger
 exports.getBookingsByPassenger = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, status } = req.query;
@@ -202,10 +210,10 @@ exports.getBookingsByPassenger = async (req, res, next) => {
         message: 'Access denied',
       });
     }
-
+    // Build query
     const query = { passenger_id: passengerId };
     if (status) query.status = status;
-
+    // Fetch bookings with pagination
     const bookings = await Booking.find(query)
       .populate({
         path: 'ride_id',
@@ -217,7 +225,7 @@ exports.getBookingsByPassenger = async (req, res, next) => {
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
-
+      // Return paginated results
     const count = await Booking.countDocuments(query);
 
     res.status(200).json({
@@ -237,6 +245,8 @@ exports.getBookingsByPassenger = async (req, res, next) => {
 // @desc    Get bookings by ride
 // @route   GET /api/v1/bookings/ride/:rideId
 // @access  Private
+
+//Function to get bookings by ride
 exports.getBookingsByRide = async (req, res, next) => {
   try {
     const ride = await Ride.findById(req.params.rideId);
@@ -258,7 +268,7 @@ exports.getBookingsByRide = async (req, res, next) => {
         message: 'Access denied',
       });
     }
-
+    // Fetch bookings for the ride
     const bookings = await Booking.find({ ride_id: req.params.rideId })
       .populate('passenger_id', 'name username rating profileImage phone')
       .sort({ createdAt: -1 });
@@ -275,6 +285,8 @@ exports.getBookingsByRide = async (req, res, next) => {
 // @desc    Cancel booking
 // @route   DELETE /api/v1/bookings/:id
 // @access  Private
+
+//Function to cancel a booking
 exports.cancelBooking = async (req, res, next) => {
   try {
     const booking = await Booking.findById(req.params.id).populate('ride_id');
@@ -344,6 +356,8 @@ exports.cancelBooking = async (req, res, next) => {
 // @desc    Update booking status (Admin/Driver only)
 // @route   PATCH /api/v1/bookings/:id/status
 // @access  Private
+
+//Function to update booking status
 exports.updateBookingStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
@@ -366,7 +380,7 @@ exports.updateBookingStatus = async (req, res, next) => {
         message: 'Access denied',
       });
     }
-
+    // Update status
     booking.status = status;
     await booking.save();
 

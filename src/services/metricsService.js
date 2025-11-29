@@ -61,27 +61,29 @@ const updateUserMetrics = async (userId, rideData) => {
 const calculateAllMetrics = async () => {
   try {
     const { User } = require('../models');
-    
+    // Get all drivers
     const drivers = await User.find({ type: 'conductor', isActive: true });
-
+    // Calculate metrics for each driver
     for (const driver of drivers) {
       const completedRides = await Ride.find({
         driver_id: driver._id,
         status: 'completed',
       });
 
+      // Calculate total kilometers driven
       const kilometers_driven = completedRides.reduce(
         (sum, ride) => sum + (ride.distance_km || 0),
         0
       );
 
+      // Calculate total passengers
       const total_passengers = await Booking.countDocuments({
         ride_id: { $in: completedRides.map(r => r._id) },
         status: 'completed',
       });
-
+      // Calculate carbon footprint saved
       const carbon_footprint = calculateCarbonSaved(kilometers_driven, total_passengers);
-
+      // Upsert metrics
       await Metrics.findOneAndUpdate(
         { user_id: driver._id, period: 'total' },
         {

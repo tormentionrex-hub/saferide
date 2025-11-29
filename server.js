@@ -5,18 +5,18 @@ const logger = require('./src/utils/logger');
 
 const PORT = process.env.PORT || 8080;
 
-// Función principal para iniciar el servidor
+// Main function to start the server
 const startServer = async () => {
   try {
-    // Conectar a la base de datos primero
+    // Connect to the database first
     await connectDB();
 
-    // Inicializar tareas programadas
+    // Initialize scheduled jobs
     if (process.env.NODE_ENV !== 'test') {
       initScheduledJobs();
     }
 
-    // Iniciar servidor después de la conexión exitosa
+    // Start server after successful connection
     const server = app.listen(PORT, () => {
       logger.success(`🚀 Server running on port ${PORT}`);
       logger.info(`🌍 Environment: ${process.env.NODE_ENV}`);
@@ -67,5 +67,5 @@ const startServer = async () => {
   }
 };
 
-// Iniciar el servidor
+// Start the server
 startServer();

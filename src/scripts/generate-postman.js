@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const swaggerSpec = require('../config/swagger');
 
-// Guardar spec como JSON
+// Save as JSON
 const specPath = path.join(process.cwd(), 'swagger-spec.json');
 fs.writeFileSync(specPath, JSON.stringify(swaggerSpec, null, 2));
 

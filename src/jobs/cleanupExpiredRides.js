@@ -1,14 +1,14 @@
 const { Ride, Booking } = require('../models');
 const logger = require('../utils/logger');
-
+// Job to clean up expired rides and bookings
 const cleanupExpiredRidesJob = async () => {
     const startTime = Date.now();
     logger.info('🚀 Starting cleanup of expired rides job...');
-
+    // Current date and time
     try {
         const now = new Date();
 
-        // Cancelar viajes programados que ya pasaron
+        // Cancel scheduled rides that have already passed
         const expiredScheduled = await Ride.updateMany(
             {
                 status: 'scheduled',
@@ -19,11 +19,11 @@ const cleanupExpiredRidesJob = async () => {
             }
         );
 
-        // Fecha limite: viajes de hace mas de 7 dias
+        // Cutoff date: rides older than 7 days
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - 7);
 
-        // Cancelar Bookings pendientes antiguos
+        // Cancel old pending bookings
         const expiredBookings = await Booking.updateMany(
             {
                 status: 'pending',
@@ -33,10 +33,10 @@ const cleanupExpiredRidesJob = async () => {
                 $set: { status: 'cancelled' },
             }
         );
-
+        // Log job duration and summary
         const duration = ((Date.now() - startTime) /1000).toFixed(2);
         logger.success(`✅ Cleanup completed in ${duration} seconds. Rides updated: ${expiredScheduled.modifiedCount}, Bookings cancelled: ${expiredBookings.modifiedCount}`);
-
+        // Return summary
         return {
             success: true,
             ridesUpdated: expiredScheduled.modifiedCount,

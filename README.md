@@ -1,20 +1,257 @@
-# Introduction 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
+# Safe-Ride Backend API
 
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+![Safe-Ride Banner](https://via.placeholder.com/1200x300?text=Safe-Ride+Carpooling+Platform)
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
+Backend robusto y escalable para la plataforma de carpooling **Safe-Ride**, diseñado para facilitar el transporte compartido corporativo y universitario, reduciendo la huella de carbono y optimizando la movilidad urbana.
 
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
+## 📋 Tabla de Contenidos
 
-If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+- [Descripción del Proyecto](#-descripción-del-proyecto)
+- [Arquitectura e Infraestructura](#-arquitectura-e-infraestructura)
+- [Tecnologías Utilizadas](#-tecnologías-utilizadas)
+- [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Base de Datos](#-base-de-datos)
+- [API Endpoints](#-api-endpoints)
+- [Instalación y Configuración](#-instalación-y-configuración)
+- [Testing](#-testing)
+- [Despliegue](#-despliegue)
+- [Colaboración](#-colaboración)
+- [Contacto](#-contacto)
+
+---
+
+## 📖 Descripción del Proyecto
+
+Safe-Ride es una solución tecnológica que conecta a conductores con asientos disponibles y pasajeros que se dirigen al mismo destino. El backend gestiona toda la lógica de negocio, incluyendo:
+
+*   **Gestión de Usuarios:** Perfiles de conductores y pasajeros, autenticación segura.
+*   **Viajes (Rides):** Creación, búsqueda geoespacial y gestión de estados de viajes.
+*   **Reservas (Bookings):** Sistema de solicitud y confirmación de asientos.
+*   **Seguridad:** Validación de vehículos y licencias.
+*   **Gamificación y Métricas:** Cálculo de ahorro de CO2 y kilómetros compartidos.
+*   **Notificaciones:** Alertas en tiempo real sobre el estado de los viajes.
+
+## 🏗 Arquitectura e Infraestructura
+
+El sistema está construido sobre una arquitectura monolítica modular desplegada en la nube de **Microsoft Azure**.
+
+### Diagrama de Infraestructura
+
+```mermaid
+graph TD
+    Client[Cliente Web/Móvil] -->|HTTPS| FD[Azure Front Door]
+    FD -->|Load Balancing| AppService[Azure App Service (Linux)]
+    
+    subgraph "Azure Cloud Resource Group"
+        AppService -->|Persistencia| CosmosDB[Azure Cosmos DB for MongoDB (vCore)]
+        AppService -->|Almacenamiento| BlobStorage[Azure Blob Storage]
+        AppService -->|Logs & Monitoreo| AppInsights[Application Insights]
+    end
+    
+    AppService -->|Timezone Handling| Luxon[Luxon (America/Costa_Rica)]
+```
+
+### Componentes Clave
+*   **Azure App Service:** Hospeda la aplicación Node.js en un entorno Linux.
+*   **Azure Cosmos DB (vCore):** Base de datos NoSQL compatible con MongoDB para almacenamiento de alto rendimiento.
+*   **Azure Front Door:** CDN y balanceador de carga global para baja latencia y seguridad.
+*   **Azure Blob Storage:** Almacenamiento de imágenes de perfil y vehículos.
+
+## 🛠 Tecnologías Utilizadas
+
+### Core
+*   **Runtime:** [Node.js](https://nodejs.org/) (v18+)
+*   **Framework:** [Express.js](https://expressjs.com/) (v5.0)
+*   **Lenguaje:** JavaScript (ES6+)
+
+### Base de Datos & ODM
+*   **Mongoose:** Modelado de objetos para MongoDB.
+*   **MongoDB / Azure Cosmos DB:** Base de datos principal.
+
+### Seguridad & Utilidades
+*   **JWT (JsonWebToken):** Autenticación stateless.
+*   **BcryptJS:** Hashing de contraseñas.
+*   **Helmet & CORS:** Seguridad de cabeceras HTTP.
+*   **Express Validator:** Validación de datos de entrada.
+*   **Luxon:** Manejo preciso de zonas horarias (UTC vs Local).
+*   **Multer:** Manejo de subida de archivos (imágenes).
+
+### Documentación & Testing
+*   **Swagger (OpenAPI 3.0):** Documentación interactiva de la API.
+*   **Jest:** Framework de pruebas unitarias y de integración.
+
+## 📂 Estructura del Proyecto
+
+```bash
+saferide-backend/
+├── src/
+│   ├── config/         # Configuraciones (DB, Swagger, Azure, Auth)
+│   ├── controllers/    # Lógica de control de peticiones
+│   ├── middleware/     # Middlewares (Auth, Error Handling, Validation)
+│   ├── models/         # Esquemas de Mongoose (User, Ride, Vehicle, etc.)
+│   ├── routes/         # Definición de rutas de la API
+│   ├── services/       # Lógica de negocio y servicios externos (Blob, Metrics)
+│   ├── utils/          # Utilidades (Logger, TimeZone, ResponseHelper)
+│   ├── jobs/           # Tareas programadas (Cron jobs)
+│   ├── scripts/        # Scripts de inicialización y mantenimiento
+│   ├── tests/          # Tests unitarios y de integración
+│   └── app.js          # Punto de entrada de la aplicación Express
+├── public/             # Archivos estáticos (Docs)
+├── server.js           # Script de inicio del servidor
+├── package.json        # Dependencias y scripts
+└── README.md           # Documentación del proyecto
+```
+
+## 🗄 Base de Datos
+
+El modelo de datos está diseñado para ser flexible y escalable. A continuación se presenta un diagrama entidad-relación simplificado de las colecciones principales.
+
+### Diagrama de Clases / Entidades
+
+```mermaid
+classDiagram
+    class User {
+        +ObjectId _id
+        +String name
+        +String email
+        +String password
+        +String role
+        +Float rating
+    }
+    class Vehicle {
+        +ObjectId _id
+        +ObjectId driver_id
+        +String brand
+        +String model
+        +String plate
+    }
+    class Ride {
+        +ObjectId _id
+        +ObjectId driver_id
+        +Object origin
+        +Object destination
+        +Date date_time
+        +Int available_seats
+        +String status
+    }
+    class Booking {
+        +ObjectId _id
+        +ObjectId ride_id
+        +ObjectId passenger_id
+        +String status
+    }
+    class Review {
+        +ObjectId _id
+        +ObjectId ride_id
+        +ObjectId reviewer_id
+        +ObjectId reviewee_id
+        +Int rating
+    }
+
+    User "1" -- "0..*" Vehicle : owns
+    User "1" -- "0..*" Ride : drives
+    User "1" -- "0..*" Booking : makes
+    Ride "1" -- "0..*" Booking : contains
+    Ride "1" -- "0..*" Review : has
+    User "1" -- "0..*" Review : writes/receives
+```
+
+## 🔌 API Endpoints
+
+La documentación completa e interactiva está disponible en `/api-docs` cuando el servidor está en ejecución.
+
+### Resumen de Módulos
+
+| Módulo | Ruta Base | Descripción |
+|--------|-----------|-------------|
+| **Auth** | `/api/v1/auth` | Registro, Login, Refresh Token. |
+| **Users** | `/api/v1/users` | Gestión de perfiles, estadísticas de usuario. |
+| **Vehicles** | `/api/v1/vehicles` | CRUD de vehículos (solo conductores). |
+| **Rides** | `/api/v1/rides` | Publicación y búsqueda de viajes. |
+| **Bookings** | `/api/v1/bookings` | Gestión de reservas de asientos. |
+| **Reviews** | `/api/v1/reviews` | Sistema de calificación y comentarios. |
+| **Notifications**| `/api/v1/notifications`| Alertas de sistema y actividad. |
+| **Metrics** | `/api/v1/metrics` | Dashboard de impacto ambiental. |
+
+## 🚀 Instalación y Configuración
+
+### Prerrequisitos
+*   Node.js v18 o superior.
+*   Instancia de MongoDB (Local o Atlas/Cosmos DB).
+*   Cuenta de Azure Storage (opcional para imágenes).
+
+### Pasos
+1.  **Clonar el repositorio:**
+    ```bash
+    git clone https://github.com/jmunozc023/saferide-backend.git
+    cd saferide-backend
+    ```
+
+2.  **Instalar dependencias:**
+    ```bash
+    npm install
+    ```
+
+3.  **Configurar variables de entorno:**
+    Crea un archivo `.env` en la raíz basado en el siguiente ejemplo:
+    ```env
+    PORT=8080
+    NODE_ENV=development
+    MONGODB_URI=mongodb://localhost:27017/saferide
+    JWT_SECRET=tu_secreto_super_seguro
+    JWT_REFRESH_SECRET=tu_otro_secreto
+    AZURE_STORAGE_CONNECTION_STRING=...
+    ```
+
+4.  **Inicializar base de datos (opcional):**
+    ```bash
+    npm run db:init
+    ```
+
+5.  **Iniciar el servidor:**
+    ```bash
+    npm run dev  # Modo desarrollo
+    npm start    # Modo producción
+    ```
+
+## 🧪 Testing
+
+El proyecto utiliza **Jest** para pruebas automatizadas.
+
+```bash
+# Ejecutar todos los tests
+npm test
+
+# Ejecutar tests con cobertura
+npm test -- --coverage
+```
+
+## ☁️ Despliegue
+
+El despliegue está automatizado mediante scripts de PowerShell para Azure App Service.
+
+1.  Asegúrate de tener Azure CLI instalado y logueado.
+2.  Ejecuta el script de despliegue (ubicado en `deploy/` o raíz si aplica):
+    ```powershell
+    ./deploy-azure.ps1
+    ```
+    *Nota: El despliegue excluye `node_modules` para optimizar el tiempo de subida.*
+
+## 🤝 Colaboración
+
+¡Las contribuciones son bienvenidas! Por favor sigue estos pasos:
+
+1.  Haz un Fork del repositorio.
+2.  Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`).
+3.  Commit a tus cambios (`git commit -m 'Add some AmazingFeature'`).
+4.  Push a la rama (`git push origin feature/AmazingFeature`).
+5.  Abre un Pull Request.
+
+## 📞 Contacto
+
+**Jose Pablo Muñoz Carvajal** - *Lead Developer*
+*   Email: [safe-ride-app@hotmail.com](mailto:safe-ride-app@hotmail.com)
+*   GitHub: [@jmunozc023](https://github.com/jmunozc023)
+
+---
+© 2025 Safe-Ride. Todos los derechos reservados.

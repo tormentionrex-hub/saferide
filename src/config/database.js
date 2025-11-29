@@ -4,7 +4,7 @@ require('dotenv').config();
 
 const connectDB = async () => {
   try {
-    // Connection string para Cosmos DB for MongoDB (vCore)
+    // Connection string for Cosmos DB for MongoDB (vCore)
     let connectionString = process.env.COSMOS_CONNECTION_STRING;
     const dbName = process.env.COSMOS_DATABASE || 'Safe-RideDB';
 
@@ -12,37 +12,37 @@ const connectDB = async () => {
       throw new Error('COSMOS_CONNECTION_STRING is not defined in environment variables');
     }
 
-    // Asegurar que el connection string incluya el nombre de la base de datos
-    // Si la URL no tiene un path (termina en .com/ o no tiene /), agregar el nombre de la BD
+    // Ensure the connection string includes the database name
+    // If the URL does not have a path (ends in .com/ or does not have /), add the database name
     if (!connectionString.includes('?')) {
-      // No hay query string, agregar /<dbname>?
+      // No query string, add /<dbname>?
       connectionString = connectionString.replace(/\/?$/, `/${dbName}?`);
     } else if (!connectionString.match(/\/[^\/]+\?/)) {
-      // Hay query string pero no hay nombre de BD entre / y ?
+      // There is a query string but no database name between / and ?
       connectionString = connectionString.replace('?', `/${dbName}?`);
     }
 
-    // Opciones de conexión optimizadas para Cosmos DB vCore
+    // Connection options optimized for Cosmos DB vCore
     const options = {
-      // Especificar el nombre de la base de datos explícitamente
+      // Specify the database name explicitly
       dbName: dbName,
       
       // Timeout configurations
-      serverSelectionTimeoutMS: 10000, // 10 segundos
-      socketTimeoutMS: 45000, // 45 segundos
-      connectTimeoutMS: 10000, // 10 segundos
+      serverSelectionTimeoutMS: 10000, // 10 seconds
+      socketTimeoutMS: 45000, // 45 seconds
+      connectTimeoutMS: 10000, // 10 seconds
       
       // Connection pool
-      maxPoolSize: 10, // Máximo de conexiones simultáneas
-      minPoolSize: 2,  // Mínimo de conexiones en el pool
+      maxPoolSize: 10, // Maximum simultaneous connections
+      minPoolSize: 2,  // Minimum connections in the pool
       
       // Retry configuration
-      retryWrites: false, // Cosmos DB vCore no soporta retryWrites por defecto
+      retryWrites: false, // Cosmos DB vCore does not support retryWrites by default
       retryReads: true,
       
       // Additional settings
-      maxIdleTimeMS: 120000, // 2 minutos
-      compressors: ['zlib'], // Compresión de datos
+      maxIdleTimeMS: 120000, // 2 minutes
+      compressors: ['zlib'], // Data compression
       
       // TLS/SSL
       tls: true,

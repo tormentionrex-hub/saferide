@@ -8,6 +8,8 @@ const { getContainerClient } = require('../config/azure');
  * @param {string} contentType - MIME type
  * @returns {Promise<string>} - Blob URL
  */
+
+//Function to upload file to blob storage
 const uploadToBlob = async (fileBuffer, fileName, containerName, contentType) => {
   try {
     const containerClient = getContainerClient(containerName);
@@ -16,9 +18,9 @@ const uploadToBlob = async (fileBuffer, fileName, containerName, contentType) =>
     await containerClient.createIfNotExists({
       access: 'blob',
     });
-
+    // Get block blob client
     const blockBlobClient = containerClient.getBlockBlobClient(fileName);
-    
+    // Upload data
     await blockBlobClient.uploadData(fileBuffer, {
       blobHTTPHeaders: {
         blobContentType: contentType,
@@ -38,12 +40,14 @@ const uploadToBlob = async (fileBuffer, fileName, containerName, contentType) =>
  * @param {string} containerName - Container name
  * @returns {Promise<boolean>}
  */
+
+//Function to delete file from blob storage
 const deleteFromBlob = async (blobUrl, containerName) => {
   try {
     const containerClient = getContainerClient(containerName);
     const fileName = blobUrl.split('/').pop();
     const blockBlobClient = containerClient.getBlockBlobClient(fileName);
-    
+    // Delete blob if exists
     await blockBlobClient.deleteIfExists();
     return true;
   } catch (error) {
@@ -59,20 +63,22 @@ const deleteFromBlob = async (blobUrl, containerName) => {
  * @param {number} expiresInMinutes - Expiration time in minutes
  * @returns {Promise<string>}
  */
+
+//Function to get blob SAS URL (with temporary access)
 const getBlobSasUrl = async (blobUrl, containerName, expiresInMinutes = 60) => {
   try {
     const { BlobSASPermissions, generateBlobSASQueryParameters } = require('@azure/storage-blob');
     const { StorageSharedKeyCredential } = require('@azure/storage-blob');
-    
+    // Get container client
     const containerClient = getContainerClient(containerName);
     const fileName = blobUrl.split('/').pop();
     const blockBlobClient = containerClient.getBlockBlobClient(fileName);
-    
+    // Generate SAS token
     const startsOn = new Date();
     const expiresOn = new Date(startsOn.getTime() + expiresInMinutes * 60 * 1000);
-    
+    // Define permissions
     const permissions = BlobSASPermissions.parse('r'); // Read only
-    
+    // Generate SAS query parameters
     const sasToken = generateBlobSASQueryParameters(
       {
         containerName,
@@ -86,7 +92,7 @@ const getBlobSasUrl = async (blobUrl, containerName, expiresInMinutes = 60) => {
         process.env.BLOB_ACCOUNT_KEY
       )
     ).toString();
-    
+    // Return full URL with SAS token
     return `${blockBlobClient.url}?${sasToken}`;
   } catch (error) {
     console.error('Error generating SAS URL:', error);

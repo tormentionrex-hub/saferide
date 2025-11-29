@@ -5,6 +5,7 @@ const { uploadToBlob, deleteFromBlob } = require("../services/blobService");
 // @route POST /api/v1/vehicles
 // @access Private
 
+//Function to create a vehicle
 exports.createVehicle = async (req, res, next) => {
     try {
         const { brand, model, license_plate, color, year } = req.body;
@@ -35,6 +36,7 @@ exports.createVehicle = async (req, res, next) => {
             brand,
             model,
             license_plate: license_plate.toUpperCase(),
+            capacity, // TODO: Validate why is not populating on the database (error capacity is not defined)
             color,
             year,
         });
@@ -53,6 +55,7 @@ exports.createVehicle = async (req, res, next) => {
 // @route GET /api/v1/vehicles/driver/:driverId
 // @access Private
 
+//Function to get vehicle by driver ID
 exports.getVehicleByDriver = async (req, res, next) => {
     try {
         const vehicle = await Vehicle.findOne({
@@ -66,6 +69,7 @@ exports.getVehicleByDriver = async (req, res, next) => {
             });
         }
 
+        // Respond with vehicle data
         res.status(200).json({
             success: true,
             data: vehicle,
@@ -84,7 +88,7 @@ exports.getVehicleById = async (req, res, next) => {
     try {
         const vehicle = await Vehicle.findById(req.params.id)
         .populate('driver_id', 'name username email phone rating');
-
+        // Validate vehicle existence
         if (!vehicle) {
             return res.status(404).json({
                 success: false,
@@ -104,10 +108,11 @@ exports.getVehicleById = async (req, res, next) => {
 // @route PUT /api/v1/vehicles/:id
 // @access Private/Conductor
 
+//Function to update vehicle
 exports.updateVehicle = async (req, res, next) => {
     try {
         const vehicle = await Vehicle.findById(req.params.id);
-
+        // Validate vehicle existence
         if (!vehicle) {
             return res.status(404).json({
                 success: false,
@@ -126,7 +131,7 @@ exports.updateVehicle = async (req, res, next) => {
         // Fields that can be updated
         const allowedUpdates = ['brand', 'model', 'color', 'year'];
         const updates = {};
-
+        // Build updates object
         allowedUpdates.forEach(field => {
             if (req.body[field] !== undefined) {
                 updates[field] = req.body[field];
@@ -149,10 +154,12 @@ exports.updateVehicle = async (req, res, next) => {
 // @route POST /api/v1/vehicles/:id/image
 // @access Private/Conductor
 
+//Function to upload vehicle image
 exports.uploadVehicleImage = async (req, res, next) => {
     try {
         const vehicle = await Vehicle.findById(req.params.id);
 
+// Validate vehicle existence
         if (!vehicle) {
             return res.status(404).json({
                 success: false,
@@ -179,7 +186,7 @@ exports.uploadVehicleImage = async (req, res, next) => {
             'vehicle-images',
             req.file.mimetype
         );
-
+        // Update vehicle with new image URL
         vehicle.vehicleImage = imageUrl;
         await vehicle.save();
 
@@ -197,10 +204,12 @@ exports.uploadVehicleImage = async (req, res, next) => {
 // @route DELETE /api/v1/vehicles/:id
 // @access Private/Conductor
 
+//Function to delete vehicle
 exports.deleteVehicle = async (req, res, next) => {
     try {
         const vehicle = await Vehicle.findById(req.params.id);
 
+// Validate vehicle existence
         if (!vehicle) {
             return res.status(404).json({
                 success: false,

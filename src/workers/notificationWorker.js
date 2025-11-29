@@ -2,12 +2,12 @@ const { Notification } = require('../models');
 const logger = require('../utils/logger');
 const eventEmitter = require('../events/eventEmitter');
 
-// Array ara cola de notificaciones en memoria
+// Array for notification queue in memory
 const notificationQueue =[];
 let isProcessing = false;
 
 /**
- * Agregar notificacion a la cola
+ * Add notification to the queue
  */
 const queueNotification = (notificationData) => {
     notificationQueue.push(notificationData);
@@ -20,7 +20,7 @@ const queueNotification = (notificationData) => {
 };
 
 /**
- * Procesar cola de notificaciones
+ * Process notification queue
  */
 
 const processQueue = async () => {
@@ -34,7 +34,7 @@ const processQueue = async () => {
         try {
             logger.info(`🚀 Processing notification for user: ${notificationData.userId}`);
 
-            // Crear notificacion en la base de datos
+            // Create notification in the database
             const notification = await Notification.create({
                 user_id: notificationData.userId,
                 message: notificationData.message,
@@ -44,16 +44,16 @@ const processQueue = async () => {
                 date: new Date(),
             });
             logger.success(`✅ Notification created with ID: ${notification._id}`);
-            // TODO: Integrar con servicio de envio de notificaciones push/email si es necesario o servicios de push notifications
+            // TODO: Integrate with push/email notification service if needed or push notification services
             // await sendPushNotification(notificationData.userId, notificationData.message);
 
-            // Emitir evento de notificacion enviada
+            // Emit notification sent event
             eventEmitter.emit('notification:sent', notification);
 
         } catch (error) {
             logger.error('❌ Error processing notification:', error);
 
-            // Reintentar si falla (maximo 3 reintentos)
+            // Retry if fails (maximum 3 retries)
             if (!notificationData.retries) {
                 notificationData.retries = 0;
             }
@@ -67,7 +67,7 @@ const processQueue = async () => {
             }
         }
 
-        // Pequeña pausa entre procesamiento de notificaciones
+        // Small pause between processing notifications
         await new Promise(resolve => setTimeout(resolve, 100));
     }
     isProcessing = false;
