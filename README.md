@@ -1,12 +1,15 @@
 # Safe-Ride Backend API
 
 ![Safe-Ride Banner](public/safe-ride-logo-inverted.png)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
 
 Backend robusto y escalable para la plataforma de carpooling **Safe-Ride**, diseñado para facilitar el transporte compartido corporativo y universitario, reduciendo la huella de carbono y optimizando la movilidad urbana.
 
 ## 📋 Tabla de Contenidos
 
 - [Descripción del Proyecto](#-descripción-del-proyecto)
+- [Caracteristicas](#-caracteristicas)
 - [Arquitectura e Infraestructura](#-arquitectura-e-infraestructura)
 - [Tecnologías Utilizadas](#-tecnologías-utilizadas)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
@@ -30,6 +33,59 @@ Safe-Ride es una solución tecnológica que conecta a conductores con asientos d
 - **Seguridad:** Validación de vehículos y licencias.
 - **Gamificación y Métricas:** Cálculo de ahorro de CO2 y kilómetros compartidos.
 - **Notificaciones:** Alertas en tiempo real sobre el estado de los viajes.
+
+## ✨ Características
+
+### Autenticación y Usuarios
+- ✅ Registro de usuarios con validación completa
+- ✅ Login con JWT (Access Token y Refresh Token)
+- ✅ Autenticación con Azure Active Directory (Entra ID)
+- ✅ Gestión de perfiles de usuario (conductores, pasajeros, administradores)
+- ✅ Actualización de contraseña segura
+- ✅ Subida de imágenes de perfil a Azure Blob Storage
+
+### Gestión de Viajes
+- ✅ Creación de viajes con origen, destino y horarios
+- ✅ Búsqueda y filtrado de viajes disponibles
+- ✅ Sistema de asientos disponibles
+- ✅ Estados de viaje: programado, en progreso, completado, cancelado
+- ✅ Geolocalización con coordenadas lat/lng
+
+### Sistema de Reservas
+- ✅ Reserva de asientos en viajes
+- ✅ Gestión de estados: pendiente, confirmado, cancelado, completado
+- ✅ Prevención de reservas duplicadas
+- ✅ Validación de capacidad de asientos
+
+### Vehículos
+- ✅ Registro de vehículos con validación de placa
+- ✅ Gestión de información: marca, modelo, año, color, capacidad
+- ✅ Subida de imágenes de vehículos
+- ✅ Asociación conductor-vehículo
+
+### Reseñas y Calificaciones
+- ✅ Sistema de reseñas entre usuarios
+- ✅ Calificación de 1 a 5 estrellas
+- ✅ Comentarios y feedback
+
+### Notificaciones
+- ✅ Sistema de notificaciones en tiempo real
+- ✅ Notificaciones de reservas, confirmaciones y cancelaciones
+- ✅ Estados: no leída, leída, archivada
+
+### Métricas y Análisis
+- ✅ Dashboard de métricas del sistema
+- ✅ Estadísticas de usuarios, viajes y reservas
+- ✅ Análisis de uso por empresa
+
+### Seguridad
+- ✅ Autenticación JWT con tokens de acceso y actualización
+- ✅ Encriptación de contraseñas con bcrypt
+- ✅ Helmet.js para headers de seguridad
+- ✅ Rate limiting para prevenir abuso
+- ✅ CORS configurado
+- ✅ Validación de datos con express-validator
+- ✅ Integración con Azure Key Vault
 
 ## 🏗 Arquitectura e Infraestructura
 
@@ -90,21 +146,62 @@ graph TD
 ```bash
 saferide-backend/
 ├── src/
-│   ├── config/         # Configuraciones (DB, Swagger, Azure, Auth)
-│   ├── controllers/    # Lógica de control de peticiones
-│   ├── middleware/     # Middlewares (Auth, Error Handling, Validation)
-│   ├── models/         # Esquemas de Mongoose (User, Ride, Vehicle, etc.)
-│   ├── routes/         # Definición de rutas de la API
-│   ├── services/       # Lógica de negocio y servicios externos (Blob, Metrics)
-│   ├── utils/          # Utilidades (Logger, TimeZone, ResponseHelper)
-│   ├── jobs/           # Tareas programadas (Cron jobs)
-│   ├── scripts/        # Scripts de inicialización y mantenimiento
-│   ├── tests/          # Tests unitarios y de integración
-│   └── app.js          # Punto de entrada de la aplicación Express
-├── public/             # Archivos estáticos (Docs)
-├── server.js           # Script de inicio del servidor
-├── package.json        # Dependencias y scripts
-└── README.md           # Documentación del proyecto
+│   ├── app.js                 # Configuración principal de Express
+│   ├── config/                # Configuraciones
+│   │   ├── auth.js           # Configuración JWT
+│   │   ├── azure.js          # Clientes de Azure (Blob, KeyVault)
+│   │   └── database.js       # Conexión a Cosmos DB
+│   ├── controllers/           # Controladores de las rutas
+│   │   ├── authController.js
+│   │   ├── bookingController.js
+│   │   ├── metricsController.js
+│   │   ├── notificationController.js
+│   │   ├── reviewController.js
+│   │   ├── rideController.js
+│   │   ├── userController.js
+│   │   └── vehicleController.js
+│   ├── middleware/            # Middleware personalizado
+│   │   ├── auth.js           # Autenticación y autorización
+│   │   ├── errorHandler.js   # Manejo de errores
+│   │   ├── rateLimiter.js    # Rate limiting
+│   │   └── validation.js     # Validación de datos
+│   ├── models/                # Modelos de Mongoose
+│   │   ├── Bookings.js
+│   │   ├── Metics.js
+│   │   ├── Notification.js
+│   │   ├── Review.js
+│   │   ├── Ride.js
+│   │   ├── User.js
+│   │   ├── Vehicle.js
+│   │   └── index.js
+│   ├── routes/                # Definición de rutas
+│   │   ├── authRoutes.js
+│   │   ├── bookingRoutes.js
+│   │   ├── metricsRoutes.js
+│   │   ├── notificationRoutes.js
+│   │   ├── reviewRoutes.js
+│   │   ├── rideRoutes.js
+│   │   ├── userRoutes.js
+│   │   ├── vehicleRoutes.js
+│   │   └── index.js
+│   ├── scripts/               # Scripts de utilidad
+│   │   └── initDatabase.js   # Inicialización de BD
+│   ├── services/              # Lógica de negocio
+│   │   ├── blobService.js
+│   │   ├── metricsService.js
+│   │   └── notificationService.js
+│   ├── tests/                 # Tests
+│   │   ├── auth.tests.js
+│   │   └── setup.js
+│   └── utils/                 # Utilidades
+│       ├── logger.js          # Logger personalizado
+│       └── responseHelper.js  # Helpers de respuestas
+├── .eslintrc.js              # Configuración ESLint
+├── .gitignore                # Archivos ignorados por Git
+├── jest.config.js            # Configuración de Jest
+├── package.json              # Dependencias y scripts
+├── README.md                 # Este archivo
+└── server.js                 # Punto de entrada de la aplicación
 ```
 
 ## 🗄 Base de Datos
@@ -167,16 +264,95 @@ La documentación completa e interactiva está disponible en `/api-docs` cuando 
 
 ### Resumen de Módulos
 
-| Módulo            | Ruta Base               | Descripción                                   |
-| ----------------- | ----------------------- | --------------------------------------------- |
-| **Auth**          | `/api/v1/auth`          | Registro, Login, Refresh Token.               |
-| **Users**         | `/api/v1/users`         | Gestión de perfiles, estadísticas de usuario. |
-| **Vehicles**      | `/api/v1/vehicles`      | CRUD de vehículos (solo conductores).         |
-| **Rides**         | `/api/v1/rides`         | Publicación y búsqueda de viajes.             |
-| **Bookings**      | `/api/v1/bookings`      | Gestión de reservas de asientos.              |
-| **Reviews**       | `/api/v1/reviews`       | Sistema de calificación y comentarios.        |
-| **Notifications** | `/api/v1/notifications` | Alertas de sistema y actividad.               |
-| **Metrics**       | `/api/v1/metrics`       | Dashboard de impacto ambiental.               |
+### Base URL
+
+```
+http://localhost:8080/api/v1
+```
+
+### Autenticación (`/auth`)
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| POST | `/auth/register` | Registrar nuevo usuario | No |
+| POST | `/auth/login` | Iniciar sesión | No |
+| POST | `/auth/refresh` | Refrescar access token | No |
+| POST | `/auth/logout` | Cerrar sesión | Sí |
+| GET | `/auth/me` | Obtener usuario actual | Sí |
+| PUT | `/auth/password` | Actualizar contraseña | Sí |
+
+### Usuarios (`/users`)
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| GET | `/users` | Listar usuarios | Sí (Admin) |
+| GET | `/users/:id` | Obtener usuario por ID | Sí |
+| PUT | `/users/:id` | Actualizar usuario | Sí |
+| DELETE | `/users/:id` | Eliminar usuario | Sí (Admin) |
+| POST | `/users/:id/profile-image` | Subir imagen de perfil | Sí |
+
+### Vehículos (`/vehicles`)
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| POST | `/vehicles` | Registrar vehículo | Sí (Conductor) |
+| GET | `/vehicles` | Listar vehículos | Sí |
+| GET | `/vehicles/:id` | Obtener vehículo por ID | Sí |
+| PUT | `/vehicles/:id` | Actualizar vehículo | Sí (Conductor) |
+| DELETE | `/vehicles/:id` | Eliminar vehículo | Sí (Conductor) |
+| POST | `/vehicles/:id/image` | Subir imagen de vehículo | Sí (Conductor) |
+
+### Viajes (`/rides`)
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| POST | `/rides` | Crear viaje | Sí (Conductor) |
+| GET | `/rides` | Listar viajes disponibles | Opcional |
+| GET | `/rides/:id` | Obtener viaje por ID | Opcional |
+| PUT | `/rides/:id` | Actualizar viaje | Sí (Conductor) |
+| DELETE | `/rides/:id` | Cancelar viaje | Sí (Conductor) |
+| GET | `/rides/driver/:driverId` | Viajes de un conductor | Sí |
+| PATCH | `/rides/:id/start` | Iniciar viaje | Sí (Conductor) |
+| PATCH | `/rides/:id/complete` | Completar viaje | Sí (Conductor) |
+
+### Reservas (`/bookings`)
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| POST | `/bookings` | Crear reserva | Sí (Pasajero) |
+| GET | `/bookings` | Listar mis reservas | Sí |
+| GET | `/bookings/:id` | Obtener reserva por ID | Sí |
+| PUT | `/bookings/:id` | Actualizar reserva | Sí |
+| DELETE | `/bookings/:id` | Cancelar reserva | Sí |
+| PATCH | `/bookings/:id/confirm` | Confirmar reserva | Sí (Conductor) |
+
+### Reseñas (`/reviews`)
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| POST | `/reviews` | Crear reseña | Sí |
+| GET | `/reviews/user/:userId` | Reseñas de un usuario | Sí |
+| GET | `/reviews/:id` | Obtener reseña por ID | Sí |
+| PUT | `/reviews/:id` | Actualizar reseña | Sí |
+| DELETE | `/reviews/:id` | Eliminar reseña | Sí |
+
+### Notificaciones (`/notifications`)
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| GET | `/notifications` | Listar mis notificaciones | Sí |
+| GET | `/notifications/:id` | Obtener notificación | Sí |
+| PATCH | `/notifications/:id/read` | Marcar como leída | Sí |
+| DELETE | `/notifications/:id` | Eliminar notificación | Sí |
+
+### Métricas (`/metrics`)
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| GET | `/metrics/dashboard` | Dashboard de métricas | Sí (Admin) |
+| GET | `/metrics/users` | Estadísticas de usuarios | Sí (Admin) |
+| GET | `/metrics/rides` | Estadísticas de viajes | Sí (Admin) |
+
 
 ## 🚀 Instalación y Configuración
 
