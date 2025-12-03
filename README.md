@@ -145,63 +145,107 @@ graph TD
 
 ```bash
 saferide-backend/
-├── src/
-│   ├── app.js                 # Configuración principal de Express
-│   ├── config/                # Configuraciones
-│   │   ├── auth.js           # Configuración JWT
-│   │   ├── azure.js          # Clientes de Azure (Blob, KeyVault)
-│   │   └── database.js       # Conexión a Cosmos DB
-│   ├── controllers/           # Controladores de las rutas
-│   │   ├── authController.js
-│   │   ├── bookingController.js
-│   │   ├── metricsController.js
-│   │   ├── notificationController.js
-│   │   ├── reviewController.js
-│   │   ├── rideController.js
-│   │   ├── userController.js
-│   │   └── vehicleController.js
-│   ├── middleware/            # Middleware personalizado
-│   │   ├── auth.js           # Autenticación y autorización
-│   │   ├── errorHandler.js   # Manejo de errores
-│   │   ├── rateLimiter.js    # Rate limiting
-│   │   └── validation.js     # Validación de datos
-│   ├── models/                # Modelos de Mongoose
-│   │   ├── Bookings.js
-│   │   ├── Metics.js
-│   │   ├── Notification.js
-│   │   ├── Review.js
-│   │   ├── Ride.js
-│   │   ├── User.js
-│   │   ├── Vehicle.js
-│   │   └── index.js
-│   ├── routes/                # Definición de rutas
-│   │   ├── authRoutes.js
-│   │   ├── bookingRoutes.js
-│   │   ├── metricsRoutes.js
-│   │   ├── notificationRoutes.js
-│   │   ├── reviewRoutes.js
-│   │   ├── rideRoutes.js
-│   │   ├── userRoutes.js
-│   │   ├── vehicleRoutes.js
-│   │   └── index.js
-│   ├── scripts/               # Scripts de utilidad
-│   │   └── initDatabase.js   # Inicialización de BD
-│   ├── services/              # Lógica de negocio
-│   │   ├── blobService.js
-│   │   ├── metricsService.js
-│   │   └── notificationService.js
-│   ├── tests/                 # Tests
-│   │   ├── auth.tests.js
-│   │   └── setup.js
-│   └── utils/                 # Utilidades
-│       ├── logger.js          # Logger personalizado
-│       └── responseHelper.js  # Helpers de respuestas
-├── .eslintrc.js              # Configuración ESLint
-├── .gitignore                # Archivos ignorados por Git
-├── jest.config.js            # Configuración de Jest
-├── package.json              # Dependencias y scripts
-├── README.md                 # Este archivo
-└── server.js                 # Punto de entrada de la aplicación
+├── coverage/                      # Reportes de cobertura de tests (generado)
+│   ├── clover.xml
+│   ├── coverage-final.json
+│   ├── lcov.info
+│   └── lcov-report/
+│       ├── base.css
+│       ├── block-navigation.js
+│       ├── index.html
+│       ├── prettify.css
+│       ├── prettify.js
+│       ├── sorter.js
+│       └── src/                  # Reportes detallados por archivo
+│           ├── app.js.html
+│           ├── config/
+│           ├── controllers/
+│           ├── events/
+│           ├── jobs/
+│           ├── middleware/
+│           ├── models/
+│           ├── routes/
+│           ├── services/
+│           ├── utils/
+│           └── workers/
+├── public/                        # Archivos estáticos públicos
+│   ├── code-examples.html        # Ejemplos de código de la API
+│   ├── docs.html                 # Documentación adicional
+│   └── safe-ride-logo-inverted.png
+├── src/                           # Código fuente principal
+│   ├── app.js                    # Configuración principal de Express
+│   ├── swagger-spec.json         # Especificación OpenAPI generada
+│   ├── config/                   # Configuraciones del sistema
+│   │   ├── auth.js              # Configuración JWT y autenticación
+│   │   ├── azure.js             # Clientes de Azure (Blob, KeyVault)
+│   │   ├── database.js          # Conexión a Cosmos DB/MongoDB
+│   │   └── swagger.js           # Configuración de Swagger/OpenAPI
+│   ├── controllers/              # Controladores de lógica de negocio
+│   │   ├── authController.js    # Autenticación (login, register, refresh)
+│   │   ├── bookingController.js # Gestión de reservas
+│   │   ├── metricsController.js # Métricas y estadísticas
+│   │   ├── notificationController.js # Notificaciones
+│   │   ├── reviewController.js  # Reseñas y calificaciones
+│   │   ├── rideController.js    # Creación y gestión de viajes
+│   │   ├── userController.js    # Gestión de usuarios
+│   │   └── vehicleController.js # Gestión de vehículos
+│   ├── events/                   # Sistema de eventos
+│   │   └── eventEmitter.js      # Event emitter personalizado
+│   ├── jobs/                     # Tareas programadas (Cron Jobs)
+│   │   ├── calculateMetrics.js  # Cálculo de métricas de sostenibilidad
+│   │   ├── cleanupExpiredRides.js # Limpieza de viajes expirados
+│   │   ├── index.js             # Exportación de jobs
+│   │   ├── scheduledJobs.js     # Configuración de jobs programados
+│   │   └── sendRideReminders.js # Envío de recordatorios de viajes
+│   ├── middleware/               # Middleware personalizado
+│   │   ├── auth.js              # Autenticación y autorización JWT
+│   │   ├── errorHandler.js      # Manejo centralizado de errores
+│   │   ├── rateLimiter.js       # Rate limiting para prevenir abuso
+│   │   └── validation.js        # Validación de datos de entrada
+│   ├── models/                   # Modelos de datos (Mongoose)
+│   │   ├── Bookings.js          # Modelo de reservaciones
+│   │   ├── Metics.js            # Modelo de métricas
+│   │   ├── Notification.js      # Modelo de notificaciones
+│   │   ├── Review.js            # Modelo de reseñas
+│   │   ├── Ride.js              # Modelo de viajes
+│   │   ├── User.js              # Modelo de usuarios
+│   │   ├── Vehicle.js           # Modelo de vehículos
+│   │   └── index.js             # Exportación de modelos
+│   ├── routes/                   # Definición de rutas de la API
+│   │   ├── authRoutes.js        # Rutas de autenticación
+│   │   ├── bookingRoutes.js     # Rutas de reservas
+│   │   ├── metricsRoutes.js     # Rutas de métricas
+│   │   ├── notificationRoutes.js # Rutas de notificaciones
+│   │   ├── reviewRoutes.js      # Rutas de reseñas
+│   │   ├── rideRoutes.js        # Rutas de viajes
+│   │   ├── userRoutes.js        # Rutas de usuarios
+│   │   ├── vehicleRoutes.js     # Rutas de vehículos
+│   │   └── index.js             # Router principal
+│   ├── scripts/                  # Scripts de utilidad y mantenimiento
+│   │   ├── generate-postman.js  # Generación de colección Postman
+│   │   └── initDatabase.js      # Inicialización de base de datos
+│   ├── services/                 # Servicios de lógica de negocio
+│   │   ├── blobService.js       # Servicio de Azure Blob Storage
+│   │   ├── metricsService.js    # Cálculos de métricas
+│   │   └── notificationService.js # Gestión de notificaciones
+│   ├── tests/                    # Tests unitarios e integración
+│   │   ├── auth.tests.js        # Tests de autenticación
+│   │   └── setup.js             # Configuración de tests
+│   ├── utils/                    # Utilidades generales
+│   │   ├── logger.js            # Logger personalizado con Winston
+│   │   ├── responseHelper.js    # Helpers para respuestas HTTP
+│   │   └── timeZone.js          # Manejo de zonas horarias con Luxon
+│   └── workers/                  # Workers para procesamiento asíncrono
+│       └── notificationWorker.js # Worker de notificaciones con Bull
+├── .eslintrc.js                  # Configuración de ESLint
+├── .gitignore                    # Archivos ignorados por Git
+├── jest.config.js                # Configuración de Jest para testing
+├── package.json                  # Dependencias y scripts npm
+├── package-lock.json             # Lock file de dependencias
+├── postman-collection.json       # Colección de Postman (generado)
+├── README.md                     # Este archivo - Documentación
+├── server.js                     # Punto de entrada de la aplicación
+└── swagger-spec.json             # Especificación OpenAPI (generado)
 ```
 
 ## 🗄 Base de Datos
@@ -479,3 +523,4 @@ El despliegue de la aplicacion esta automatizado por medio de GitHub Actions, to
 ---
 
 © 2025 Safe-Ride. Todos los derechos reservados.
+
