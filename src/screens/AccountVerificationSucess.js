@@ -7,23 +7,23 @@ import {
     SafeAreaView,
     StatusBar
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function AccountVerificationSucess({ navigation }) {
-    const handleLogin = () => {
+    const handleContinue = () => {
         navigation.navigate('Login');
     };
 
-
-    
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
             <View style={styles.content}>
                 {/* Success Icon Section */}
                 <View style={styles.iconContainer}>
-                    <View style={styles.circle}>
-                        <Ionicons name="checkmark-sharp" size={80} color="#ffffff" />
+                    <View style={styles.outerCircle}>
+                        <View style={styles.innerCircle}>
+                            <MaterialCommunityIcons name="shield-check" size={50} color="#2563EB" />
+                        </View>
                     </View>
                 </View>
 
@@ -31,18 +31,18 @@ export default function AccountVerificationSucess({ navigation }) {
                 <View style={styles.textContainer}>
                     <Text style={styles.title}>¡Cuenta Verificada!</Text>
                     <Text style={styles.subtitle}>
-                        Tu cuenta ha sido verificada exitosamente. Ahora puedes disfrutar de todos los beneficios de SafeRide.
+                        Tu cuenta ha sido verificada{'\n'}exitosamente. Ya puedes continuar y{'\n'}empezar a usar Safe Ride.
                     </Text>
                 </View>
 
                 {/* Button Section */}
                 <View style={styles.buttonContainer}>
-                    <TouchableOpacity 
-                        style={styles.button} 
-                        onPress={handleLogin}
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={handleContinue}
                         activeOpacity={0.8}
                     >
-                        <Text style={styles.buttonText}>Ir al Login</Text>
+                        <Text style={styles.buttonText}>Continuar</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -65,42 +65,45 @@ const styles = StyleSheet.create({
         marginBottom: 40,
         alignItems: 'center',
     },
-    circle: {
-        width: 140,
-        height: 140,
-        borderRadius: 70,
-        backgroundColor: '#10B981', // green-500
+    outerCircle: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: '#DBEAFE', // Light blue background
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#10B981',
-        shadowOffset: {
-            width: 0,
-            height: 10,
-        },
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
-        elevation: 10,
+    },
+    innerCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#ffffff',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     textContainer: {
         alignItems: 'center',
-        marginBottom: 60,
+        marginBottom: 80,
+        paddingHorizontal: 20,
     },
     title: {
-        fontSize: 28,
+        fontSize: 22,
         fontWeight: 'bold',
-        color: '#111827',
+        color: '#000000',
         marginBottom: 16,
         textAlign: 'center',
     },
     subtitle: {
-        fontSize: 16,
+        fontSize: 15,
         color: '#6B7280',
         textAlign: 'center',
-        lineHeight: 24,
-        paddingHorizontal: 10,
+        lineHeight: 22,
     },
     buttonContainer: {
         width: '100%',
+        position: 'absolute',
+        bottom: 40,
+        paddingHorizontal: 30,
     },
     button: {
         height: 56,
@@ -119,7 +122,7 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         color: '#ffffff',
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '600',
     },
 });
