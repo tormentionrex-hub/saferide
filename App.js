@@ -8,6 +8,7 @@ import CreatePasswordScreen from './src/screens/CreatePasswordScreen';
 import AccountVerificationSucess from './src/screens/AccountVerificationSucess';
 import TellUsAboutYouScreen from './src/screens/TellUsAboutYouScreen';
 import RoleSelectionScreen from './src/screens/RoleSelectionScreen';
+import SignInScreen from './src/screens/SignInScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -44,6 +45,11 @@ export default function App() {
           name="RoleSelection"
           component={RoleSelectionScreen}
           options={{ headerShown: false, animation: 'fade' }}
+        />
+        <Stack.Screen
+          name="SignIn"
+          component={SignInScreen}
+          options={{ headerShown: false, animation: 'slide_from_right' }}
         />
         <Stack.Screen
           name="Home"
