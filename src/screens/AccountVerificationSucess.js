@@ -11,7 +11,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function AccountVerificationSucess({ navigation }) {
     const handleContinue = () => {
-        navigation.navigate('Login');
+        navigation.replace('SignIn');
     };
 
     return (
