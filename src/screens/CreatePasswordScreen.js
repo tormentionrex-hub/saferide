@@ -12,10 +12,9 @@ import {
     ScrollView // Added ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker'; // Added Picker import
+import { Picker } from '@react-native-picker/picker';
 import { authService } from '../services/authService';
 
-// Added COMPANIES list
 const COMPANIES = [
     'Intel', 'Cargill', 'Deloitte', 'Citi', 'Experian',
     '3M', 'DHL', 'Bill Gosling Outsourcing (BGO)',
@@ -23,12 +22,10 @@ const COMPANIES = [
 ];
 
 export default function CreatePasswordScreen({ route, navigation }) {
-    // We get the email passed from the LoginScreen
     const { email } = route.params || { email: 'test@empresa.com' };
 
-    // Added phone and company states
     const [phone, setPhone] = useState('');
-    const [company, setCompany] = useState(COMPANIES[0]); // Default to first item
+    const [company, setCompany] = useState(COMPANIES[0]);
 
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -80,19 +77,22 @@ export default function CreatePasswordScreen({ route, navigation }) {
         // Connect to Backend Endpoint
         setLoading(true);
         try {
-            // Modified authService.register to use phone and company from state
+            // Generate a temporary name and username from email
+            const tempName = email.split('@')[0] || "Usuario";
+            const tempUsername = (email.split('@')[0] || "user") + Math.floor(Math.random() * 10000);
+
             const response = await authService.register({
                 email: email,
                 password: password,
-                name: email.split('@')[0] || "Usuario",
-                username: (email.split('@')[0] || "User") + Math.floor(Math.random() * 1000),
+                name: tempName,
+                username: tempUsername,
                 type: 'pasajero',
-                phone: phone,      // Now grabbing from user input
-                company: company   // Now grabbing from user picker
+                phone: phone,
+                company: company,
             });
 
             if (response.success) {
-                navigation.replace('AccountVerificationSucess');
+                navigation.replace('TellUsAboutYou');
             }
         } catch (error) {
             console.error('Registration Error:', error.response?.data || error);
