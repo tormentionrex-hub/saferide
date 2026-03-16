@@ -1,4 +1,4 @@
-export const API_URL = 'http://10.0.2.2:8080/api/v1'; // Emulador de Android Studio
+export const API_URL = 'http://192.168.100.19:8080/api/v1'; // IP local de la red WiFi
 
 export default {
     API_URL,
