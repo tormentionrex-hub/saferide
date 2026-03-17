@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     },
     footer: {
         flexDirection: 'row',
-        gap: 3,
+        gap: 4,
         justifyContent: 'center',
         alignItems: 'center',
         marginTop: 32,
