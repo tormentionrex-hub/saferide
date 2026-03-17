@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     StyleSheet,
     Text,
@@ -8,34 +8,71 @@ import {
     KeyboardAvoidingView,
     Platform,
     Alert,
-    ActivityIndicator
+    ActivityIndicator,
+    StatusBar,
+    Image,
+    ScrollView,
+    Animated,
+    Easing,
+    Dimensions
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFonts } from 'expo-font';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { authService } from '../services/authService';
 
+const { width, height } = Dimensions.get('window');
+const ICON = require('../images/IconSafeRide.png');
+
 export default function VerificationScreen({ route, navigation }) {
+
     const { email, verificationCode, name, phone, company, password } = route.params || { email: '', verificationCode: '1234' };
     const [loading, setLoading] = useState(false);
-
     const [code, setCode] = useState(['', '', '', '']);
     const inputs = useRef([]);
 
-    const handleInputChange = (text, index) => {
-        // Only allow numbers
-        const cleanText = text.replace(/[^0-9]/g, '');
+    const [fontsLoaded] = useFonts({
+        'Poppins-Bold': require('../fonts/Poppins_700Bold.ttf'),
+        'Poppins-SemiBold': require('../fonts/Poppins_600SemiBold.ttf'),
+        'Poppins-Regular': require('../fonts/Poppins_400Regular.ttf'),
+    });
 
+    // Animation for color transition
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        // Create an infinite loop for background animation
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 5000,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(fadeAnim, {
+                    toValue: 0,
+                    duration: 5000,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
+    }, []);
+
+    const handleInputChange = (text, index) => {
+        const cleanText = text.replace(/[^0-9]/g, '');
         const newCode = [...code];
         newCode[index] = cleanText;
         setCode(newCode);
 
-        // Si escribimos un número y no estamos en el último, avanzamos
         if (cleanText && index < 3) {
             inputs.current[index + 1].focus();
         }
     };
 
     const handleKeyPress = (e, index) => {
-        // Si presionamos Backspace y el campo está vacío, regresamos al anterior
         if (e.nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
             inputs.current[index - 1].focus();
         }
@@ -56,7 +93,6 @@ export default function VerificationScreen({ route, navigation }) {
             return;
         }
 
-        // PIN correcto — registrar usuario
         setLoading(true);
         try {
             const username = (email.split('@')[0] || 'user') + Math.floor(Math.random() * 10000);
@@ -83,156 +119,228 @@ export default function VerificationScreen({ route, navigation }) {
 
     const handleResend = () => {
         Alert.alert('PIN Enviado', `Se ha reenviado un nuevo código a ${email}`);
-        // Aquí idealmente generaríamos otro código y abriríamos el mail o llamaríamos a la API
     };
 
+    if (!fontsLoaded) return null;
+
     return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="chevron-back" size={28} color="#111827" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Safe Ride</Text>
-                <View style={styles.spacer} />
-            </View>
+        <View style={styles.container}>
+            {/* Background Layer 1: Dark Blue Gradient */}
+            <LinearGradient
+                colors={['#09314bff', '#0c4469ff', '#073050ff']}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            />
 
-            <View style={styles.content}>
-                <Text style={styles.title}>PIN de Verificación</Text>
-                <Text style={styles.subtitle}>
-                    Ingresa el código de 4 dígitos enviado a tu{"\n"}correo electrónico.
-                </Text>
+            {/* Background Layer 2: Light Blue Gradient (Animated Opacity) */}
+            <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
+                <LinearGradient
+                    colors={['#0a6191ff', '#0a8ac5ff', '#3dabdaff']}
+                    style={StyleSheet.absoluteFill}
+                    start={{ x: 1, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                />
+            </Animated.View>
 
-                <View style={styles.codeContainer}>
-                    {[0, 1, 2, 3].map((index) => (
-                        <TextInput
-                            key={index}
-                            ref={(ref) => (inputs.current[index] = ref)}
-                            style={styles.codeInput}
-                            value={code[index]}
-                            onChangeText={(text) => handleInputChange(text, index)}
-                            onKeyPress={(e) => handleKeyPress(e, index)}
-                            keyboardType="number-pad"
-                            maxLength={1}
-                            selectTextOnFocus
-                        />
-                    ))}
-                </View>
-            </View>
+            <SafeAreaView style={styles.safeArea}>
+                <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-            <View style={styles.footer}>
-                <TouchableOpacity style={styles.button} onPress={handleVerify} disabled={loading}>
-                    {loading ? (
-                        <ActivityIndicator color="#ffffff" />
-                    ) : (
-                        <Text style={styles.buttonText}>Verificar</Text>
-                    )}
-                </TouchableOpacity>
+                <KeyboardAvoidingView
+                    style={styles.flex}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                >
+                    <ScrollView
+                        contentContainerStyle={styles.scrollContent}
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={false}
+                    >
+                        {/* Back Button */}
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                            <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
+                        </TouchableOpacity>
 
-                <TouchableOpacity onPress={handleResend} style={styles.resendButton}>
-                    <Text style={styles.resendText}>Reenviar PIN</Text>
-                </TouchableOpacity>
-            </View>
-        </KeyboardAvoidingView>
+                        {/* Logo */}
+                        <View style={styles.logoContainer}>
+                            <Image source={ICON} style={styles.icon} resizeMode="contain" />
+                        </View>
+
+                        {/* Heading */}
+                        <Text style={styles.heading}>PIN de Verificación</Text>
+                        <Text style={styles.subheading}>
+                            Ingresa el código de 4 dígitos enviado a tu correo electrónico.
+                        </Text>
+
+                        {/* OTP Inputs */}
+                        <View style={styles.codeContainer}>
+                            {[0, 1, 2, 3].map((index) => (
+                                <TextInput
+                                    key={index}
+                                    ref={(ref) => (inputs.current[index] = ref)}
+                                    style={styles.codeInput}
+                                    value={code[index]}
+                                    onChangeText={(text) => handleInputChange(text, index)}
+                                    onKeyPress={(e) => handleKeyPress(e, index)}
+                                    keyboardType="number-pad"
+                                    maxLength={1}
+                                />
+                            ))}
+                        </View>
+
+                        {/* Action Buttons */}
+                        <View style={styles.form}>
+                            <TouchableOpacity
+                                style={styles.button}
+                                onPress={handleVerify}
+                                disabled={loading}
+                                activeOpacity={0.85}
+                            >
+                                {loading ? (
+                                    <ActivityIndicator color="#ffffff" />
+                                ) : (
+                                    <Text style={styles.buttonText}>Verificar</Text>
+                                )}
+                            </TouchableOpacity>
+
+                            <Text style={styles.Text}>¿No recibiste el código?</Text>
+                            <TouchableOpacity onPress={handleResend} style={styles.resendButton}>
+                                <Text style={styles.resendText}>Reenviar</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Footer Spacer */}
+                        <View style={styles.footerSpacer} />
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#082F49',
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingTop: Platform.OS === 'ios' ? 60 : 40,
-        paddingHorizontal: 16,
-        paddingBottom: 20,
+    safeArea: {
+        flex: 1,
+    },
+    flex: {
+        flex: 1,
+    },
+    scrollContent: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        paddingHorizontal: 28,
+        paddingTop: 16,
+        paddingBottom: 40,
     },
     backButton: {
-        padding: 8,
+        position: 'absolute',
+        top: 20,
+        left: 20,
+        zIndex: 10,
+        padding: 10,
     },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#111827',
-    },
-    spacer: {
-        width: 44,
-    },
-    content: {
-        flex: 1,
-        paddingHorizontal: 24,
+    logoContainer: {
         alignItems: 'center',
-        paddingTop: 30,
+        marginBottom: 20,
+        marginTop: -20,
     },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#111827',
-        marginBottom: 12,
-        textAlign: 'center',
+    icon: {
+        width: 180,
+        height: 180,
+        marginBottom: -10,
     },
-    subtitle: {
-        fontSize: 16,
-        color: '#6b7280',
+    brandName: {
+        marginTop: 10,
+        fontFamily: 'Poppins-Bold',
+        fontSize: 30,
+        color: '#FFFFFF',
+        letterSpacing: 1,
+        lineHeight: 36,
+    },
+    heading: {
+        fontFamily: 'Poppins-Bold',
+        fontSize: 24,
+        color: '#FFFFFF',
         textAlign: 'center',
-        marginBottom: 40,
-        lineHeight: 24,
+        marginBottom: 4,
+        marginTop: 10,
+    },
+    subheading: {
+        fontFamily: 'Poppins-Regular',
+        fontSize: 14,
+        color: 'rgba(235, 235, 235, 0.72)',
+        textAlign: 'center',
+        marginBottom: 32,
+        paddingHorizontal: 16,
+        lineHeight: 22,
     },
     codeContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        gap: 16, // Available in newer React Native versions, otherwise use margin on children
+        gap: 12,
+        marginBottom: 30,
     },
     codeInput: {
-        width: 68,
-        height: 76,
-        borderRadius: 14,
-        borderWidth: 2,
-        borderColor: '#e5e7eb',
-        backgroundColor: '#f9fafb',
-        fontSize: 28,
-        fontWeight: '700',
+        width: 65,
+        height: 70,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+        fontSize: 26,
+        fontFamily: 'Poppins-Bold',
         textAlign: 'center',
-        color: '#111827',
-        marginHorizontal: 8,
+        textAlignVertical: 'center',
+        color: '#FFFFFF',
+        padding: 0,
+        includeFontPadding: false,
     },
-    footer: {
-        padding: 24,
-        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    form: {
+        width: '100%',
+        zIndex: 1,
     },
     button: {
-        height: 56,
-        backgroundColor: '#2563EB',
-        borderRadius: 28,
+        height: 52,
+        backgroundColor: '#38BDF8',
+        borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#2563EB',
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4,
-        marginBottom: 20,
+        marginTop: 10,
+        shadowColor: '#38BDF8',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.45,
+        shadowRadius: 14,
+        elevation: 8,
     },
     buttonText: {
-        color: '#ffffff',
-        fontSize: 18,
-        fontWeight: '600',
+        fontFamily: 'Poppins-Bold',
+        color: '#ffffffff',
+        fontSize: 16,
+        letterSpacing: 0.5,
     },
     resendButton: {
         alignItems: 'center',
-        padding: 8,
+        marginTop: 20,
+        padding: 10,
+    },
+    Text: {
+        fontFamily: 'Poppins-SemiBold',
+        color: 'rgba(235, 235, 235, 0.72)',
+        fontSize: 14,
+        marginTop: 30,
+        marginBottom: -20,
+        textAlign: 'center',
     },
     resendText: {
-        color: '#2563EB',
-        fontSize: 16,
-        fontWeight: '600',
+        fontFamily: 'Poppins-SemiBold',
+        color: 'rgba(235, 235, 235, 0.93)',
+        fontSize: 14,
+        textDecorationLine: 'none',
+    },
+    footerSpacer: {
+        height: 40,
     }
 });
