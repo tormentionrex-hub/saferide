@@ -10,44 +10,53 @@ import {
 } from 'react-native';
 import BottomNavigationBar from '../components/BottomNavigationBar';
 
+// Obtenemos dimensiones de la pantalla para garantizar responsividad
 const { height, width } = Dimensions.get('window');
 
 const DashboardPasajero = ({ navigation, route }) => {
-    // Simulamos la obtención del usuario logueado (ej: desde route.params o un context)
+    // Extraemos el nombre del usuario enviado desde SignInScreen. Si no existe, usamos "Usuario" por defecto
     const userName = route?.params?.userName || "Usuario";
     
-    // Color especificado por el usuario (ajustado a #045084 basado en SignInScreen)
+    // Configuración de colores corporativos especificados
     const primaryColor = '#045084';
     const subtextColor = 'rgba(255,255,255,0.4)';
 
     return (
         <SafeAreaView style={styles.safeArea}>
+            {/* Barra de estado con iconos oscuros para fondo claro */}
             <StatusBar barStyle="dark-content" />
             
-            {/* Header */}
+            {/* Encabezado: Texto 'Saferide' alineado a la esquina superior izquierda */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Saferide</Text>
             </View>
 
-            {/* Body */}
+            {/* Contenido principal del Dashboard */}
             <View style={styles.content}>
+                {/* Saludo dinámico al usuario logueado */}
                 <Text style={styles.greeting}>Hola, {userName}</Text>
 
+                {/* Tarjeta de búsqueda de viajes (Ocupa el 70% del ancho) */}
                 <TouchableOpacity 
                     style={styles.searchCard}
                     onPress={() => {
-                        /* Redirección al screen de buscar viaje */
+                        /* 
+                           AQUÍ SE REALIZA LA CONEXIÓN PARA LA REDIRECCIÓN 
+                           Una vez exista el screen de búsqueda, se descomenta la línea de abajo:
+                        */
                         // navigation.navigate('BuscarViajeScreen');
-                        console.log("Conexión para redirección a Buscar Viaje");
+                        console.log("Conexión para redirección a Buscar Viaje detectada");
                     }}
                     activeOpacity={0.9}
                 >
+                    {/* Texto en negrita y color especificado rgba(255,255,255,0.4) */}
                     <Text style={styles.cardTitle}>Buscar viaje</Text>
-                    <Text style={styles.cardSubtitle}>Encuentra tu próximo viaje seguro</Text>
+                    {/* Subtítulo con tamaño más pequeño */}
+                    <Text style={styles.cardSubtitle}>Encuentra tu proximo viaje seguro</Text>
                 </TouchableOpacity>
             </View>
 
-            {/* Bottom Nav Bar */}
+            {/* Barra de navegación inferior (Bottom Nav) */}
             <BottomNavigationBar navigation={navigation} />
         </SafeAreaView>
     );
@@ -56,12 +65,12 @@ const DashboardPasajero = ({ navigation, route }) => {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#FFFFFF', // Fondo blanco para que resalte el contenido
     },
     header: {
         paddingHorizontal: 20,
         paddingVertical: 15,
-        alignItems: 'flex-start', // En la esquina
+        alignItems: 'flex-start', // Posiciona el título en la esquina
     },
     headerTitle: {
         fontFamily: 'Poppins-Bold',
@@ -80,10 +89,11 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins-Bold',
     },
     searchCard: {
-        backgroundColor: '#045084',
-        width: '70%',
+        backgroundColor: '#045084', // Color de fondo solicitado
+        width: '70%',              // Tamaño del 70% de la pantalla
         padding: 20,
         borderRadius: 15,
+        // Sombra para dar profundidad (efecto premium)
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
@@ -91,13 +101,13 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
     cardTitle: {
-        color: 'rgba(255,255,255,0.4)',
+        color: 'rgba(255,255,255,0.4)', // Color de letra solicitado
         fontSize: 18,
-        fontWeight: 'bold', // Diseño en negrita solicitado
+        fontWeight: 'bold',             // Diseño en negrita
         marginBottom: 5,
     },
     cardSubtitle: {
-        color: 'rgba(255,255,255,0.4)',
+        color: 'rgba(255,255,255,0.4)', // Color de letra solicitado
         fontSize: 14,
     }
 });
