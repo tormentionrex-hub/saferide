@@ -1,8 +1,26 @@
+/**
+ * ApiHealthCheckScreen
+ *
+ * Pantalla de diagnóstico de conexión al backend.
+ * Propósito: verificar que la app puede comunicarse con el servidor
+ *            realizando una petición GET a /health al montar el componente.
+ *
+ * Muestra:
+ *  - Estado actual de la conexión (éxito / error).
+ *  - Mensaje retornado por el endpoint /health.
+ *  - Un recordatorio para configurar la IP del servidor en src/config.js.
+ *  - Un botón para re-intentar la verificación manualmente.
+ *
+ * Notas:
+ *  - Esta pantalla es de uso interno / desarrollo; no es un Home final.
+ *  - Ruta de navegación: 'Home' (definida en App.js).
+ */
+
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, Button, ActivityIndicator } from 'react-native';
 import api from '../services/api';
 
-export default function HomeScreen() {
+export default function ApiHealthCheckScreen() {
     const [healthStatus, setHealthStatus] = useState(null);
     const [loading, setLoading] = useState(false);
 
