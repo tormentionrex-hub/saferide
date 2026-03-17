@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(cd:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }
