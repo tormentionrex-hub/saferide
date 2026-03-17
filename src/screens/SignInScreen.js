@@ -132,15 +132,36 @@ export default function SignInScreen({ navigation }) {
         if (!validate()) return;
         setLoading(true);
         try {
-            const response = await axios.post(`${API_URL}/users/login`, {
+            // Enviamos las credenciales al endpoint público de autenticación (/auth/login),
+            // ya que /users/ requiere un token JWT y aún no tenemos uno al iniciar sesión
+            const response = await axios.post(`${API_URL}/auth/login`, {
                 email: email.trim(),
                 password: password.trim(),
             });
+            // Si la respuesta es exitosa (200 o 201)
             if (response.status === 200 || response.status === 201) {
+                // Obtenemos los datos del usuario desde la respuesta del backend
+                const userData = response.data.data.user;
+                const userRole = userData.type; // Puede ser 'pasajero' o 'conductor'
+                const userName = userData.name; // Nombre del usuario logueado
+
                 setShowSuccess(true);
+                
+                // Esperamos 2.5 segundos para mostrar la animación de éxito antes de redirigir
                 setTimeout(() => {
                     setShowSuccess(false);
-                    navigation.replace('Home');
+                    
+                    // Lógica de redirección basada en el tipo de usuario (rol)
+                    if (userRole === 'pasajero') {
+                        // Redirige al Dashboard de Pasajero pasando el nombre como parámetro
+                        navigation.replace('DashboardPasajero', { userName: userName });
+                    } else if (userRole === 'conductor') {
+                        // Redirige al Dashboard de Conductor (Driver)
+                        navigation.replace('DashboardDriver', { userName: userName });
+                    } else {
+                        // Redirección por defecto en caso de otros roles
+                        navigation.replace('Home');
+                    }
                 }, 2500);
             }
         } catch (error) {
