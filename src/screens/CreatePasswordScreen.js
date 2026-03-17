@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { authService } from '../services/authService';
+import * as MailComposer from 'expo-mail-composer';
 
 const COMPANIES = [
     'Intel', 'Cargill', 'Deloitte', 'Citi', 'Experian',
@@ -24,6 +24,7 @@ const COMPANIES = [
 export default function CreatePasswordScreen({ route, navigation }) {
     const { email } = route.params || { email: 'test@empresa.com' };
 
+    const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [company, setCompany] = useState(COMPANIES[0]);
 
@@ -52,7 +53,11 @@ export default function CreatePasswordScreen({ route, navigation }) {
 
     const handleConfirm = async () => {
         setErrors({});
-        let currentErrors = {}; // Use a temporary object to collect all errors
+        let currentErrors = {};
+
+        if (!name.trim()) {
+            currentErrors.name = "El nombre es requerido.";
+        }
 
         // Phone Validation
         if (!/^\d{8}$/.test(phone)) {
@@ -74,32 +79,33 @@ export default function CreatePasswordScreen({ route, navigation }) {
             return;
         }
 
-        // Connect to Backend Endpoint
+        // Generate 4-digit PIN and send verification email
+        const pin = Math.floor(1000 + Math.random() * 9000).toString();
+
         setLoading(true);
         try {
-            // Generate a temporary name and username from email
-            const tempName = email.split('@')[0] || "Usuario";
-            const tempUsername = (email.split('@')[0] || "user") + Math.floor(Math.random() * 10000);
+            const isAvailable = await MailComposer.isAvailableAsync();
+            if (isAvailable) {
+                await MailComposer.composeAsync({
+                    recipients: [email.trim()],
+                    subject: 'Tu código de verificación SafeRide',
+                    body: `Hola ${name.trim()},\n\nTu código de verificación de 4 dígitos es: ${pin}\n\nPor favor, ingrésalo en la aplicación para completar tu registro.\n\nEl equipo de SafeRide.`
+                });
 
-            const response = await authService.register({
-                email: email,
-                password: password,
-                name: tempName,
-                username: tempUsername,
-                type: 'pasajero',
-                phone: phone,
-                company: company,
-            });
-
-            if (response.success) {
-                navigation.replace('TellUsAboutYou');
+                navigation.navigate('Verification', {
+                    email: email.trim(),
+                    verificationCode: pin,
+                    name: name.trim(),
+                    phone: phone,
+                    company: company,
+                    password: password,
+                });
+            } else {
+                Alert.alert("Error", "No se puede abrir el cliente de correo en este dispositivo.");
             }
-        } catch (error) {
-            console.error('Registration Error:', error.response?.data || error);
-            Alert.alert(
-                "Error en el Registro",
-                error.response?.data?.message || "Hubo un problema procesando tu registro. Inténtalo más tarde."
-            );
+        } catch (err) {
+            console.error("MailComposer error:", err);
+            Alert.alert("Error", "Ocurrió un problema al intentar enviar el correo de verificación.");
         } finally {
             setLoading(false);
         }
@@ -120,8 +126,25 @@ export default function CreatePasswordScreen({ route, navigation }) {
 
             <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
 
+                {/* Name Field */}
+                <Text style={styles.label}>Nombre</Text>
+                <View style={[styles.inputContainer, errors.name ? styles.inputErrorBorder : null]}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Tu nombre completo"
+                        placeholderTextColor="#9ca3af"
+                        autoCapitalize="words"
+                        value={name}
+                        onChangeText={(text) => {
+                            setName(text);
+                            if (errors.name) setErrors({ ...errors, name: null });
+                        }}
+                    />
+                </View>
+                {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+
                 {/* Company Picker Field */}
-                <Text style={styles.label}>Empresa</Text>
+                <Text style={[styles.label, { marginTop: 24 }]}>Empresa</Text>
                 <View style={styles.pickerContainer}>
                     <Picker
                         selectedValue={company}
@@ -262,7 +285,7 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        height: 56,
+        height: 64,
         borderWidth: 1,
         borderColor: '#e5e7eb',
         backgroundColor: '#f9fafb',
@@ -270,8 +293,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     inputErrorBorder: {
-        borderColor: '#ef4444',
-        borderWidth: 1.5,
+        borderColor: '#CC0000',
+        borderWidth: 3,
+        backgroundColor: 'rgba(204,0,0,0.06)',
     },
     input: {
         flex: 1,
@@ -283,10 +307,11 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     errorText: {
-        color: '#ef4444',
-        fontSize: 13,
+        color: '#CC0000',
+        fontSize: 14,
+        fontWeight: '700',
         marginTop: 8,
-        lineHeight: 18,
+        lineHeight: 20,
     },
     footer: {
         padding: 24,

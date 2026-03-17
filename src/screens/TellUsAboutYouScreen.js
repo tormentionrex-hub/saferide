@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        height: 56,
+        height: 64,
         borderWidth: 1,
         borderColor: '#e5e7eb',
         backgroundColor: '#f9fafb',
@@ -296,8 +296,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     inputErrorBorder: {
-        borderColor: '#ef4444',
-        borderWidth: 1.5,
+        borderColor: '#CC0000',
+        borderWidth: 3,
+        backgroundColor: 'rgba(204,0,0,0.06)',
     },
     input: {
         flex: 1,
@@ -313,15 +314,16 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     picker: {
-        height: 56,
+        height: 64,
         width: '100%',
         color: '#111827',
     },
     errorText: {
-        color: '#ef4444',
-        fontSize: 13,
+        color: '#CC0000',
+        fontSize: 14,
+        fontWeight: '700',
         marginTop: 8,
-        lineHeight: 18,
+        lineHeight: 20,
     },
     timePickerRow: {
         flexDirection: 'row',
@@ -334,7 +336,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: 56,
+        height: 64,
         borderWidth: 1,
         borderColor: '#e5e7eb',
         backgroundColor: '#f9fafb',
