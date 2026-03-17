@@ -7,13 +7,15 @@ import {
     TouchableOpacity,
     KeyboardAvoidingView,
     Platform,
-    Alert
+    Alert,
+    ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { authService } from '../services/authService';
 
 export default function VerificationScreen({ route, navigation }) {
-    // Obtenemos el email y el código de verificación que se envió desde LoginScreen
-    const { email, verificationCode } = route.params || { email: '', verificationCode: '1234' };
+    const { email, verificationCode, name, phone, company, password } = route.params || { email: '', verificationCode: '1234' };
+    const [loading, setLoading] = useState(false);
 
     const [code, setCode] = useState(['', '', '', '']);
     const inputs = useRef([]);
@@ -39,7 +41,7 @@ export default function VerificationScreen({ route, navigation }) {
         }
     };
 
-    const handleVerify = () => {
+    const handleVerify = async () => {
         const enteredCode = code.join('');
 
         if (enteredCode.length < 4) {
@@ -47,14 +49,35 @@ export default function VerificationScreen({ route, navigation }) {
             return;
         }
 
-        if (enteredCode === verificationCode) {
-            // El código es correcto, procedemos a crear la contraseña
-            navigation.replace('CreatePassword', { email: email });
-        } else {
+        if (enteredCode !== verificationCode) {
             Alert.alert('Error', 'El PIN de verificación es incorrecto. Por favor intenta de nuevo.');
-            // Limpiamos los inputs (opcional)
             setCode(['', '', '', '']);
             if (inputs.current[0]) inputs.current[0].focus();
+            return;
+        }
+
+        // PIN correcto — registrar usuario
+        setLoading(true);
+        try {
+            const username = (email.split('@')[0] || 'user') + Math.floor(Math.random() * 10000);
+            await authService.register({
+                email: email,
+                password: password,
+                name: name,
+                username: username,
+                type: 'pasajero',
+                phone: phone,
+                company: company,
+            });
+            navigation.replace('RoleSelection');
+        } catch (error) {
+            console.error('Registration Error:', error.response?.data || error);
+            Alert.alert(
+                "Error en el Registro",
+                error.response?.data?.message || "Hubo un problema procesando tu registro. Inténtalo más tarde."
+            );
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -100,8 +123,12 @@ export default function VerificationScreen({ route, navigation }) {
             </View>
 
             <View style={styles.footer}>
-                <TouchableOpacity style={styles.button} onPress={handleVerify}>
-                    <Text style={styles.buttonText}>Verificar</Text>
+                <TouchableOpacity style={styles.button} onPress={handleVerify} disabled={loading}>
+                    {loading ? (
+                        <ActivityIndicator color="#ffffff" />
+                    ) : (
+                        <Text style={styles.buttonText}>Verificar</Text>
+                    )}
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={handleResend} style={styles.resendButton}>
@@ -162,17 +189,17 @@ const styles = StyleSheet.create({
         gap: 16, // Available in newer React Native versions, otherwise use margin on children
     },
     codeInput: {
-        width: 60,
-        height: 64,
-        borderRadius: 12,
-        borderWidth: 1,
+        width: 68,
+        height: 76,
+        borderRadius: 14,
+        borderWidth: 2,
         borderColor: '#e5e7eb',
         backgroundColor: '#f9fafb',
-        fontSize: 24,
-        fontWeight: '600',
+        fontSize: 28,
+        fontWeight: '700',
         textAlign: 'center',
         color: '#111827',
-        marginHorizontal: 8, // Fallback for gap
+        marginHorizontal: 8,
     },
     footer: {
         padding: 24,

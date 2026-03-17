@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     StyleSheet,
     Text,
@@ -9,12 +9,17 @@ import {
     Platform,
     Modal,
     ActivityIndicator,
-    SafeAreaView,
     StatusBar,
+    Image,
+    ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFonts } from 'expo-font';
 import axios from 'axios';
 import { API_URL } from '../config';
+
+const ICON = require('../images/IconSafeRide.png');
 
 export default function SignInScreen({ navigation }) {
     const [email, setEmail] = useState('');
@@ -24,6 +29,12 @@ export default function SignInScreen({ navigation }) {
     const [passwordError, setPasswordError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+
+    const [fontsLoaded] = useFonts({
+        'Poppins-Bold': require('../fonts/Poppins_700Bold.ttf'),
+        'Poppins-SemiBold': require('../fonts/Poppins_600SemiBold.ttf'),
+        'Poppins-Regular': require('../fonts/Poppins_400Regular.ttf'),
+    });
 
     const validate = () => {
         let valid = true;
@@ -44,14 +55,12 @@ export default function SignInScreen({ navigation }) {
 
     const handleLogin = async () => {
         if (!validate()) return;
-
         setLoading(true);
         try {
             const response = await axios.post(`${API_URL}/users/login`, {
                 email: email.trim(),
                 password: password.trim(),
             });
-
             if (response.status === 200 || response.status === 201) {
                 setShowSuccess(true);
                 setTimeout(() => {
@@ -67,30 +76,38 @@ export default function SignInScreen({ navigation }) {
         }
     };
 
+    if (!fontsLoaded) return null;
+
     return (
         <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="dark-content" />
+            <StatusBar barStyle="light-content" backgroundColor="#045084" />
             <KeyboardAvoidingView
-                style={styles.container}
+                style={styles.flex}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-                <View style={styles.content}>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                >
                     {/* Logo */}
                     <View style={styles.logoContainer}>
-                        <Ionicons name="car-sport-outline" size={64} color="#2563EB" />
-                        <Text style={styles.title}>Safe Ride</Text>
-                        <Text style={styles.subtitle}>Inicia sesión en tu cuenta</Text>
+                        <Image source={ICON} style={styles.icon} resizeMode="contain" />
+                        <Text style={styles.brandName}>SafeRide</Text>
                     </View>
 
+                    {/* Heading */}
+                    <Text style={styles.heading}>Bienvenido de vuelta</Text>
+                    <Text style={styles.subheading}>Inicia sesión para continuar.</Text>
+
                     {/* Form */}
-                    <View style={styles.formContainer}>
+                    <View style={styles.form}>
                         {/* Email */}
-                        <View style={styles.inputWrapper}>
-                            <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                        <Text style={styles.label}>Correo corporativo</Text>
+                        <View style={[styles.inputBox, emailError ? styles.inputBoxError : null]}>
                             <TextInput
-                                style={[styles.input, emailError ? styles.inputError : null]}
-                                placeholder="Correo electrónico"
-                                placeholderTextColor="#9CA3AF"
+                                style={styles.input}
+                                placeholderTextColor="rgba(255,255,255,0.4)"
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 autoCorrect={false}
@@ -101,53 +118,57 @@ export default function SignInScreen({ navigation }) {
                         {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
 
                         {/* Password */}
-                        <View style={styles.inputWrapper}>
-                            <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                        <Text style={styles.label}>Contraseña</Text>
+                        <View style={[styles.inputBox, passwordError ? styles.inputBoxError : null]}>
                             <TextInput
-                                style={[styles.input, styles.inputPassword, passwordError ? styles.inputError : null]}
-                                placeholder="Contraseña"
-                                placeholderTextColor="#9CA3AF"
+                                style={[styles.input, { flex: 1 }]}
+                                placeholderTextColor="rgba(255,255,255,0.4)"
                                 secureTextEntry={!showPassword}
                                 autoCapitalize="none"
                                 value={password}
                                 onChangeText={(t) => { setPassword(t); setPasswordError(''); }}
                             />
-                            <TouchableOpacity
-                                onPress={() => setShowPassword(!showPassword)}
-                                style={styles.eyeButton}
-                            >
+                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
                                 <Ionicons
                                     name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                                    size={20}
-                                    color="#9CA3AF"
+                                    size={22}
+                                    color="rgba(255,255,255,0.6)"
                                 />
                             </TouchableOpacity>
                         </View>
                         {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 
-                        {/* Button */}
+                        {/* Forgot password */}
+                        <View style={styles.forgotRow}>
+                            <Text style={styles.forgotText}>¿Olvidaste tu contraseña? </Text>
+                            <TouchableOpacity>
+                                <Text style={styles.forgotLink}>Recuperar</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Submit */}
                         <TouchableOpacity
                             style={[styles.button, loading && styles.buttonDisabled]}
                             onPress={handleLogin}
-                            activeOpacity={0.8}
+                            activeOpacity={0.85}
                             disabled={loading}
                         >
                             {loading ? (
-                                <ActivityIndicator color="#ffffff" />
+                                <ActivityIndicator color="#045084" />
                             ) : (
-                                <Text style={styles.buttonText}>Iniciar sesión</Text>
+                                <Text style={styles.buttonText}>Ingresar</Text>
                             )}
                         </TouchableOpacity>
                     </View>
-                </View>
 
-                {/* Footer */}
-                <View style={styles.footer}>
-                    <Text style={styles.footerText}>
-                        Al continuar, aceptas nuestros{' '}
-                        <Text style={styles.linkText}>Términos de Servicio</Text>.
-                    </Text>
-                </View>
+                    {/* Footer */}
+                    <View style={styles.footer}>
+                        <Text style={styles.footerText}>¿No tienes una cuenta? </Text>
+                        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                            <Text style={styles.footerLink}>Regístrate</Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
             </KeyboardAvoidingView>
 
             {/* Success Modal */}
@@ -161,7 +182,7 @@ export default function SignInScreen({ navigation }) {
                         <Text style={styles.modalSubtitle}>
                             Tu sesión ha sido iniciada correctamente.{'\n'}Redirigiendo al panel principal...
                         </Text>
-                        <ActivityIndicator color="#2563EB" style={{ marginTop: 16 }} />
+                        <ActivityIndicator color="#045084" style={{ marginTop: 16 }} />
                     </View>
                 </View>
             </Modal>
@@ -172,110 +193,153 @@ export default function SignInScreen({ navigation }) {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#045084',
     },
-    container: {
+    flex: {
         flex: 1,
     },
-    content: {
-        flex: 1,
+    scrollContent: {
+        flexGrow: 1,
         justifyContent: 'center',
-        paddingHorizontal: 24,
+        paddingHorizontal: 28,
+        paddingTop: 16,
+        paddingBottom: 40,
     },
     logoContainer: {
         alignItems: 'center',
-        marginBottom: 48,
+        marginBottom: 20,
+        marginTop: -30,
     },
-    title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#111827',
-        marginTop: 16,
-        marginBottom: 8,
-        letterSpacing: -0.5,
+    icon: {
+        width: 190,
+        height: 190,
+        marginBottom: -10,
     },
-    subtitle: {
-        fontSize: 16,
-        color: '#6B7280',
+    brandName: {
+        fontFamily: 'Poppins-Bold',
+        fontSize: 30,
+        color: '#FFFFFF',
+        letterSpacing: 1,
+        lineHeight: 36,
+    },
+    heading: {
+        fontFamily: 'Poppins-Bold',
+        fontSize: 24,
+        color: '#FFFFFF',
         textAlign: 'center',
+        marginBottom: 4,
     },
-    formContainer: {
+    subheading: {
+        fontFamily: 'Poppins-Regular',
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.65)',
+        textAlign: 'center',
+        marginBottom: 32,
+    },
+    form: {
         width: '100%',
     },
-    inputWrapper: {
+    label: {
+        fontFamily: 'Poppins-SemiBold',
+        fontSize: 13,
+        color: '#FFFFFF',
+        marginBottom: 8,
+        marginLeft: 2,
+    },
+    inputBox: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#D1D5DB',
-        borderRadius: 28,
-        backgroundColor: '#ffffff',
-        marginBottom: 8,
-        paddingHorizontal: 20,
-        height: 56,
+        borderColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: 16,
+        height: 62,
+        marginBottom: 6,
     },
-    inputIcon: {
-        marginRight: 10,
+    inputBoxError: {
+        borderColor: '#FF1F1F',
+        borderWidth: 3,
+        backgroundColor: 'rgba(255,31,31,0.12)',
     },
     input: {
         flex: 1,
+        fontFamily: 'Poppins-Regular',
         fontSize: 16,
-        color: '#111827',
+        color: '#FFFFFF',
     },
-    inputPassword: {
-        paddingRight: 8,
-    },
-    inputError: {
-        borderColor: '#EF4444',
-    },
-    eyeButton: {
-        padding: 4,
+    eyeBtn: {
+        paddingLeft: 8,
     },
     errorText: {
-        color: '#EF4444',
-        fontSize: 13,
-        marginBottom: 10,
-        paddingHorizontal: 16,
+        fontFamily: 'Poppins-SemiBold',
+        color: '#FF4444',
+        fontSize: 14,
+        marginBottom: 8,
+        marginLeft: 2,
     },
-    button: {
-        height: 56,
-        backgroundColor: '#2563EB',
-        borderRadius: 28,
+    forgotRow: {
+        flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 16,
-        shadowColor: '#2563EB',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4,
+        marginTop: 10,
+        marginBottom: 24,
+    },
+    forgotText: {
+        fontFamily: 'Poppins-Regular',
+        color: 'rgba(255,255,255,0.65)',
+        fontSize: 13,
+    },
+    forgotLink: {
+        fontFamily: 'Poppins-SemiBold',
+        color: '#FFFFFF',
+        fontSize: 13,
+        textDecorationLine: 'underline',
+    },
+    button: {
+        height: 52,
+        backgroundColor: '#38BDF8',
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#38BDF8',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.45,
+        shadowRadius: 14,
+        elevation: 8,
     },
     buttonDisabled: {
-        backgroundColor: '#93C5FD',
+        backgroundColor: 'rgba(56,189,248,0.45)',
         elevation: 0,
         shadowOpacity: 0,
     },
     buttonText: {
-        color: '#ffffff',
-        fontSize: 18,
-        fontWeight: '600',
+        fontFamily: 'Poppins-Bold',
+        color: '#045084',
+        fontSize: 16,
+        letterSpacing: 0.5,
     },
     footer: {
-        padding: 24,
-        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 32,
     },
     footerText: {
-        fontSize: 13,
-        color: '#6B7280',
-        textAlign: 'center',
+        fontFamily: 'Poppins-Regular',
+        color: 'rgba(255,255,255,0.65)',
+        fontSize: 14,
     },
-    linkText: {
-        color: '#2563EB',
+    footerLink: {
+        fontFamily: 'Poppins-SemiBold',
+        color: '#FFFFFF',
+        fontSize: 14,
         textDecorationLine: 'underline',
     },
     // Modal
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.55)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 32,
@@ -289,7 +353,7 @@ const styles = StyleSheet.create({
         width: '100%',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
+        shadowOpacity: 0.2,
         shadowRadius: 24,
         elevation: 10,
     },
@@ -297,24 +361,25 @@ const styles = StyleSheet.create({
         width: 96,
         height: 96,
         borderRadius: 48,
-        backgroundColor: '#2563EB',
+        backgroundColor: '#045084',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 24,
-        shadowColor: '#2563EB',
+        shadowColor: '#045084',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 12,
         elevation: 6,
     },
     modalTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
+        fontFamily: 'Poppins-Bold',
+        fontSize: 22,
         color: '#111827',
         marginBottom: 12,
     },
     modalSubtitle: {
-        fontSize: 15,
+        fontFamily: 'Poppins-Regular',
+        fontSize: 14,
         color: '#6B7280',
         textAlign: 'center',
         lineHeight: 22,
