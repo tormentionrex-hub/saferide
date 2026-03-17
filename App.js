@@ -10,6 +10,9 @@ import RoleSelectionScreen from './src/screens/RoleSelectionScreen';
 import SignInScreen from './src/screens/SignInScreen';
 import SplashScreen from './src/screens/SplashScreen';
 import LoginSuccessScreen from './src/screens/LoginSuccessScreen';
+// Importación de los dashboards para la redirección después del login
+import DashboardPasajero from './src/screens/DashboardPasajero';
+import DashboardDriver from './src/screens/DashboardDriver';
 
 const Stack = createNativeStackNavigator();
 
@@ -55,6 +58,18 @@ export default function App() {
         <Stack.Screen
           name="LoginSuccess"
           component={LoginSuccessScreen}
+          options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
+        />
+        {/* Dashboard de Pasajero: se redirige aquí si el usuario logueado es de tipo 'pasajero' */}
+        <Stack.Screen
+          name="DashboardPasajero"
+          component={DashboardPasajero}
+          options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
+        />
+        {/* Dashboard de Conductor: se redirige aquí si el usuario logueado es de tipo 'conductor' */}
+        <Stack.Screen
+          name="DashboardDriver"
+          component={DashboardDriver}
           options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
         />
         <Stack.Screen
