@@ -21,6 +21,7 @@ const DashboardPasajero = ({ navigation, route }) => {
     // Extraemos el nombre del usuario enviado desde SignInScreen. Si no existe, usamos "Usuario" por defecto
     const userName = route?.params?.userName || "Usuario";
 
+    // Colores principales de la aplicación para mantener cohesión visual
     const primaryColor = '#045084';
     const subtextColor = 'rgba(255,255,255,0.4)';
 
@@ -37,19 +38,16 @@ const DashboardPasajero = ({ navigation, route }) => {
 
             {/* Contenido principal del Dashboard */}
             <View style={styles.content}>
-                {/* Saludo dinámico al usuario logueado */}
+                {/* Saludo dinámico al usuario: Muestra el nombre recibido por parámetros o 'Usuario' por defecto */}
                 <Text style={styles.greeting}>Hola, {userName}</Text>
 
-                {/* Tarjeta de búsqueda de viajes */}
+                {/* Tarjeta de búsqueda de viajes (Cuadro azul) */}
                 <TouchableOpacity 
                     style={styles.searchCard}
                     onPress={() => {
-                        /* 
-                           AQUÍ SE REALIZA LA CONEXIÓN PARA LA REDIRECCIÓN 
-                           Una vez exista el screen de búsqueda, se descomenta la línea de abajo:
-                        */
-                        // navigation.navigate('BuscarViajeScreen');
-                        console.log("Conexión para redirección a Buscar Viaje detectada");
+                        // Navega hacia la pantalla de búsqueda de viajes 'SearchRide'
+                        navigation.navigate('SearchRide');
+                        console.log("Redirigiendo a la pantalla de búsqueda de viajes...");
                     }}
                     activeOpacity={0.9}
                 >
@@ -57,15 +55,15 @@ const DashboardPasajero = ({ navigation, route }) => {
                         <Ionicons name="search" size={24} color="#ffffff" />
                     </View>
                     <View style={styles.searchTextContainer}>
-                        {/* Texto en negrita y color especificado #ffffff */}
+                        {/* Título de la tarjeta en negrita y color blanco */}
                         <Text style={styles.cardTitle}>Buscar viaje</Text>
-                        {/* Subtítulo con tamaño más pequeño */}
+                        {/* Subtítulo informativo debajo del título principal */}
                         <Text style={styles.cardSubtitle}>Encuentra tu próximo viaje seguro</Text>
                     </View>
                 </TouchableOpacity>
             </View>
 
-            {/* Barra de navegación inferior (Bottom Nav) */}
+            {/* Barra de navegación inferior (Bottom Nav) customizada */}
             <BottomNavigationBar navigation={navigation} />
         </SafeAreaView>
         </Animated.View>
@@ -90,6 +88,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins-Bold',
         fontSize: 24,
         color: '#045084',
+        paddingHorizontal: 10, // Agregamos espacio a los lados para evitar que se corte la última letra
     },
     content: {
         flex: 1,

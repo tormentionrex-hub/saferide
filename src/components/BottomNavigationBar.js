@@ -17,8 +17,7 @@ const BottomNavigationBar = ({ navigation }) => {
                 style={styles.navItem} 
                 activeOpacity={0.6}
                 onPress={() => {
-                    /* Redirección a Inicio */
-                    // navigation.navigate('Inicio');
+                    navigation.navigate('DashboardPasajero');
                 }}
             >
                 <Ionicons name="home" size={24} color={primaryColor} />
@@ -29,13 +28,10 @@ const BottomNavigationBar = ({ navigation }) => {
                 style={styles.navItem} 
                 activeOpacity={0.6}
                 onPress={() => {
-                    /* Redirección a Buscar Viaje */
-                    // navigation.navigate('BuscarViaje');
+                    navigation.navigate('SearchRide');
                 }}
             >
-                <View style={styles.iconWithOverlay}>
-                    <Ionicons name="compass-outline" size={24} color={primaryColor} />
-                </View>
+                <Ionicons name="compass-outline" size={24} color={primaryColor} />
                 <Text style={[styles.navText, { color: primaryColor }]}>Buscar viaje</Text>
             </TouchableOpacity>
 
@@ -43,8 +39,7 @@ const BottomNavigationBar = ({ navigation }) => {
                 style={styles.navItem} 
                 activeOpacity={0.6}
                 onPress={() => {
-                    /* Redirección a Historial */
-                    // navigation.navigate('Historial');
+                    navigation.navigate('History');
                 }}
             >
                 <Ionicons name="time-outline" size={24} color={primaryColor} />
@@ -55,8 +50,7 @@ const BottomNavigationBar = ({ navigation }) => {
                 style={styles.navItem} 
                 activeOpacity={0.6}
                 onPress={() => {
-                    /* Redirección a Métricas */
-                    // navigation.navigate('Metricas');
+                    navigation.navigate('Metrics');
                 }}
             >
                 <Ionicons name="bar-chart-outline" size={24} color={primaryColor} />
@@ -67,12 +61,11 @@ const BottomNavigationBar = ({ navigation }) => {
                 style={styles.navItem} 
                 activeOpacity={0.6}
                 onPress={() => {
-                    /* Redirección a Perfil */
-                    // navigation.navigate('Perfil');
+                    navigation.navigate('Settings');
                 }}
             >
-                <Ionicons name="person-outline" size={24} color={primaryColor} />
-                <Text style={[styles.navText, { color: primaryColor }]}>Perfil</Text>
+                <Ionicons name="settings-outline" size={24} color={primaryColor} />
+                <Text style={[styles.navText, { color: primaryColor }]}>Config</Text>
             </TouchableOpacity>
         </View>
     );
@@ -99,7 +92,9 @@ const styles = StyleSheet.create({
     navText: {
         fontSize: 10,
         marginTop: 4,
-        fontFamily: 'Poppins-Regular', // Asignado basado en SignInScreen
+        fontFamily: 'Poppins-Regular',
+        textAlign: 'center', // Asegura el centrado del texto
+        width: '100%', // Da espacio horizontal completo dentro del ítem
     },
     iconWithOverlay: {
         alignItems: 'center',
