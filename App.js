@@ -28,7 +28,7 @@ export default function App() {
         <Stack.Screen
           name="Login"
           component={RegisterScreen}
-          options={{ headerShown: false }}
+          options={{ headerShown: false, animation: 'fade' }}
         />
         <Stack.Screen
           name="Verification"

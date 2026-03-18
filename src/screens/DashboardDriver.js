@@ -1,4 +1,4 @@
-import React from 'react'; //NO ESTA CONECTADO CON PARA PODER SELECIONARLO 
+import React, { useRef, useEffect } from 'react'; //NO ESTA CONECTADO CON PARA PODER SELECIONARLO
 import {
     StyleSheet,
     Text,
@@ -6,15 +6,17 @@ import {
     TouchableOpacity,
     Image,
     SafeAreaView,
-    ScrollView
+    ScrollView,
+    Animated,
+    Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function DashboardConductor({ route }) {
-    // Usamos el nombre que viene del registro, o 'Carlos' por defecto como en tu imagen
-    const userName = route?.params?.name?.split(' ')[0] || 'Carlos';
+    const userName = route?.params?.userName?.split(' ')[0] || route?.params?.name?.split(' ')[0] || 'Conductor';
 
     return (
+        <Animated.View style={{ flex: 1 }}>
         <SafeAreaView style={styles.container}>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 
@@ -65,6 +67,7 @@ export default function DashboardConductor({ route }) {
 
             </ScrollView>
         </SafeAreaView>
+        </Animated.View>
     );
 }
 
