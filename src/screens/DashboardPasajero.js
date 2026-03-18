@@ -1,13 +1,15 @@
-import React from 'react';
-import { 
-    StyleSheet, 
-    Text, 
-    View, 
-    SafeAreaView, 
-    TouchableOpacity, 
+import React, { useRef, useEffect } from 'react';
+import {
+    StyleSheet,
+    Text,
+    View,
+    SafeAreaView,
+    TouchableOpacity,
     StatusBar,
     Dimensions,
-    Platform
+    Platform,
+    Animated,
+    Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNavigationBar from '../components/BottomNavigationBar';
@@ -18,12 +20,12 @@ const { height, width } = Dimensions.get('window');
 const DashboardPasajero = ({ navigation, route }) => {
     // Extraemos el nombre del usuario enviado desde SignInScreen. Si no existe, usamos "Usuario" por defecto
     const userName = route?.params?.userName || "Usuario";
-    
-    // Configuración de colores corporativos especificados
+
     const primaryColor = '#045084';
     const subtextColor = 'rgba(255,255,255,0.4)';
 
     return (
+        <Animated.View style={styles.safeAreaWrapper}>
         <SafeAreaView style={styles.safeArea}>
             {/* Barra de estado con iconos oscuros para fondo claro */}
             <StatusBar barStyle="dark-content" />
@@ -66,10 +68,14 @@ const DashboardPasajero = ({ navigation, route }) => {
             {/* Barra de navegación inferior (Bottom Nav) */}
             <BottomNavigationBar navigation={navigation} />
         </SafeAreaView>
+        </Animated.View>
     );
 };
 
 const styles = StyleSheet.create({
+    safeAreaWrapper: {
+        flex: 1,
+    },
     safeArea: {
         flex: 1,
         backgroundColor: '#FFFFFF', // Fondo blanco para que resalte el contenido

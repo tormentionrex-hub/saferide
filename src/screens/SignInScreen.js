@@ -14,16 +14,15 @@ import {
     ScrollView,
     Animated,
     Easing,
-    Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const { width, height } = Dimensions.get('window');
 const ICON = require('../images/IconSafeRide.png');
 
 export default function SignInScreen({ navigation }) {
@@ -46,11 +45,11 @@ export default function SignInScreen({ navigation }) {
 
     // Animation for background color transition
     const fadeAnim = useRef(new Animated.Value(0)).current;
-    
+
     // Animations for input focus
     const emailFocusAnim = useRef(new Animated.Value(0)).current;
     const passwordFocusAnim = useRef(new Animated.Value(0)).current;
-    
+
     useEffect(() => {
         // Create an infinite loop for background
         Animated.loop(
@@ -145,6 +144,10 @@ export default function SignInScreen({ navigation }) {
                 const userRole = userData.type; // Puede ser 'pasajero' o 'conductor'
                 const userName = userData.name; // Nombre del usuario logueado
 
+                // Persistir sesión para que el Splash redirija correctamente al reabrir la app
+                await AsyncStorage.setItem('userRole', userRole);
+                await AsyncStorage.setItem('userName', userName);
+
                 setShowSuccess(true);
                 
                 // Esperamos 2.5 segundos para mostrar la animación de éxito antes de redirigir
@@ -184,7 +187,7 @@ export default function SignInScreen({ navigation }) {
 
 
     return (
-        <View style={styles.container}>
+        <Animated.View style={styles.container}>
 
             {/* Background Layer 1: Dark Blue Gradient */}
             <LinearGradient
@@ -324,7 +327,7 @@ export default function SignInScreen({ navigation }) {
                     </View>
                 </Modal>
             </SafeAreaView>
-        </View>
+        </Animated.View>
     );
 }
 
