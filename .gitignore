@@ -41,9 +41,5 @@ yarn-error.*
 /android
 
 
-# config.js que seria la ip, cada uno debe actualizarla manualmente
-
+# local config (IP/port específica de cada dev)
 src/config.js
-
-
-
