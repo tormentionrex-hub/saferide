@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -8,11 +9,13 @@ const BottomNavigationBar = ({ navigation }) => {
     // Definimos el color especificado por el usuario (ajustado a #045084 basado en el diseño existente)
     const primaryColor = '#045084';
     const glassBackground = 'rgba(255,255,255,0.4)';
+    const insets = useSafeAreaInsets(); // Obtiene la altura real de los botones/gestos del celular
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { paddingBottom: insets.bottom > 0 ? insets.bottom : 20, height: 70 + (insets.bottom > 0 ? insets.bottom : 20) }]}>
             <TouchableOpacity 
                 style={styles.navItem} 
+                activeOpacity={0.6}
                 onPress={() => {
                     /* Redirección a Inicio */
                     // navigation.navigate('Inicio');
@@ -24,6 +27,7 @@ const BottomNavigationBar = ({ navigation }) => {
 
             <TouchableOpacity 
                 style={styles.navItem} 
+                activeOpacity={0.6}
                 onPress={() => {
                     /* Redirección a Buscar Viaje */
                     // navigation.navigate('BuscarViaje');
@@ -37,6 +41,7 @@ const BottomNavigationBar = ({ navigation }) => {
 
             <TouchableOpacity 
                 style={styles.navItem} 
+                activeOpacity={0.6}
                 onPress={() => {
                     /* Redirección a Historial */
                     // navigation.navigate('Historial');
@@ -48,6 +53,7 @@ const BottomNavigationBar = ({ navigation }) => {
 
             <TouchableOpacity 
                 style={styles.navItem} 
+                activeOpacity={0.6}
                 onPress={() => {
                     /* Redirección a Métricas */
                     // navigation.navigate('Metricas');
@@ -59,6 +65,7 @@ const BottomNavigationBar = ({ navigation }) => {
 
             <TouchableOpacity 
                 style={styles.navItem} 
+                activeOpacity={0.6}
                 onPress={() => {
                     /* Redirección a Perfil */
                     // navigation.navigate('Perfil');
@@ -74,8 +81,7 @@ const BottomNavigationBar = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(255,255,255,0.4)',
-        height: 70,
+        backgroundColor: 'rgba(255,255,255,0.95)',
         width: '100%',
         justifyContent: 'space-around',
         alignItems: 'center',
