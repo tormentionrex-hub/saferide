@@ -14,16 +14,15 @@ import {
     ScrollView,
     Animated,
     Easing,
-    Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const { width, height } = Dimensions.get('window');
 const ICON = require('../images/IconSafeRide.png');
 
 export default function SignInScreen({ navigation }) {
@@ -46,11 +45,11 @@ export default function SignInScreen({ navigation }) {
 
     // Animation for background color transition
     const fadeAnim = useRef(new Animated.Value(0)).current;
-    
+
     // Animations for input focus
     const emailFocusAnim = useRef(new Animated.Value(0)).current;
     const passwordFocusAnim = useRef(new Animated.Value(0)).current;
-    
+
     useEffect(() => {
         // Create an infinite loop for background
         Animated.loop(
@@ -145,6 +144,12 @@ export default function SignInScreen({ navigation }) {
                 const userRole = userData.type; // Puede ser 'pasajero' o 'conductor'
                 const userName = userData.name; // Nombre del usuario logueado
 
+                // Persistir sesión para que el Splash redirija correctamente al reabrir la app
+                const accessToken = response.data.data.accessToken;
+                await AsyncStorage.setItem('userToken', accessToken);
+                await AsyncStorage.setItem('userRole', userRole);
+                await AsyncStorage.setItem('userName', userName);
+
                 setShowSuccess(true);
                 
                 // Esperamos 2.5 segundos para mostrar la animación de éxito antes de redirigir
@@ -152,16 +157,22 @@ export default function SignInScreen({ navigation }) {
                     setShowSuccess(false);
                     
                     // Lógica de redirección basada en el tipo de usuario (rol)
+                    // Se usa reset() para limpiar todo el historial de registro del stack.
+                    // El stack queda [SignIn, Dashboard], así el botón atrás del Dashboard
+                    // lleva al Login y nunca a pantallas de registro.
+                    let dashboardRoute = 'Home';
                     if (userRole === 'pasajero') {
-                        // Redirige al Dashboard de Pasajero pasando el nombre como parámetro
-                        navigation.replace('DashboardPasajero', { userName: userName });
+                        dashboardRoute = 'DashboardPasajero';
                     } else if (userRole === 'conductor') {
-                        // Redirige al Dashboard de Conductor (Driver)
-                        navigation.replace('DashboardDriver', { userName: userName });
-                    } else {
-                        // Redirección por defecto en caso de otros roles
-                        navigation.replace('Home');
+                        dashboardRoute = 'DashboardDriver';
                     }
+                    navigation.reset({
+                        index: 1,
+                        routes: [
+                            { name: 'SignIn' },
+                            { name: dashboardRoute, params: { userName } },
+                        ],
+                    });
                 }, 2500);
             }
         } catch (error) {
@@ -178,7 +189,7 @@ export default function SignInScreen({ navigation }) {
 
 
     return (
-        <View style={styles.container}>
+        <Animated.View style={styles.container}>
 
             {/* Background Layer 1: Dark Blue Gradient */}
             <LinearGradient
@@ -318,7 +329,7 @@ export default function SignInScreen({ navigation }) {
                     </View>
                 </Modal>
             </SafeAreaView>
-        </View>
+        </Animated.View>
     );
 }
 

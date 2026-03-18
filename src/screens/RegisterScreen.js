@@ -130,7 +130,7 @@ export default function RegisterScreen({ navigation }) {
 
     return (
 
-        <View style={styles.container}>
+        <Animated.View style={styles.container}>
 
             {/* Background Layer 1: Dark Blue Gradient */}
             <LinearGradient
@@ -226,7 +226,7 @@ export default function RegisterScreen({ navigation }) {
                     </ScrollView>
                 </KeyboardAvoidingView>
             </SafeAreaView>
-        </View>
+        </Animated.View>
     );
 }
 
