@@ -8,7 +8,6 @@ import {
     KeyboardAvoidingView,
     Platform,
     Alert,
-    ActivityIndicator,
     StatusBar,
     Image,
     ScrollView,
@@ -20,15 +19,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { authService } from '../services/authService';
-
 const { width, height } = Dimensions.get('window');
 const ICON = require('../images/IconSafeRide.png');
 
 export default function VerificationScreen({ route, navigation }) {
 
     const { email, verificationCode, name, phone, company, password } = route.params || { email: '', verificationCode: '1234' };
-    const [loading, setLoading] = useState(false);
     const [code, setCode] = useState(['', '', '', '']);
     const inputs = useRef([]);
 
@@ -181,14 +177,9 @@ export default function VerificationScreen({ route, navigation }) {
                             <TouchableOpacity
                                 style={styles.button}
                                 onPress={handleVerify}
-                                disabled={loading}
                                 activeOpacity={0.85}
                             >
-                                {loading ? (
-                                    <ActivityIndicator color="#ffffff" />
-                                ) : (
-                                    <Text style={styles.buttonText}>Verificar</Text>
-                                )}
+                                <Text style={styles.buttonText}>Verificar</Text>
                             </TouchableOpacity>
 
                             <Text style={styles.Text}>¿No recibiste el código?</Text>
