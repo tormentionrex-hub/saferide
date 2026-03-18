@@ -93,28 +93,17 @@ export default function VerificationScreen({ route, navigation }) {
             return;
         }
 
-        setLoading(true);
-        try {
-            const username = (email.split('@')[0] || 'user') + Math.floor(Math.random() * 10000);
-            await authService.register({
-                email: email,
-                password: password,
-                name: name,
-                username: username,
-                type: 'pasajero',
-                phone: phone,
-                company: company,
-            });
-            navigation.replace('RoleSelection');
-        } catch (error) {
-            console.error('Registration Error:', error.response?.data || error);
-            Alert.alert(
-                "Error en el Registro",
-                error.response?.data?.message || "Hubo un problema procesando tu registro. Inténtalo más tarde."
-            );
-        } finally {
-            setLoading(false);
-        }
+        // En lugar de registrar aquí, pasamos los datos a la pantalla de selección de rol
+        setLoading(false);
+        // Usamos .replace para limpiar el stack y asegurar que los parámetros lleguen frescos
+        setLoading(false);
+        navigation.replace('RoleSelection', {
+            email: email,
+            name: name,
+            phone: phone,
+            company: company,
+            password: password,
+        });
     };
 
     const handleResend = () => {
