@@ -6,8 +6,10 @@ import {
     SafeAreaView, 
     TouchableOpacity, 
     StatusBar,
-    Dimensions
+    Dimensions,
+    Platform
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import BottomNavigationBar from '../components/BottomNavigationBar';
 
 // Obtenemos dimensiones de la pantalla para garantizar responsividad
@@ -26,7 +28,7 @@ const DashboardPasajero = ({ navigation, route }) => {
             {/* Barra de estado con iconos oscuros para fondo claro */}
             <StatusBar barStyle="dark-content" />
             
-            {/* Encabezado: Texto 'Saferide' alineado a la esquina superior izquierda */}
+            {/* Encabezado: Texto 'Saferide' centrado */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Saferide</Text>
             </View>
@@ -36,7 +38,7 @@ const DashboardPasajero = ({ navigation, route }) => {
                 {/* Saludo dinámico al usuario logueado */}
                 <Text style={styles.greeting}>Hola, {userName}</Text>
 
-                {/* Tarjeta de búsqueda de viajes (Ocupa el 70% del ancho) */}
+                {/* Tarjeta de búsqueda de viajes */}
                 <TouchableOpacity 
                     style={styles.searchCard}
                     onPress={() => {
@@ -49,10 +51,15 @@ const DashboardPasajero = ({ navigation, route }) => {
                     }}
                     activeOpacity={0.9}
                 >
-                    {/* Texto en negrita y color especificado rgba(255,255,255,0.4) */}
-                    <Text style={styles.cardTitle}>Buscar viaje</Text>
-                    {/* Subtítulo con tamaño más pequeño */}
-                    <Text style={styles.cardSubtitle}>Encuentra tu proximo viaje seguro</Text>
+                    <View style={styles.searchIconContainer}>
+                        <Ionicons name="search" size={24} color="#ffffff" />
+                    </View>
+                    <View style={styles.searchTextContainer}>
+                        {/* Texto en negrita y color especificado #ffffff */}
+                        <Text style={styles.cardTitle}>Buscar viaje</Text>
+                        {/* Subtítulo con tamaño más pequeño */}
+                        <Text style={styles.cardSubtitle}>Encuentra tu próximo viaje seguro</Text>
+                    </View>
                 </TouchableOpacity>
             </View>
 
@@ -66,11 +73,12 @@ const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
         backgroundColor: '#FFFFFF', // Fondo blanco para que resalte el contenido
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0, // Evita choque con barra de estado
     },
     header: {
         paddingHorizontal: 20,
         paddingVertical: 15,
-        alignItems: 'flex-start', // Posiciona el título en la esquina
+        alignItems: 'center', // Centrado
     },
     headerTitle: {
         fontFamily: 'Poppins-Bold',
@@ -81,16 +89,19 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingHorizontal: 20,
         paddingTop: 20,
+        alignItems: 'center', // Centrar el saludo y la caja
     },
     greeting: {
         fontSize: 22,
         color: '#000000',
         marginBottom: 30,
         fontFamily: 'Poppins-Bold',
+        alignSelf: 'flex-start', // Mantener el saludo a la izquierda
     },
     searchCard: {
-        backgroundColor: '#045084', // Color de fondo solicitado
-        width: '70%',              // Tamaño del 70% de la pantalla
+        backgroundColor: '#2563EB', // Color de fondo solicitado
+        width: '90%',              // Ampliado
+        height: 120,               // Ampliado de alto
         padding: 20,
         borderRadius: 15,
         // Sombra para dar profundidad (efecto premium)
@@ -99,15 +110,24 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 5,
         elevation: 5,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    searchIconContainer: {
+        marginRight: 15,
+        marginTop: 2,
+    },
+    searchTextContainer: {
+        flex: 1,
     },
     cardTitle: {
-        color: 'rgba(255,255,255,0.4)', // Color de letra solicitado
+        color: '#ffffff', // Color de letra solicitado
         fontSize: 18,
         fontWeight: 'bold',             // Diseño en negrita
         marginBottom: 5,
     },
     cardSubtitle: {
-        color: 'rgba(255,255,255,0.4)', // Color de letra solicitado
+        color: '#ffffff', // Color de letra solicitado
         fontSize: 14,
     }
 });
