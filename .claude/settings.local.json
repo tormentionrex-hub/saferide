@@ -3,7 +3,10 @@
     "allow": [
       "Bash(cd:*)",
       "Bash(cp:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(npm install:*)",
+      "Bash(ipconfig)",
+      "Bash(findstr \"IPv4\")"
     ]
   }
 }

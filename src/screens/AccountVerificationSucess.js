@@ -11,7 +11,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function AccountVerificationSucess({ navigation }) {
     const handleContinue = () => {
-        navigation.replace('SignIn');
+        // Reset completo del stack para que no pueda volver a las pantallas de registro
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'SignIn' }],
+        });
     };
 
     return (

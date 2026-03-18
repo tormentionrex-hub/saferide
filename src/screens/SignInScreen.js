@@ -152,16 +152,22 @@ export default function SignInScreen({ navigation }) {
                     setShowSuccess(false);
                     
                     // Lógica de redirección basada en el tipo de usuario (rol)
+                    // Se usa reset() para limpiar todo el historial de registro del stack.
+                    // El stack queda [SignIn, Dashboard], así el botón atrás del Dashboard
+                    // lleva al Login y nunca a pantallas de registro.
+                    let dashboardRoute = 'Home';
                     if (userRole === 'pasajero') {
-                        // Redirige al Dashboard de Pasajero pasando el nombre como parámetro
-                        navigation.replace('DashboardPasajero', { userName: userName });
+                        dashboardRoute = 'DashboardPasajero';
                     } else if (userRole === 'conductor') {
-                        // Redirige al Dashboard de Conductor (Driver)
-                        navigation.replace('DashboardDriver', { userName: userName });
-                    } else {
-                        // Redirección por defecto en caso de otros roles
-                        navigation.replace('Home');
+                        dashboardRoute = 'DashboardDriver';
                     }
+                    navigation.reset({
+                        index: 1,
+                        routes: [
+                            { name: 'SignIn' },
+                            { name: dashboardRoute, params: { userName } },
+                        ],
+                    });
                 }, 2500);
             }
         } catch (error) {
