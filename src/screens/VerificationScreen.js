@@ -8,7 +8,6 @@ import {
     KeyboardAvoidingView,
     Platform,
     Alert,
-    ActivityIndicator,
     StatusBar,
     Image,
     ScrollView,
@@ -20,15 +19,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { authService } from '../services/authService';
-
 const { width, height } = Dimensions.get('window');
 const ICON = require('../images/IconSafeRide.png');
 
 export default function VerificationScreen({ route, navigation }) {
 
     const { email, verificationCode, name, phone, company, password } = route.params || { email: '', verificationCode: '1234' };
-    const [loading, setLoading] = useState(false);
     const [code, setCode] = useState(['', '', '', '']);
     const inputs = useRef([]);
 
@@ -93,28 +89,17 @@ export default function VerificationScreen({ route, navigation }) {
             return;
         }
 
-        setLoading(true);
-        try {
-            const username = (email.split('@')[0] || 'user') + Math.floor(Math.random() * 10000);
-            await authService.register({
-                email: email,
-                password: password,
-                name: name,
-                username: username,
-                type: 'pasajero',
-                phone: phone,
-                company: company,
-            });
-            navigation.replace('RoleSelection');
-        } catch (error) {
-            console.error('Registration Error:', error.response?.data || error);
-            Alert.alert(
-                "Error en el Registro",
-                error.response?.data?.message || "Hubo un problema procesando tu registro. Inténtalo más tarde."
-            );
-        } finally {
-            setLoading(false);
-        }
+        // En lugar de registrar aquí, pasamos los datos a la pantalla de selección de rol
+        setLoading(false);
+        // Usamos .replace para limpiar el stack y asegurar que los parámetros lleguen frescos
+        setLoading(false);
+        navigation.replace('RoleSelection', {
+            email: email,
+            name: name,
+            phone: phone,
+            company: company,
+            password: password,
+        });
     };
 
     const handleResend = () => {
@@ -192,14 +177,9 @@ export default function VerificationScreen({ route, navigation }) {
                             <TouchableOpacity
                                 style={styles.button}
                                 onPress={handleVerify}
-                                disabled={loading}
                                 activeOpacity={0.85}
                             >
-                                {loading ? (
-                                    <ActivityIndicator color="#ffffff" />
-                                ) : (
-                                    <Text style={styles.buttonText}>Verificar</Text>
-                                )}
+                                <Text style={styles.buttonText}>Verificar</Text>
                             </TouchableOpacity>
 
                             <Text style={styles.Text}>¿No recibiste el código?</Text>

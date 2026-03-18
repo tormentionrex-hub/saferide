@@ -24,12 +24,26 @@ export default function RoleSelectionScreen({ route, navigation }) {
 
     const handleConfirm = async () => {
         if (!selectedRole) return;
-
+        
+        // Bloqueo de seguridad: Evitar enviar registro si los parámetros se perdieron
+        if (!email || !name || !password || !phone || !company) {
+            Alert.alert(
+                'Sesión Expirada',
+                'No pudimos encontrar tus datos de registro. Por favor, inténtalo de nuevo desde el inicio.',
+                [{ text: 'Volver a Registrarme', onPress: () => navigation.navigate('Login') }]
+            );
+            return;
+        }
+        
         setLoading(true);
         try {
-            const username = (email.split('@')[0] || 'user') + Math.floor(Math.random() * 10000);
+            // Validación defensiva para evitar el error 'split of undefined'
+            const safeEmail = email || '';
+            const emailPart = safeEmail.includes('@') ? safeEmail.split('@')[0] : 'user';
+            const username = emailPart + Math.floor(Math.random() * 10000);
+            
             await authService.register({
-                email,
+                email: safeEmail,
                 password,
                 name,
                 username,
