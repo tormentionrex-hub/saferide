@@ -13,6 +13,10 @@ import LoginSuccessScreen from './src/screens/LoginSuccessScreen';
 // Importación de los dashboards para la redirección después del login
 import DashboardPasajero from './src/screens/DashboardPasajero';
 import DashboardDriver from './src/screens/DashboardDriver';
+import SearchRide from './src/screens/SearchRide';
+import History from './src/screens/History';
+import Settings from './src/screens/Settings';
+import Metrics from './src/screens/Metrics';
 
 const Stack = createNativeStackNavigator();
 
@@ -71,6 +75,30 @@ export default function App() {
           name="DashboardDriver"
           component={DashboardDriver}
           options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
+        />
+        {/* Buscar Viaje */}
+        <Stack.Screen
+          name="SearchRide"
+          component={SearchRide}
+          options={{ headerShown: false, animation: 'slide_from_right' }}
+        />
+        {/* Historial de viajes */}
+        <Stack.Screen
+          name="History"
+          component={History}
+          options={{ headerShown: false, animation: 'slide_from_right' }}
+        />
+        {/* Configuración */}
+        <Stack.Screen
+          name="Settings"
+          component={Settings}
+          options={{ headerShown: false, animation: 'slide_from_right' }}
+        />
+        {/* Métricas */}
+        <Stack.Screen
+          name="Metrics"
+          component={Metrics}
+          options={{ headerShown: false, animation: 'slide_from_right' }}
         />
         <Stack.Screen
           name="Home"
