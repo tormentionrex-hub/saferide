@@ -6,7 +6,8 @@
       "mcp__ide__getDiagnostics",
       "Bash(npm install:*)",
       "Bash(ipconfig)",
-      "Bash(findstr \"IPv4\")"
+      "Bash(findstr \"IPv4\")",
+      "Bash(npm audit:*)"
     ]
   }
 }
