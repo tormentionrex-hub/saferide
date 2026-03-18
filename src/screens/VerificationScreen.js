@@ -101,7 +101,7 @@ export default function VerificationScreen({ route, navigation }) {
                 password: password,
                 name: name,
                 username: username,
-                type: 'pasajero',
+                type: 'pasajero', 
                 phone: phone,
                 company: company,
             });
