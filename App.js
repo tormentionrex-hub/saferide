@@ -23,87 +23,109 @@ const Stack = createNativeStackNavigator();
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Splash">
+      <Stack.Navigator 
+        initialRouteName="Splash"
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right', // Animación fluida por defecto (abrir/cerrar)
+          animationDuration: 400,
+        }}
+      >
         <Stack.Screen
           name="Splash"
           component={SplashScreen}
-          options={{ headerShown: false }}
+          options={{ 
+            headerShown: false, 
+            animation: 'fade' // Entrada y salida suave para el splash
+          }}
         />
         <Stack.Screen
           name="Login"
           component={RegisterScreen}
-          options={{ headerShown: false, animation: 'fade' }}
+          options={{ 
+            animation: 'fade', // Transición más suave al primer paso
+          }}
         />
         <Stack.Screen
           name="Verification"
           component={VerificationScreen}
-          options={{ headerShown: false, animation: 'slide_from_right' }}
         />
         <Stack.Screen
           name="CreatePassword"
           component={CreatePasswordScreen}
-          options={{ headerShown: false, animation: 'slide_from_right' }}
         />
         <Stack.Screen
           name="AccountVerificationSucess"
           component={AccountVerificationSucess}
-          options={{ headerShown: false, animation: 'fade' }}
+          options={{ 
+            animation: 'fade_from_bottom', // Aparece como un logro alcanzado
+          }}
         />
         <Stack.Screen
           name="RoleSelection"
           component={RoleSelectionScreen}
-          options={{ headerShown: false, animation: 'fade' }}
+          options={{ 
+            animation: 'slide_from_bottom',
+          }}
         />
         <Stack.Screen
           name="SignIn"
           component={SignInScreen}
-          options={{ headerShown: false, animation: 'slide_from_right' }}
         />
         <Stack.Screen
           name="LoginSuccess"
           component={LoginSuccessScreen}
-          options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
+          options={{ 
+            animation: 'fade', 
+            gestureEnabled: false 
+          }}
         />
-        {/* Dashboard de Pasajero: se redirige aquí si el usuario logueado es de tipo 'pasajero' */}
+        {/* Dashboard de Pasajero */}
         <Stack.Screen
           name="DashboardPasajero"
           component={DashboardPasajero}
-          options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
+          options={{ 
+            animation: 'fade', 
+            gestureEnabled: false 
+          }}
         />
-        {/* Dashboard de Conductor: se redirige aquí si el usuario logueado es de tipo 'conductor' */}
+        {/* Dashboard de Conductor */}
         <Stack.Screen
           name="DashboardDriver"
           component={DashboardDriver}
-          options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
+          options={{ 
+            animation: 'fade', 
+            gestureEnabled: false 
+          }}
         />
         {/* Buscar Viaje */}
         <Stack.Screen
           name="SearchRide"
           component={SearchRide}
-          options={{ headerShown: false, animation: 'slide_from_right' }}
         />
         {/* Historial de viajes */}
         <Stack.Screen
           name="History"
           component={History}
-          options={{ headerShown: false, animation: 'slide_from_right' }}
         />
         {/* Configuración */}
         <Stack.Screen
           name="Settings"
           component={Settings}
-          options={{ headerShown: false, animation: 'slide_from_right' }}
         />
         {/* Métricas */}
         <Stack.Screen
           name="Metrics"
           component={Metrics}
-          options={{ headerShown: false, animation: 'slide_from_right' }}
         />
         <Stack.Screen
           name="Home"
           component={ApiHealthCheckScreen}
-          options={{ title: 'Dashboard', headerBackVisible: false }}
+          options={{ 
+            title: 'Dashboard', 
+            headerBackVisible: false,
+            animation: 'slide_from_left' // Diferencia el área administrativa
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>

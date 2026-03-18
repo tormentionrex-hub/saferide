@@ -56,10 +56,10 @@ export default function SplashScreen({ navigation }) {
     });
 
     useEffect(() => {
-        // 1. Aparece el fondo suavemente
+        // 1. Aparece el fondo suavemente (más rápido)
         Animated.timing(exitOpacity, {
             toValue: 1,
-            duration: 200,
+            duration: 150,
             useNativeDriver: true,
         }).start();
         
@@ -70,104 +70,101 @@ export default function SplashScreen({ navigation }) {
             routeData.current = { userRole, userName };
         });
 
-        // 🏎️ Secuencia de movimiento realista
+        // 🏎️ Secuencia de movimiento realista acelerada
         Animated.sequence([
-            // Fase 1: Aceleración (Se inclina hacia ATRÁS)
+            // Fase 1: Aceleración (Más dinámica)
             Animated.parallel([
                 Animated.timing(translateX, {
                     toValue: 100, 
-                    duration: 1000,
+                    duration: 750, // Más rápido
                     easing: Easing.bezier(0.2, 0, 0.2, 1),
                     useNativeDriver: true,
                 }),
                 Animated.timing(rotate, {
-                    toValue: 0.8, // Inclinación atrás
-                    duration: 400,
+                    toValue: 0.8,
+                    duration: 350,
                     useNativeDriver: true,
                 }),
                 Animated.timing(translateY, {
-                    toValue: -2, // Se levanta un poco el frente
-                    duration: 400,
+                    toValue: -2,
+                    duration: 350,
                     useNativeDriver: true,
                 }),
             ]),
 
-            // Fase 2: Frenado (Se inclina hacia ADELANTE y dip de suspensión)
+            // Fase 2: Frenado (Más seco y responsivo)
             Animated.parallel([
                 Animated.spring(translateX, {
                     toValue: CENTER_X,
-                    friction: 8,
-                    tension: 30,
+                    friction: 7,
+                    tension: 40,
                     useNativeDriver: true,
                 }),
                 Animated.sequence([
                     Animated.timing(rotate, {
-                        toValue: -1.2, // Pico de frenado (adelante)
-                        duration: 300,
+                        toValue: -1.2,
+                        duration: 250, // Más rápido
                         useNativeDriver: true,
                     }),
                     Animated.spring(rotate, {
-                        toValue: 0, // Regresa a nivel
+                        toValue: 0,
                         friction: 5,
                         useNativeDriver: true,
                     }),
                 ]),
                 Animated.sequence([
                     Animated.timing(translateY, {
-                        toValue: 6, // El coche baja por inercia del freno
-                        duration: 300,
+                        toValue: 6,
+                        duration: 250, // Más rápido
                         useNativeDriver: true,
                     }),
                     Animated.spring(translateY, {
-                        toValue: 0, // Rebota y se asienta
+                        toValue: 0,
                         friction: 4,
                         useNativeDriver: true,
                     }),
                 ]),
-                // La sombra reacciona al dip
                 Animated.sequence([
-                    Animated.timing(shadowOpacity, { toValue: 0.7, duration: 300, useNativeDriver: true }),
-                    Animated.timing(shadowOpacity, { toValue: 0.4, duration: 400, useNativeDriver: true }),
+                    Animated.timing(shadowOpacity, { toValue: 0.7, duration: 250, useNativeDriver: true }),
+                    Animated.timing(shadowOpacity, { toValue: 0.4, duration: 350, useNativeDriver: true }),
                 ]),
             ]),
         ]).start(() => {
-            // 🔄 Motor encendido (vibración física muy sutil)
+            // 🔄 Motor encendido
             bounceLoop.current = Animated.loop(
                 Animated.sequence([
                     Animated.timing(translateY, {
                         toValue: -0.8, 
-                        duration: 350, 
-                        easing: Easing.inOut(Easing.sin),
+                        duration: 300, 
                         useNativeDriver: true,
                     }),
                     Animated.timing(translateY, {
                         toValue: 0.8, 
-                        duration: 350, 
-                        easing: Easing.inOut(Easing.sin),
+                        duration: 300, 
                         useNativeDriver: true,
                     }),
                 ])
             );
             bounceLoop.current.start();
 
-            // Aparece el título
+            // Aparece el título (Más rápido)
             Animated.parallel([
                 Animated.timing(titleOpacity, {
                     toValue: 1,
-                    duration: 800,
+                    duration: 450, // Más rápido
                     easing: Easing.out(Easing.quad),
                     useNativeDriver: true,
                 }),
                 Animated.spring(titleTranslateY, {
                     toValue: 0,
                     friction: 5,
-                    tension: 40,
+                    tension: 50,
                     useNativeDriver: true,
                 }),
                 Animated.spring(titleScale, {
                     toValue: 1,
                     friction: 5,
-                    tension: 40,
+                    tension: 50,
                     useNativeDriver: true,
                 }),
             ]).start(() => {
@@ -175,13 +172,13 @@ export default function SplashScreen({ navigation }) {
                     Animated.sequence([
                         Animated.timing(underlineScale, {
                             toValue: 1.1,
-                            duration: 1200,
+                            duration: 1000,
                             easing: Easing.inOut(Easing.sin),
                             useNativeDriver: true,
                         }),
                         Animated.timing(underlineScale, {
                             toValue: 1,
-                            duration: 1200,
+                            duration: 1000,
                             easing: Easing.inOut(Easing.sin),
                             useNativeDriver: true,
                         }),
@@ -191,11 +188,11 @@ export default function SplashScreen({ navigation }) {
             });
         });
 
-        // Navegación
+        // Navegación (MUCHO más rápido el tiempo total de splash)
         const timer = setTimeout(() => {
             Animated.timing(exitOpacity, {
                 toValue: 0,
-                duration: 600,
+                duration: 400, // Salida rápida
                 easing: Easing.out(Easing.quad),
                 useNativeDriver: true,
             }).start(() => {
@@ -216,7 +213,8 @@ export default function SplashScreen({ navigation }) {
                     navigation.replace('SignIn');
                 }
             });
-        }, 4800);
+        }, 2800); // Antes 4800
+
 
         return () => {
             clearTimeout(timer);
