@@ -6,6 +6,7 @@ import {
     Easing,
     Dimensions,
     View,
+    ImageBackground,
 } from 'react-native';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,6 +18,7 @@ const RIGHT_X  =  SCREEN_WIDTH * 0.32;
 const CENTER_X =  0;
 
 const CAR_IMG = require('../images/SplashAnimacion.gif');
+const BG_IMG  = require('../images/BackgroundSplash.png');
 
 export default function SplashScreen({ navigation }) {
     const translateX    = useRef(new Animated.Value(START_X)).current;
@@ -94,7 +96,7 @@ export default function SplashScreen({ navigation }) {
                     ],
                 });
             } else {
-                navigation.replace('Login');
+                navigation.replace('SignIn');
             }
         }, 1800);
 
@@ -105,7 +107,7 @@ export default function SplashScreen({ navigation }) {
     }, []);
 
     return (
-        <View style={styles.container}>
+        <ImageBackground source={BG_IMG} style={styles.container} resizeMode="cover">
             <StatusBar hidden />
             <Animated.View style={{ opacity: carOpacity, transform: [{ translateX }, { translateY }] }}>
                 <Image
@@ -116,14 +118,13 @@ export default function SplashScreen({ navigation }) {
                     transform={[{ scaleX: -1 }]}
                 />
             </Animated.View>
-        </View>
+        </ImageBackground>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#ffffff',
         justifyContent: 'center',
         alignItems: 'center',
     },

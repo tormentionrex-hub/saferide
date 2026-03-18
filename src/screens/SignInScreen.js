@@ -145,6 +145,8 @@ export default function SignInScreen({ navigation }) {
                 const userName = userData.name; // Nombre del usuario logueado
 
                 // Persistir sesión para que el Splash redirija correctamente al reabrir la app
+                const accessToken = response.data.data.accessToken;
+                await AsyncStorage.setItem('userToken', accessToken);
                 await AsyncStorage.setItem('userRole', userRole);
                 await AsyncStorage.setItem('userName', userName);
 
