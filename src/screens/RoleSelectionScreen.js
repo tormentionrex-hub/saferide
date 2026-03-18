@@ -6,20 +6,46 @@ import {
     TouchableOpacity,
     SafeAreaView,
     StatusBar,
-    Image
+    Image,
+    Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { authService } from '../services/authService';
 
-export default function RoleSelectionScreen({ navigation }) {
+export default function RoleSelectionScreen({ route, navigation }) {
+    const { email, name, phone, company, password } = route.params || {};
     const [selectedRole, setSelectedRole] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     const handleRoleSelect = (role) => {
         setSelectedRole(role);
     };
 
-    const handleConfirm = () => {
-        if (selectedRole) {
-            navigation.navigate('AccountVerificationSucess', { role: selectedRole });
+    const handleConfirm = async () => {
+        if (!selectedRole) return;
+
+        setLoading(true);
+        try {
+            const username = (email.split('@')[0] || 'user') + Math.floor(Math.random() * 10000);
+            await authService.register({
+                email,
+                password,
+                name,
+                username,
+                type: selectedRole,
+                phone,
+                company,
+            });
+            navigation.navigate('AccountVerificationSucess');
+        } catch (error) {
+            console.error('Registration Error:', error.response?.data || error);
+            Alert.alert(
+                'Error en el Registro',
+                error.response?.data?.message || 'Hubo un problema procesando tu registro. Inténtalo más tarde.'
+            );
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -87,12 +113,16 @@ export default function RoleSelectionScreen({ navigation }) {
             {/* Footer con botón Seleccionar */}
             <View style={styles.footer}>
                 <TouchableOpacity
-                    style={[styles.button, !selectedRole && styles.buttonDisabled]}
+                    style={[styles.button, (!selectedRole || loading) && styles.buttonDisabled]}
                     onPress={handleConfirm}
                     activeOpacity={selectedRole ? 0.8 : 1}
-                    disabled={!selectedRole}
+                    disabled={!selectedRole || loading}
                 >
-                    <Text style={styles.buttonText}>Seleccionar</Text>
+                    {loading ? (
+                        <ActivityIndicator color="#ffffff" />
+                    ) : (
+                        <Text style={styles.buttonText}>Seleccionar</Text>
+                    )}
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
