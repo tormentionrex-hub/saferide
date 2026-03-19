@@ -11,16 +11,16 @@ import SignInScreen from './src/screens/SignInScreen';
 import SplashScreen from './src/screens/SplashScreen';
 import LoginSuccessScreen from './src/screens/LoginSuccessScreen';
 // Importación de los dashboards para la redirección después del login
-import DashboardPasajero from './src/screens/DashboardPasajero';
+import DashboardPasajero from './src/screens/pasajero/DashboardPasajero';
 import DashboardDriver from './src/screens/DashboardDriver';
-import SearchRide from './src/screens/SearchRide';
-import History from './src/screens/History';
-import Settings from './src/screens/Settings';
-import Metrics from './src/screens/Metrics';
+import SearchRide from './src/screens/pasajero/SearchRide';
+import History from './src/screens/pasajero/History';
+import SettingPasajero from './src/screens/pasajero/SettingPasajero';
+import Metrics from './src/screens/pasajero/Metrics';
 import PublishRide from './src/screens/PublishRide';
 import ManageRequests from './src/screens/ManageRequests';
 import DriverMetrics from './src/screens/DriverMetrics';
-import ListOfDrivers from './src/screens/ListOfDrivers';
+import ListOfDrivers from './src/screens/pasajero/ListOfDrivers';
 
 const Stack = createNativeStackNavigator();
 
@@ -114,8 +114,8 @@ export default function App() {
         />
         {/* Configuración */}
         <Stack.Screen
-          name="Settings"
-          component={Settings}
+          name="SettingPasajero"
+          component={SettingPasajero}
         />
         {/* Métricas */}
         <Stack.Screen

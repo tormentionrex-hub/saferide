@@ -41,8 +41,8 @@ const NAV_ITEMS = [
         label: 'Config',
         activeIcon: 'settings',
         inactiveIcon: 'settings-outline',
-        screens: ['Settings'],
-        target: 'Settings',
+        screens: ['SettingPasajero'],
+        target: 'SettingPasajero',
     },
 ];
 
