@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     StyleSheet,
     Text,
@@ -9,23 +9,63 @@ import {
     Image,
     Alert,
     ActivityIndicator,
+    Animated,
+    Easing,
+    Dimensions,
 } from 'react-native';
+import { useFonts } from 'expo-font';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { authService } from '../../services/authService';
+
+const { width } = Dimensions.get('window');
 
 export default function RoleSelectionScreen({ route, navigation }) {
     const { email, name, phone, company, password } = route.params || {};
     const [selectedRole, setSelectedRole] = useState(null);
     const [loading, setLoading] = useState(false);
 
+    const [fontsLoaded] = useFonts({
+        'Poppins-Bold': require('../../fonts/Poppins_700Bold.ttf'),
+        'Poppins-SemiBold': require('../../fonts/Poppins_600SemiBold.ttf'),
+        'Poppins-Regular': require('../../fonts/Poppins_400Regular.ttf'),
+    });
+
+    // Animation for background color transition
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        // Create an infinite loop for background animation
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 5000,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(fadeAnim, {
+                    toValue: 0,
+                    duration: 5000,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
+    }, []);
+
     const handleRoleSelect = (role) => {
-        setSelectedRole(role);
+        // Si el usuario vuelve a hacer click en la misma opción, se apaga (null)
+        if (selectedRole === role) {
+            setSelectedRole(null);
+        } else {
+            setSelectedRole(role);
+        }
     };
 
     const handleConfirm = async () => {
         if (!selectedRole) return;
 
-        // Bloqueo de seguridad: Evitar enviar registro si los parámetros se perdieron
         if (!email || !name || !password || !phone || !company) {
             Alert.alert(
                 'Sesión Expirada',
@@ -37,7 +77,6 @@ export default function RoleSelectionScreen({ route, navigation }) {
 
         setLoading(true);
         try {
-            // Validación defensiva para evitar el error 'split of undefined'
             const safeEmail = email || '';
             const emailPart = safeEmail.includes('@') ? safeEmail.split('@')[0] : 'user';
             const username = emailPart + Math.floor(Math.random() * 10000);
@@ -63,192 +102,253 @@ export default function RoleSelectionScreen({ route, navigation }) {
         }
     };
 
+    if (!fontsLoaded) return null;
+
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
-            <View style={styles.content}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <Text style={styles.brandName}>Safe Ride</Text>
-                </View>
+        <View style={styles.container}>
+        
+            <LinearGradient
+                colors={['#09314bff', '#0c4469ff', '#073050ff']}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            />
 
-                {/* Title Section */}
-                <View style={styles.titleContainer}>
-                    <Text style={styles.title}>Elige tu rol</Text>
-                    <Text style={styles.subtitle}>
-                        Selecciona cómo quieres usar la{'\n'}aplicación.
-                    </Text>
-                </View>
+            <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
+                <LinearGradient
+                    colors={['#0a6191ff', '#0a8ac5ff', '#3dabdaff']}
+                    style={StyleSheet.absoluteFill}
+                    start={{ x: 1, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                />
+            </Animated.View>
 
-                {/* Role Options */}
-                <View style={styles.rolesContainer}>
-                    {/* SafeMate Option */}
-                    <TouchableOpacity
-                        style={[
-                            styles.roleCard,
-                            selectedRole === 'pasajero' && styles.roleCardSelected
-                        ]}
-                        onPress={() => handleRoleSelect('pasajero')}
-                        activeOpacity={0.8}
-                    >
-                        <Image
-                            source={require('../../images/UserRol.png')}
-                            style={styles.iconImage}
-                            resizeMode="contain"
-                        />
-                        <Text style={styles.roleTitle}>SafeMate</Text>
-                        <Text style={styles.roleDescription}>
-                            Solicita viajes y viaja seguro.
-                        </Text>
-                    </TouchableOpacity>
 
-                    {/* SafeDriver Option */}
-                    <TouchableOpacity
-                        style={[
-                            styles.roleCard,
-                            selectedRole === 'conductor' && styles.roleCardSelected
-                        ]}
-                        onPress={() => handleRoleSelect('conductor')}
-                        activeOpacity={0.8}
-                    >
-                        <Image
-                            source={require('../../images/VehicleRol.png')}
-                            style={styles.iconImage}
-                            resizeMode="contain"
-                        />
-                        <Text style={styles.roleTitle}>SafeDriver</Text>
-                        <Text style={styles.roleDescription}>
-                            Ofrece viajes y gana dinero.
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            {/* Footer con botón Seleccionar */}
-            <View style={styles.footer}>
-                <TouchableOpacity
-                    style={[styles.button, (!selectedRole || loading) && styles.buttonDisabled]}
-                    onPress={handleConfirm}
-                    activeOpacity={selectedRole ? 0.8 : 1}
-                    disabled={!selectedRole || loading}
-                >
-                    {loading ? (
-                        <ActivityIndicator color="#ffffff" />
-                    ) : (
-                        <Text style={styles.buttonText}>Seleccionar</Text>
-                    )}
+            <SafeAreaView style={styles.safeArea}>
+                <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+                
+                {/* Botón Volver */}
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
                 </TouchableOpacity>
-            </View>
-        </SafeAreaView>
+
+                <View style={styles.content}>
+                    {/* Header */}
+
+                    <View style={styles.header}>
+                        <Text style={styles.brandName}>SafeRide</Text>
+                    </View>
+
+                    {/* Titulo */}
+                    <View style={styles.titleContainer}>
+                        <Text style={styles.title}>Elige tu rol</Text>
+                        <Text style={styles.subtitle}>
+                            Selecciona cómo quieres usar la{'\n'}aplicación.
+                        </Text>
+                    </View>
+
+                    {/* Role Options */}
+                    <View style={styles.rolesContainer}>
+                        
+                        {/* SafeMate Option */}
+                        <TouchableOpacity
+                            style={[
+                                styles.roleCard,
+                                selectedRole === 'pasajero' && styles.roleCardSelected
+                            ]}
+                            onPress={() => handleRoleSelect('pasajero')}
+                            activeOpacity={0.85}
+                        >
+                            <View style={[styles.imageCircle, selectedRole === 'pasajero' && styles.imageCircleSelected]}>
+                                <Image
+                                    source={require('../../images/UserRol.png')}
+                                    style={styles.iconImage}
+                                    resizeMode="contain"
+                                />
+                            </View>
+                            <View style={styles.roleTextContainer}>
+                                <Text style={[styles.roleTitle, selectedRole === 'pasajero' && styles.roleTitleSelected]}>SafeMate</Text>
+                                <Text style={styles.roleDescription}>
+                                    Solicita viajes y viaja seguro.
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        {/* SafeDriver Option */}
+                        <TouchableOpacity
+                            style={[
+                                styles.roleCard,
+                                selectedRole === 'conductor' && styles.roleCardSelected
+                            ]}
+                            onPress={() => handleRoleSelect('conductor')}
+                            activeOpacity={0.85}
+                        >
+                            <View style={[styles.imageCircle, selectedRole === 'conductor' && styles.imageCircleSelected]}>
+                                <Image
+                                    source={require('../../images/VehicleRol.png')}
+                                    style={styles.iconImage}
+                                    resizeMode="contain"
+                                />
+                            </View>
+                            <View style={styles.roleTextContainer}>
+                                <Text style={[styles.roleTitle, selectedRole === 'conductor' && styles.roleTitleSelected]}>SafeDriver</Text>
+                                <Text style={styles.roleDescription}>
+                                    Ofrece viajes y gana {'\n'} dinero extra.
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* Footer con botón Seleccionar */}
+                <View style={styles.footer}>
+                    <TouchableOpacity
+                        style={[styles.button, (!selectedRole || loading) && styles.buttonDisabled]}
+                        onPress={handleConfirm}
+                        activeOpacity={selectedRole ? 0.85 : 1}
+                        disabled={!selectedRole || loading}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                            <Text style={styles.buttonText}>Continuar</Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#082F49',
+    },
+    safeArea: {
+        flex: 1,
     },
     content: {
         flex: 1,
-        paddingHorizontal: 24,
+        paddingHorizontal: 28,
+        paddingTop: 10,
         justifyContent: 'center',
+    },
+    backButton: {
+        position: 'absolute',
+        top: 20,
+        left: 20,
+        zIndex: 10,
+        padding: 10,
+        marginTop: 25,
     },
     header: {
         alignItems: 'center',
-        marginBottom: 28,
+        marginBottom: 32,
+        marginTop: -40,
     },
     brandName: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#2563EB',
+        fontFamily: 'Poppins-Bold',
+        fontSize: 30,
+        color: '#FFFFFF',
+        letterSpacing: 1,
     },
     titleContainer: {
         alignItems: 'center',
-        marginBottom: 28,
+        marginBottom: 40,
     },
     title: {
+        fontFamily: 'Poppins-Bold',
         fontSize: 26,
-        fontWeight: 'bold',
-        color: '#111827',
+        color: '#FFFFFF',
         marginBottom: 8,
     },
     subtitle: {
+        fontFamily: 'Poppins-Regular',
         fontSize: 15,
-        color: '#6B7280',
+        color: 'rgba(235, 235, 235, 0.72)',
         textAlign: 'center',
         lineHeight: 22,
     },
     rolesContainer: {
-        gap: 16,
+        gap: 20,
     },
     roleCard: {
-        backgroundColor: '#ffffff',
-        borderRadius: 20,
-        padding: 24,
+        flexDirection: 'row',
+        backgroundColor: 'rgba(157, 182, 238, 0.33)',
+        borderRadius: 24,
+        padding: 20,
         alignItems: 'center',
-        borderWidth: 2,
-        borderColor: '#E5E7EB',
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
-        transform: [{ scale: 1 }],
+    
+
     },
     roleCardSelected: {
-        borderColor: '#2563EB',
-        backgroundColor: '#EFF6FF',
+        borderColor: '#38BDF8',
+        backgroundColor: 'rgba(59, 176, 226, 0.74)',
+        borderWidth: 2,
         transform: [{ scale: 1.02 }],
-        shadowColor: '#2563EB',
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-        elevation: 6,
     },
-    iconImage: {
-        width: 64,
-        height: 64,
-        marginBottom: 12,
-    },
-    roleTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#111827',
-        marginBottom: 6,
-    },
-    roleDescription: {
-        fontSize: 14,
-        color: '#6B7280',
-        textAlign: 'center',
-        lineHeight: 20,
-    },
-    footer: {
-        paddingHorizontal: 24,
-        paddingBottom: 32,
-        paddingTop: 12,
-    },
-    button: {
-        height: 56,
-        backgroundColor: '#2563EB',
-        borderRadius: 28,
+    imageCircle: {
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        backgroundColor: 'rgba(144, 194, 250, 0.23)',
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#2563EB',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4,
+        marginRight: 18,
+    },
+    imageCircleSelected: {
+        backgroundColor: '#38BDF8',
+    },
+    iconImage: {
+        width: 43,
+        height: 43,
+    },
+    roleTextContainer: {
+        flex: 1,
+    },
+    roleTitle: {
+        fontFamily: 'Poppins-Bold',
+        fontSize: 18,
+        color: 'rgba(255, 255, 255, 0.9)',
+        marginBottom: 2,
+    },
+    roleTitleSelected: {
+        color: '#FFFFFF',
+    },
+    roleDescription: {
+        fontFamily: 'Poppins-Regular',
+        fontSize: 13,
+        color: 'rgba(235, 235, 235, 0.78)',
+        lineHeight: 18,
+    },
+    footer: {
+        paddingHorizontal: 28,
+        paddingBottom: 50,
+        paddingTop: -15,
+    },
+    button: {
+        height: 54,
+        backgroundColor: '#5dbbfaff',
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#172227ff',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.45,
+        shadowRadius: 14,
+        elevation: 8,
+        marginBottom: 50,
     },
     buttonDisabled: {
-        backgroundColor: '#93C5FD',
-        shadowOpacity: 0,
+        backgroundColor: 'rgba(56, 191, 248, 0.25)',
         elevation: 0,
+        shadowOpacity: 0,
     },
     buttonText: {
-        color: '#ffffff',
-        fontSize: 18,
-        fontWeight: '600',
+        fontFamily: 'Poppins-Bold',
+        color: '#FFFFFF',
+        fontSize: 16,
+        letterSpacing: 0.5,
     },
 });
