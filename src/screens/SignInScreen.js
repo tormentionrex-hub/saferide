@@ -407,9 +407,9 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     inputBoxError: {
-        borderColor: '#f53333bb',
+        borderColor: '#FF3B30',
         borderWidth: 3,
-        backgroundColor: 'rgba(255,31,31,0.12)',
+        backgroundColor: 'rgba(255, 59, 48, 0.15)',
     },
     input: {
         flex: 1,
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontFamily: 'Poppins-SemiBold',
-        color: '#f53333bb',
+        color: '#FF3B30',
         fontSize: 14,
         marginBottom: 8,
         marginLeft: 2,
