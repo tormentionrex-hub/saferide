@@ -1,13 +1,15 @@
-import React from 'react';
-import { StyleSheet, Text, View, SafeAreaView } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, StatusBar } from 'react-native';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
+import { useDriverTheme } from '../../context/DriverThemeContext';
 
 export default function ManageRequests({ navigation }) {
+    const { theme } = useDriverTheme();
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             <View style={styles.content}>
-                <Text style={styles.title}>Gestionar Solicitudes</Text>
-                <Text style={styles.message}>Aquí verás quién quiere subirse a tu viaje y podrás Aceptar o Rechazar solicitudes.</Text>
+                <Text style={[styles.title, { color: theme.text }]}>Gestionar Solicitudes</Text>
+                <Text style={[styles.message, { color: theme.textSecondary }]}>Aquí verás quién quiere subirse a tu viaje y podrás Aceptar o Rechazar solicitudes.</Text>
             </View>
             <BottomNavigationDriver navigation={navigation} activeTab="Mensajes" />
         </SafeAreaView>
@@ -15,10 +17,7 @@ export default function ManageRequests({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#ffffff',
-    },
+    container: { flex: 1 },
     content: {
         flex: 1,
         justifyContent: 'center',
@@ -28,12 +27,10 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#111827',
         marginBottom: 10,
     },
     message: {
         fontSize: 16,
-        color: '#6B7280',
         textAlign: 'center',
     },
 });

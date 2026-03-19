@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDriverTheme } from '../../context/DriverThemeContext';
 import {
     View,
     Text,
@@ -29,6 +30,7 @@ import { API_URL } from '../../config';
  * Pantalla para que los conductores publiquen un nuevo viaje.
  */
 const PublishRide = ({ navigation }) => {
+    const { theme } = useDriverTheme();
     // --- ESTADOS DEL FORMULARIO ---
     const [origen, setOrigen] = useState('');
     const [destino, setDestino] = useState('');
@@ -174,12 +176,15 @@ const PublishRide = ({ navigation }) => {
         }
     };
 
-    return (
-        <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="dark-content" />
+    const inputIconColor = theme.dark ? '#666688' : '#999';
+    const placeholderColor = theme.dark ? '#55557A' : '#999';
 
-            {/* Título exterior centrado en la parte superior */}
-            <Text style={styles.backgroundTitle}>Publicar Viaje</Text>
+    return (
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
+            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
+
+            {/* Título exterior */}
+            <Text style={[styles.backgroundTitle, { color: theme.textSecondary }]}>Publicar Viaje</Text>
 
             <ScrollView
                 style={styles.scrollView}
@@ -187,83 +192,83 @@ const PublishRide = ({ navigation }) => {
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
             >
-                {/* Carta principal contenedora del formulario */}
-                <View style={styles.card}>
+                {/* Carta principal */}
+                <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
 
-                    {/* Cabecera de la carta con botón de retroceso opcional */}
+                    {/* Cabecera */}
                     <View style={styles.cardHeader}>
                         <TouchableOpacity
                             style={styles.backButton}
                             onPress={() => navigation.goBack()}
                         >
-                            <Ionicons name="chevron-back" size={24} color="#1A2B4C" />
+                            <Ionicons name="chevron-back" size={24} color={theme.text} />
                         </TouchableOpacity>
-                        <Text style={styles.cardTitle}>Detalles del Viaje</Text>
+                        <Text style={[styles.cardTitle, { color: theme.text }]}>Detalles del Viaje</Text>
                     </View>
 
-                    {/* Separador visual */}
-                    <View style={styles.divider} />
+                    <View style={[styles.divider, { backgroundColor: theme.divider }]} />
 
                     {/* Entrada: Origen */}
-                    <View style={[styles.inputWrapper, errors.origen && styles.inputError]}>
-                        <Ionicons name="radio-button-off" size={20} color="#999" style={styles.inputIcon} />
+                    <View style={[styles.inputWrapper, { backgroundColor: theme.surface, borderColor: theme.border }, errors.origen && styles.inputError]}>
+                        <Ionicons name="radio-button-off" size={20} color={inputIconColor} style={styles.inputIcon} />
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { color: theme.text }]}
                             value={origen}
                             onChangeText={(text) => {
                                 setOrigen(text);
                                 if (errors.origen) setErrors({ ...errors, origen: null });
                             }}
                             placeholder="Origen (Ej. San José)"
-                            placeholderTextColor="#999"
+                            placeholderTextColor={placeholderColor}
                         />
                     </View>
 
                     {/* Entrada: Destino */}
-                    <View style={[styles.inputWrapper, errors.destino && styles.inputError]}>
-                        <Ionicons name="location-outline" size={20} color="#999" style={styles.inputIcon} />
+                    <View style={[styles.inputWrapper, { backgroundColor: theme.surface, borderColor: theme.border }, errors.destino && styles.inputError]}>
+                        <Ionicons name="location-outline" size={20} color={inputIconColor} style={styles.inputIcon} />
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { color: theme.text }]}
                             value={destino}
                             onChangeText={(text) => {
                                 setDestino(text);
                                 if (errors.destino) setErrors({ ...errors, destino: null });
                             }}
                             placeholder="Destino (Ej. Heredia)"
-                            placeholderTextColor="#999"
+                            placeholderTextColor={placeholderColor}
                         />
                     </View>
-                                  {/* Selector: Fecha y Hora */}
+
+                    {/* Selector: Fecha y Hora */}
                     <TouchableOpacity
-                        style={[styles.inputWrapper, errors.fechaHora && styles.inputError]}
+                        style={[styles.inputWrapper, { backgroundColor: theme.surface, borderColor: theme.border }, errors.fechaHora && styles.inputError]}
                         onPress={() => setMostrarCalendario(true)}
                     >
-                        <Ionicons name="calendar-outline" size={20} color="#999" style={styles.inputIcon} />
-                        <Text style={[styles.inputText, (!fechaSeleccionada || !horaSeleccionada) && { color: '#999' }]}>
+                        <Ionicons name="calendar-outline" size={20} color={inputIconColor} style={styles.inputIcon} />
+                        <Text style={[styles.inputText, { color: (!fechaSeleccionada || !horaSeleccionada) ? placeholderColor : theme.text }]}>
                             {getFechaHoraText()}
                         </Text>
                     </TouchableOpacity>
 
-                    {/* Selector de dropdown: Asientos Disponibles (máximo 4) */}
-                    <View style={[styles.inputWrapper, errors.asientos && styles.inputError]}>
-                        <Ionicons name="car-outline" size={20} color="#999" style={styles.inputIcon} />
+                    {/* Selector: Asientos */}
+                    <View style={[styles.inputWrapper, { backgroundColor: theme.surface, borderColor: theme.border }, errors.asientos && styles.inputError]}>
+                        <Ionicons name="car-outline" size={20} color={inputIconColor} style={styles.inputIcon} />
                         <Picker
                             selectedValue={asientos}
                             onValueChange={(itemValue) => setAsientos(itemValue)}
-                            style={styles.picker}
-                            dropdownIconColor="#2D63ED"
+                            style={[styles.picker, { color: theme.text }]}
+                            dropdownIconColor={theme.accent}
                         >
-                            <Picker.Item label="1 Asiento disponible" value="1" />
-                            <Picker.Item label="2 Asientos disponibles" value="2" />
-                            <Picker.Item label="3 Asientos disponibles" value="3" />
-                            <Picker.Item label="4 Asientos disponibles" value="4" />
+                            <Picker.Item label="1 Asiento disponible" value="1" color={theme.dark ? '#EEEEFF' : '#333'} />
+                            <Picker.Item label="2 Asientos disponibles" value="2" color={theme.dark ? '#EEEEFF' : '#333'} />
+                            <Picker.Item label="3 Asientos disponibles" value="3" color={theme.dark ? '#EEEEFF' : '#333'} />
+                            <Picker.Item label="4 Asientos disponibles" value="4" color={theme.dark ? '#EEEEFF' : '#333'} />
                         </Picker>
                     </View>
 
-                    {/* Contenedor del botón de acción */}
+                    {/* Botón publicar */}
                     <View style={styles.buttonContainer}>
                         <TouchableOpacity
-                            style={styles.publishButton}
+                            style={[styles.publishButton, { backgroundColor: theme.accent }]}
                             onPress={handlePublish}
                             disabled={loading}
                         >

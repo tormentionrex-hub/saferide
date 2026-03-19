@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { DriverThemeProvider } from './src/context/DriverThemeContext';
 import ApiHealthCheckScreen from './src/screens/ApiHealthCheckScreen';
 import RegisterScreen from './src/screens/register/RegisterScreen';
 import VerificationScreen from './src/screens/register/VerificationScreen';
@@ -27,8 +28,9 @@ const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
+    <DriverThemeProvider>
     <NavigationContainer>
-      <Stack.Navigator 
+      <Stack.Navigator
         initialRouteName="Splash"
         screenOptions={{
           headerShown: false,
@@ -143,5 +145,6 @@ export default function App() {
 
       </Stack.Navigator>
     </NavigationContainer>
+    </DriverThemeProvider>
   );
 }
