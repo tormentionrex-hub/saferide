@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, StatusBar, Platform, ScrollView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import BottomNavigationBar from '../components/BottomNavigationBar';
-import { API_URL } from '../config';
+import BottomNavigationBar from '../../components/BottomNavigationBar';
+import { API_URL } from '../../config';
 
 const SearchRide = ({ navigation }) => {
     // Estados para almacenar los campos del pasajero

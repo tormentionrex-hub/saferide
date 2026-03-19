@@ -1,10 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import BottomNavigationBar from '../../components/BottomNavigationBar';
 
-const Settings = () => {
+const SettingPasajero = ({ navigation }) => {
     return (
         <View style={styles.container}>
-            <Text style={styles.text}>Yo soy el screen de Configuración</Text>
+            <View style={styles.content}>
+                <Text style={styles.text}>Yo soy el screen de Configuración</Text>
+            </View>
+            <BottomNavigationBar navigation={navigation} />
         </View>
     );
 };
@@ -13,6 +17,9 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#FFFFFF',
+    },
+    content: {
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -23,4 +30,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Settings;
+export default SettingPasajero;
