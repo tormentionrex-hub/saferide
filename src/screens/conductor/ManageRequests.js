@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
+import { useDriverTheme } from '../../context/DriverThemeContext';
 
 /**
  * Pantalla que permite al conductor gestionar las solicitudes de pasajeros 

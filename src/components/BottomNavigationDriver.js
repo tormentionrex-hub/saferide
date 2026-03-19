@@ -1,24 +1,22 @@
-import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useDriverTheme } from '../context/DriverThemeContext';
 
 const BottomNavigationBarAlt = ({ navigation, activeTab = 'Inicio' }) => {
-    const insets = useSafeAreaInsets(); 
-    
-    // Configuración de colores
-    const primaryColor = '#4B68FF';  
-    const inactiveColor = '#8E8E93'; 
+    const insets = useSafeAreaInsets();
+    const { theme } = useDriverTheme();
 
-    const getColor = (tabName) => activeTab === tabName ? primaryColor : inactiveColor;
+    const getColor = (tabName) => activeTab === tabName ? theme.navActive : theme.navInactive;
 
     return (
         <View style={[
-            styles.container, 
-            { 
-                paddingBottom: insets.bottom > 0 ? insets.bottom : 20, 
-                height: 70 + (insets.bottom > 0 ? insets.bottom : 20) 
+            styles.container,
+            {
+                paddingBottom: insets.bottom > 0 ? insets.bottom : 20,
+                height: 70 + (insets.bottom > 0 ? insets.bottom : 20),
+                backgroundColor: theme.navBg,
+                borderTopColor: theme.navBorder,
             }
         ]}>
             
