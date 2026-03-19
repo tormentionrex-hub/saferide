@@ -17,6 +17,9 @@ import SearchRide from './src/screens/SearchRide';
 import History from './src/screens/History';
 import Settings from './src/screens/Settings';
 import Metrics from './src/screens/Metrics';
+import PublishRide from './src/screens/PublishRide';
+import ManageRequests from './src/screens/ManageRequests';
+import DriverMetrics from './src/screens/DriverMetrics';
 
 const Stack = createNativeStackNavigator();
 
@@ -127,6 +130,11 @@ export default function App() {
             animation: 'slide_from_left' // Diferencia el área administrativa
           }}
         />
+        {/* Screens del Conductor */}
+        <Stack.Screen name="PublishRide" component={PublishRide} />
+        <Stack.Screen name="ManageRequests" component={ManageRequests} />
+        <Stack.Screen name="DriverMetrics" component={DriverMetrics} />
+
       </Stack.Navigator>
     </NavigationContainer>
   );
