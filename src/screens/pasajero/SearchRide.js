@@ -11,8 +11,6 @@ const SearchRide = ({ navigation }) => {
     const [destino, setDestino] = useState('');
     const [fechaSeleccionada, setFechaSeleccionada] = useState(null); // Objeto Date del calendario
     const [mostrarCalendario, setMostrarCalendario] = useState(false); // Controla la visibilidad del calendario
-    const [horaSeleccionada, setHoraSeleccionada] = useState(null);    // Objeto Date con la hora elegida
-    const [mostrarHora, setMostrarHora] = useState(false);             // Controla la visibilidad del selector de hora
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({}); // Objeto que acumula los errores por campo
 
@@ -34,32 +32,17 @@ const SearchRide = ({ navigation }) => {
         return `${day}/${month}/${year}`;
     };
 
-    // Formatea la hora para mostrar al usuario en formato AM/PM
-    const formatearHoraDisplay = (date) => {
-        if (!date) return 'Seleccionar hora';
-        let hours = date.getHours();
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12 || 12;
-        return `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
-    };
+    // Verifica si la fecha seleccionada es hoy o en el futuro
+    const esFechaValida = () => {
+        if (!fechaSeleccionada) return false;
+        
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        
+        const seleccionada = new Date(fechaSeleccionada);
+        seleccionada.setHours(0, 0, 0, 0);
 
-    // Verifica si la combinación de fecha+hora seleccionada es en el pasado (hora local)
-    const esFechaHoraPasada = () => {
-        if (!fechaSeleccionada || !horaSeleccionada) return false;
-
-        // Construimos un único Date combinando la fecha y la hora seleccionadas
-        const combinado = new Date(
-            fechaSeleccionada.getFullYear(),
-            fechaSeleccionada.getMonth(),
-            fechaSeleccionada.getDate(),
-            horaSeleccionada.getHours(),
-            horaSeleccionada.getMinutes(),
-            0
-        );
-
-        // Comparamos con el momento actual
-        return combinado <= new Date();
+        return seleccionada >= hoy;
     };
 
     // Se ejecuta cuando el usuario selecciona una fecha en el calendario
@@ -70,16 +53,6 @@ const SearchRide = ({ navigation }) => {
         }
         if (selectedDate) {
             setFechaSeleccionada(selectedDate);
-        }
-    };
-
-    // Se ejecuta cuando el usuario selecciona una hora
-    const onCambiarHora = (event, selectedTime) => {
-        if (Platform.OS === 'android') {
-            setMostrarHora(false);
-        }
-        if (selectedTime) {
-            setHoraSeleccionada(selectedTime);
         }
     };
 
@@ -97,13 +70,10 @@ const SearchRide = ({ navigation }) => {
         if (!fechaSeleccionada) {
             newErrors.fecha = 'Por favor selecciona una fecha.';
         }
-        if (!horaSeleccionada) {
-            newErrors.hora = 'Por favor selecciona una hora.';
-        }
 
-        // Validación de fecha+hora en el pasado (solo si ambas fueron seleccionadas)
-        if (fechaSeleccionada && horaSeleccionada && esFechaHoraPasada()) {
-            newErrors.hora = 'La fecha y hora seleccionadas ya pasaron. Elige un momento futuro.';
+        // Validación de fecha en el pasado
+        if (fechaSeleccionada && !esFechaValida()) {
+            newErrors.fecha = 'La fecha seleccionada ya pasó. Elige un momento futuro.';
         }
 
         // Si hay errores, los mostramos y no continuamos
@@ -254,44 +224,6 @@ const SearchRide = ({ navigation }) => {
                     )}
                 </View>
 
-                {/* --- Selector de Hora --- */}
-                <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Hora</Text>
-                    {/* Botón que abre el selector de hora nativo */}
-                    <TouchableOpacity
-                        style={[styles.datePickerButton, errors.hora && styles.inputError]}
-                        onPress={() => {
-                            setMostrarHora(true);
-                            if (errors.hora) setErrors({ ...errors, hora: null });
-                        }}
-                    >
-                        <Ionicons name="time-outline" size={22} color="#045084" />
-                        <Text style={[
-                            styles.datePickerText,
-                            !horaSeleccionada && styles.datePickerPlaceholder
-                        ]}>
-                            {formatearHoraDisplay(horaSeleccionada)}
-                        </Text>
-                    </TouchableOpacity>
-
-                    {errors.hora && <Text style={styles.errorText}>{errors.hora}</Text>}
-                    {/* Selector nativo de hora del dispositivo */}
-                    {mostrarHora && (
-                        <DateTimePicker
-                            value={horaSeleccionada || new Date()}
-                            mode="time"
-                            is24Hour={false}
-                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                            onChange={onCambiarHora}
-                        />
-                    )}
-                    {/* Botón confirmar solo en iOS */}
-                    {mostrarHora && Platform.OS === 'ios' && (
-                        <TouchableOpacity style={styles.confirmButton} onPress={() => setMostrarHora(false)}>
-                            <Text style={styles.confirmButtonText}>Confirmar hora</Text>
-                        </TouchableOpacity>
-                    )}
-                </View>
 
                 {/* Botón de búsqueda: valida todos los campos antes de hacer la petición */}
                 <TouchableOpacity
@@ -320,11 +252,14 @@ const styles = StyleSheet.create({
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0,
     },
     header: {
-        paddingHorizontal: 20,
-        paddingVertical: 15,
         alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 15,
+        paddingTop: Platform.OS === 'ios' ? 40 : 15,
+        height: Platform.OS === 'ios' ? 90 : 70,
         borderBottomWidth: 1,
         borderBottomColor: '#F0F0F0',
+        backgroundColor: '#FFF',
     },
     headerTitle: {
         fontFamily: 'Poppins-Bold',

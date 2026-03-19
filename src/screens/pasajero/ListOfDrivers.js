@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, StatusBar, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
 
 // Screen para mostrar la lista de conductores que coinciden con la búsqueda
@@ -44,9 +45,24 @@ const ListOfDrivers = ({ route, navigation }) => {
     };
 
     return (
-        <View style={styles.container}>
-            <View style={styles.content}>
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" />
+            
+            {/* Header con botón de retroceso */}
+            <View style={styles.header}>
+                <TouchableOpacity 
+                    style={styles.backButton} 
+                    onPress={() => navigation.goBack()}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="chevron-back" size={30} color="#045084" />
+                </TouchableOpacity>
                 <Text style={styles.title}>Viajes Disponibles</Text>
+                {/* View vacío para compensar el espacio del botón de atrás y que el título quede centrado */}
+                <View style={{ width: 40 }} />
+            </View>
+
+            <View style={styles.content}>
                 
                 {rides.length === 0 ? (
                     // Mensaje cuando no se encuentran viajes
@@ -67,7 +83,7 @@ const ListOfDrivers = ({ route, navigation }) => {
 
             {/* Componente de navegación inferior */}
             <BottomNavigationBar navigation={navigation} />
-        </View>
+        </SafeAreaView>
     );
 };
 
@@ -76,18 +92,34 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#F5F7FA', // Fondo claro y limpio
     },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 15,
+        paddingTop: Platform.OS === 'ios' ? 60 : 40,
+        height: Platform.OS === 'ios' ? 110 : 100,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+        backgroundColor: '#FFF',
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    title: {
+        fontSize: 20,
+        color: '#045084',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        flex: 1,
+    },
     content: {
         flex: 1,
         padding: 20,
-        paddingBottom: 90, // Espacio para que el BottomNavBar no tape la lista
-    },
-    title: {
-        fontSize: 22,
-        color: '#045084',
-        fontWeight: 'bold',
-        marginBottom: 20,
-        marginTop: 40, // Margen superior para hacerlo visible debajo del notch de iOS/Android
-        textAlign: 'center',
+        paddingBottom: 90, 
     },
     listContainer: {
         paddingBottom: 20,
@@ -101,7 +133,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
-        elevation: 3, // Sombra para dispositivos Android
+        elevation: 3, 
     },
     cardHeader: {
         flexDirection: 'row',
