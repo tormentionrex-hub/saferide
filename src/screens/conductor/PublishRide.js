@@ -33,12 +33,16 @@ const PublishRide = ({ navigation }) => {
     const [origen, setOrigen] = useState('');
     const [destino, setDestino] = useState('');
     const [asientos, setAsientos] = useState('1'); // Valor por defecto 1 asiento
-
     // --- ESTADOS DE FECHA Y HORA ---
     const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
     const [horaSeleccionada, setHoraSeleccionada] = useState(null);
     const [mostrarCalendario, setMostrarCalendario] = useState(false);
     const [mostrarHora, setMostrarHora] = useState(false);
+
+    // --- ESTADOS DE UBICACIÓN (COORDENADAS) ---
+    // Dejamos montada la estructura para coordenadas, con valores por defecto (San José)
+    const [originCoords, setOriginCoords] = useState({ lat: 9.9281, lng: -84.0907 });
+    const [destinationCoords, setDestinationCoords] = useState({ lat: 9.9322, lng: -84.0410 });
 
     // --- ESTADOS DE UI ---
     const [loading, setLoading] = useState(false);
@@ -68,20 +72,19 @@ const PublishRide = ({ navigation }) => {
     };
 
     /**
-     * Genera el texto para mostrar en el botón de selección de fecha/hora.
+     * Genera el texto para mostrar en el botón de selección de fecha.
      */
     const getFechaHoraText = () => {
         if (fechaSeleccionada && horaSeleccionada) {
             return `${formatearFechaDisplay(fechaSeleccionada)} a las ${formatearHoraDisplay(horaSeleccionada)}`;
         } else if (fechaSeleccionada) {
-            return `${formatearFechaDisplay(fechaSeleccionada)} (Seleccionar hora...)`;
+            return `${formatearFechaDisplay(fechaSeleccionada)} (Elegir hora...)`;
         }
-        return 'Fecha y Hora';
+        return 'Seleccionar Fecha y Hora';
     };
 
     /**
      * Maneja el cambio de fecha seleccionado.
-     * En Android cierra el calendario y abre el selector de hora.
      */
     const onCambiarFecha = (event, selectedDate) => {
         if (Platform.OS === 'android') {
@@ -90,7 +93,8 @@ const PublishRide = ({ navigation }) => {
         if (event.type === 'set' && selectedDate) {
             setFechaSeleccionada(selectedDate);
             if (errors.fechaHora) setErrors({ ...errors, fechaHora: null });
-
+            
+            // En Android, abrimos automáticamente el selector de hora después de la fecha
             if (Platform.OS === 'android') {
                 setTimeout(() => setMostrarHora(true), 100);
             }
@@ -100,7 +104,7 @@ const PublishRide = ({ navigation }) => {
     };
 
     /**
-     * Maneja el cambio de la hora seleccionada.
+     * Maneja el cambio de hora seleccionado.
      */
     const onCambiarHora = (event, selectedTime) => {
         if (Platform.OS === 'android') {
@@ -131,35 +135,32 @@ const PublishRide = ({ navigation }) => {
 
         setLoading(true);
         try {
-            // Combinar fecha y hora para enviarlo al backend en formato UTC
+            // Combinar fecha y hora para el backend
             const fullDateTime = new Date(fechaSeleccionada);
             fullDateTime.setHours(horaSeleccionada.getHours());
             fullDateTime.setMinutes(horaSeleccionada.getMinutes());
 
-            // Estructura del payload según lo que el modelo de backend espera (Ride.js/rideRoutes.js)
-            // IMPORTANTE: El backend requiere coordenadas. Por ahora mandamos valores fijos
-            // que podrías reemplazar luego con un selector de mapa.
+            // Estructura del payload con coordenadas incluidas
             const payload = {
                 origin: {
                     name: origen,
-                    coordinates: { lat: 9.9281, lng: -84.0907 } // Ubicación aproximada (San José)
+                    coordinates: originCoords
                 },
                 destination: {
                     name: destino,
-                    coordinates: { lat: 9.9322, lng: -84.0410 } // Ubicación aproximada (San Pedro)
+                    coordinates: destinationCoords
                 },
                 date_time: fullDateTime.toISOString(),
                 available_seats: parseInt(asientos)
             };
 
-            // Llamada real al backend usando el servicio centralizado (contiene el token)
-            // Se debe importar 'api' de '../services/api'
+            // Llamada real al backend
             const response = await api.post('/rides', payload);
 
             if (response.data.success) {
                 setLoading(false);
                 Alert.alert('¡Éxito!', 'Tu viaje ha sido publicado.', [
-                    { text: 'OK', onPress: () => navigation.navigate('Home') }
+                    { text: 'OK', onPress: () => navigation.navigate('DashboardDriver') }
                 ]);
             } else {
                 throw new Error(response.data.message || 'Error desconocido');
@@ -232,8 +233,7 @@ const PublishRide = ({ navigation }) => {
                             placeholderTextColor="#999"
                         />
                     </View>
-
-                    {/* Selector: Fecha y Hora */}
+                                  {/* Selector: Fecha y Hora */}
                     <TouchableOpacity
                         style={[styles.inputWrapper, errors.fechaHora && styles.inputError]}
                         onPress={() => setMostrarCalendario(true)}
@@ -257,9 +257,6 @@ const PublishRide = ({ navigation }) => {
                             <Picker.Item label="2 Asientos disponibles" value="2" />
                             <Picker.Item label="3 Asientos disponibles" value="3" />
                             <Picker.Item label="4 Asientos disponibles" value="4" />
-                            <Picker.Item label="5 Asientos disponibles" value="5" />
-                            <Picker.Item label="6 Asientos disponibles" value="6" />
-                            <Picker.Item label="7 Asientos disponibles" value="7" />
                         </Picker>
                     </View>
 
@@ -291,7 +288,7 @@ const PublishRide = ({ navigation }) => {
                     onChange={onCambiarFecha}
                 />
             )}
-
+            
             {/* Confirmación manual necesaria para iOS */}
             {mostrarCalendario && Platform.OS === 'ios' && (
                 <TouchableOpacity style={styles.iosConfirmButton} onPress={() => { setMostrarCalendario(false); setMostrarHora(true); }}>
@@ -308,7 +305,7 @@ const PublishRide = ({ navigation }) => {
                     onChange={onCambiarHora}
                 />
             )}
-
+            
             {mostrarHora && Platform.OS === 'ios' && (
                 <TouchableOpacity style={styles.iosConfirmButton} onPress={() => setMostrarHora(false)}>
                     <Text style={styles.iosConfirmText}>Confirmar hora</Text>
