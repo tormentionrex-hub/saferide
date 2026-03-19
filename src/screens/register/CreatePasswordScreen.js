@@ -23,7 +23,7 @@ import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
-const ICON = require('../images/IconSafeRide.png');
+const ICON = require('../../images/IconSafeRide.png');
 
 const COMPANIES = [
     'Intel', 'Cargill', 'Deloitte', 'Citi', 'Experian',
@@ -55,9 +55,9 @@ export default function CreatePasswordScreen({ route, navigation }) {
     const [isPickerVisible, setIsPickerVisible] = useState(false);
 
     const [fontsLoaded] = useFonts({
-        'Poppins-Bold': require('../fonts/Poppins_700Bold.ttf'),
-        'Poppins-SemiBold': require('../fonts/Poppins_600SemiBold.ttf'),
-        'Poppins-Regular': require('../fonts/Poppins_400Regular.ttf'),
+        'Poppins-Bold': require('../../fonts/Poppins_700Bold.ttf'),
+        'Poppins-SemiBold': require('../../fonts/Poppins_600SemiBold.ttf'),
+        'Poppins-Regular': require('../../fonts/Poppins_400Regular.ttf'),
     });
 
     // Animations
@@ -264,8 +264,8 @@ export default function CreatePasswordScreen({ route, navigation }) {
                             {/* Company Picker */}
                             <Text style={styles.label}>Empresa</Text>
                             <Animated.View style={[
-                                styles.inputBox, 
-                                errors.company ? styles.inputBoxError : getAnimatedStyle(companyFocusAnim), 
+                                styles.inputBox,
+                                errors.company ? styles.inputBoxError : getAnimatedStyle(companyFocusAnim),
                                 { paddingRight: 8 }
                             ]}>
                                 <TouchableOpacity

@@ -13,7 +13,8 @@
       "Bash(powershell -Command \"Get-NetIPAddress -AddressFamily IPv4 | Where-Object { \\\\$_.IPAddress -notlike '127.*' -and \\\\$_.IPAddress -notlike '169.*' } | Select-Object IPAddress, InterfaceAlias\" 2>&1)",
       "Bash(powershell -Command \"Get-Service -Name 'MongoDB' -ErrorAction SilentlyContinue | Select-Object Name, Status\" 2>&1)",
       "Bash(powershell -Command \"Test-NetConnection -ComputerName 127.0.0.1 -Port 27017 -InformationLevel Quiet\" 2>&1)",
-      "Bash(powershell -Command \"Test-NetConnection -ComputerName 127.0.0.1 -Port 8080 -InformationLevel Quiet\" 2>&1)"
+      "Bash(powershell -Command \"Test-NetConnection -ComputerName 127.0.0.1 -Port 8080 -InformationLevel Quiet\" 2>&1)",
+      "Bash(ls:*)"
     ]
   }
 }

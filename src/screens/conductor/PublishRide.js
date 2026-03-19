@@ -19,11 +19,11 @@ import { Picker } from '@react-native-picker/picker';
 // Íconos vectoriales
 import { Ionicons } from '@expo/vector-icons';
 // Barra de navegación personalizada para conductores
-import BottomNavigationDriver from '../components/BottomNavigationDriver';
+import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 // Servicio de API configurado con axios y token
-import api from '../services/api';
+import api from '../../services/api';
 // Configuración de la API
-import { API_URL } from '../config';
+import { API_URL } from '../../config';
 
 /**
  * Pantalla para que los conductores publiquen un nuevo viaje.
@@ -80,7 +80,7 @@ const PublishRide = ({ navigation }) => {
     };
 
     /**
-     * Maneja el cambio de fecha seleccionado. 
+     * Maneja el cambio de fecha seleccionado.
      * En Android cierra el calendario y abre el selector de hora.
      */
     const onCambiarFecha = (event, selectedDate) => {
@@ -137,7 +137,7 @@ const PublishRide = ({ navigation }) => {
             fullDateTime.setMinutes(horaSeleccionada.getMinutes());
 
             // Estructura del payload según lo que el modelo de backend espera (Ride.js/rideRoutes.js)
-            // IMPORTANTE: El backend requiere coordenadas. Por ahora mandamos valores fijos 
+            // IMPORTANTE: El backend requiere coordenadas. Por ahora mandamos valores fijos
             // que podrías reemplazar luego con un selector de mapa.
             const payload = {
                 origin: {

@@ -1,15 +1,15 @@
 import React from 'react';
 import { StyleSheet, Text, View, SafeAreaView } from 'react-native';
-import BottomNavigationDriver from '../components/BottomNavigationDriver';
+import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 
-export default function DriverMetrics({ navigation }) {
+export default function ManageRequests({ navigation }) {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.content}>
-                <Text style={styles.title}>Métricas del Conductor</Text>
-                <Text style={styles.message}>Aquí aparecerán tus estadísticas: dinero ganado, viajes realizados y calificación.</Text>
+                <Text style={styles.title}>Gestionar Solicitudes</Text>
+                <Text style={styles.message}>Aquí verás quién quiere subirse a tu viaje y podrás Aceptar o Rechazar solicitudes.</Text>
             </View>
-            <BottomNavigationDriver navigation={navigation} activeTab="Inicio" />
+            <BottomNavigationDriver navigation={navigation} activeTab="Mensajes" />
         </SafeAreaView>
     );
 }

@@ -28,7 +28,7 @@ const FORBIDDEN_DOMAINS = [
     'live.com'
 ];
 
-const ICON = require('../images/IconSafeRide.png');
+const ICON = require('../../images/IconSafeRide.png');
 
 
 
@@ -38,9 +38,9 @@ export default function RegisterScreen({ navigation }) {
     const [Focused, setFocused] = useState(false);
 
     const [fontsLoaded] = useFonts({
-        'Poppins-Bold': require('../fonts/Poppins_700Bold.ttf'),
-        'Poppins-SemiBold': require('../fonts/Poppins_600SemiBold.ttf'),
-        'Poppins-Regular': require('../fonts/Poppins_400Regular.ttf'),
+        'Poppins-Bold': require('../../fonts/Poppins_700Bold.ttf'),
+        'Poppins-SemiBold': require('../../fonts/Poppins_600SemiBold.ttf'),
+        'Poppins-Regular': require('../../fonts/Poppins_400Regular.ttf'),
     });
 
 
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
         borderWidth: 3,
         backgroundColor: 'rgba(255,255,255,0.15)',
     },
-    
+
     inputBoxError: {
         borderColor: '#FF3B30',
         borderWidth: 3,
