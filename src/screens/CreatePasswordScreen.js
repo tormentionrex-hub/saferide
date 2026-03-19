@@ -137,6 +137,8 @@ export default function CreatePasswordScreen({ route, navigation }) {
 
         if (!name.trim()) {
             currentErrors.name = "El nombre es requerido.";
+        } else if (name.trim().length < 4) {
+            currentErrors.name = "El nombre debe tener al menos 4 caracteres.";
         }
         if (!company) {
             currentErrors.company = "Debes seleccionar una empresa.";
