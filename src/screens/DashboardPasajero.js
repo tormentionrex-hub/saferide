@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
     StyleSheet,
     Text,
@@ -12,14 +12,25 @@ import {
     Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomNavigationBar from '../components/BottomNavigationBar';
 
 // Obtenemos dimensiones de la pantalla para garantizar responsividad
 const { height, width } = Dimensions.get('window');
 
 const DashboardPasajero = ({ navigation, route }) => {
-    // Extraemos el nombre del usuario enviado desde SignInScreen. Si no existe, usamos "Usuario" por defecto
-    const userName = route?.params?.userName || "Usuario";
+    // Nombre del usuario: primero intenta route.params (viene del login directo),
+    // si está vacío lo lee de AsyncStorage (guardado al hacer login en SignInScreen).
+    const [userName, setUserName] = useState(route?.params?.userName || '');
+
+    useEffect(() => {
+        // Si no llegó el nombre por los parámetros de navegación, lo buscamos en AsyncStorage
+        if (!route?.params?.userName) {
+            AsyncStorage.getItem('userName').then((name) => {
+                if (name) setUserName(name);
+            });
+        }
+    }, []);
 
     // Colores principales de la aplicación para mantener cohesión visual
     const primaryColor = '#045084';
