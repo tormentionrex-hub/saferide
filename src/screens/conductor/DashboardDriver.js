@@ -8,24 +8,24 @@ import {
     SafeAreaView,
     ScrollView,
     Animated,
+    StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useDriverTheme } from '../../context/DriverThemeContext';
 
 export default function DashboardConductor({ route, navigation }) {
+    const { theme } = useDriverTheme();
     const [userName, setUserName] = useState('Conductor');
 
     useEffect(() => {
         const fetchUserName = async () => {
-            // Intentamos obtener el nombre de los parámetros de la ruta primero
             const nameFromParams = route?.params?.userName || route?.params?.name;
             if (nameFromParams) {
                 setUserName(nameFromParams.split(' ')[0]);
                 return;
             }
-
-            // Si no está en los parámetros, lo buscamos en AsyncStorage (sesión persistida)
             const storedName = await AsyncStorage.getItem('userName');
             if (storedName) {
                 setUserName(storedName.split(' ')[0]);
@@ -35,17 +35,18 @@ export default function DashboardConductor({ route, navigation }) {
     }, [route?.params]);
 
     return (
-        <Animated.View style={{ flex: 1 }}>
-            <SafeAreaView style={styles.container}>
+        <Animated.View style={{ flex: 1, backgroundColor: theme.bg }}>
+            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
+            <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.welcomeText}>Hola, {userName}</Text>
+                        <Text style={[styles.welcomeText, { color: theme.text }]}>Hola, {userName}</Text>
                         <View style={styles.headerIcons}>
                             <TouchableOpacity style={styles.iconButton}>
-                                <Ionicons name="notifications-outline" size={26} color="#111827" />
-                                <View style={styles.notificationDot} />
+                                <Ionicons name="notifications-outline" size={26} color={theme.text} />
+                                <View style={[styles.notificationDot, { backgroundColor: theme.accent, borderColor: theme.bg }]} />
                             </TouchableOpacity>
                             <Image
                                 source={{ uri: 'https://i.pravatar.cc/150?u=carlos' }}
@@ -56,15 +57,14 @@ export default function DashboardConductor({ route, navigation }) {
 
                     {/* Card Principal: Publicar Viaje */}
                     <TouchableOpacity
-                        style={styles.mainCard}
-                        // 👇 EVENTO AÑADIDO: Redirige a la pantalla de crear viaje
+                        style={[styles.mainCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder }]}
                         onPress={() => navigation.navigate('PublishRide')}
                     >
-                        <View style={styles.mainIconCircle}>
-                            <Ionicons name="options-outline" size={32} color="#2563EB" />
+                        <View style={[styles.mainIconCircle, { backgroundColor: theme.iconCircleBg }]}>
+                            <Ionicons name="options-outline" size={32} color={theme.accent} />
                         </View>
-                        <Text style={styles.mainCardTitle}>Publicar Viaje</Text>
-                        <Text style={styles.mainCardDescription}>
+                        <Text style={[styles.mainCardTitle, { color: theme.text }]}>Publicar Viaje</Text>
+                        <Text style={[styles.mainCardDescription, { color: theme.textSecondary }]}>
                             Define tu ruta y comparte los asientos libres de tu coche.
                         </Text>
                     </TouchableOpacity>
@@ -74,26 +74,24 @@ export default function DashboardConductor({ route, navigation }) {
 
                         {/* Gestionar Solicitudes */}
                         <TouchableOpacity
-                            style={styles.smallCard}
-                            // 👇 EVENTO AÑADIDO: Redirige a las solicitudes pendientes
+                            style={[styles.smallCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder }]}
                             onPress={() => navigation.navigate('ManageRequests')}
                         >
-                            <View style={styles.smallIconCircle}>
-                                <Ionicons name="person-add-outline" size={28} color="#2563EB" />
+                            <View style={[styles.smallIconCircle, { backgroundColor: theme.iconCircleBg }]}>
+                                <Ionicons name="person-add-outline" size={28} color={theme.accent} />
                             </View>
-                            <Text style={styles.smallCardTitle}>Gestionar Solicitudes</Text>
+                            <Text style={[styles.smallCardTitle, { color: theme.text }]}>Gestionar Solicitudes</Text>
                         </TouchableOpacity>
 
                         {/* Métricas Personales */}
                         <TouchableOpacity
-                            style={styles.smallCard}
-                            // 👇 EVENTO AÑADIDO: Redirige a las estadísticas/métricas
+                            style={[styles.smallCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder }]}
                             onPress={() => navigation.navigate('DriverMetrics')}
                         >
-                            <View style={styles.smallIconCircle}>
-                                <Ionicons name="bar-chart-outline" size={28} color="#2563EB" />
+                            <View style={[styles.smallIconCircle, { backgroundColor: theme.iconCircleBg }]}>
+                                <Ionicons name="bar-chart-outline" size={28} color={theme.accent} />
                             </View>
-                            <Text style={styles.smallCardTitle}>Métricas Personales</Text>
+                            <Text style={[styles.smallCardTitle, { color: theme.text }]}>Métricas Personales</Text>
                         </TouchableOpacity>
 
                     </View>
