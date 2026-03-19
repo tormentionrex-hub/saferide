@@ -20,6 +20,7 @@ import Metrics from './src/screens/Metrics';
 import PublishRide from './src/screens/PublishRide';
 import ManageRequests from './src/screens/ManageRequests';
 import DriverMetrics from './src/screens/DriverMetrics';
+import ListOfDrivers from './src/screens/ListOfDrivers';
 
 const Stack = createNativeStackNavigator();
 
@@ -134,6 +135,9 @@ export default function App() {
         <Stack.Screen name="PublishRide" component={PublishRide} />
         <Stack.Screen name="ManageRequests" component={ManageRequests} />
         <Stack.Screen name="DriverMetrics" component={DriverMetrics} />
+
+        {/* Pantalla para resultados de búsqueda de viajes (Pasajeros) */}
+        <Stack.Screen name="ListOfDrivers" component={ListOfDrivers} />
 
       </Stack.Navigator>
     </NavigationContainer>

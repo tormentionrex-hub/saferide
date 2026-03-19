@@ -2,71 +2,96 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRoute } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
+// Mapeo de cada item del nav con sus screens relacionados y los iconos que usa
+const NAV_ITEMS = [
+    {
+        label: 'Inicio',
+        activeIcon: 'home',
+        inactiveIcon: 'home-outline',
+        screens: ['DashboardPasajero'],
+        target: 'DashboardPasajero',
+    },
+    {
+        label: 'Buscar viaje',
+        activeIcon: 'compass',
+        inactiveIcon: 'compass-outline',
+        // Se ilumina tanto en SearchRide como en ListOfDrivers (flujo de búsqueda)
+        screens: ['SearchRide', 'ListOfDrivers'],
+        target: 'SearchRide',
+    },
+    {
+        label: 'Historial',
+        activeIcon: 'time',
+        inactiveIcon: 'time-outline',
+        screens: ['History'],
+        target: 'History',
+    },
+    {
+        label: 'Métricas',
+        activeIcon: 'bar-chart',
+        inactiveIcon: 'bar-chart-outline',
+        screens: ['Metrics'],
+        target: 'Metrics',
+    },
+    {
+        label: 'Config',
+        activeIcon: 'settings',
+        inactiveIcon: 'settings-outline',
+        screens: ['Settings'],
+        target: 'Settings',
+    },
+];
+
 const BottomNavigationBar = ({ navigation }) => {
-    // Definimos el color especificado por el usuario (ajustado a #045084 basado en el diseño existente)
     const primaryColor = '#045084';
-    const glassBackground = 'rgba(255,255,255,0.4)';
-    const insets = useSafeAreaInsets(); // Obtiene la altura real de los botones/gestos del celular
+    const activeColor = '#045084';    // Color del tab activo
+    const inactiveColor = '#A0ADB8';  // Color de los tabs inactivos (gris apagado)
+    const insets = useSafeAreaInsets();
+
+    // Obtenemos el nombre del screen actual para saber cuál tab resaltar
+    const route = useRoute();
+    const currentRouteName = route.name;
 
     return (
-        <View style={[styles.container, { paddingBottom: insets.bottom > 0 ? insets.bottom : 20, height: 70 + (insets.bottom > 0 ? insets.bottom : 20) }]}>
-            <TouchableOpacity 
-                style={styles.navItem} 
-                activeOpacity={0.6}
-                onPress={() => {
-                    navigation.navigate('DashboardPasajero');
-                }}
-            >
-                <Ionicons name="home" size={24} color={primaryColor} />
-                <Text style={[styles.navText, { color: primaryColor }]}>Inicio</Text>
-            </TouchableOpacity>
+        <View style={[
+            styles.container,
+            { paddingBottom: insets.bottom > 0 ? insets.bottom : 14, height: 70 + (insets.bottom > 0 ? insets.bottom : 14) }
+        ]}>
+            {NAV_ITEMS.map((item) => {
+                // Determinamos si este tab está activo comparando el screen actual con los screens del item
+                const isActive = item.screens.includes(currentRouteName);
+                const iconName = isActive ? item.activeIcon : item.inactiveIcon;
+                const color = isActive ? activeColor : inactiveColor;
 
-            <TouchableOpacity 
-                style={styles.navItem} 
-                activeOpacity={0.6}
-                onPress={() => {
-                    navigation.navigate('SearchRide');
-                }}
-            >
-                <Ionicons name="compass-outline" size={24} color={primaryColor} />
-                <Text style={[styles.navText, { color: primaryColor }]}>Buscar viaje</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-                style={styles.navItem} 
-                activeOpacity={0.6}
-                onPress={() => {
-                    navigation.navigate('History');
-                }}
-            >
-                <Ionicons name="time-outline" size={24} color={primaryColor} />
-                <Text style={[styles.navText, { color: primaryColor }]}>Historial</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-                style={styles.navItem} 
-                activeOpacity={0.6}
-                onPress={() => {
-                    navigation.navigate('Metrics');
-                }}
-            >
-                <Ionicons name="bar-chart-outline" size={24} color={primaryColor} />
-                <Text style={[styles.navText, { color: primaryColor }]}>Métricas</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-                style={styles.navItem} 
-                activeOpacity={0.6}
-                onPress={() => {
-                    navigation.navigate('Settings');
-                }}
-            >
-                <Ionicons name="settings-outline" size={24} color={primaryColor} />
-                <Text style={[styles.navText, { color: primaryColor }]}>Config</Text>
-            </TouchableOpacity>
+                return (
+                    <TouchableOpacity
+                        key={item.label}
+                        style={styles.navItem}
+                        activeOpacity={0.6}
+                        onPress={() => navigation.navigate(item.target)}
+                    >
+                        {/* Ícono: lleno cuando activo, outline cuando inactivo */}
+                        <Ionicons
+                            name={iconName}
+                            size={isActive ? 26 : 24} // Ligeramente más grande cuando activo
+                            color={color}
+                        />
+                        <Text style={[
+                            styles.navText,
+                            { color },
+                            isActive && styles.navTextActive // Negrita si está activo
+                        ]}>
+                            {item.label}
+                        </Text>
+                        {/* Punto indicador debajo del tab activo */}
+                        {isActive && <View style={styles.activeDot} />}
+                    </TouchableOpacity>
+                );
+            })}
         </View>
     );
 };
@@ -74,7 +99,7 @@ const BottomNavigationBar = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(255,255,255,0.95)',
+        backgroundColor: 'rgba(255,255,255,0.97)',
         width: '100%',
         justifyContent: 'space-around',
         alignItems: 'center',
@@ -82,24 +107,39 @@ const styles = StyleSheet.create({
         bottom: 0,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        // Glassmorphism effect (blur is usually handled by other libs in RN, but we follow requested color)
+        borderTopWidth: 1,
+        borderTopColor: '#F0F0F0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -3 },
+        shadowOpacity: 0.07,
+        shadowRadius: 6,
+        elevation: 10,
     },
     navItem: {
         alignItems: 'center',
         justifyContent: 'center',
         flex: 1,
+        paddingTop: 10,
+        position: 'relative',
     },
     navText: {
         fontSize: 10,
-        marginTop: 4,
-        fontFamily: 'Poppins-Regular',
-        textAlign: 'center', // Asegura el centrado del texto
-        width: '100%', // Da espacio horizontal completo dentro del ítem
+        marginTop: 3,
+        textAlign: 'center',
+        width: '100%',
     },
-    iconWithOverlay: {
-        alignItems: 'center',
-        justifyContent: 'center',
-    }
+    navTextActive: {
+        fontWeight: 'bold', // Texto en negrita cuando está activo
+    },
+    // Pequeño punto azul debajo del tab activo como indicador adicional
+    activeDot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: '#045084',
+        marginTop: 3,
+    },
 });
 
 export default BottomNavigationBar;
+
