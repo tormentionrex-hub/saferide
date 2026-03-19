@@ -1,106 +1,90 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width } = Dimensions.get('window');
-
-/**
- * Componente BottomNavigationBarAlt
- * @param {Object} navigation - Propiedad proporcionada por React Navigation para cambiar de pantalla.
- * @param {String} activeTab - Nombre de la pestaña actual para resaltar el ícono y texto.
- */
 const BottomNavigationBarAlt = ({ navigation, activeTab = 'Inicio' }) => {
-    // Hook para manejar el espacio seguro en dispositivos con "notch" (como iPhone o Android modernos)
     const insets = useSafeAreaInsets(); 
     
-    // Configuración de colores (Basados en tu imagen)
-    const primaryColor = '#4B68FF';  // Color azul cuando el botón está seleccionado
-    const inactiveColor = '#8E8E93'; // Color gris cuando el botón no está seleccionado
+    // Configuración de colores
+    const primaryColor = '#4B68FF';  
+    const inactiveColor = '#8E8E93'; 
 
-    // Función interna para determinar el color dinámicamente
     const getColor = (tabName) => activeTab === tabName ? primaryColor : inactiveColor;
 
     return (
         <View style={[
             styles.container, 
             { 
-                // Ajusta la altura dinámicamente según el área segura del celular
                 paddingBottom: insets.bottom > 0 ? insets.bottom : 20, 
                 height: 70 + (insets.bottom > 0 ? insets.bottom : 20) 
             }
         ]}>
             
-            {/* --- BOTÓN: INICIO --- */}
+            {/* 1. BOTÓN: INICIO (DashboardDriver) */}
             <TouchableOpacity 
                 style={styles.navItem} 
                 activeOpacity={0.6}
-                onPress={() => {
-                    // 👇 AQUÍ CAMBIAS: Pon el nombre de tu pantalla de Inicio
-                    // navigation.navigate('NombreDeTuPantallaInicio');
-                }}
+                onPress={() => navigation.navigate('DashboardDriver')}
             >
                 <Ionicons 
-                    // Cambia el icono a "relleno" si está activo, o "contorno" si no
                     name={activeTab === 'Inicio' ? "home" : "home-outline"} 
-                    size={24} 
-                    color={getColor('Inicio')} 
+                    size={24} color={getColor('Inicio')} 
                 />
                 <Text style={[styles.navText, { color: getColor('Inicio') }]}>Inicio</Text>
             </TouchableOpacity>
 
-
-            {/* --- BOTÓN: VIAJES --- */}
+            {/* 2. BOTÓN: VIAJES */}
             <TouchableOpacity 
                 style={styles.navItem} 
                 activeOpacity={0.6}
-                onPress={() => {
-                    // 👇 AQUÍ CAMBIAS: Pon el nombre de tu pantalla de Viajes
-                    // navigation.navigate('NombreDeTuPantallaViajes');
-                }}
+                onPress={() => navigation.navigate('PublishRide')}
             >
                 <Ionicons 
                     name={activeTab === 'Viajes' ? "map" : "map-outline"} 
-                    size={24} 
-                    color={getColor('Viajes')} 
+                    size={24} color={getColor('Viajes')} 
                 />
                 <Text style={[styles.navText, { color: getColor('Viajes') }]}>Viajes</Text>
             </TouchableOpacity>
 
-
-            {/* --- BOTÓN: MENSAJES --- */}
+            {/* 3. BOTÓN: MENSAJES */}
             <TouchableOpacity 
                 style={styles.navItem} 
                 activeOpacity={0.6}
-                onPress={() => {
-                    // 👇 AQUÍ CAMBIAS: Pon el nombre de tu pantalla de Chat/Mensajes
-                    // navigation.navigate('NombreDeTuPantallaMensajes');
-                }}
+                onPress={() => navigation.navigate('ManageRequests')}
             >
                 <Ionicons 
                     name={activeTab === 'Mensajes' ? "chatbox" : "chatbox-outline"} 
-                    size={24} 
-                    color={getColor('Mensajes')} 
+                    size={24} color={getColor('Mensajes')} 
                 />
                 <Text style={[styles.navText, { color: getColor('Mensajes') }]}>Mensajes</Text>
             </TouchableOpacity>
 
-
-            {/* --- BOTÓN: PERFIL --- */}
+            {/* 4. BOTÓN: PERFIL */}
             <TouchableOpacity 
                 style={styles.navItem} 
                 activeOpacity={0.6}
-                onPress={() => {
-                    // 👇 AQUÍ CAMBIAS: Pon el nombre de tu pantalla de Perfil
-                    // navigation.navigate('NombreDeTuPantallaPerfil');
-                }}
+                onPress={() => navigation.navigate('DriverMetrics')}
             >
                 <Ionicons 
                     name={activeTab === 'Perfil' ? "person" : "person-outline"} 
-                    size={24} 
-                    color={getColor('Perfil')} 
+                    size={24} color={getColor('Perfil')} 
                 />
                 <Text style={[styles.navText, { color: getColor('Perfil') }]}>Perfil</Text>
+            </TouchableOpacity>
+
+            {/* 5. BOTÓN: CONFIGURACIONES */}
+            <TouchableOpacity 
+                style={styles.navItem} 
+                activeOpacity={0.6}
+                onPress={() => navigation.navigate('Settings')}
+            >
+                <Ionicons 
+                    name={activeTab === 'Configuraciones' ? "settings" : "settings-outline"} 
+                    size={24} color={getColor('Configuraciones')} 
+                />
+                <Text style={[styles.navText, { color: getColor('Configuraciones') }]}>Ajustes</Text>
             </TouchableOpacity>
 
         </View>
@@ -110,22 +94,19 @@ const BottomNavigationBarAlt = ({ navigation, activeTab = 'Inicio' }) => {
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        backgroundColor: '#FFFFFF', // Fondo blanco sólido para que se vea limpio
+        backgroundColor: '#FFFFFF',
         width: '100%',
         justifyContent: 'space-around',
         alignItems: 'center',
         position: 'absolute',
         bottom: 0,
-        // Bordes redondeados superiores
         borderTopLeftRadius: 25,
         borderTopRightRadius: 25,
-        // Sombra sutil para dar elevación
         shadowColor: "#000",
         shadowOffset: { width: 0, height: -2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 5,
-        // Línea divisoria muy suave en la parte superior
         borderTopWidth: 1,
         borderTopColor: '#F0F0F0',
     },
@@ -136,9 +117,9 @@ const styles = StyleSheet.create({
         paddingTop: 10,
     },
     navText: {
-        fontSize: 11,
+        fontSize: 10, 
         marginTop: 4,
-        fontFamily: 'Poppins-Regular', // Asegúrate de tener cargada esta fuente o cámbiala por la de tu sistema
+        fontFamily: 'Poppins-Regular',
         fontWeight: '500',
     }
 });

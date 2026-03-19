@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react'; //NO ESTA CONECTADO CON PARA PODER SELECIONARLO
+import React, { useState, useEffect } from 'react';
 import {
     StyleSheet,
     Text,
@@ -8,65 +8,101 @@ import {
     SafeAreaView,
     ScrollView,
     Animated,
-    Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import BottomNavigationDriver from '../components/BottomNavigationDriver';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function DashboardConductor({ route }) {
-    const userName = route?.params?.userName?.split(' ')[0] || route?.params?.name?.split(' ')[0] || 'Conductor';
+export default function DashboardConductor({ route, navigation }) {
+    const [userName, setUserName] = useState('Conductor');
+
+    useEffect(() => {
+        const fetchUserName = async () => {
+            // Intentamos obtener el nombre de los parámetros de la ruta primero
+            const nameFromParams = route?.params?.userName || route?.params?.name;
+            if (nameFromParams) {
+                setUserName(nameFromParams.split(' ')[0]);
+                return;
+            }
+
+            // Si no está en los parámetros, lo buscamos en AsyncStorage (sesión persistida)
+            const storedName = await AsyncStorage.getItem('userName');
+            if (storedName) {
+                setUserName(storedName.split(' ')[0]);
+            }
+        };
+        fetchUserName();
+    }, [route?.params]);
 
     return (
         <Animated.View style={{ flex: 1 }}>
-        <SafeAreaView style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                
-                {/* Header: Saludo, Notificaciones y Perfil */}
-                <View style={styles.header}>
-                    <Text style={styles.welcomeText}>Hola, {userName}</Text>
-                    <View style={styles.headerIcons}>
-                        <TouchableOpacity style={styles.iconButton}>
-                            <Ionicons name="notifications-outline" size={26} color="#111827" />
-                            <View style={styles.notificationDot} />
+            <SafeAreaView style={styles.container}>
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <Text style={styles.welcomeText}>Hola, {userName}</Text>
+                        <View style={styles.headerIcons}>
+                            <TouchableOpacity style={styles.iconButton}>
+                                <Ionicons name="notifications-outline" size={26} color="#111827" />
+                                <View style={styles.notificationDot} />
+                            </TouchableOpacity>
+                            <Image
+                                source={{ uri: 'https://i.pravatar.cc/150?u=carlos' }}
+                                style={styles.profileImage}
+                            />
+                        </View>
+                    </View>
+
+                    {/* Card Principal: Publicar Viaje */}
+                    <TouchableOpacity
+                        style={styles.mainCard}
+                        // 👇 EVENTO AÑADIDO: Redirige a la pantalla de crear viaje
+                        onPress={() => navigation.navigate('PublishRide')}
+                    >
+                        <View style={styles.mainIconCircle}>
+                            <Ionicons name="options-outline" size={32} color="#2563EB" />
+                        </View>
+                        <Text style={styles.mainCardTitle}>Publicar Viaje</Text>
+                        <Text style={styles.mainCardDescription}>
+                            Define tu ruta y comparte los asientos libres de tu coche.
+                        </Text>
+                    </TouchableOpacity>
+
+                    {/* Fila de Cards Secundarias */}
+                    <View style={styles.row}>
+
+                        {/* Gestionar Solicitudes */}
+                        <TouchableOpacity
+                            style={styles.smallCard}
+                            // 👇 EVENTO AÑADIDO: Redirige a las solicitudes pendientes
+                            onPress={() => navigation.navigate('ManageRequests')}
+                        >
+                            <View style={styles.smallIconCircle}>
+                                <Ionicons name="person-add-outline" size={28} color="#2563EB" />
+                            </View>
+                            <Text style={styles.smallCardTitle}>Gestionar Solicitudes</Text>
                         </TouchableOpacity>
-                        <Image 
-                            source={{ uri: 'https://i.pravatar.cc/150?u=carlos' }} 
-                            style={styles.profileImage} 
-                        />
+
+                        {/* Métricas Personales */}
+                        <TouchableOpacity
+                            style={styles.smallCard}
+                            // 👇 EVENTO AÑADIDO: Redirige a las estadísticas/métricas
+                            onPress={() => navigation.navigate('DriverMetrics')}
+                        >
+                            <View style={styles.smallIconCircle}>
+                                <Ionicons name="bar-chart-outline" size={28} color="#2563EB" />
+                            </View>
+                            <Text style={styles.smallCardTitle}>Métricas Personales</Text>
+                        </TouchableOpacity>
+
                     </View>
-                </View>
 
-                {/* Card Principal: Publicar Viaje */}
-                <TouchableOpacity style={styles.mainCard}>
-                    <View style={styles.mainIconCircle}>
-                        <Ionicons name="options-outline" size={32} color="#2563EB" />
-                    </View>
-                    <Text style={styles.mainCardTitle}>Publicar Viaje</Text>
-                    <Text style={styles.mainCardDescription}>
-                        Define tu ruta y comparte los asientos libres de tu coche.
-                    </Text>
-                </TouchableOpacity>
+                </ScrollView>
 
-                {/* Fila de Cards Secundarias */}
-                <View style={styles.row}>
-                    {/* Gestionar Solicitudes */}
-                    <TouchableOpacity style={styles.smallCard}>
-                        <View style={styles.smallIconCircle}>
-                            <Ionicons name="person-add-outline" size={28} color="#2563EB" />
-                        </View>
-                        <Text style={styles.smallCardTitle}>Gestionar Solicitudes</Text>
-                    </TouchableOpacity>
-
-                    {/* Métricas Personales */}
-                    <TouchableOpacity style={styles.smallCard}>
-                        <View style={styles.smallIconCircle}>
-                            <Ionicons name="bar-chart-outline" size={28} color="#2563EB" />
-                        </View>
-                        <Text style={styles.smallCardTitle}>Métricas Personales</Text>
-                    </TouchableOpacity>
-                </View>
-
-            </ScrollView>
-        </SafeAreaView>
+                {/* Barra de navegación inferior */}
+                <BottomNavigationDriver navigation={navigation} activeTab="Inicio" />
+            </SafeAreaView>
         </Animated.View>
     );
 }
