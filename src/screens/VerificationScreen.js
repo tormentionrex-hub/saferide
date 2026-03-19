@@ -90,9 +90,7 @@ export default function VerificationScreen({ route, navigation }) {
         }
 
         // En lugar de registrar aquí, pasamos los datos a la pantalla de selección de rol
-        setLoading(false);
         // Usamos .replace para limpiar el stack y asegurar que los parámetros lleguen frescos
-        setLoading(false);
         navigation.replace('RoleSelection', {
             email: email,
             name: name,
