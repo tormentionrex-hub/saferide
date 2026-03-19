@@ -2,24 +2,25 @@ import * as React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ApiHealthCheckScreen from './src/screens/ApiHealthCheckScreen';
-import RegisterScreen from './src/screens/RegisterScreen';
-import VerificationScreen from './src/screens/VerificationScreen';
-import CreatePasswordScreen from './src/screens/CreatePasswordScreen';
-import AccountVerificationSucess from './src/screens/AccountVerificationSucess';
-import RoleSelectionScreen from './src/screens/RoleSelectionScreen';
-import SignInScreen from './src/screens/SignInScreen';
+import RegisterScreen from './src/screens/register/RegisterScreen';
+import VerificationScreen from './src/screens/register/VerificationScreen';
+import CreatePasswordScreen from './src/screens/register/CreatePasswordScreen';
+import AccountVerificationSucess from './src/screens/register/AccountVerificationSucess';
+import RoleSelectionScreen from './src/screens/register/RoleSelectionScreen';
+import SignInScreen from './src/screens/login/SignInScreen';
 import SplashScreen from './src/screens/SplashScreen';
-import LoginSuccessScreen from './src/screens/LoginSuccessScreen';
+import LoginSuccessScreen from './src/screens/login/LoginSuccessScreen';
 // Importación de los dashboards para la redirección después del login
 import DashboardPasajero from './src/screens/pasajero/DashboardPasajero';
-import DashboardDriver from './src/screens/DashboardDriver';
+import DashboardDriver from './src/screens/conductor/DashboardDriver';
 import SearchRide from './src/screens/pasajero/SearchRide';
 import History from './src/screens/pasajero/History';
 import SettingPasajero from './src/screens/pasajero/SettingPasajero';
 import Metrics from './src/screens/pasajero/Metrics';
-import PublishRide from './src/screens/PublishRide';
-import ManageRequests from './src/screens/ManageRequests';
-import DriverMetrics from './src/screens/DriverMetrics';
+import PublishRide from './src/screens/conductor/PublishRide';
+import ManageRequests from './src/screens/conductor/ManageRequests';
+import DriverMetrics from './src/screens/conductor/DriverMetrics';
+import SettingConductor from './src/screens/conductor/SettingConductor';
 import ListOfDrivers from './src/screens/pasajero/ListOfDrivers';
 
 const Stack = createNativeStackNavigator();
@@ -135,6 +136,7 @@ export default function App() {
         <Stack.Screen name="PublishRide" component={PublishRide} />
         <Stack.Screen name="ManageRequests" component={ManageRequests} />
         <Stack.Screen name="DriverMetrics" component={DriverMetrics} />
+        <Stack.Screen name="SettingConductor" component={SettingConductor} />
 
         {/* Pantalla para resultados de búsqueda de viajes (Pasajeros) */}
         <Stack.Screen name="ListOfDrivers" component={ListOfDrivers} />

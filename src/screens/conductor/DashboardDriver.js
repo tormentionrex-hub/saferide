@@ -10,7 +10,7 @@ import {
     Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import BottomNavigationDriver from '../components/BottomNavigationDriver';
+import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function DashboardConductor({ route, navigation }) {

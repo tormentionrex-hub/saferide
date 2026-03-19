@@ -23,9 +23,9 @@ const MAX_SCALE = (Math.sqrt((width / 2) ** 2 + (height / 2) ** 2) / BUBBLE_RADI
 
 export default function LoginSuccessScreen({ navigation }) {
     const [fontsLoaded] = useFonts({
-        'Poppins-Bold': require('../fonts/Poppins_700Bold.ttf'),
-        'Poppins-SemiBold': require('../fonts/Poppins_600SemiBold.ttf'),
-        'Poppins-Regular': require('../fonts/Poppins_400Regular.ttf'),
+        'Poppins-Bold': require('../../fonts/Poppins_700Bold.ttf'),
+        'Poppins-SemiBold': require('../../fonts/Poppins_600SemiBold.ttf'),
+        'Poppins-Regular': require('../../fonts/Poppins_400Regular.ttf'),
     });
 
     // --- Burbuja principal ---

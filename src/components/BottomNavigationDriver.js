@@ -78,7 +78,7 @@ const BottomNavigationBarAlt = ({ navigation, activeTab = 'Inicio' }) => {
             <TouchableOpacity 
                 style={styles.navItem} 
                 activeOpacity={0.6}
-                onPress={() => navigation.navigate('Settings')}
+                onPress={() => navigation.navigate('SettingConductor')}
             >
                 <Ionicons 
                     name={activeTab === 'Configuraciones' ? "settings" : "settings-outline"} 

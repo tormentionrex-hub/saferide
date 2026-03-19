@@ -11,7 +11,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { authService } from '../services/authService';
+import { authService } from '../../services/authService';
 
 export default function RoleSelectionScreen({ route, navigation }) {
     const { email, name, phone, company, password } = route.params || {};
@@ -24,7 +24,7 @@ export default function RoleSelectionScreen({ route, navigation }) {
 
     const handleConfirm = async () => {
         if (!selectedRole) return;
-        
+
         // Bloqueo de seguridad: Evitar enviar registro si los parámetros se perdieron
         if (!email || !name || !password || !phone || !company) {
             Alert.alert(
@@ -34,14 +34,14 @@ export default function RoleSelectionScreen({ route, navigation }) {
             );
             return;
         }
-        
+
         setLoading(true);
         try {
             // Validación defensiva para evitar el error 'split of undefined'
             const safeEmail = email || '';
             const emailPart = safeEmail.includes('@') ? safeEmail.split('@')[0] : 'user';
             const username = emailPart + Math.floor(Math.random() * 10000);
-            
+
             await authService.register({
                 email: safeEmail,
                 password,
@@ -92,7 +92,7 @@ export default function RoleSelectionScreen({ route, navigation }) {
                         activeOpacity={0.8}
                     >
                         <Image
-                            source={require('../images/UserRol.png')}
+                            source={require('../../images/UserRol.png')}
                             style={styles.iconImage}
                             resizeMode="contain"
                         />
@@ -112,7 +112,7 @@ export default function RoleSelectionScreen({ route, navigation }) {
                         activeOpacity={0.8}
                     >
                         <Image
-                            source={require('../images/VehicleRol.png')}
+                            source={require('../../images/VehicleRol.png')}
                             style={styles.iconImage}
                             resizeMode="contain"
                         />

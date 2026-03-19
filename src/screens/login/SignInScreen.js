@@ -20,10 +20,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_URL } from '../config';
+import { API_URL } from '../../config';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const ICON = require('../images/IconSafeRide.png');
+const ICON = require('../../images/IconSafeRide.png');
 
 export default function SignInScreen({ navigation }) {
     const [email, setEmail] = useState('');
@@ -38,9 +38,9 @@ export default function SignInScreen({ navigation }) {
     const [showSuccess, setShowSuccess] = useState(false);
 
     const [fontsLoaded] = useFonts({
-        'Poppins-Bold': require('../fonts/Poppins_700Bold.ttf'),
-        'Poppins-SemiBold': require('../fonts/Poppins_600SemiBold.ttf'),
-        'Poppins-Regular': require('../fonts/Poppins_400Regular.ttf'),
+        'Poppins-Bold': require('../../fonts/Poppins_700Bold.ttf'),
+        'Poppins-SemiBold': require('../../fonts/Poppins_600SemiBold.ttf'),
+        'Poppins-Regular': require('../../fonts/Poppins_400Regular.ttf'),
     });
 
     // Animation for background color transition
@@ -69,7 +69,7 @@ export default function SignInScreen({ navigation }) {
             ])
         ).start();
     }, []);
-    
+
     useEffect(() => {
         Animated.timing(emailFocusAnim, {
             toValue: emailFocus ? 1 : 0,
@@ -87,7 +87,7 @@ export default function SignInScreen({ navigation }) {
             useNativeDriver: false,
         }).start();
     }, [passwordFocus]);
-    
+
     const emailAnimatedStyle = {
         borderColor: emailFocusAnim.interpolate({
             inputRange: [0, 1],
@@ -151,11 +151,11 @@ export default function SignInScreen({ navigation }) {
                 await AsyncStorage.setItem('userName', userName);
 
                 setShowSuccess(true);
-                
+
                 // Esperamos 2.5 segundos para mostrar la animación de éxito antes de redirigir
                 setTimeout(() => {
                     setShowSuccess(false);
-                    
+
                     // Lógica de redirección basada en el tipo de usuario (rol)
                     // Se usa reset() para limpiar todo el historial de registro del stack.
                     // El stack queda [SignIn, Dashboard], así el botón atrás del Dashboard
@@ -237,7 +237,7 @@ export default function SignInScreen({ navigation }) {
                             {/* Email */}
                             <Text style={styles.label}>Correo corporativo</Text>
                             <Animated.View style={[
-                                styles.inputBox, 
+                                styles.inputBox,
                                 emailError ? styles.inputBoxError : emailAnimatedStyle
                             ]}>
                                 <TextInput
@@ -257,7 +257,7 @@ export default function SignInScreen({ navigation }) {
                             {/* Password */}
                             <Text style={styles.label}>Contraseña</Text>
                             <Animated.View style={[
-                                styles.inputBox, 
+                                styles.inputBox,
                                 passwordError ? styles.inputBoxError : passwordAnimatedStyle
                             ]}>
                                 <TextInput

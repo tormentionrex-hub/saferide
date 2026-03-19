@@ -20,7 +20,7 @@ import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 const { width, height } = Dimensions.get('window');
-const ICON = require('../images/IconSafeRide.png');
+const ICON = require('../../images/IconSafeRide.png');
 
 export default function VerificationScreen({ route, navigation }) {
 
@@ -29,9 +29,9 @@ export default function VerificationScreen({ route, navigation }) {
     const inputs = useRef([]);
 
     const [fontsLoaded] = useFonts({
-        'Poppins-Bold': require('../fonts/Poppins_700Bold.ttf'),
-        'Poppins-SemiBold': require('../fonts/Poppins_600SemiBold.ttf'),
-        'Poppins-Regular': require('../fonts/Poppins_400Regular.ttf'),
+        'Poppins-Bold': require('../../fonts/Poppins_700Bold.ttf'),
+        'Poppins-SemiBold': require('../../fonts/Poppins_600SemiBold.ttf'),
+        'Poppins-Regular': require('../../fonts/Poppins_400Regular.ttf'),
     });
 
     // Animation for color transition
