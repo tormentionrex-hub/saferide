@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import BottomNavigationBar from '../components/BottomNavigationBar';
+import BottomNavigationBar from '../../components/BottomNavigationBar';
 
 // Screen para mostrar la lista de conductores que coinciden con la búsqueda
 const ListOfDrivers = ({ route, navigation }) => {

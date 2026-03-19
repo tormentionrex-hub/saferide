@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import BottomNavigationBar from '../components/BottomNavigationBar';
+import BottomNavigationBar from '../../components/BottomNavigationBar';
 
 // Obtenemos dimensiones de la pantalla para garantizar responsividad
 const { height, width } = Dimensions.get('window');
