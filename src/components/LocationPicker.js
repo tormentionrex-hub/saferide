@@ -6,15 +6,16 @@ import {
     StyleSheet,
     TouchableOpacity,
     SafeAreaView,
-    Platform,
     ActivityIndicator,
-    Dimensions
+    Dimensions,
+    StatusBar,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { Ionicons } from '@expo/vector-icons';
 import { GOOGLE_MAPS_API_KEY } from '../config';
 import { getCurrentLocation, reverseGeocode } from '../services/locationService';
+import { useDriverTheme } from '../context/DriverThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -22,18 +23,18 @@ const { width, height } = Dimensions.get('window');
  * Componente modal para seleccionar una ubicación.
  * Soporta búsqueda por texto, selección en mapa y GPS.
  */
-const LocationPicker = ({ visible, onClose, onSelect, title = "Seleccionar Ubicación" }) => {
-    const [tab, setTab] = useState('search'); // 'search', 'map', 'gps'
+const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubicación' }) => {
+    const { theme } = useDriverTheme();
+    const [tab, setTab] = useState('search');
     const [loading, setLoading] = useState(false);
     const [region, setRegion] = useState({
-        latitude: 9.9281, // Default San José, Costa Rica
+        latitude: 9.9281,
         longitude: -84.0907,
         latitudeDelta: 0.05,
         longitudeDelta: 0.05,
     });
     const [markerCoords, setMarkerCoords] = useState(null);
 
-    // Al abrir el modal, resetear estados
     useEffect(() => {
         if (visible) {
             setTab('search');
@@ -44,15 +45,9 @@ const LocationPicker = ({ visible, onClose, onSelect, title = "Seleccionar Ubica
     const handleConfirmSelection = async (lat, lng, name, address) => {
         setLoading(true);
         try {
-            // Si el nombre o dirección vienen vacíos, hacer geocodificación inversa
             if (!name || !address) {
                 const details = await reverseGeocode(lat, lng);
-                onSelect({
-                    lat,
-                    lng,
-                    name: details.name,
-                    address: details.address,
-                });
+                onSelect({ lat, lng, name: details.name, address: details.address });
             } else {
                 onSelect({ lat, lng, name, address });
             }
@@ -77,48 +72,53 @@ const LocationPicker = ({ visible, onClose, onSelect, title = "Seleccionar Ubica
         }
     };
 
+    const activeColor = theme.accent;
+    const inactiveColor = theme.textSecondary;
+    // Color de placeholder con suficiente contraste en ambos modos
+    const placeholderColor = theme.dark ? '#A0A0C8' : '#AAAAAA';
+
     return (
         <Modal visible={visible} animationType="slide" transparent={false}>
-            <SafeAreaView style={styles.container}>
+            <SafeAreaView style={[styles.container, { backgroundColor: theme.surface }]}>
+                <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
+
                 {/* Header */}
-                <View style={styles.header}>
+                <View style={[styles.header, { borderBottomColor: theme.divider }]}>
                     <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                        <Ionicons name="close" size={28} color="#1A2B4C" />
+                        <Ionicons name="close" size={28} color={theme.text} />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>{title}</Text>
+                    <Text style={[styles.headerTitle, { color: theme.text }]}>{title}</Text>
                     <View style={{ width: 40 }} />
                 </View>
 
                 {/* Tabs */}
-                <View style={styles.tabsContainer}>
-                    <TouchableOpacity
-                        style={[styles.tab, tab === 'search' && styles.activeTab]}
-                        onPress={() => setTab('search')}
-                    >
-                        <Ionicons name="search-outline" size={20} color={tab === 'search' ? '#2D63ED' : '#999'} />
-                        <Text style={[styles.tabText, tab === 'search' && styles.activeTabText]}>Buscar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tab, tab === 'map' && styles.activeTab]}
-                        onPress={() => setTab('map')}
-                    >
-                        <Ionicons name="map-outline" size={20} color={tab === 'map' ? '#2D63ED' : '#999'} />
-                        <Text style={[styles.tabText, tab === 'map' && styles.activeTabText]}>Mapa</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tab, tab === 'gps' && styles.activeTab]}
-                        onPress={() => setTab('gps')}
-                    >
-                        <Ionicons name="navigate-outline" size={20} color={tab === 'gps' ? '#2D63ED' : '#999'} />
-                        <Text style={[styles.tabText, tab === 'gps' && styles.activeTabText]}>GPS</Text>
-                    </TouchableOpacity>
+                <View style={[styles.tabsContainer, { borderBottomColor: theme.divider, backgroundColor: theme.surface }]}>
+                    {[
+                        { key: 'search', icon: 'search-outline', label: 'Buscar' },
+                        { key: 'map',    icon: 'map-outline',    label: 'Mapa'   },
+                        { key: 'gps',    icon: 'navigate-outline', label: 'GPS'  },
+                    ].map(({ key, icon, label }) => (
+                        <TouchableOpacity
+                            key={key}
+                            style={[styles.tab, tab === key && { borderBottomColor: activeColor, borderBottomWidth: 2 }]}
+                            onPress={() => setTab(key)}
+                        >
+                            <Ionicons name={icon} size={20} color={tab === key ? activeColor : inactiveColor} />
+                            <Text style={[styles.tabText, { color: tab === key ? activeColor : inactiveColor },
+                                tab === key && { fontWeight: '600' }]}>
+                                {label}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
                 </View>
 
                 {/* Content */}
-                <View style={styles.content}>
+                <View style={[styles.content, { backgroundColor: theme.bg }]}>
+                    {/* ── BÚSQUEDA ── */}
                     {tab === 'search' && (
                         <GooglePlacesAutocomplete
                             placeholder='¿A donde vas?'
+                            textInputProps={{ placeholderTextColor: placeholderColor }}
                             onPress={(data, details = null) => {
                                 const lat = details.geometry.location.lat;
                                 const lng = details.geometry.location.lng;
@@ -127,17 +127,57 @@ const LocationPicker = ({ visible, onClose, onSelect, title = "Seleccionar Ubica
                             query={{
                                 key: GOOGLE_MAPS_API_KEY,
                                 language: 'es',
-                                components: 'country:cr', // Sesgado a Costa Rica por defecto
+                                components: 'country:cr',
                             }}
                             fetchDetails={true}
                             styles={{
-                                textInput: styles.searchInput,
+                                textInputContainer: {
+                                    backgroundColor: 'transparent',
+                                },
+                                textInput: {
+                                    height: 50,
+                                    backgroundColor: theme.surfaceVariant,
+                                    borderRadius: 12,
+                                    paddingHorizontal: 15,
+                                    borderWidth: 1,
+                                    borderColor: theme.border,
+                                    color: theme.text,
+                                    fontSize: 15,
+                                },
                                 container: { flex: 0, width: '100%' },
-                                listView: { backgroundColor: 'white', position: 'absolute', top: 50, zIndex: 999 }
+                                listView: {
+                                    backgroundColor: theme.surface,
+                                    borderRadius: 12,
+                                    marginTop: 4,
+                                    borderWidth: 1,
+                                    borderColor: theme.border,
+                                    zIndex: 999,
+                                },
+                                row: {
+                                    backgroundColor: theme.surface,
+                                    paddingVertical: 12,
+                                    paddingHorizontal: 15,
+                                },
+                                description: {
+                                    color: theme.text,
+                                    fontSize: 14,
+                                },
+                                poweredContainer: {
+                                    backgroundColor: theme.surface,
+                                    borderTopColor: theme.divider,
+                                },
+                                powered: {
+                                    tintColor: theme.textSecondary,
+                                },
+                                separator: {
+                                    backgroundColor: theme.divider,
+                                    height: 1,
+                                },
                             }}
                         />
                     )}
 
+                    {/* ── MAPA ── */}
                     {tab === 'map' && (
                         <View style={styles.mapContainer}>
                             <MapView
@@ -145,16 +185,15 @@ const LocationPicker = ({ visible, onClose, onSelect, title = "Seleccionar Ubica
                                 initialRegion={region}
                                 onRegionChangeComplete={(r) => setRegion(r)}
                                 onPress={(e) => setMarkerCoords(e.nativeEvent.coordinate)}
+                                userInterfaceStyle={theme.dark ? 'dark' : 'light'}
                             >
-                                {markerCoords && (
-                                    <Marker coordinate={markerCoords} draggable />
-                                )}
+                                {markerCoords && <Marker coordinate={markerCoords} draggable />}
                             </MapView>
                             <View style={styles.mapOverlay}>
                                 <Text style={styles.mapHelper}>Toca el mapa para colocar el pin</Text>
                                 {markerCoords && (
                                     <TouchableOpacity
-                                        style={styles.confirmMapBtn}
+                                        style={[styles.confirmMapBtn, { backgroundColor: theme.accent }]}
                                         onPress={() => handleConfirmSelection(markerCoords.latitude, markerCoords.longitude)}
                                     >
                                         <Text style={styles.confirmMapBtnText}>Confirmar este punto</Text>
@@ -164,13 +203,24 @@ const LocationPicker = ({ visible, onClose, onSelect, title = "Seleccionar Ubica
                         </View>
                     )}
 
+                    {/* ── GPS ── */}
                     {tab === 'gps' && (
                         <View style={styles.gpsContainer}>
-                            <Ionicons name="location" size={80} color="#2D63ED" />
-                            <Text style={styles.gpsTitle}>Ubicación Actual</Text>
-                            <Text style={styles.gpsDesc}>Usa tu ubicación actual detectada por el sensor GPS.</Text>
-                            <TouchableOpacity style={styles.gpsBtn} onPress={handleGpsDetect}>
-                                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.gpsBtnText}>Detectar Ubicación</Text>}
+                            <View style={[styles.gpsIconCircle, { backgroundColor: theme.surfaceVariant }]}>
+                                <Ionicons name="location" size={50} color={theme.accent} />
+                            </View>
+                            <Text style={[styles.gpsTitle, { color: theme.text }]}>Ubicación Actual</Text>
+                            <Text style={[styles.gpsDesc, { color: theme.textSecondary }]}>
+                                Usa tu ubicación actual detectada por el sensor GPS.
+                            </Text>
+                            <TouchableOpacity
+                                style={[styles.gpsBtn, { backgroundColor: theme.accent }]}
+                                onPress={handleGpsDetect}
+                            >
+                                {loading
+                                    ? <ActivityIndicator color="#fff" />
+                                    : <Text style={styles.gpsBtnText}>Detectar Ubicación</Text>
+                                }
                             </TouchableOpacity>
                         </View>
                     )}
@@ -183,7 +233,6 @@ const LocationPicker = ({ visible, onClose, onSelect, title = "Seleccionar Ubica
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFF',
     },
     header: {
         flexDirection: 'row',
@@ -191,23 +240,21 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         height: 60,
         borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
     },
     closeBtn: {
         padding: 5,
+        width: 40,
     },
     headerTitle: {
         flex: 1,
         textAlign: 'center',
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#1A2B4C',
     },
     tabsContainer: {
         flexDirection: 'row',
         height: 50,
         borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
     },
     tab: {
         flex: 1,
@@ -216,36 +263,17 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: 6,
     },
-    activeTab: {
-        borderBottomWidth: 2,
-        borderBottomColor: '#2D63ED',
-    },
     tabText: {
         fontSize: 14,
-        color: '#999',
-    },
-    activeTabText: {
-        color: '#2D63ED',
-        fontWeight: '600',
     },
     content: {
         flex: 1,
         padding: 15,
     },
-    searchInput: {
-        height: 50,
-        backgroundColor: '#F5F7FA',
-        borderRadius: 10,
-        paddingHorizontal: 15,
-        borderWidth: 1,
-        borderColor: '#EFEFEF',
-    },
     mapContainer: {
         flex: 1,
         borderRadius: 15,
         overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: '#EFEFEF',
     },
     map: {
         width: '100%',
@@ -259,24 +287,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     mapHelper: {
-        backgroundColor: 'rgba(26, 43, 76, 0.8)',
+        backgroundColor: 'rgba(10, 10, 24, 0.75)',
         color: 'white',
         paddingHorizontal: 15,
         paddingVertical: 8,
         borderRadius: 20,
         fontSize: 12,
         marginBottom: 10,
+        overflow: 'hidden',
     },
     confirmMapBtn: {
-        backgroundColor: '#2D63ED',
         width: '100%',
         paddingVertical: 14,
-        borderRadius: 10,
+        borderRadius: 12,
         alignItems: 'center',
-        shadowColor: '#2D63ED',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
         elevation: 5,
     },
     confirmMapBtnText: {
@@ -290,21 +314,27 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingHorizontal: 40,
     },
+    gpsIconCircle: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
     gpsTitle: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: '#1A2B4C',
-        marginTop: 20,
+        marginTop: 12,
     },
     gpsDesc: {
         textAlign: 'center',
-        color: '#666',
         marginTop: 10,
         marginBottom: 30,
-        lineHeight: 20,
+        lineHeight: 22,
+        fontSize: 15,
     },
     gpsBtn: {
-        backgroundColor: '#2D63ED',
         width: '100%',
         paddingVertical: 16,
         borderRadius: 12,
@@ -314,7 +344,7 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: 'bold',
         fontSize: 18,
-    }
+    },
 });
 
 export default LocationPicker;

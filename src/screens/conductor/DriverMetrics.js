@@ -124,12 +124,8 @@ const DriverMetrics = ({ navigation }) => {
     };
 
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
-            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
-
-            <Text style={[styles.outerTitle, { color: theme.textSecondary }]}>
-                Métricas del Conductor
-            </Text>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.surface }]}>
+            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
 
             <View style={[styles.mainCard, { backgroundColor: theme.surface }]}>
                 <View style={[styles.header, { borderBottomColor: theme.divider }]}>
@@ -199,14 +195,8 @@ const DriverMetrics = ({ navigation }) => {
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1 },
-    outerTitle: {
-        fontSize: 22, fontWeight: 'bold',
-        paddingHorizontal: 25, marginTop: 8, marginBottom: 10
-    },
     mainCard: {
-        flex: 1, borderTopLeftRadius: 30,
-        borderTopRightRadius: 30, marginHorizontal: 15, elevation: 5,
-        shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10
+        flex: 1,
     },
     header: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',

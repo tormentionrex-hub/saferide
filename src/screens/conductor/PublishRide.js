@@ -12,27 +12,31 @@ import {
     ScrollView
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 import LocationPicker from '../../components/LocationPicker';
 import api from '../../services/api';
 import { getRouteDetails } from '../../services/locationService';
+import { useDriverTheme } from '../../context/DriverThemeContext';
 
 /**
  * Pantalla para que los conductores publiquen un nuevo viaje con geolocalización avanzada.
  */
 const PublishRide = ({ navigation }) => {
+    const { theme } = useDriverTheme();
+    // Color de placeholder legible en ambos modos
+    const placeholderColor = theme.dark ? '#B0B0D8' : '#AAAAAA';
+
     // --- ESTADOS DE UBICACIÓN ---
-    const [origin, setOrigin] = useState(null); // { lat, lng, name, address }
+    const [origin, setOrigin] = useState(null);
     const [destination, setDestination] = useState(null);
-    const [routeInfo, setRouteInfo] = useState(null); // { distance_km, duration_minutes }
+    const [routeInfo, setRouteInfo] = useState(null);
 
     const [pickerVisible, setPickerVisible] = useState(false);
-    const [pickingFor, setPickingFor] = useState('origin'); // 'origin' o 'destination'
+    const [pickingFor, setPickingFor] = useState('origin');
 
     // --- OTROS ESTADOS DEL FORMULARIO ---
-    const [asientos, setAsientos] = useState('1');
+    const [asientos, setAsientos] = useState(1);
     const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
     const [horaSeleccionada, setHoraSeleccionada] = useState(null);
     const [mostrarCalendario, setMostrarCalendario] = useState(false);
@@ -42,7 +46,6 @@ const PublishRide = ({ navigation }) => {
     const [calculatingRoute, setCalculatingRoute] = useState(false);
     const [errors, setErrors] = useState({});
 
-    // Efecto para calcular la ruta automáticamente cuando ambos puntos están definidos
     useEffect(() => {
         const fetchRoute = async () => {
             if (origin && destination) {
@@ -109,7 +112,7 @@ const PublishRide = ({ navigation }) => {
                     coordinates: { lat: destination.lat, lng: destination.lng }
                 },
                 date_time: fullDateTime.toISOString(),
-                available_seats: parseInt(asientos),
+                available_seats: asientos,
                 distance_km: routeInfo?.distance_km || 0,
                 duration_minutes: routeInfo?.duration_minutes || 0,
                 price: calculatePrice()
@@ -131,109 +134,135 @@ const PublishRide = ({ navigation }) => {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="dark-content" />
-            <Text style={styles.backgroundTitle}>Publicar Viaje</Text>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.surface }]}>
+            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
 
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-                <View style={styles.card}>
+            <ScrollView
+                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* ── CARD ITINERARIO ─────────────────────────────────── */}
+                <View style={[styles.card, { backgroundColor: theme.surface }]}>
+
+                    {/* Cabecera */}
                     <View style={styles.cardHeader}>
                         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                            <Ionicons name="chevron-back" size={24} color="#1A2B4C" />
+                            <Ionicons name="chevron-back" size={24} color={theme.text} />
                         </TouchableOpacity>
-                        <Text style={styles.cardTitle}>Itinerario de Viaje</Text>
+                        <Text style={[styles.cardTitle, { color: theme.text }]}>Itinerario de Viaje</Text>
                     </View>
 
-                    <View style={styles.divider} />
+                    <View style={[styles.divider, { backgroundColor: theme.divider }]} />
 
-                    {/* Selector de Origen */}
+                    {/* Origen */}
                     <TouchableOpacity
-                        style={[styles.locationBtn, errors.origen && styles.inputError]}
+                        style={[styles.locationBtn, { backgroundColor: theme.surfaceVariant, borderColor: errors.origen ? theme.danger : theme.border }]}
                         onPress={() => handleOpenPicker('origin')}
                     >
-                        <Ionicons name="radio-button-off" size={20} color={origin ? "#2D63ED" : "#999"} />
+                        <Ionicons name="radio-button-off" size={20} color={origin ? theme.accent : placeholderColor} />
                         <View style={styles.locationBtnTextContainer}>
-                            <Text style={styles.locationLabel}>Punto de origen</Text>
-                            <Text style={[styles.locationValue, !origin && { color: '#999' }]} numberOfLines={1}>
-                                {origin ? origin.name : "Selecciona donde empiezas"}
+                            <Text style={[styles.locationLabel, { color: placeholderColor }]}>Punto de origen</Text>
+                            <Text style={[styles.locationValue, { color: origin ? theme.text : placeholderColor }]} numberOfLines={1}>
+                                {origin ? origin.name : 'Selecciona donde empiezas'}
                             </Text>
                         </View>
                     </TouchableOpacity>
 
-                    {/* Selector de Destino */}
+                    {/* Destino */}
                     <TouchableOpacity
-                        style={[styles.locationBtn, errors.destino && styles.inputError]}
+                        style={[styles.locationBtn, { backgroundColor: theme.surfaceVariant, borderColor: errors.destino ? theme.danger : theme.border }]}
                         onPress={() => handleOpenPicker('destination')}
                     >
-                        <Ionicons name="location-outline" size={20} color={destination ? "#2D63ED" : "#999"} />
+                        <Ionicons name="location-outline" size={20} color={destination ? theme.accent : placeholderColor} />
                         <View style={styles.locationBtnTextContainer}>
-                            <Text style={styles.locationLabel}>Punto de destino</Text>
-                            <Text style={[styles.locationValue, !destination && { color: '#999' }]} numberOfLines={1}>
-                                {destination ? destination.name : "Selecciona a donde vas"}
+                            <Text style={[styles.locationLabel, { color: placeholderColor }]}>Punto de destino</Text>
+                            <Text style={[styles.locationValue, { color: destination ? theme.text : placeholderColor }]} numberOfLines={1}>
+                                {destination ? destination.name : 'Selecciona a donde vas'}
                             </Text>
                         </View>
                     </TouchableOpacity>
 
-                    <View style={styles.verticalDivider} />
+                    <View style={[styles.verticalDivider, { backgroundColor: theme.divider }]} />
 
                     {/* Fecha y Hora */}
                     <TouchableOpacity
-                        style={[styles.locationBtn, errors.fechaHora && styles.inputError]}
+                        style={[styles.locationBtn, { backgroundColor: theme.surfaceVariant, borderColor: errors.fechaHora ? theme.danger : theme.border }]}
                         onPress={() => setMostrarCalendario(true)}
                     >
-                        <Ionicons name="calendar-outline" size={20} color="#999" />
+                        <Ionicons name="calendar-outline" size={20} color={placeholderColor} />
                         <View style={styles.locationBtnTextContainer}>
-                            <Text style={styles.locationLabel}>¿Cuándo sales?</Text>
-                            <Text style={[styles.locationValue, !fechaSeleccionada && { color: '#999' }]}>
+                            <Text style={[styles.locationLabel, { color: placeholderColor }]}>¿Cuándo sales?</Text>
+                            <Text style={[styles.locationValue, { color: fechaSeleccionada ? theme.text : placeholderColor }]}>
                                 {fechaSeleccionada
                                     ? `${fechaSeleccionada.toLocaleDateString()} ${horaSeleccionada ? '- ' + horaSeleccionada.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}`
-                                    : "Seleccionar fecha y hora"}
+                                    : 'Seleccionar fecha y hora'}
                             </Text>
                         </View>
                     </TouchableOpacity>
 
-                    {/* Asientos */}
-                    <View style={styles.pickerWrapper}>
-                        <Ionicons name="people-outline" size={20} color="#999" />
-                        <Picker
-                            selectedValue={asientos}
-                            onValueChange={(v) => setAsientos(v)}
-                            style={styles.picker}
-                        >
-                            {[1, 2, 3, 4, 5, 6].map(n => (
-                                <Picker.Item key={n} label={`${n} Asientos disponibles`} value={n.toString()} />
-                            ))}
-                        </Picker>
+                    {/* Asientos — selector custom */}
+                    <View style={[styles.seatsWrapper, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }]}>
+                        <View style={styles.seatsLabelRow}>
+                            <Ionicons name="people-outline" size={20} color={placeholderColor} />
+                            <Text style={[styles.seatsLabel, { color: placeholderColor }]}>Asientos disponibles</Text>
+                        </View>
+                        <View style={styles.seatsControls}>
+                            <TouchableOpacity
+                                style={[styles.seatsBtn, { backgroundColor: theme.surface, borderColor: theme.border },
+                                    asientos <= 1 && { opacity: 0.35 }]}
+                                onPress={() => setAsientos(v => Math.max(1, v - 1))}
+                                disabled={asientos <= 1}
+                            >
+                                <Ionicons name="remove" size={20} color={theme.accent} />
+                            </TouchableOpacity>
+
+                            <View style={[styles.seatsValueBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                                <Text style={[styles.seatsValue, { color: theme.text }]}>{asientos}</Text>
+                            </View>
+
+                            <TouchableOpacity
+                                style={[styles.seatsBtn, { backgroundColor: theme.surface, borderColor: theme.border },
+                                    asientos >= 6 && { opacity: 0.35 }]}
+                                onPress={() => setAsientos(v => Math.min(6, v + 1))}
+                                disabled={asientos >= 6}
+                            >
+                                <Ionicons name="add" size={20} color={theme.accent} />
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
-                    {/* Tarjeta de Resumen (Solo si hay ruta) */}
+                    {/* Resumen de ruta */}
                     {calculatingRoute ? (
-                        <ActivityIndicator color="#2D63ED" style={{ marginVertical: 20 }} />
+                        <ActivityIndicator color={theme.accent} style={{ marginVertical: 20 }} />
                     ) : routeInfo && (
-                        <View style={styles.summaryCard}>
+                        <View style={[styles.summaryCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder }]}>
                             <View style={styles.summaryRow}>
                                 <View style={styles.summaryItem}>
-                                    <Text style={styles.summaryLabel}>Distancia</Text>
-                                    <Text style={styles.summaryValue}>{routeInfo.distance_km} km</Text>
+                                    <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Distancia</Text>
+                                    <Text style={[styles.summaryValue, { color: theme.text }]}>{routeInfo.distance_km} km</Text>
                                 </View>
                                 <View style={styles.summaryItem}>
-                                    <Text style={styles.summaryLabel}>Duración</Text>
-                                    <Text style={styles.summaryValue}>{routeInfo.duration_minutes} min</Text>
+                                    <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Duración</Text>
+                                    <Text style={[styles.summaryValue, { color: theme.text }]}>{routeInfo.duration_minutes} min</Text>
                                 </View>
                                 <View style={styles.summaryItem}>
-                                    <Text style={styles.summaryLabel}>Precio Sug.</Text>
-                                    <Text style={styles.summaryPrice}>₡{calculatePrice()}</Text>
+                                    <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Precio Sug.</Text>
+                                    <Text style={[styles.summaryPrice, { color: '#25C460' }]}>₡{calculatePrice()}</Text>
                                 </View>
                             </View>
                         </View>
                     )}
 
+                    {/* Botón publicar */}
                     <TouchableOpacity
-                        style={[styles.publishBtn, loading && { opacity: 0.7 }]}
+                        style={[styles.publishBtn, { backgroundColor: theme.accent }, loading && { opacity: 0.7 }]}
                         onPress={handlePublish}
                         disabled={loading || calculatingRoute}
                     >
-                        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.publishBtnText}>Publicar Viaje</Text>}
+                        {loading
+                            ? <ActivityIndicator color="#fff" />
+                            : <Text style={styles.publishBtnText}>Publicar Viaje</Text>
+                        }
                     </TouchableOpacity>
                 </View>
             </ScrollView>
@@ -242,7 +271,7 @@ const PublishRide = ({ navigation }) => {
             {(mostrarCalendario || mostrarHora) && (
                 <DateTimePicker
                     value={(mostrarHora ? horaSeleccionada : fechaSeleccionada) || new Date()}
-                    mode={mostrarCalendario ? "date" : "time"}
+                    mode={mostrarCalendario ? 'date' : 'time'}
                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                     minimumDate={new Date()}
                     onChange={(event, date) => {
@@ -265,7 +294,7 @@ const PublishRide = ({ navigation }) => {
             {/* iOS Confirmación para DatePicker */}
             {Platform.OS === 'ios' && (mostrarCalendario || mostrarHora) && (
                 <TouchableOpacity
-                    style={styles.iosConfirm}
+                    style={[styles.iosConfirm, { backgroundColor: theme.accent }]}
                     onPress={() => {
                         if (mostrarCalendario) {
                             setMostrarCalendario(false);
@@ -276,7 +305,7 @@ const PublishRide = ({ navigation }) => {
                     }}
                 >
                     <Text style={styles.iosConfirmText}>
-                        {mostrarCalendario ? "Siguiente: Hora" : "Confirmar Hora"}
+                        {mostrarCalendario ? 'Siguiente: Hora' : 'Confirmar Hora'}
                     </Text>
                 </TouchableOpacity>
             )}
@@ -284,7 +313,7 @@ const PublishRide = ({ navigation }) => {
             <LocationPicker
                 visible={pickerVisible}
                 onClose={() => setPickerVisible(false)}
-                title={pickingFor === 'origin' ? "Punto de Inicio" : "Punto de Destino"}
+                title={pickingFor === 'origin' ? 'Punto de Inicio' : 'Punto de Destino'}
                 onSelect={handleLocationSelect}
             />
 
@@ -294,62 +323,160 @@ const PublishRide = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#F8F9FA' },
-    backgroundTitle: { fontSize: 22, fontWeight: 'bold', color: '#1A2B4C', textAlign: 'center', marginTop: 20 },
-    content: { padding: 20, paddingBottom: 100 },
-    card: { backgroundColor: '#FFF', borderRadius: 20, padding: 20, elevation: 5, shadowOpacity: 0.1 },
-    cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
-    backButton: { position: 'absolute', left: 0 },
-    cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-    divider: { height: 1, backgroundColor: '#EEE', marginBottom: 20 },
-    verticalDivider: { height: 1, backgroundColor: '#EEE', marginVertical: 12 },
+    safeArea: {
+        flex: 1,
+    },
+    // ScrollView ocupa todo el espacio, sin padding extra
+    content: {
+        flexGrow: 1,
+        paddingBottom: 100,
+    },
+    // La tarjeta ocupa todo el ancho y alto sin bordes ni sombras externas
+    card: {
+        flex: 1,
+        padding: 24,
+        minHeight: '100%',
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 16,
+    },
+    backButton: {
+        position: 'absolute',
+        left: 0,
+        padding: 4,
+    },
+    cardTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    divider: {
+        height: 1,
+        marginBottom: 20,
+    },
+    verticalDivider: {
+        height: 1,
+        marginVertical: 12,
+    },
     locationBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         padding: 15,
-        backgroundColor: '#F5F7FA',
-        borderRadius: 12,
+        borderRadius: 14,
         marginBottom: 12,
         borderWidth: 1,
-        borderColor: '#EFEFEF',
-        gap: 15
+        gap: 15,
     },
-    locationBtnTextContainer: { flex: 1 },
-    locationLabel: { fontSize: 12, color: '#999', marginBottom: 2 },
-    locationValue: { fontSize: 15, color: '#333', fontWeight: '500' },
-    inputError: { borderColor: '#f53333' },
-    pickerWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#F5F7FA',
-        borderRadius: 12,
+    locationBtnTextContainer: {
+        flex: 1,
+    },
+    locationLabel: {
+        fontSize: 11,
+        marginBottom: 2,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    locationValue: {
+        fontSize: 15,
+        fontWeight: '500',
+    },
+    seatsWrapper: {
+        borderRadius: 14,
         paddingHorizontal: 15,
-        height: 54,
-        marginBottom: 20
-    },
-    picker: { flex: 1, marginLeft: -10 },
-    summaryCard: {
-        backgroundColor: '#2D63ED10',
-        borderRadius: 15,
-        padding: 15,
+        paddingVertical: 12,
         marginBottom: 20,
         borderWidth: 1,
-        borderColor: '#2D63ED20'
     },
-    summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
-    summaryItem: { alignItems: 'center' },
-    summaryLabel: { fontSize: 11, color: '#666', textTransform: 'uppercase' },
-    summaryValue: { fontSize: 15, fontWeight: 'bold', color: '#1A2B4C' },
-    summaryPrice: { fontSize: 16, fontWeight: 'bold', color: '#25C460' },
-    publishBtn: {
-        backgroundColor: '#2D63ED',
-        paddingVertical: 16,
+    seatsLabelRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 12,
+    },
+    seatsLabel: {
+        fontSize: 12,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    seatsControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16,
+    },
+    seatsBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        borderWidth: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    seatsValueBox: {
+        width: 64,
+        height: 44,
         borderRadius: 12,
-        alignItems: 'center'
+        borderWidth: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    publishBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
-    iosConfirm: { backgroundColor: '#2D63ED', padding: 15, borderRadius: 10, marginHorizontal: 20, marginBottom: 20 },
-    iosConfirmText: { color: '#FFF', textAlign: 'center', fontWeight: 'bold' }
+    seatsValue: {
+        fontSize: 22,
+        fontWeight: 'bold',
+    },
+    summaryCard: {
+        borderRadius: 15,
+        padding: 16,
+        marginBottom: 20,
+        borderWidth: 1,
+    },
+    summaryRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    summaryItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    summaryLabel: {
+        fontSize: 11,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: 4,
+    },
+    summaryValue: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    summaryPrice: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    publishBtn: {
+        paddingVertical: 16,
+        borderRadius: 14,
+        alignItems: 'center',
+        marginTop: 4,
+    },
+    publishBtnText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
+    },
+    iosConfirm: {
+        padding: 15,
+        borderRadius: 10,
+        marginHorizontal: 20,
+        marginBottom: 20,
+    },
+    iosConfirmText: {
+        color: '#FFF',
+        textAlign: 'center',
+        fontWeight: 'bold',
+    },
 });
 
 export default PublishRide;
