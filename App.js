@@ -48,10 +48,10 @@ function MainTabsPasajero() {
       <Tab.Screen name="History" component={History} />
       <Tab.Screen name="Metrics" component={Metrics} />
       <Tab.Screen name="ListOfDrivers" component={ListOfDrivers} />
-      <Tab.Screen name="PasajeroProfileScreen" component={PasajeroProfileScreen} />
     </Tab.Navigator>
   );
 }
+
 
 function MainTabsDriver() {
   return (
@@ -164,7 +164,8 @@ export default function App() {
         />
 
         <Stack.Screen
-          name="MyProfile"
+          name="PasajeroProfileScreen"
+
           component={PasajeroProfileScreen}
           options={{ 
             headerShown: false,

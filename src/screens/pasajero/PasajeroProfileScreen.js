@@ -13,6 +13,7 @@ import {
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
+    Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,48 +21,77 @@ import * as ImagePicker from 'expo-image-picker';
 import { userService } from '../../services/userService';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 
+const { width } = Dimensions.get('window');
+
 const PasajeroProfileScreen = ({ navigation }) => {
     const { theme } = useDriverTheme();
     
+    // Estados de datos persistentes
     const [userName, setUserName] = useState('');
     const [userEmail, setUserEmail] = useState('');
     const [userPhone, setUserPhone] = useState('');
+    const [userCompany, setUserCompany] = useState('');
+    const [profileImage, setProfileImage] = useState(null); 
+    
+    // Estados de UI
+    const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [imageLoading, setImageLoading] = useState(false);
-    const [profileImage, setProfileImage] = useState('https://i.pravatar.cc/150?u=saferide');
+
+    // Valores temporales para el formulario de edición
+    const [tempName, setTempName] = useState('');
+    const [tempEmail, setTempEmail] = useState('');
+    const [tempPhone, setTempPhone] = useState('');
+    const [tempCompany, setTempCompany] = useState('');
+
+    // Imagen por defecto local
+    const defaultAvatar = require('../../images/DefaultImageUser.png');
 
     useEffect(() => {
         const loadUserData = async () => {
             try {
-                // Primero cargar de storage para velocidad
+                // 1. Cargar primero lo que tengamos en local para rapidez
                 const name = await AsyncStorage.getItem('userName');
                 const email = await AsyncStorage.getItem('userEmail');
-                const phone = await AsyncStorage.getItem('userPhone') || '';
+                const phone = await AsyncStorage.getItem('userPhone');
                 const photo = await AsyncStorage.getItem('userPhoto');
+                const company = await AsyncStorage.getItem('userCompany');
 
-                if (name) setUserName(name);
-                if (email) setUserEmail(email);
-                if (phone) setUserPhone(phone);
-                if (photo) setProfileImage(photo);
+                if (name) { setUserName(name); setTempName(name); }
+                if (email) { setUserEmail(email); setTempEmail(email); }
+                if (phone) { setUserPhone(phone); setTempPhone(phone); }
+                if (company) { setUserCompany(company); setTempCompany(company); }
+                if (photo && (photo.startsWith('http') || photo.startsWith('file'))) {
+                    setProfileImage(photo);
+                }
 
-                // Luego intentar cargar del backend para estar actualizados
-                const profile = await userService.getProfile();
-                if (profile && profile.data) {
-                    const user = profile.data.user;
-                    setUserName(user.name);
-                    setUserEmail(user.email);
-                    setUserPhone(user.phone);
-                    if (user.photo) setProfileImage(user.photo);
-
-                    // Actualizar storage con info fresca
-                    await AsyncStorage.multiSet([
-                        ['userName', user.name],
-                        ['userPhone', user.phone || ''],
-                        ['userPhoto', user.photo || ''],
-                    ]);
+                // 2. Sincronizar con el servidor para obtener datos actualizados (Ej: Empresa)
+                try {
+                    const profileData = await userService.getProfile();
+                    if (profileData && profileData.data) {
+                        const user = profileData.data;
+                        
+                        setUserName(user.name || '');
+                        setUserEmail(user.email || '');
+                        setUserPhone(user.phone || '');
+                        setUserCompany(user.company || '');
+                        
+                        // Sincronizar localmente para la próxima vez
+                        await AsyncStorage.setItem('userName', user.name || '');
+                        await AsyncStorage.setItem('userEmail', user.email || '');
+                        await AsyncStorage.setItem('userPhone', user.phone || '');
+                        await AsyncStorage.setItem('userCompany', user.company || '');
+                        
+                        if (user.photo) {
+                            setProfileImage(user.photo);
+                            await AsyncStorage.setItem('userPhoto', user.photo);
+                        }
+                    }
+                } catch (apiError) {
+                    console.log('Error fetching profile from API:', apiError);
                 }
             } catch (error) {
-                console.log('Error loading data:', error);
+                console.log('Error loading local user data:', error);
             }
         };
         loadUserData();
@@ -90,13 +120,14 @@ const PasajeroProfileScreen = ({ navigation }) => {
                 const response = await userService.updateProfilePicture(selectedUri);
                 if (response && response.data) {
                     const newPhoto = response.data.photo;
-                    setProfileImage(newPhoto);
-                    await AsyncStorage.setItem('userPhoto', newPhoto);
-                    Alert.alert('Éxito', 'Foto de perfil actualizada.');
+                    if (newPhoto) {
+                        setProfileImage(newPhoto);
+                        await AsyncStorage.setItem('userPhoto', newPhoto);
+                    }
                 }
             } catch (error) {
                 console.error('Error uploading photo:', error);
-                Alert.alert('Error', 'No se pudo subir la foto.');
+                Alert.alert('Sincronización', 'La foto se actualizó localmente, pero hubo un error al subirla al servidor.');
             } finally {
                 setImageLoading(false);
             }
@@ -104,25 +135,36 @@ const PasajeroProfileScreen = ({ navigation }) => {
     };
 
     const handleSaveChanges = async () => {
-        if (!userName.trim() || !userPhone.trim()) {
-            Alert.alert('Error', 'El nombre y el teléfono son requeridos.');
+        if (!tempName.trim() || !tempPhone.trim() || !tempEmail.trim()) {
+            Alert.alert('Error', 'Todos los campos son obligatorios.');
             return;
         }
 
         setLoading(true);
         try {
             await userService.updateProfile({
-                name: userName,
-                phone: userPhone,
+                name: tempName,
+                phone: tempPhone,
+                email: tempEmail,
+                company: tempCompany,
             });
 
-            await AsyncStorage.setItem('userName', userName);
-            await AsyncStorage.setItem('userPhone', userPhone);
+            // Actualizar estados principales y storage
+            setUserName(tempName);
+            setUserEmail(tempEmail);
+            setUserPhone(tempPhone);
+            setUserCompany(tempCompany);
 
-            Alert.alert('Éxito', 'Perfil actualizado correctamente.');
+            await AsyncStorage.setItem('userName', tempName);
+            await AsyncStorage.setItem('userEmail', tempEmail);
+            await AsyncStorage.setItem('userPhone', tempPhone);
+            await AsyncStorage.setItem('userCompany', tempCompany);
+
+            Alert.alert('Éxito', 'Tus datos se han actualizado correctamente.');
+            setIsEditing(false);
         } catch (error) {
             console.error('Save error:', error);
-            Alert.alert('Error', 'Hubo un problema al guardar los cambios.');
+            Alert.alert('Error', 'No se pudieron guardar los cambios en el servidor.');
         } finally {
             setLoading(false);
         }
@@ -130,8 +172,8 @@ const PasajeroProfileScreen = ({ navigation }) => {
 
     const handleDeleteAccount = () => {
         Alert.alert(
-            'Eliminar Cuenta',
-            'Esta acción no se puede deshacer y borrará todos tus datos. ¿Estás seguro?',
+            'Eliminar Perfil',
+            '¿Realmente deseas ELIMINAR tu cuenta? Esta acción borrará todos tus datos corporativos de SafeRide de forma permanente.',
             [
                 { text: 'Cancelar', style: 'cancel' },
                 {
@@ -140,18 +182,12 @@ const PasajeroProfileScreen = ({ navigation }) => {
                     onPress: async () => {
                         try {
                             setLoading(true);
-                            await userService.deleteAccount();
-                            await AsyncStorage.multiRemove(['userToken', 'userRole', 'userName', 'userEmail', 'userPhone', 'userPhoto']);
-                            
-                            Alert.alert('Cuenta Eliminada', 'Tu cuenta ha sido eliminada permanentemente.');
-                            
-                            navigation.reset({
-                                index: 0,
-                                routes: [{ name: 'SignIn' }],
-                            });
+                            try { await userService.deleteAccount(); } catch(e) {}
+                            const keys = await AsyncStorage.getAllKeys();
+                            await AsyncStorage.multiRemove(keys);
+                            navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
                         } catch (error) {
                             console.error('Delete error:', error);
-                            Alert.alert('Error', 'No se pudo eliminar la cuenta. Inténtalo más tarde.');
                         } finally {
                             setLoading(false);
                         }
@@ -161,63 +197,172 @@ const PasajeroProfileScreen = ({ navigation }) => {
         );
     };
 
-    const handleChangePassword = () => {
-        Alert.alert('Cambiar Contraseña', 'Esta función se habilitará próximamente.');
-    };
+    const renderMenuOption = (icon, title, subtitle, onPress, isDestructive = false, hideBorder = false) => (
+        <TouchableOpacity 
+            style={[
+                styles.menuItem, 
+                { 
+                    borderBottomColor: theme.divider,
+                    borderBottomWidth: hideBorder ? 0 : 1 
+                }
+            ]} 
+            onPress={onPress}
+            activeOpacity={0.7}
+        >
+            <View style={[styles.menuIconContainer, { backgroundColor: isDestructive ? '#FFF0F0' : theme.surface }]}>
+                <Ionicons name={icon} size={22} color={isDestructive ? theme.danger : theme.accent} />
+            </View>
+            <View style={styles.menuTextContainer}>
+                <Text style={[styles.menuTitle, { color: isDestructive ? theme.danger : theme.text }]}>{title}</Text>
+                {subtitle ? <Text style={[styles.menuSubtitle, { color: theme.subtext }]}>{subtitle}</Text> : null}
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.subtext} />
+        </TouchableOpacity>
+    );
 
     return (
+
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             
-            {/* Header */}
+            {/* ── HEADER ── */}
             <View style={[styles.header, { borderBottomColor: theme.divider }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="chevron-back" size={28} color={theme.text} />
+
+                <TouchableOpacity onPress={() => isEditing ? setIsEditing(false) : navigation.goBack()} style={styles.backButton}>
+                    <Ionicons name={isEditing ? "close" : "chevron-back"} size={28} color={theme.text} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Mi Perfil</Text>
+
+                <Text style={[styles.headerTitle, { color: theme.text }]}>
+                    {isEditing ? 'Configurar Perfil' : 'Mi Perfil'}
+                </Text>
                 <View style={{ width: 40 }} />
             </View>
 
-            <KeyboardAvoidingView 
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={{ flex: 1 }}
-            >
-                <ScrollView contentContainerStyle={styles.scrollContent}>
-                    {/* Sección de Imagen */}
-                    <View style={styles.profileImageSection}>
-                        <TouchableOpacity 
-                            style={styles.imageWrapper} 
-                            onPress={handleChangeImage} 
-                            disabled={imageLoading}
-                            activeOpacity={0.8}
-                        >
-                            <Image 
-                                source={{ uri: profileImage }} 
-                                style={[styles.profileImage, { borderColor: theme.surface }]} 
-                            />
-                            {imageLoading && (
-                                <View style={styles.imageOverlay}>
-                                    <ActivityIndicator color="#FFFFFF" />
-                                </View>
-                            )}
-                            <View style={[styles.editImageBadge, { backgroundColor: theme.accent }]}>
-                                <Ionicons name="camera" size={20} color="#FFFFFF" />
-                            </View>
-                        </TouchableOpacity>
-                        <Text style={[styles.tapToChange, { color: theme.subtext }]}>Toca para cambiar la foto</Text>
-                    </View>
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-                    {/* Formulario */}
-                    <View style={styles.formSection}>
+                {/* ── SECCIÓN SUPERIOR: AVATAR ── */}
+                <View style={styles.userInfoSection}>
+                    <TouchableOpacity 
+                        onPress={handleChangeImage} 
+                        disabled={!isEditing || imageLoading}
+                        style={styles.avatarWrapper}
+                        activeOpacity={0.8}
+                    >
+                        <Image 
+                            source={profileImage ? { uri: profileImage } : defaultAvatar} 
+                            style={[styles.avatar, { borderColor: isEditing ? theme.accent : theme.surface }]} 
+                        />
+                        {imageLoading && (
+                            <View style={styles.avatarOverlay}>
+                                <ActivityIndicator color={theme.accent} size="large" />
+                            </View>
+                        )}
+                        {isEditing && (
+                            <View style={[styles.cameraBadge, { backgroundColor: theme.accent }]}>
+                                <Ionicons name="camera" size={18} color="#FFF" />
+                            </View>
+                        )}
+                    </TouchableOpacity>
+
+                    {/* Información ordenada en líneas limpias */}
+                    {!isEditing && (
+                        <View style={styles.mainInfo}>
+                            <Text style={[styles.userName, { color: theme.text }]}>{userName || 'Cargando...'}</Text>
+                            
+                            <View style={styles.infoRow}>
+                                <Ionicons name="business-outline" size={16} color={theme.accent} />
+                                <Text style={[styles.infoText, { color: theme.textSecondary }]}>{userCompany || 'Empresa'}</Text>
+                            </View>
+
+                            <View style={styles.infoRow}>
+                                <Ionicons name="mail-outline" size={16} color={theme.accent} />
+                                <Text style={[styles.infoText, { color: theme.textSecondary }]}>{userEmail}</Text>
+                            </View>
+
+                            <View style={styles.infoRow}>
+                                <Ionicons name="call-outline" size={16} color={theme.accent} />
+                                <Text style={[styles.infoText, { color: theme.textSecondary }]}>{userPhone}</Text>
+                            </View>
+                        </View>
+                    )}
+                </View>
+
+                {/* ── MODO VISTA (MENÚ) ── */}
+                {!isEditing ? (
+                    <View style={styles.menuContainer}>
+                        <Text style={[styles.sectionTitle, { color: theme.subtext }]}>MI CUENTA</Text>
+                        
+                        <View style={[styles.menuCard, { backgroundColor: theme.surface, borderColor: theme.divider }]}>
+                            {renderMenuOption(
+                                'person-outline', 
+                                'Editar Datos Personales', 
+                                'Nombre, foto, empresa y contacto',
+                                () => {
+                                    setTempName(userName);
+                                    setTempEmail(userEmail);
+                                    setTempPhone(userPhone);
+                                    setTempCompany(userCompany);
+                                    setIsEditing(true);
+                                }
+                            )}
+                            
+                            {renderMenuOption(
+                                'lock-closed-outline', 
+                                'Seguridad', 
+                                'Cambiar contraseña y accesos',
+                                () => Alert.alert('Seguridad', 'Opción disponible próximamente.')
+                            )}
+                        </View>
+
+                        <Text style={[styles.sectionTitle, { color: theme.subtext, marginTop: 30 }]}>GENERAL</Text>
+                        
+                        <View style={[styles.menuCard, { backgroundColor: theme.surface, borderColor: theme.divider }]}>
+                            {renderMenuOption(
+                                'help-buoy-outline', 
+                                'Centro de Ayuda', 
+                                'Soporte y dudas sobre tus viajes',
+                                () => {}
+                            )}
+
+                            {renderMenuOption(
+                                'trash-outline', 
+                                'Eliminar Cuenta', 
+                                'Borrar perfil de forma permanente',
+                                handleDeleteAccount,
+                                true,
+                                true // hideBorder
+                            )}
+                        </View>
+                    </View>
+                ) : (
+                    /* ── MODO EDICIÓN ── */
+                    <KeyboardAvoidingView 
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={styles.editForm}
+                    >
+                        <Text style={[styles.editHint, { color: theme.subtext }]}>Toca la foto arriba para cambiarla</Text>
+
                         <View style={styles.inputGroup}>
                             <Text style={[styles.label, { color: theme.subtext }]}>Nombre completo</Text>
                             <View style={[styles.inputWrapper, { backgroundColor: theme.surface }]}>
-                                <Ionicons name="person-outline" size={20} color={theme.accent} style={styles.inputIcon} />
                                 <TextInput
                                     style={[styles.input, { color: theme.text }]}
-                                    value={userName}
-                                    onChangeText={setUserName}
-                                    placeholder="Tu nombre"
+                                    value={tempName}
+                                    onChangeText={setTempName}
+                                    placeholder="Ej: Juan Pérez"
+                                    placeholderTextColor={theme.subtext}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={[styles.label, { color: theme.subtext }]}>Empresa</Text>
+                            <View style={[styles.inputWrapper, { backgroundColor: theme.surface }]}>
+                                <TextInput
+                                    style={[styles.input, { color: theme.text }]}
+                                    value={tempCompany}
+                                    onChangeText={setTempCompany}
+                                    placeholder="Ej: Google Cloud"
                                     placeholderTextColor={theme.subtext}
                                 />
                             </View>
@@ -226,11 +371,13 @@ const PasajeroProfileScreen = ({ navigation }) => {
                         <View style={styles.inputGroup}>
                             <Text style={[styles.label, { color: theme.subtext }]}>Correo corporativo</Text>
                             <View style={[styles.inputWrapper, { backgroundColor: theme.surface }]}>
-                                <Ionicons name="mail-outline" size={20} color={theme.accent} style={styles.inputIcon} />
                                 <TextInput
-                                    style={[styles.input, styles.disabledInput, { color: theme.subtext }]}
-                                    value={userEmail}
-                                    editable={false}
+                                    style={[styles.input, { color: theme.text }]}
+                                    value={tempEmail}
+                                    onChangeText={setTempEmail}
+                                    placeholder="correo@empresa.com"
+                                    placeholderTextColor={theme.subtext}
+                                    keyboardType="email-address"
                                 />
                             </View>
                         </View>
@@ -238,11 +385,10 @@ const PasajeroProfileScreen = ({ navigation }) => {
                         <View style={styles.inputGroup}>
                             <Text style={[styles.label, { color: theme.subtext }]}>Teléfono</Text>
                             <View style={[styles.inputWrapper, { backgroundColor: theme.surface }]}>
-                                <Ionicons name="call-outline" size={20} color={theme.accent} style={styles.inputIcon} />
                                 <TextInput
                                     style={[styles.input, { color: theme.text }]}
-                                    value={userPhone}
-                                    onChangeText={setUserPhone}
+                                    value={tempPhone}
+                                    onChangeText={setTempPhone}
                                     placeholder="8888 8888"
                                     placeholderTextColor={theme.subtext}
                                     keyboardType="phone-pad"
@@ -250,54 +396,29 @@ const PasajeroProfileScreen = ({ navigation }) => {
                             </View>
                         </View>
 
-                        {/* Botón Guardar */}
                         <TouchableOpacity 
-                            style={[
-                                styles.saveButton, 
-                                { backgroundColor: theme.accent },
-                                loading && styles.buttonDisabled
-                            ]} 
+                            style={[styles.saveButton, { backgroundColor: theme.accent }]} 
                             onPress={handleSaveChanges}
                             disabled={loading}
                         >
-                            {loading ? (
-                                <ActivityIndicator color="#FFFFFF" />
-                            ) : (
-                                <Text style={styles.saveButtonText}>Guardar Cambios</Text>
-                            )}
-                        </TouchableOpacity>
-                    </View>
-
-                    <View style={[styles.divider, { backgroundColor: theme.surface }]} />
-
-                    {/* Sección de Acciones */}
-                    <View style={styles.actionSection}>
-                        <TouchableOpacity style={styles.actionItem} onPress={handleChangePassword}>
-                            <View style={[styles.actionIconContainer, { backgroundColor: theme.surface }]}>
-                                <Ionicons name="lock-closed-outline" size={22} color={theme.text} />
-                            </View>
-                            <Text style={[styles.actionText, { color: theme.text }]}>Cambiar Contraseña</Text>
-                            <Ionicons name="chevron-forward" size={20} color={theme.subtext} />
+                            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.saveButtonText}>Guardar Cambios</Text>}
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.actionItem} onPress={handleDeleteAccount}>
-                            <View style={[styles.actionIconContainer, { backgroundColor: theme.surface }]}>
-                                <Ionicons name="trash-outline" size={22} color={theme.danger} />
-                            </View>
-                            <Text style={[styles.actionText, { color: theme.danger }]}>Eliminar Cuenta</Text>
-                            <Ionicons name="chevron-forward" size={20} color={theme.subtext} />
+                        <TouchableOpacity 
+                            style={styles.cancelButton} 
+                            onPress={() => setIsEditing(false)}
+                        >
+                            <Text style={[styles.cancelButtonText, { color: theme.textSecondary }]}>Descartar</Text>
                         </TouchableOpacity>
-                    </View>
-                </ScrollView>
-            </KeyboardAvoidingView>
+                    </KeyboardAvoidingView>
+                )}
+            </ScrollView>
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
+    container: { flex: 1 },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -305,131 +426,126 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 15,
         borderBottomWidth: 1,
+        paddingTop: 50,
     },
-    headerTitle: {
-        fontSize: 20,
-        fontFamily: 'Poppins-Bold',
-    },
-    backButton: {
-        padding: 5,
-    },
-    scrollContent: {
-        paddingBottom: 40,
-    },
-    profileImageSection: {
+    headerTitle: { fontSize: 24, fontFamily: 'Poppins-Bold' },
+    backButton: { padding: 5 },
+    scrollContent: { paddingBottom: 60 },
+
+    // Sección Superior
+    userInfoSection: {
         alignItems: 'center',
-        marginVertical: 30,
+        paddingVertical: 35,
     },
-    imageWrapper: {
-        position: 'relative',
-    },
-    profileImage: {
-        width: 130,
-        height: 130,
-        borderRadius: 65,
+    avatarWrapper: { position: 'relative', marginBottom: 20 },
+    avatar: {
+        width: 140,
+        height: 140,
+        borderRadius: 70,
         borderWidth: 4,
     },
-    imageOverlay: {
+    avatarOverlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        borderRadius: 65,
+        backgroundColor: 'rgba(255,255,255,0.4)',
+        borderRadius: 70,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    editImageBadge: {
+    cameraBadge: {
         position: 'absolute',
         bottom: 5,
         right: 5,
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 3,
-        borderColor: '#FFFFFF',
+        borderColor: '#FFF',
     },
-    tapToChange: {
-        marginTop: 12,
-        fontSize: 13,
-        fontFamily: 'Poppins-Medium',
-    },
-    formSection: {
-        paddingHorizontal: 25,
-    },
-    inputGroup: {
-        marginBottom: 20,
-    },
-    label: {
-        fontSize: 14,
-        fontFamily: 'Poppins-Regular',
-        marginBottom: 8,
-        marginLeft: 4,
-    },
-    inputWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderRadius: 12,
-        paddingHorizontal: 15,
-        height: 55,
-    },
-    inputIcon: {
-        marginRight: 12,
-    },
-    input: {
-        flex: 1,
-        fontSize: 16,
-        fontFamily: 'Poppins-Regular',
-    },
-    disabledInput: {
-        opacity: 0.7,
-    },
-    saveButton: {
-        height: 55,
-        borderRadius: 15,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 10,
+    mainInfo: { alignItems: 'center', width: '100%', paddingHorizontal: 30 },
+    userName: { 
+        backgroundColor: '#FFF', 
+        paddingVertical: 6, 
+        paddingHorizontal: 112, 
+        borderRadius: 14, 
+        fontSize: 26, 
+        fontFamily: 'Poppins-Bold', 
+        marginBottom: 15, 
+        textAlign: 'center',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 5,
-        elevation: 3,
+        elevation: 2,
     },
-    buttonDisabled: {
-        opacity: 0.5,
+    infoRow: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        marginBottom: 10,
+        gap: 12,
     },
-    saveButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontFamily: 'Poppins-Bold',
+    infoText: { fontSize: 16, fontFamily: 'Poppins-Medium' },
+
+    // Menú de opciones
+    menuContainer: { paddingHorizontal: 20, marginTop: 5 },
+    sectionTitle: { fontSize: 11, fontFamily: 'Poppins-Bold', letterSpacing: 1.2, marginBottom: 15, marginLeft: 5 },
+    menuCard: {
+        borderRadius: 20,
+        borderWidth: 1,
+        overflow: 'hidden',
+        marginBottom: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
     },
-    divider: {
-        height: 8,
-        marginVertical: 30,
-    },
-    actionSection: {
-        paddingHorizontal: 25,
-    },
-    actionItem: {
+    menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 15,
+        paddingVertical: 18,
+        paddingHorizontal: 15,
+        borderBottomWidth: 1,
     },
-    actionIconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 10,
+    menuIconContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 15,
     },
-    actionText: {
-        flex: 1,
-        fontSize: 16,
-        fontFamily: 'Poppins-Medium',
+    menuTextContainer: { flex: 1 },
+    menuTitle: { fontSize: 15, fontFamily: 'Poppins-Bold' },
+    menuSubtitle: { fontSize: 11, fontFamily: 'Poppins-Regular', marginTop: 1, opacity: 0.7 },
+
+    // Formulario de edición
+    editForm: { paddingHorizontal: 25, marginTop: -10 },
+    editHint: { fontSize: 12, fontFamily: 'Poppins-Medium', textAlign: 'center', marginBottom: 20 },
+    inputGroup: { marginBottom: 18 },
+    label: { fontSize: 13, fontFamily: 'Poppins-Bold', marginBottom: 10, marginLeft: 4 },
+    inputWrapper: {
+        borderRadius: 14,
+        paddingHorizontal: 15,
+        height: 55,
+        justifyContent: 'center',
     },
+    input: { fontSize: 15, fontFamily: 'Poppins-Regular' },
+    saveButton: {
+        height: 55, borderRadius: 16, justifyContent: 'center', alignItems: 'center',
+        marginTop: 25, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1, shadowRadius: 10,
+    },
+    saveButtonText: { color: '#FFF', fontSize: 16, fontFamily: 'Poppins-Bold' },
+    cancelButton: {
+        height: 50, borderRadius: 16, justifyContent: 'center', alignItems: 'center',
+        marginTop: 10,
+    },
+    cancelButtonText: { fontSize: 15, fontFamily: 'Poppins-Bold' },
 });
 
 export default PasajeroProfileScreen;
+
 
 
