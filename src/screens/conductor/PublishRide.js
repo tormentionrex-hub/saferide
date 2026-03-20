@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
-import { useDriverTheme } from '../../context/DriverThemeContext';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
-    TextInput,
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
@@ -13,441 +11,345 @@ import {
     Platform,
     ScrollView
 } from 'react-native';
-// Selector de fecha y hora nativo
 import DateTimePicker from '@react-native-community/datetimepicker';
-// Selector tipo dropdown para asientos
 import { Picker } from '@react-native-picker/picker';
-// Íconos vectoriales
 import { Ionicons } from '@expo/vector-icons';
-// Barra de navegación personalizada para conductores
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
-// Servicio de API configurado con axios y token
+import LocationPicker from '../../components/LocationPicker';
 import api from '../../services/api';
-// Configuración de la API
-import { API_URL } from '../../config';
+import { getRouteDetails } from '../../services/locationService';
 
 /**
- * Pantalla para que los conductores publiquen un nuevo viaje.
+ * Pantalla para que los conductores publiquen un nuevo viaje con geolocalización avanzada.
  */
 const PublishRide = ({ navigation }) => {
-    const { theme } = useDriverTheme();
-    // --- ESTADOS DEL FORMULARIO ---
-    const [origen, setOrigen] = useState('');
-    const [destino, setDestino] = useState('');
-    const [asientos, setAsientos] = useState('1'); // Valor por defecto 1 asiento
-    // --- ESTADOS DE FECHA Y HORA ---
+    // --- ESTADOS DE UBICACIÓN ---
+    const [origin, setOrigin] = useState(null); // { lat, lng, name, address }
+    const [destination, setDestination] = useState(null);
+    const [routeInfo, setRouteInfo] = useState(null); // { distance_km, duration_minutes }
+
+    const [pickerVisible, setPickerVisible] = useState(false);
+    const [pickingFor, setPickingFor] = useState('origin'); // 'origin' o 'destination'
+
+    // --- OTROS ESTADOS DEL FORMULARIO ---
+    const [asientos, setAsientos] = useState('1');
     const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
     const [horaSeleccionada, setHoraSeleccionada] = useState(null);
     const [mostrarCalendario, setMostrarCalendario] = useState(false);
     const [mostrarHora, setMostrarHora] = useState(false);
 
-    // --- ESTADOS DE UBICACIÓN (COORDENADAS) ---
-    // Dejamos montada la estructura para coordenadas, con valores por defecto (San José)
-    const [originCoords, setOriginCoords] = useState({ lat: 9.9281, lng: -84.0907 });
-    const [destinationCoords, setDestinationCoords] = useState({ lat: 9.9322, lng: -84.0410 });
-
-    // --- ESTADOS DE UI ---
     const [loading, setLoading] = useState(false);
+    const [calculatingRoute, setCalculatingRoute] = useState(false);
     const [errors, setErrors] = useState({});
 
-    /**
-     * Formatea un objeto Date a string DD/MM/YYYY para visualización.
-     */
-    const formatearFechaDisplay = (date) => {
-        if (!date) return '';
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-    };
-
-    /**
-     * Formatea un objeto Date a string HH:MM AM/PM para visualización.
-     */
-    const formatearHoraDisplay = (date) => {
-        if (!date) return '';
-        let hours = date.getHours();
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12 || 12;
-        return `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
-    };
-
-    /**
-     * Genera el texto para mostrar en el botón de selección de fecha.
-     */
-    const getFechaHoraText = () => {
-        if (fechaSeleccionada && horaSeleccionada) {
-            return `${formatearFechaDisplay(fechaSeleccionada)} a las ${formatearHoraDisplay(horaSeleccionada)}`;
-        } else if (fechaSeleccionada) {
-            return `${formatearFechaDisplay(fechaSeleccionada)} (Elegir hora...)`;
-        }
-        return 'Seleccionar Fecha y Hora';
-    };
-
-    /**
-     * Maneja el cambio de fecha seleccionado.
-     */
-    const onCambiarFecha = (event, selectedDate) => {
-        if (Platform.OS === 'android') {
-            setMostrarCalendario(false);
-        }
-        if (event.type === 'set' && selectedDate) {
-            setFechaSeleccionada(selectedDate);
-            if (errors.fechaHora) setErrors({ ...errors, fechaHora: null });
-            
-            // En Android, abrimos automáticamente el selector de hora después de la fecha
-            if (Platform.OS === 'android') {
-                setTimeout(() => setMostrarHora(true), 100);
+    // Efecto para calcular la ruta automáticamente cuando ambos puntos están definidos
+    useEffect(() => {
+        const fetchRoute = async () => {
+            if (origin && destination) {
+                setCalculatingRoute(true);
+                try {
+                    const details = await getRouteDetails(origin, destination);
+                    setRouteInfo(details);
+                } catch (error) {
+                    console.error('Error calculando ruta:', error);
+                    Alert.alert('Error', 'No se pudo calcular la distancia de la ruta.');
+                } finally {
+                    setCalculatingRoute(false);
+                }
             }
-        } else if (event.type === 'dismissed') {
-            setMostrarCalendario(false);
+        };
+        fetchRoute();
+    }, [origin, destination]);
+
+    const handleOpenPicker = (type) => {
+        setPickingFor(type);
+        setPickerVisible(true);
+    };
+
+    const handleLocationSelect = (location) => {
+        if (pickingFor === 'origin') {
+            setOrigin(location);
+        } else {
+            setDestination(location);
         }
     };
 
-    /**
-     * Maneja el cambio de hora seleccionado.
-     */
-    const onCambiarHora = (event, selectedTime) => {
-        if (Platform.OS === 'android') {
-            setMostrarHora(false);
-        }
-        if (event.type === 'set' && selectedTime) {
-            setHoraSeleccionada(selectedTime);
-            if (errors.fechaHora) setErrors({ ...errors, fechaHora: null });
-        } else if (event.type === 'dismissed') {
-            setMostrarHora(false);
-        }
+    const calculatePrice = () => {
+        if (!routeInfo) return 0;
+        return Math.round(routeInfo.distance_km * 450);
     };
 
     const handlePublish = async () => {
         const newErrors = {};
-
-        // Validaciones básicas antes de enviar
-        if (!origen.trim()) newErrors.origen = 'Requerido';
-        if (!destino.trim()) newErrors.destino = 'Requerido';
+        if (!origin) newErrors.origen = 'Requerido';
+        if (!destination) newErrors.destino = 'Requerido';
         if (!fechaSeleccionada || !horaSeleccionada) newErrors.fechaHora = 'Requerido';
-        if (!asientos) newErrors.asientos = 'Requerido';
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
-            Alert.alert('Campos incompletos', 'Por favor llena todos los campos para publicar el viaje.');
+            Alert.alert('Campos incompletos', 'Por favor selecciona los puntos de origen, destino y la fecha/hora.');
             return;
         }
 
         setLoading(true);
         try {
-            // Combinar fecha y hora para el backend
             const fullDateTime = new Date(fechaSeleccionada);
             fullDateTime.setHours(horaSeleccionada.getHours());
             fullDateTime.setMinutes(horaSeleccionada.getMinutes());
 
-            // Estructura del payload con coordenadas incluidas
             const payload = {
                 origin: {
-                    name: origen,
-                    coordinates: originCoords
+                    name: origin.name,
+                    address: origin.address,
+                    coordinates: { lat: origin.lat, lng: origin.lng }
                 },
                 destination: {
-                    name: destino,
-                    coordinates: destinationCoords
+                    name: destination.name,
+                    address: destination.address,
+                    coordinates: { lat: destination.lat, lng: destination.lng }
                 },
                 date_time: fullDateTime.toISOString(),
-                available_seats: parseInt(asientos)
+                available_seats: parseInt(asientos),
+                distance_km: routeInfo?.distance_km || 0,
+                duration_minutes: routeInfo?.duration_minutes || 0,
+                price: calculatePrice()
             };
 
-            // Llamada real al backend
             const response = await api.post('/rides', payload);
 
             if (response.data.success) {
-                setLoading(false);
                 Alert.alert('¡Éxito!', 'Tu viaje ha sido publicado.', [
-                    { text: 'OK', onPress: () => navigation.navigate('DashboardDriver') }
+                    { text: 'OK', onPress: () => navigation.navigate('Home') }
                 ]);
-            } else {
-                throw new Error(response.data.message || 'Error desconocido');
             }
-
         } catch (error) {
-            console.error('Error publicando viaje:', error);
-            const errorMsg = error.response?.data?.message || 'Hubo un problema al conectar con el servidor.';
+            const errorMsg = error.response?.data?.message || 'Error publicando el viaje.';
             Alert.alert('Error', errorMsg);
+        } finally {
             setLoading(false);
         }
     };
 
-    const inputIconColor = theme.dark ? '#666688' : '#999';
-    const placeholderColor = theme.dark ? '#55557A' : '#999';
-
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
-            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
+        <SafeAreaView style={styles.safeArea}>
+            <StatusBar barStyle="dark-content" />
+            <Text style={styles.backgroundTitle}>Publicar Viaje</Text>
 
-            {/* Título exterior */}
-            <Text style={[styles.backgroundTitle, { color: theme.textSecondary }]}>Publicar Viaje</Text>
-
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.content}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-            >
-                {/* Carta principal */}
-                <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-
-                    {/* Cabecera */}
+            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+                <View style={styles.card}>
                     <View style={styles.cardHeader}>
-                        <TouchableOpacity
-                            style={styles.backButton}
-                            onPress={() => navigation.goBack()}
-                        >
-                            <Ionicons name="chevron-back" size={24} color={theme.text} />
+                        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                            <Ionicons name="chevron-back" size={24} color="#1A2B4C" />
                         </TouchableOpacity>
-                        <Text style={[styles.cardTitle, { color: theme.text }]}>Detalles del Viaje</Text>
+                        <Text style={styles.cardTitle}>Itinerario de Viaje</Text>
                     </View>
 
-                    <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+                    <View style={styles.divider} />
 
-                    {/* Entrada: Origen */}
-                    <View style={[styles.inputWrapper, { backgroundColor: theme.surface, borderColor: theme.border }, errors.origen && styles.inputError]}>
-                        <Ionicons name="radio-button-off" size={20} color={inputIconColor} style={styles.inputIcon} />
-                        <TextInput
-                            style={[styles.input, { color: theme.text }]}
-                            value={origen}
-                            onChangeText={(text) => {
-                                setOrigen(text);
-                                if (errors.origen) setErrors({ ...errors, origen: null });
-                            }}
-                            placeholder="Origen (Ej. San José)"
-                            placeholderTextColor={placeholderColor}
-                        />
-                    </View>
-
-                    {/* Entrada: Destino */}
-                    <View style={[styles.inputWrapper, { backgroundColor: theme.surface, borderColor: theme.border }, errors.destino && styles.inputError]}>
-                        <Ionicons name="location-outline" size={20} color={inputIconColor} style={styles.inputIcon} />
-                        <TextInput
-                            style={[styles.input, { color: theme.text }]}
-                            value={destino}
-                            onChangeText={(text) => {
-                                setDestino(text);
-                                if (errors.destino) setErrors({ ...errors, destino: null });
-                            }}
-                            placeholder="Destino (Ej. Heredia)"
-                            placeholderTextColor={placeholderColor}
-                        />
-                    </View>
-
-                    {/* Selector: Fecha y Hora */}
+                    {/* Selector de Origen */}
                     <TouchableOpacity
-                        style={[styles.inputWrapper, { backgroundColor: theme.surface, borderColor: theme.border }, errors.fechaHora && styles.inputError]}
-                        onPress={() => setMostrarCalendario(true)}
+                        style={[styles.locationBtn, errors.origen && styles.inputError]}
+                        onPress={() => handleOpenPicker('origin')}
                     >
-                        <Ionicons name="calendar-outline" size={20} color={inputIconColor} style={styles.inputIcon} />
-                        <Text style={[styles.inputText, { color: (!fechaSeleccionada || !horaSeleccionada) ? placeholderColor : theme.text }]}>
-                            {getFechaHoraText()}
-                        </Text>
+                        <Ionicons name="radio-button-off" size={20} color={origin ? "#2D63ED" : "#999"} />
+                        <View style={styles.locationBtnTextContainer}>
+                            <Text style={styles.locationLabel}>Punto de origen</Text>
+                            <Text style={[styles.locationValue, !origin && { color: '#999' }]} numberOfLines={1}>
+                                {origin ? origin.name : "Selecciona donde empiezas"}
+                            </Text>
+                        </View>
                     </TouchableOpacity>
 
-                    {/* Selector: Asientos */}
-                    <View style={[styles.inputWrapper, { backgroundColor: theme.surface, borderColor: theme.border }, errors.asientos && styles.inputError]}>
-                        <Ionicons name="car-outline" size={20} color={inputIconColor} style={styles.inputIcon} />
+                    {/* Selector de Destino */}
+                    <TouchableOpacity
+                        style={[styles.locationBtn, errors.destino && styles.inputError]}
+                        onPress={() => handleOpenPicker('destination')}
+                    >
+                        <Ionicons name="location-outline" size={20} color={destination ? "#2D63ED" : "#999"} />
+                        <View style={styles.locationBtnTextContainer}>
+                            <Text style={styles.locationLabel}>Punto de destino</Text>
+                            <Text style={[styles.locationValue, !destination && { color: '#999' }]} numberOfLines={1}>
+                                {destination ? destination.name : "Selecciona a donde vas"}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    <View style={styles.verticalDivider} />
+
+                    {/* Fecha y Hora */}
+                    <TouchableOpacity
+                        style={[styles.locationBtn, errors.fechaHora && styles.inputError]}
+                        onPress={() => setMostrarCalendario(true)}
+                    >
+                        <Ionicons name="calendar-outline" size={20} color="#999" />
+                        <View style={styles.locationBtnTextContainer}>
+                            <Text style={styles.locationLabel}>¿Cuándo sales?</Text>
+                            <Text style={[styles.locationValue, !fechaSeleccionada && { color: '#999' }]}>
+                                {fechaSeleccionada
+                                    ? `${fechaSeleccionada.toLocaleDateString()} ${horaSeleccionada ? '- ' + horaSeleccionada.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}`
+                                    : "Seleccionar fecha y hora"}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    {/* Asientos */}
+                    <View style={styles.pickerWrapper}>
+                        <Ionicons name="people-outline" size={20} color="#999" />
                         <Picker
                             selectedValue={asientos}
-                            onValueChange={(itemValue) => setAsientos(itemValue)}
-                            style={[styles.picker, { color: theme.text }]}
-                            dropdownIconColor={theme.accent}
+                            onValueChange={(v) => setAsientos(v)}
+                            style={styles.picker}
                         >
-                            <Picker.Item label="1 Asiento disponible" value="1" color={theme.dark ? '#EEEEFF' : '#333'} />
-                            <Picker.Item label="2 Asientos disponibles" value="2" color={theme.dark ? '#EEEEFF' : '#333'} />
-                            <Picker.Item label="3 Asientos disponibles" value="3" color={theme.dark ? '#EEEEFF' : '#333'} />
-                            <Picker.Item label="4 Asientos disponibles" value="4" color={theme.dark ? '#EEEEFF' : '#333'} />
+                            {[1, 2, 3, 4, 5, 6].map(n => (
+                                <Picker.Item key={n} label={`${n} Asientos disponibles`} value={n.toString()} />
+                            ))}
                         </Picker>
                     </View>
 
-                    {/* Botón publicar */}
-                    <View style={styles.buttonContainer}>
-                        <TouchableOpacity
-                            style={[styles.publishButton, { backgroundColor: theme.accent }]}
-                            onPress={handlePublish}
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <Text style={styles.publishButtonText}>Publicar Viaje Ahora</Text>
-                            )}
-                        </TouchableOpacity>
-                    </View>
+                    {/* Tarjeta de Resumen (Solo si hay ruta) */}
+                    {calculatingRoute ? (
+                        <ActivityIndicator color="#2D63ED" style={{ marginVertical: 20 }} />
+                    ) : routeInfo && (
+                        <View style={styles.summaryCard}>
+                            <View style={styles.summaryRow}>
+                                <View style={styles.summaryItem}>
+                                    <Text style={styles.summaryLabel}>Distancia</Text>
+                                    <Text style={styles.summaryValue}>{routeInfo.distance_km} km</Text>
+                                </View>
+                                <View style={styles.summaryItem}>
+                                    <Text style={styles.summaryLabel}>Duración</Text>
+                                    <Text style={styles.summaryValue}>{routeInfo.duration_minutes} min</Text>
+                                </View>
+                                <View style={styles.summaryItem}>
+                                    <Text style={styles.summaryLabel}>Precio Sug.</Text>
+                                    <Text style={styles.summaryPrice}>₡{calculatePrice()}</Text>
+                                </View>
+                            </View>
+                        </View>
+                    )}
 
+                    <TouchableOpacity
+                        style={[styles.publishBtn, loading && { opacity: 0.7 }]}
+                        onPress={handlePublish}
+                        disabled={loading || calculatingRoute}
+                    >
+                        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.publishBtnText}>Publicar Viaje</Text>}
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
 
-            {/* Selectores nativos ocultos (se disparan vía estado) */}
-            {mostrarCalendario && (
+            {/* Date Pickers */}
+            {(mostrarCalendario || mostrarHora) && (
                 <DateTimePicker
-                    value={fechaSeleccionada || new Date()}
-                    mode="date"
+                    value={(mostrarHora ? horaSeleccionada : fechaSeleccionada) || new Date()}
+                    mode={mostrarCalendario ? "date" : "time"}
                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                     minimumDate={new Date()}
-                    onChange={onCambiarFecha}
+                    onChange={(event, date) => {
+                        if (Platform.OS === 'android') {
+                            setMostrarCalendario(false);
+                            setMostrarHora(false);
+                        }
+                        if (date) {
+                            if (mostrarCalendario) {
+                                setFechaSeleccionada(date);
+                                if (Platform.OS === 'android') setTimeout(() => setMostrarHora(true), 100);
+                            } else {
+                                setHoraSeleccionada(date);
+                            }
+                        }
+                    }}
                 />
             )}
-            
-            {/* Confirmación manual necesaria para iOS */}
-            {mostrarCalendario && Platform.OS === 'ios' && (
-                <TouchableOpacity style={styles.iosConfirmButton} onPress={() => { setMostrarCalendario(false); setMostrarHora(true); }}>
-                    <Text style={styles.iosConfirmText}>Siguiente: Elegir hora</Text>
+
+            {/* iOS Confirmación para DatePicker */}
+            {Platform.OS === 'ios' && (mostrarCalendario || mostrarHora) && (
+                <TouchableOpacity
+                    style={styles.iosConfirm}
+                    onPress={() => {
+                        if (mostrarCalendario) {
+                            setMostrarCalendario(false);
+                            setMostrarHora(true);
+                        } else {
+                            setMostrarHora(false);
+                        }
+                    }}
+                >
+                    <Text style={styles.iosConfirmText}>
+                        {mostrarCalendario ? "Siguiente: Hora" : "Confirmar Hora"}
+                    </Text>
                 </TouchableOpacity>
             )}
 
-            {mostrarHora && (
-                <DateTimePicker
-                    value={horaSeleccionada || new Date()}
-                    mode="time"
-                    is24Hour={false}
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={onCambiarHora}
-                />
-            )}
-            
-            {mostrarHora && Platform.OS === 'ios' && (
-                <TouchableOpacity style={styles.iosConfirmButton} onPress={() => setMostrarHora(false)}>
-                    <Text style={styles.iosConfirmText}>Confirmar hora</Text>
-                </TouchableOpacity>
-            )}
+            <LocationPicker
+                visible={pickerVisible}
+                onClose={() => setPickerVisible(false)}
+                title={pickingFor === 'origin' ? "Punto de Inicio" : "Punto de Destino"}
+                onSelect={handleLocationSelect}
+            />
 
-            {/* Navegación inferior fija en la parte baja de la pantalla */}
             <BottomNavigationDriver navigation={navigation} activeTab="Viajes" />
-
         </SafeAreaView>
     );
 };
 
-// --- DEFINICIÓN DE ESTILOS ---
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#F8F9FA',
-    },
-    // Título de fondo centrado
-    backgroundTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#C0C0C0',
-        textAlign: 'center', // Centrado horizontal
-        paddingHorizontal: 20,
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 20 : 20,
-        marginBottom: 10,
-    },
-    scrollView: {
-        flex: 1,
-    },
-    content: {
-        paddingHorizontal: 20,
-        paddingBottom: 40,
-    },
-    card: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 20,
+    safeArea: { flex: 1, backgroundColor: '#F8F9FA' },
+    backgroundTitle: { fontSize: 22, fontWeight: 'bold', color: '#1A2B4C', textAlign: 'center', marginTop: 20 },
+    content: { padding: 20, paddingBottom: 100 },
+    card: { backgroundColor: '#FFF', borderRadius: 20, padding: 20, elevation: 5, shadowOpacity: 0.1 },
+    cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
+    backButton: { position: 'absolute', left: 0 },
+    cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+    divider: { height: 1, backgroundColor: '#EEE', marginBottom: 20 },
+    verticalDivider: { height: 1, backgroundColor: '#EEE', marginVertical: 12 },
+    locationBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 15,
+        backgroundColor: '#F5F7FA',
+        borderRadius: 12,
+        marginBottom: 12,
         borderWidth: 1,
         borderColor: '#EFEFEF',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 3,
-        minHeight: 520,
+        gap: 15
     },
-    cardHeader: {
+    locationBtnTextContainer: { flex: 1 },
+    locationLabel: { fontSize: 12, color: '#999', marginBottom: 2 },
+    locationValue: { fontSize: 15, color: '#333', fontWeight: '500' },
+    inputError: { borderColor: '#f53333' },
+    pickerWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 20,
-        position: 'relative',
-    },
-    backButton: {
-        position: 'absolute',
-        left: 0,
-        padding: 5,
-    },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1A2B4C',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: '#F0F0F0',
-        marginBottom: 25,
-        marginHorizontal: -20,
-    },
-    inputWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#E5E5E5',
-        borderRadius: 8,
+        backgroundColor: '#F5F7FA',
+        borderRadius: 12,
         paddingHorizontal: 15,
-        height: 52,
-        marginBottom: 16,
-        backgroundColor: '#FFFFFF',
-    },
-    inputError: {
-        borderColor: '#f53333',
-        backgroundColor: 'rgba(245, 51, 51, 0.02)',
-    },
-    inputIcon: {
-        marginRight: 12,
-    },
-    input: {
-        flex: 1,
-        fontSize: 15,
-        color: '#333',
-        height: '100%',
-    },
-    picker: {
-        flex: 1,
-        height: 52,
-        color: '#333',
-        marginLeft: -10, // Ajuste para alinear con otros campos
-    },
-    inputText: {
-        flex: 1,
-        fontSize: 15,
-        color: '#333',
-    },
-    buttonContainer: {
-        flex: 1,
-        justifyContent: 'flex-end',
-        marginTop: 40,
-    },
-    publishButton: {
-        backgroundColor: '#2D63ED',
-        borderRadius: 8,
         height: 54,
-        alignItems: 'center',
-        justifyContent: 'center',
+        marginBottom: 20
     },
-    publishButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    iosConfirmButton: {
-        backgroundColor: '#2D63ED',
+    picker: { flex: 1, marginLeft: -10 },
+    summaryCard: {
+        backgroundColor: '#2D63ED10',
+        borderRadius: 15,
         padding: 15,
-        alignItems: 'center',
-        marginHorizontal: 20,
-        borderRadius: 10,
         marginBottom: 20,
+        borderWidth: 1,
+        borderColor: '#2D63ED20'
     },
-    iosConfirmText: {
-        color: '#FFF',
-        fontWeight: 'bold',
-        fontSize: 16,
-    }
+    summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
+    summaryItem: { alignItems: 'center' },
+    summaryLabel: { fontSize: 11, color: '#666', textTransform: 'uppercase' },
+    summaryValue: { fontSize: 15, fontWeight: 'bold', color: '#1A2B4C' },
+    summaryPrice: { fontSize: 16, fontWeight: 'bold', color: '#25C460' },
+    publishBtn: {
+        backgroundColor: '#2D63ED',
+        paddingVertical: 16,
+        borderRadius: 12,
+        alignItems: 'center'
+    },
+    publishBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+    iosConfirm: { backgroundColor: '#2D63ED', padding: 15, borderRadius: 10, marginHorizontal: 20, marginBottom: 20 },
+    iosConfirmText: { color: '#FFF', textAlign: 'center', fontWeight: 'bold' }
 });
 
 export default PublishRide;
