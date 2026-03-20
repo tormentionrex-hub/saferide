@@ -22,7 +22,8 @@ import Metrics from './src/screens/pasajero/Metrics';
 import PublishRide from './src/screens/conductor/PublishRide';
 import ManageRequests from './src/screens/conductor/ManageRequests';
 import DriverMetrics from './src/screens/conductor/DriverMetrics';
-import SettingConductor from './src/screens/conductor/SettingConductor';
+import AjustesConductor from './src/screens/conductor/AjustesConductor';
+import ProfileConductor from './src/screens/conductor/ProfileConductor';
 import ListOfDrivers from './src/screens/pasajero/ListOfDrivers';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -63,7 +64,6 @@ function MainTabsDriver() {
       <Tab.Screen name="PublishRide" component={PublishRide} />
       <Tab.Screen name="ManageRequests" component={ManageRequests} />
       <Tab.Screen name="DriverMetrics" component={DriverMetrics} />
-      <Tab.Screen name="SettingConductor" component={SettingConductor} />
     </Tab.Navigator>
   );
 }
@@ -149,11 +149,14 @@ export default function App() {
           }}
         />
 
+        <Stack.Screen name="AjustesConductor" component={AjustesConductor} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="ProfileConductor" component={ProfileConductor}  options={{ animation: 'slide_from_right' }} />
+
         <Stack.Screen
           name="Home"
           component={ApiHealthCheckScreen}
-          options={{ 
-            title: 'Dashboard', 
+          options={{
+            title: 'Dashboard',
             headerBackVisible: false,
             animation: 'slide_from_left'
           }}

@@ -15,7 +15,6 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
         else if (routeName === 'PublishRide') currentTab = 'Viajes';
         else if (routeName === 'ManageRequests') currentTab = 'Mensajes';
         else if (routeName === 'DriverMetrics') currentTab = 'Perfil';
-        else if (routeName === 'SettingConductor') currentTab = 'Configuraciones';
     }
 
     const getColor = (tabName) => currentTab === tabName ? theme.navActive : theme.navInactive;
@@ -97,19 +96,6 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                     size={24} color={getColor('Perfil')} 
                 />
                 <Text style={[styles.navText, { color: getColor('Perfil') }]}>Perfil</Text>
-            </TouchableOpacity>
-
-            {/* 5. BOTÓN: CONFIGURACIONES */}
-            <TouchableOpacity 
-                style={styles.navItem} 
-                activeOpacity={0.6}
-                onPress={() => navigateTo('SettingConductor')}
-            >
-                <Ionicons 
-                    name={currentTab === 'Configuraciones' ? "settings" : "settings-outline"} 
-                    size={24} color={getColor('Configuraciones')} 
-                />
-                <Text style={[styles.navText, { color: getColor('Configuraciones') }]}>Ajustes</Text>
             </TouchableOpacity>
 
         </View>

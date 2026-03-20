@@ -4,7 +4,6 @@ import {
     Text,
     View,
     TouchableOpacity,
-    Image,
     SafeAreaView,
     ScrollView,
     Animated,
@@ -15,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import SettingsGearButton from '../../components/SettingsGearButton';
 
 export default function DashboardConductor({ route, navigation }) {
     const { theme } = useDriverTheme();
@@ -45,17 +45,14 @@ export default function DashboardConductor({ route, navigation }) {
 
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={[styles.welcomeText, { color: theme.text }]}>Hola, {userName}</Text>
-                        <View style={styles.headerIcons}>
+                        <View style={styles.headerLeft}>
+                            <Text style={[styles.welcomeText, { color: theme.text }]}>Hola, {userName}</Text>
                             <TouchableOpacity style={styles.iconButton}>
-                                <Ionicons name="notifications-outline" size={26} color={theme.text} />
+                                <Ionicons name="notifications-outline" size={24} color={theme.text} />
                                 <View style={[styles.notificationDot, { backgroundColor: theme.accent, borderColor: theme.bg }]} />
                             </TouchableOpacity>
-                            <Image
-                                source={{ uri: 'https://i.pravatar.cc/150?u=carlos' }}
-                                style={styles.profileImage}
-                            />
                         </View>
+                        <SettingsGearButton navigation={navigation} color={theme.text} />
                     </View>
 
                     {/* Card Principal: Publicar Viaje */}
@@ -115,7 +112,7 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 24,
-        paddingTop: 20,
+        paddingTop: 40,
         paddingBottom: 40,
     },
     header: {
@@ -129,30 +126,22 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#111827',
     },
-    headerIcons: {
+    headerLeft: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 10,
     },
     iconButton: {
-        marginRight: 16,
         position: 'relative',
     },
     notificationDot: {
         position: 'absolute',
         top: 2,
         right: 2,
-        width: 10,
-        height: 10,
-        backgroundColor: '#2563EB',
-        borderRadius: 5,
-        borderWidth: 2,
-        borderColor: '#ffffff',
-    },
-    profileImage: {
-        width: 45,
-        height: 45,
-        borderRadius: 22.5,
-        backgroundColor: '#e5e7eb',
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        borderWidth: 1.5,
     },
     // Card Grande (Publicar Viaje)
     mainCard: {
