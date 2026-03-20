@@ -1,14 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-
+import { View, Text, StyleSheet, StatusBar } from 'react-native';
+import { useDriverTheme } from '../../context/DriverThemeContext';
 
 const SettingPasajero = ({ navigation }) => {
+    const { theme } = useDriverTheme();
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.bg }]}>
+             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             <View style={styles.content}>
-                <Text style={styles.text}>Yo soy el screen de Configuración</Text>
+                <Text style={[styles.text, { color: theme.text }]}>Yo soy el screen de Configuración</Text>
             </View>
-
         </View>
     );
 };
@@ -16,7 +17,6 @@ const SettingPasajero = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
     },
     content: {
         flex: 1,
@@ -25,7 +25,6 @@ const styles = StyleSheet.create({
     },
     text: {
         fontSize: 18,
-        color: '#045084',
         fontFamily: 'Poppins-Bold',
     },
 });
