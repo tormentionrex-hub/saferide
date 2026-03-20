@@ -2,10 +2,20 @@ import { View, Text, StyleSheet, StatusBar, TouchableOpacity } from 'react-nativ
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import { uploadToCloudinary } from '../../Cloudinary/Cloudinary';
 
 const ProfileConductor = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const { theme } = useDriverTheme();
+
+    const handleUpload = async () => {
+        if (!imagen) return alert("Selecciona un archivo primero");
+
+        const res = await uploadToCloudinary(imagen);
+        console.log(res);
+        setUrl(res.secure_url); // obtenemos el link de Cloudinary
+        return res;
+    };
 
     return (
         <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]}>
@@ -37,7 +47,7 @@ const styles = StyleSheet.create({
         paddingBottom: 14,
         borderBottomWidth: 1,
     },
-    backBtn:     { position: 'absolute', left: 16 },
+    backBtn: { position: 'absolute', left: 16 },
     headerTitle: { fontSize: 18, fontFamily: 'Poppins-Bold' },
     center: {
         flex: 1,
