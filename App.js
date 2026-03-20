@@ -47,7 +47,6 @@ function MainTabsPasajero() {
       <Tab.Screen name="SearchRide" component={SearchRide} />
       <Tab.Screen name="History" component={History} />
       <Tab.Screen name="Metrics" component={Metrics} />
-      <Tab.Screen name="SettingPasajero" component={SettingPasajero} />
       <Tab.Screen name="ListOfDrivers" component={ListOfDrivers} />
     </Tab.Navigator>
   );
