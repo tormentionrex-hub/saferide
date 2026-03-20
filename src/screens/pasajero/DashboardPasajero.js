@@ -72,6 +72,7 @@ const DashboardPasajero = ({ navigation, route }) => {
     return (
         <Animated.View style={[styles.safeAreaWrapper, { backgroundColor: theme.bg }]}>
         <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
+
             {/* Barra de estado adaptativa */}
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             
@@ -93,6 +94,7 @@ const DashboardPasajero = ({ navigation, route }) => {
 
             {/* Contenido principal del Dashboard */}
             <View style={styles.content}>
+
                 {/* Saludo dinámico al usuario */}
                 <Text style={[styles.greeting, { color: theme.text }]}>Hola, {userName}</Text>
 
@@ -133,7 +135,7 @@ const DashboardPasajero = ({ navigation, route }) => {
                             style={styles.modalOption}
                             onPress={() => {
                                 toggleModal();
-                                navigation.navigate('ProfilePasajero'); 
+                                navigation.navigate('PasajeroProfileScreen'); 
                             }}
                         >
                             <Ionicons name="person-outline" size={22} color={theme.text} />

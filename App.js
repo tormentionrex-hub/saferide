@@ -18,14 +18,13 @@ import DashboardPasajero from './src/screens/pasajero/DashboardPasajero';
 import DashboardDriver from './src/screens/conductor/DashboardDriver';
 import SearchRide from './src/screens/pasajero/SearchRide';
 import History from './src/screens/pasajero/History';
-import SettingPasajero from './src/screens/pasajero/SettingPasajero';
 import Metrics from './src/screens/pasajero/Metrics';
 import PublishRide from './src/screens/conductor/PublishRide';
 import ManageRequests from './src/screens/conductor/ManageRequests';
 import DriverMetrics from './src/screens/conductor/DriverMetrics';
 import SettingConductor from './src/screens/conductor/SettingConductor';
 import ListOfDrivers from './src/screens/pasajero/ListOfDrivers';
-import MyProfileScreen from './src/screens/pasajero/MyProfileScreen';
+import PasajeroProfileScreen from './src/screens/pasajero/PasajeroProfileScreen';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BottomNavigationBar from './src/components/BottomNavigationBar';
@@ -48,6 +47,7 @@ function MainTabsPasajero() {
       <Tab.Screen name="History" component={History} />
       <Tab.Screen name="Metrics" component={Metrics} />
       <Tab.Screen name="ListOfDrivers" component={ListOfDrivers} />
+      <Tab.Screen name="PasajeroProfileScreen" component={PasajeroProfileScreen} />
     </Tab.Navigator>
   );
 }
@@ -162,7 +162,7 @@ export default function App() {
 
         <Stack.Screen
           name="MyProfile"
-          component={MyProfileScreen}
+          component={PasajeroProfileScreen}
           options={{ 
             headerShown: false,
             animation: 'slide_from_right'
