@@ -172,8 +172,8 @@ const DashboardPasajero = ({ navigation, route }) => {
                                 <View style={[styles.iconCircle, { backgroundColor: theme.surface }]}>
                                     <Ionicons name="color-palette-outline" size={28} color={theme.accent} />
                                 </View>
-                                <Text style={[styles.optionLabel, { color: theme.text }]}>Personalizar apariencia</Text>
-                                <Text style={[styles.optionSub, { color: theme.textSecondary }]}>Colores y Temas</Text>
+                                <Text style={[styles.optionLabel, { color: theme.text }]}>Personalizar tu app</Text>
+                                <Text style={[styles.optionSub, { color: theme.textSecondary }]}>Apariencia y permisos</Text>
                             </TouchableOpacity>
                         </View>
 
