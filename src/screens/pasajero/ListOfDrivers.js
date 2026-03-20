@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, StatusBar, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import BottomNavigationBar from '../../components/BottomNavigationBar';
+
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
 // Screen para mostrar la lista de conductores que coinciden con la búsqueda
@@ -85,8 +85,6 @@ const ListOfDrivers = ({ route, navigation }) => {
                 )}
             </View>
 
-            {/* Componente de navegación inferior */}
-            <BottomNavigationBar navigation={navigation} />
         </SafeAreaView>
     );
 };

@@ -6,7 +6,7 @@ import {
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import BottomNavigationBar from '../../components/BottomNavigationBar';
+
 import { API_URL } from '../../config';
 import { getCurrentLocation, reverseGeocode } from '../../services/locationService';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
@@ -338,7 +338,6 @@ const SearchRide = ({ navigation }) => {
             <ScrollIndicator si={si} thumbColor="#045084" />
             </View>
 
-            <BottomNavigationBar navigation={navigation} />
         </SafeAreaView>
     );
 };

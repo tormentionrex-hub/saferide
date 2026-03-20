@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LineChart } from 'react-native-chart-kit';
-import BottomNavigationDriver from '../../components/BottomNavigationDriver';
+
 import api from '../../services/api';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
@@ -193,7 +193,7 @@ const DriverMetrics = ({ navigation }) => {
                 )}
             </View>
 
-            <BottomNavigationDriver navigation={navigation} activeTab="Perfil" />
+
         </SafeAreaView>
     );
 };

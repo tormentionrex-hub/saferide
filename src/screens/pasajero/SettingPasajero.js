@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import BottomNavigationBar from '../../components/BottomNavigationBar';
+
 
 const SettingPasajero = ({ navigation }) => {
     return (
@@ -8,7 +8,7 @@ const SettingPasajero = ({ navigation }) => {
             <View style={styles.content}>
                 <Text style={styles.text}>Yo soy el screen de Configuración</Text>
             </View>
-            <BottomNavigationBar navigation={navigation} />
+
         </View>
     );
 };

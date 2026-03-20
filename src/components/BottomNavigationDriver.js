@@ -3,11 +3,38 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDriverTheme } from '../context/DriverThemeContext';
 
-const BottomNavigationBarAlt = ({ navigation, activeTab = 'Inicio' }) => {
+const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: manualActiveTab }) => {
     const insets = useSafeAreaInsets();
     const { theme } = useDriverTheme();
 
-    const getColor = (tabName) => activeTab === tabName ? theme.navActive : theme.navInactive;
+    // Determinar la pestaña activa
+    let currentTab = manualActiveTab || 'Inicio';
+    if (state) {
+        const routeName = state.routes[state.index].name;
+        if (routeName === 'DashboardDriver') currentTab = 'Inicio';
+        else if (routeName === 'PublishRide') currentTab = 'Viajes';
+        else if (routeName === 'ManageRequests') currentTab = 'Mensajes';
+        else if (routeName === 'DriverMetrics') currentTab = 'Perfil';
+        else if (routeName === 'SettingConductor') currentTab = 'Configuraciones';
+    }
+
+    const getColor = (tabName) => currentTab === tabName ? theme.navActive : theme.navInactive;
+
+    const navigateTo = (routeName) => {
+        if (state) {
+            const event = navigation.emit({
+                type: 'tabPress',
+                target: routeName,
+                canPreventDefault: true,
+            });
+
+            if (currentTab !== routeName && !event.defaultPrevented) {
+                navigation.navigate(routeName);
+            }
+        } else {
+            navigation.navigate(routeName);
+        }
+    };
 
     return (
         <View style={[
@@ -24,10 +51,10 @@ const BottomNavigationBarAlt = ({ navigation, activeTab = 'Inicio' }) => {
             <TouchableOpacity 
                 style={styles.navItem} 
                 activeOpacity={0.6}
-                onPress={() => navigation.navigate('DashboardDriver')}
+                onPress={() => navigateTo('DashboardDriver')}
             >
                 <Ionicons 
-                    name={activeTab === 'Inicio' ? "home" : "home-outline"} 
+                    name={currentTab === 'Inicio' ? "home" : "home-outline"} 
                     size={24} color={getColor('Inicio')} 
                 />
                 <Text style={[styles.navText, { color: getColor('Inicio') }]}>Inicio</Text>
@@ -37,10 +64,10 @@ const BottomNavigationBarAlt = ({ navigation, activeTab = 'Inicio' }) => {
             <TouchableOpacity 
                 style={styles.navItem} 
                 activeOpacity={0.6}
-                onPress={() => navigation.navigate('PublishRide')}
+                onPress={() => navigateTo('PublishRide')}
             >
                 <Ionicons 
-                    name={activeTab === 'Viajes' ? "map" : "map-outline"} 
+                    name={currentTab === 'Viajes' ? "map" : "map-outline"} 
                     size={24} color={getColor('Viajes')} 
                 />
                 <Text style={[styles.navText, { color: getColor('Viajes') }]}>Viajes</Text>
@@ -50,10 +77,10 @@ const BottomNavigationBarAlt = ({ navigation, activeTab = 'Inicio' }) => {
             <TouchableOpacity 
                 style={styles.navItem} 
                 activeOpacity={0.6}
-                onPress={() => navigation.navigate('ManageRequests')}
+                onPress={() => navigateTo('ManageRequests')}
             >
                 <Ionicons 
-                    name={activeTab === 'Mensajes' ? "chatbox" : "chatbox-outline"} 
+                    name={currentTab === 'Mensajes' ? "chatbox" : "chatbox-outline"} 
                     size={24} color={getColor('Mensajes')} 
                 />
                 <Text style={[styles.navText, { color: getColor('Mensajes') }]}>Mensajes</Text>
@@ -63,10 +90,10 @@ const BottomNavigationBarAlt = ({ navigation, activeTab = 'Inicio' }) => {
             <TouchableOpacity 
                 style={styles.navItem} 
                 activeOpacity={0.6}
-                onPress={() => navigation.navigate('DriverMetrics')}
+                onPress={() => navigateTo('DriverMetrics')}
             >
                 <Ionicons 
-                    name={activeTab === 'Perfil' ? "person" : "person-outline"} 
+                    name={currentTab === 'Perfil' ? "person" : "person-outline"} 
                     size={24} color={getColor('Perfil')} 
                 />
                 <Text style={[styles.navText, { color: getColor('Perfil') }]}>Perfil</Text>
@@ -76,10 +103,10 @@ const BottomNavigationBarAlt = ({ navigation, activeTab = 'Inicio' }) => {
             <TouchableOpacity 
                 style={styles.navItem} 
                 activeOpacity={0.6}
-                onPress={() => navigation.navigate('SettingConductor')}
+                onPress={() => navigateTo('SettingConductor')}
             >
                 <Ionicons 
-                    name={activeTab === 'Configuraciones' ? "settings" : "settings-outline"} 
+                    name={currentTab === 'Configuraciones' ? "settings" : "settings-outline"} 
                     size={24} color={getColor('Configuraciones')} 
                 />
                 <Text style={[styles.navText, { color: getColor('Configuraciones') }]}>Ajustes</Text>
