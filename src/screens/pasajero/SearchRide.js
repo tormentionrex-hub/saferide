@@ -1,131 +1,159 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, StatusBar, Platform, ScrollView } from 'react-native';
+import React, { useState, useRef } from 'react';
+import {
+    View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
+    Alert, SafeAreaView, StatusBar, Platform, ScrollView
+} from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
 import { API_URL } from '../../config';
+import { getCurrentLocation, reverseGeocode } from '../../services/locationService';
+
+const REGION_SAN_JOSE = {
+    latitude: 9.9281,
+    longitude: -84.0907,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+};
 
 const SearchRide = ({ navigation }) => {
-    // Estados para almacenar los campos del pasajero
-    const [origen, setOrigen] = useState('');
-    const [destino, setDestino] = useState('');
-    const [fechaSeleccionada, setFechaSeleccionada] = useState(null); // Objeto Date del calendario
-    const [mostrarCalendario, setMostrarCalendario] = useState(false); // Controla la visibilidad del calendario
-    const [loading, setLoading] = useState(false);
-    const [errors, setErrors] = useState({}); // Objeto que acumula los errores por campo
+    const mapRef = useRef(null);
 
-    // Convierte un objeto Date a string en formato YYYY-MM-DD para el API
+    // Coordenadas seleccionadas en el mapa
+    const [origenCoords, setOrigenCoords] = useState(null);
+    const [destinoCoords, setDestinoCoords] = useState(null);
+
+    // Nombres legibles de cada punto
+    const [origenNombre, setOrigenNombre] = useState('');
+    const [destinoNombre, setDestinoNombre] = useState('');
+
+    // Cuál punto está seleccionando el usuario al tocar el mapa
+    const [seleccionando, setSeleccionando] = useState('origen'); // 'origen' | 'destino'
+
+    const [region, setRegion] = useState(REGION_SAN_JOSE);
+    const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
+    const [mostrarCalendario, setMostrarCalendario] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [gpsLoading, setGpsLoading] = useState(false);
+    const [errors, setErrors] = useState({});
+
+    // ─── Formatos de fecha ───────────────────────────────────────────────────
     const formatearFecha = (date) => {
         if (!date) return '';
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     };
 
-    // Texto amigable de la fecha para mostrar al usuario (DD/MM/YYYY)
     const formatearFechaDisplay = (date) => {
         if (!date) return 'Seleccionar fecha';
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
+        const d = String(date.getDate()).padStart(2, '0');
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        return `${d}/${m}/${date.getFullYear()}`;
     };
 
-    // Verifica si la fecha seleccionada es hoy o en el futuro
     const esFechaValida = () => {
         if (!fechaSeleccionada) return false;
-        
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
-        
-        const seleccionada = new Date(fechaSeleccionada);
-        seleccionada.setHours(0, 0, 0, 0);
-
-        return seleccionada >= hoy;
+        const sel = new Date(fechaSeleccionada);
+        sel.setHours(0, 0, 0, 0);
+        return sel >= hoy;
     };
 
-    // Se ejecuta cuando el usuario selecciona una fecha en el calendario
     const onCambiarFecha = (event, selectedDate) => {
-        // En Android el picker se cierra solo; en iOS permanece visible
-        if (Platform.OS === 'android') {
-            setMostrarCalendario(false);
-        }
-        if (selectedDate) {
-            setFechaSeleccionada(selectedDate);
+        if (Platform.OS === 'android') setMostrarCalendario(false);
+        if (selectedDate) setFechaSeleccionada(selectedDate);
+    };
+
+    // ─── Toque en el mapa ────────────────────────────────────────────────────
+    const handleMapPress = async (e) => {
+        const { latitude, longitude } = e.nativeEvent.coordinate;
+        const geoResult = await reverseGeocode(latitude, longitude);
+        const nombre = geoResult?.name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+
+        if (seleccionando === 'origen') {
+            setOrigenCoords({ latitude, longitude });
+            setOrigenNombre(nombre);
+            setErrors(prev => ({ ...prev, origen: null }));
+            // Automáticamente pasar a seleccionar destino
+            setSeleccionando('destino');
+        } else {
+            setDestinoCoords({ latitude, longitude });
+            setDestinoNombre(nombre);
+            setErrors(prev => ({ ...prev, destino: null }));
         }
     };
 
-    // Función que se ejecuta al presionar el botón "Buscar"
-    const handleSearch = async () => {
-        // --- Validación inline (igual a CreatePasswordScreen): todos los campos son obligatorios ---
-        const newErrors = {};
-
-        if (!origen.trim()) {
-            newErrors.origen = 'El origen del viaje es requerido.';
-        }
-        if (!destino.trim()) {
-            newErrors.destino = 'El destino del viaje es requerido.';
-        }
-        if (!fechaSeleccionada) {
-            newErrors.fecha = 'Por favor selecciona una fecha.';
-        }
-
-        // Validación de fecha en el pasado
-        if (fechaSeleccionada && !esFechaValida()) {
-            newErrors.fecha = 'La fecha seleccionada ya pasó. Elige un momento futuro.';
-        }
-
-        // Si hay errores, los mostramos y no continuamos
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            return;
-        }
-
-        // Si pasó todas las validaciones, limpiamos los errores
-        setErrors({});
-
-        setLoading(true);
+    // ─── Botón GPS ───────────────────────────────────────────────────────────
+    const handleGPS = async () => {
+        setGpsLoading(true);
         try {
-            // Construimos los parámetros de búsqueda de acuerdo al API
-            const queryParams = new URLSearchParams();
-            // El backend espera coordenadas en formato "lat,lng" para origen y destino
-            if (origen) queryParams.append('origin', origen);
-            if (destino) queryParams.append('destination', destino);
-            // Convertimos el Date seleccionado a formato YYYY-MM-DD para el backend
-            const fechaStr = formatearFecha(fechaSeleccionada);
-            if (fechaStr) queryParams.append('date', fechaStr);
+            const location = await getCurrentLocation();
+            if (!location) {
+                Alert.alert('Sin permiso', 'No se pudo obtener la ubicación. Verifica los permisos de la app.');
+                return;
+            }
+            const { lat, lng } = location;
+            const geoResult = await reverseGeocode(lat, lng);
+            const nombre = geoResult?.name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 
-            const url = `${API_URL}/rides?${queryParams.toString()}`;
+            setOrigenCoords({ latitude: lat, longitude: lng });
+            setOrigenNombre(nombre);
+            setErrors(prev => ({ ...prev, origen: null }));
+            setSeleccionando('destino');
 
-            // Timeout de 10 segundos para evitar que se quede pensando indefinidamente
+            const newRegion = { latitude: lat, longitude: lng, latitudeDelta: 0.02, longitudeDelta: 0.02 };
+            setRegion(newRegion);
+            mapRef.current?.animateToRegion(newRegion, 800);
+        } finally {
+            setGpsLoading(false);
+        }
+    };
+
+    // ─── Búsqueda ────────────────────────────────────────────────────────────
+    const handleSearch = async () => {
+        const newErrors = {};
+        if (!origenCoords) newErrors.origen = 'Selecciona el origen tocando el mapa o usando el GPS.';
+        if (!destinoCoords) newErrors.destino = 'Selecciona el destino tocando el mapa.';
+        if (!fechaSeleccionada) newErrors.fecha = 'Por favor selecciona una fecha.';
+        if (fechaSeleccionada && !esFechaValida()) newErrors.fecha = 'La fecha ya pasó. Elige una futura.';
+
+        if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
+        setErrors({});
+        setLoading(true);
+
+        try {
+            const params = new URLSearchParams();
+            params.append('origin', `${origenCoords.latitude},${origenCoords.longitude}`);
+            params.append('destination', `${destinoCoords.latitude},${destinoCoords.longitude}`);
+            params.append('date', formatearFecha(fechaSeleccionada));
+
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-            const response = await fetch(url, {
+            const response = await fetch(`${API_URL}/rides?${params.toString()}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
-                signal: controller.signal
+                signal: controller.signal,
             });
             clearTimeout(timeoutId);
 
-            // Verificamos si la respuesta HTTP fue exitosa (status 2xx) antes de parsear
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                Alert.alert('Error', errorData.message || `Error del servidor (${response.status})`);
+                const err = await response.json().catch(() => ({}));
+                Alert.alert('Error', err.message || `Error del servidor (${response.status})`);
                 return;
             }
 
             const result = await response.json();
-
             if (result.success) {
-                // Redirige al nuevo screen con los resultados de la búsqueda
                 navigation.navigate('ListOfDrivers', { rides: result.data || [] });
             } else {
                 Alert.alert('Error', result.message || 'No se pudo obtener los viajes.');
             }
         } catch (error) {
-            console.error('Error fetching rides:', error);
             if (error.name === 'AbortError') {
                 Alert.alert('Error de Conexión', 'El servidor tardó mucho en responder.');
             } else {
@@ -140,55 +168,133 @@ const SearchRide = ({ navigation }) => {
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="dark-content" />
 
-            {/* Encabezado: muestra "Buscar Viaje" en lugar de "Saferide" */}
+            {/* ENCABEZADO */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Buscar Viaje</Text>
             </View>
 
-            {/* ScrollView para evitar que el teclado tape los campos en pantallas pequeñas */}
+            {/* MAPA */}
+            <View style={styles.mapContainer}>
+                <MapView
+                    ref={mapRef}
+                    style={styles.map}
+                    provider={PROVIDER_GOOGLE}
+                    initialRegion={REGION_SAN_JOSE}
+                    region={region}
+                    onPress={handleMapPress}
+                    showsUserLocation={true}
+                    showsMyLocationButton={false}
+                >
+                    {origenCoords && (
+                        <Marker
+                            coordinate={origenCoords}
+                            pinColor="#045084"
+                            title="Origen"
+                            description={origenNombre}
+                        />
+                    )}
+                    {destinoCoords && (
+                        <Marker
+                            coordinate={destinoCoords}
+                            pinColor="#FF5A5F"
+                            title="Destino"
+                            description={destinoNombre}
+                        />
+                    )}
+                </MapView>
+
+                {/* Botón GPS */}
+                <TouchableOpacity style={styles.gpsButton} onPress={handleGPS} disabled={gpsLoading}>
+                    {gpsLoading
+                        ? <ActivityIndicator color="#045084" size="small" />
+                        : <Ionicons name="locate" size={24} color="#045084" />
+                    }
+                </TouchableOpacity>
+
+                {/* Indicador de modo activo */}
+                <View style={styles.modeIndicator}>
+                    <Ionicons
+                        name="radio-button-on"
+                        size={12}
+                        color={seleccionando === 'origen' ? '#045084' : '#FF5A5F'}
+                    />
+                    <Text style={styles.modeText}>
+                        Tocando:{' '}
+                        <Text style={{ fontWeight: 'bold', color: seleccionando === 'origen' ? '#045084' : '#FF5A5F' }}>
+                            {seleccionando === 'origen' ? 'Origen' : 'Destino'}
+                        </Text>
+                    </Text>
+                </View>
+            </View>
+
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.content}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
             >
-                {/* Input de Origen con validación inline */}
-                <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Origen</Text>
-                    <TextInput
-                        style={[styles.input, errors.origen && styles.inputError]}
-                        value={origen}
-                        onChangeText={(text) => {
-                            setOrigen(text);
-                            // Limpia el error del campo en cuanto el usuario escribe
-                            if (errors.origen) setErrors({ ...errors, origen: null });
-                        }}
-                        placeholder="Ej: 9.928,-84.090 (lat,lng)"
-                        placeholderTextColor="#999"
-                    />
-                    {errors.origen && <Text style={styles.errorText}>{errors.origen}</Text>}
+                {/* Botones de selección Origen / Destino */}
+                <View style={styles.selectorRow}>
+                    <TouchableOpacity
+                        style={[styles.selectorBtn, seleccionando === 'origen' && styles.selectorBtnBlue]}
+                        onPress={() => setSeleccionando('origen')}
+                    >
+                        <Ionicons name="radio-button-on" size={14} color={seleccionando === 'origen' ? '#fff' : '#045084'} />
+                        <Text style={[styles.selectorText, seleccionando === 'origen' && styles.selectorTextActive]}>
+                            Origen
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.selectorBtn, seleccionando === 'destino' && styles.selectorBtnRed]}
+                        onPress={() => setSeleccionando('destino')}
+                    >
+                        <Ionicons name="radio-button-on" size={14} color={seleccionando === 'destino' ? '#fff' : '#FF5A5F'} />
+                        <Text style={[styles.selectorText, seleccionando === 'destino' && styles.selectorTextActive]}>
+                            Destino
+                        </Text>
+                    </TouchableOpacity>
                 </View>
 
-                {/* Input de Destino con validación inline */}
-                <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Destino</Text>
-                    <TextInput
-                        style={[styles.input, errors.destino && styles.inputError]}
-                        value={destino}
-                        onChangeText={(text) => {
-                            setDestino(text);
-                            if (errors.destino) setErrors({ ...errors, destino: null });
-                        }}
-                        placeholder="Ej: 9.933,-84.083 (lat,lng)"
-                        placeholderTextColor="#999"
-                    />
-                    {errors.destino && <Text style={styles.errorText}>{errors.destino}</Text>}
+                {/* Tarjeta de Origen */}
+                <View style={styles.coordCard}>
+                    <View style={[styles.coordDot, { backgroundColor: '#045084' }]} />
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.coordLabel}>ORIGEN</Text>
+                        <Text style={styles.coordName} numberOfLines={1}>
+                            {origenNombre || 'No seleccionado'}
+                        </Text>
+                        {origenCoords && (
+                            <Text style={styles.coordValue}>
+                                {origenCoords.latitude.toFixed(6)}, {origenCoords.longitude.toFixed(6)}
+                            </Text>
+                        )}
+                    </View>
+                    {origenCoords && <Ionicons name="checkmark-circle" size={20} color="#045084" />}
                 </View>
+                {errors.origen && <Text style={styles.errorText}>{errors.origen}</Text>}
 
-                {/* --- Selector de Fecha --- */}
-                <View style={styles.inputContainer}>
+                {/* Tarjeta de Destino */}
+                <View style={[styles.coordCard, { marginTop: 8 }]}>
+                    <View style={[styles.coordDot, { backgroundColor: '#FF5A5F' }]} />
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.coordLabel}>DESTINO</Text>
+                        <Text style={styles.coordName} numberOfLines={1}>
+                            {destinoNombre || 'No seleccionado'}
+                        </Text>
+                        {destinoCoords && (
+                            <Text style={styles.coordValue}>
+                                {destinoCoords.latitude.toFixed(6)}, {destinoCoords.longitude.toFixed(6)}
+                            </Text>
+                        )}
+                    </View>
+                    {destinoCoords && <Ionicons name="checkmark-circle" size={20} color="#FF5A5F" />}
+                </View>
+                {errors.destino && <Text style={styles.errorText}>{errors.destino}</Text>}
+
+                {/* Fecha */}
+                <View style={[styles.inputContainer, { marginTop: 16 }]}>
                     <Text style={styles.label}>Fecha</Text>
-                    {/* Botón que abre el calendario nativo al presionarlo */}
                     <TouchableOpacity
                         style={[styles.datePickerButton, errors.fecha && styles.inputError]}
                         onPress={() => {
@@ -197,26 +303,20 @@ const SearchRide = ({ navigation }) => {
                         }}
                     >
                         <Ionicons name="calendar-outline" size={22} color="#045084" />
-                        <Text style={[
-                            styles.datePickerText,
-                            !fechaSeleccionada && styles.datePickerPlaceholder
-                        ]}>
+                        <Text style={[styles.datePickerText, !fechaSeleccionada && styles.datePickerPlaceholder]}>
                             {formatearFechaDisplay(fechaSeleccionada)}
                         </Text>
                     </TouchableOpacity>
-
                     {errors.fecha && <Text style={styles.errorText}>{errors.fecha}</Text>}
-                    {/* DateTimePicker nativo solo visible cuando el usuario lo activa */}
                     {mostrarCalendario && (
                         <DateTimePicker
                             value={fechaSeleccionada || new Date()}
                             mode="date"
                             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                            minimumDate={new Date()} // No permite fechas pasadas
+                            minimumDate={new Date()}
                             onChange={onCambiarFecha}
                         />
                     )}
-                    {/* Botón confirmar solo en iOS */}
                     {mostrarCalendario && Platform.OS === 'ios' && (
                         <TouchableOpacity style={styles.confirmButton} onPress={() => setMostrarCalendario(false)}>
                             <Text style={styles.confirmButtonText}>Confirmar fecha</Text>
@@ -224,22 +324,15 @@ const SearchRide = ({ navigation }) => {
                     )}
                 </View>
 
-
-                {/* Botón de búsqueda: valida todos los campos antes de hacer la petición */}
-                <TouchableOpacity
-                    style={styles.searchButton}
-                    onPress={handleSearch}
-                    disabled={loading}
-                >
-                    {loading ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <Text style={styles.searchButtonText}>Buscar</Text>
-                    )}
+                {/* Botón Buscar */}
+                <TouchableOpacity style={styles.searchButton} onPress={handleSearch} disabled={loading}>
+                    {loading
+                        ? <ActivityIndicator color="#fff" />
+                        : <Text style={styles.searchButtonText}>Buscar</Text>
+                    }
                 </TouchableOpacity>
             </ScrollView>
 
-            {/* Componente de navegación inferior */}
             <BottomNavigationBar navigation={navigation} />
         </SafeAreaView>
     );
@@ -266,49 +359,137 @@ const styles = StyleSheet.create({
         fontSize: 24,
         color: '#045084',
     },
-    scrollView: {
+
+    // ── Mapa ──────────────────────────────────────────────────────────────────
+    mapContainer: {
+        height: 260,
+        position: 'relative',
+    },
+    map: {
         flex: 1,
     },
+    gpsButton: {
+        position: 'absolute',
+        bottom: 48,
+        right: 12,
+        backgroundColor: '#fff',
+        borderRadius: 30,
+        width: 46,
+        height: 46,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+    },
+    modeIndicator: {
+        position: 'absolute',
+        bottom: 10,
+        left: 12,
+        backgroundColor: 'rgba(255,255,255,0.92)',
+        borderRadius: 20,
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        elevation: 3,
+    },
+    modeText: {
+        fontSize: 12,
+        color: '#333',
+    },
+
+    // ── Scroll content ────────────────────────────────────────────────────────
+    scrollView: { flex: 1 },
     content: {
-        paddingHorizontal: 20,
-        paddingTop: 24,
-        paddingBottom: 120, // Espacio para el BottomNavBar
+        paddingHorizontal: 16,
+        paddingTop: 14,
+        paddingBottom: 120,
     },
-    inputContainer: {
-        marginBottom: 22,
+
+    // ── Selector Origen/Destino ───────────────────────────────────────────────
+    selectorRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 12,
     },
+    selectorBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 10,
+        borderRadius: 10,
+        borderWidth: 1.5,
+        borderColor: '#E0E0E0',
+        backgroundColor: '#F5F7FA',
+    },
+    selectorBtnBlue: {
+        backgroundColor: '#045084',
+        borderColor: '#045084',
+    },
+    selectorBtnRed: {
+        backgroundColor: '#FF5A5F',
+        borderColor: '#FF5A5F',
+    },
+    selectorText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#555',
+    },
+    selectorTextActive: {
+        color: '#fff',
+    },
+
+    // ── Tarjetas de coordenadas ───────────────────────────────────────────────
+    coordCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F5F7FA',
+        borderRadius: 12,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: '#E8ECF0',
+        gap: 12,
+    },
+    coordDot: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+    },
+    coordLabel: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#999',
+        letterSpacing: 0.8,
+    },
+    coordName: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#1A2B4C',
+        marginTop: 2,
+    },
+    coordValue: {
+        fontSize: 11,
+        color: '#7E8BA0',
+        marginTop: 2,
+        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    },
+
+    // ── Fecha ─────────────────────────────────────────────────────────────────
+    inputContainer: { marginBottom: 22 },
     label: {
         fontSize: 14,
         color: '#555',
         marginBottom: 8,
         fontWeight: '600',
-        textTransform: 'uppercase', // Labels en mayúsculas para diseño más limpio
+        textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
-    input: {
-        backgroundColor: '#F5F7FA',
-        borderWidth: 1,
-        borderColor: '#E0E0E0',
-        borderRadius: 12,
-        padding: 16,
-        fontSize: 16,
-        color: '#333',
-    },
-    // Borde rojo en el campo cuando hay error (igual que CreatePasswordScreen)
-    inputError: {
-        borderColor: '#f53333',
-        borderWidth: 2,
-        backgroundColor: 'rgba(245, 51, 51, 0.05)',
-    },
-    // Texto de error rojo debajo del campo (igual que CreatePasswordScreen)
-    errorText: {
-        color: '#f53333',
-        fontSize: 13,
-        marginTop: 5,
-        marginLeft: 2,
-        fontWeight: '500',
-    },
-    // Botón grande que simula un input y abre el picker nativo
     datePickerButton: {
         backgroundColor: '#F5F7FA',
         borderWidth: 1,
@@ -318,17 +499,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
-        minHeight: 56, // Altura mínima generosa para que sea fácil de tocar
+        minHeight: 56,
     },
-    datePickerText: {
-        fontSize: 16,
-        color: '#333',
-        flex: 1,
-    },
-    datePickerPlaceholder: {
-        color: '#999',
-    },
-    // Botón de confirmar que aparece en iOS para cerrar el spinner
+    datePickerText: { fontSize: 16, color: '#333', flex: 1 },
+    datePickerPlaceholder: { color: '#999' },
     confirmButton: {
         backgroundColor: '#045084',
         borderRadius: 10,
@@ -336,11 +510,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 10,
     },
-    confirmButtonText: {
-        color: '#FFF',
-        fontWeight: 'bold',
-        fontSize: 15,
-    },
+    confirmButtonText: { color: '#FFF', fontWeight: 'bold', fontSize: 15 },
+
+    // ── Errores ───────────────────────────────────────────────────────────────
+    inputError: { borderColor: '#f53333', borderWidth: 2, backgroundColor: 'rgba(245, 51, 51, 0.05)' },
+    errorText: { color: '#f53333', fontSize: 13, marginTop: 5, marginLeft: 2, fontWeight: '500' },
+
+    // ── Botón Buscar ──────────────────────────────────────────────────────────
     searchButton: {
         backgroundColor: '#045084',
         paddingVertical: 16,
@@ -353,11 +529,7 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 6,
     },
-    searchButtonText: {
-        color: '#FFF',
-        fontSize: 18,
-        fontWeight: 'bold',
-    }
+    searchButtonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
 });
 
 export default SearchRide;
