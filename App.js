@@ -12,6 +12,7 @@ import RoleSelectionScreen from './src/screens/register/RoleSelectionScreen';
 import SignInScreen from './src/screens/login/SignInScreen';
 import SplashScreen from './src/screens/SplashScreen';
 import LoginSuccessScreen from './src/screens/login/LoginSuccessScreen';
+
 // Importación de los dashboards para la redirección después del login
 import DashboardPasajero from './src/screens/pasajero/DashboardPasajero';
 import DashboardDriver from './src/screens/conductor/DashboardDriver';
@@ -25,6 +26,7 @@ import DriverMetrics from './src/screens/conductor/DriverMetrics';
 import AjustesConductor from './src/screens/conductor/AjustesConductor';
 import ProfileConductor from './src/screens/conductor/ProfileConductor';
 import ListOfDrivers from './src/screens/pasajero/ListOfDrivers';
+import MyProfileScreen from './src/screens/pasajero/MyProfileScreen';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BottomNavigationBar from './src/components/BottomNavigationBar';
@@ -46,7 +48,6 @@ function MainTabsPasajero() {
       <Tab.Screen name="SearchRide" component={SearchRide} />
       <Tab.Screen name="History" component={History} />
       <Tab.Screen name="Metrics" component={Metrics} />
-      <Tab.Screen name="SettingPasajero" component={SettingPasajero} />
       <Tab.Screen name="ListOfDrivers" component={ListOfDrivers} />
     </Tab.Navigator>
   );
@@ -159,6 +160,15 @@ export default function App() {
             title: 'Dashboard',
             headerBackVisible: false,
             animation: 'slide_from_left'
+          }}
+        />
+
+        <Stack.Screen
+          name="MyProfile"
+          component={MyProfileScreen}
+          options={{ 
+            headerShown: false,
+            animation: 'slide_from_right'
           }}
         />
 
