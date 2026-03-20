@@ -25,7 +25,48 @@ import DriverMetrics from './src/screens/conductor/DriverMetrics';
 import SettingConductor from './src/screens/conductor/SettingConductor';
 import ListOfDrivers from './src/screens/pasajero/ListOfDrivers';
 
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import BottomNavigationBar from './src/components/BottomNavigationBar';
+
+import BottomNavigationDriver from './src/components/BottomNavigationDriver';
+
 const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+function MainTabsPasajero() {
+  return (
+    <Tab.Navigator
+      tabBar={(props) => <BottomNavigationBar {...props} />}
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Tab.Screen name="DashboardPasajero" component={DashboardPasajero} />
+      <Tab.Screen name="SearchRide" component={SearchRide} />
+      <Tab.Screen name="History" component={History} />
+      <Tab.Screen name="Metrics" component={Metrics} />
+      <Tab.Screen name="SettingPasajero" component={SettingPasajero} />
+      <Tab.Screen name="ListOfDrivers" component={ListOfDrivers} />
+    </Tab.Navigator>
+  );
+}
+
+function MainTabsDriver() {
+  return (
+    <Tab.Navigator
+      tabBar={(props) => <BottomNavigationDriver {...props} />}
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Tab.Screen name="DashboardDriver" component={DashboardDriver} />
+      <Tab.Screen name="PublishRide" component={PublishRide} />
+      <Tab.Screen name="ManageRequests" component={ManageRequests} />
+      <Tab.Screen name="DriverMetrics" component={DriverMetrics} />
+      <Tab.Screen name="SettingConductor" component={SettingConductor} />
+    </Tab.Navigator>
+  );
+}
 
 export default function App() {
   return (
@@ -35,7 +76,7 @@ export default function App() {
         initialRouteName="Splash"
         screenOptions={{
           headerShown: false,
-          animation: 'slide_from_right', // Animación fluida por defecto (abrir/cerrar)
+          animation: 'slide_from_right',
           animationDuration: 400,
         }}
       >
@@ -44,14 +85,14 @@ export default function App() {
           component={SplashScreen}
           options={{ 
             headerShown: false, 
-            animation: 'fade' // Entrada y salida suave para el splash
+            animation: 'fade'
           }}
         />
         <Stack.Screen
           name="Login"
           component={RegisterScreen}
           options={{ 
-            animation: 'fade', // Transición más suave al primer paso
+            animation: 'fade',
           }}
         />
         <Stack.Screen
@@ -66,7 +107,7 @@ export default function App() {
           name="AccountVerificationSucess"
           component={AccountVerificationSucess}
           options={{ 
-            animation: 'fade_from_bottom', // Aparece como un logro alcanzado
+            animation: 'fade_from_bottom',
           }}
         />
         <Stack.Screen
@@ -88,61 +129,35 @@ export default function App() {
             gestureEnabled: false 
           }}
         />
-        {/* Dashboard de Pasajero */}
+        
+        {/* Tab Navigators para flujos principales */}
         <Stack.Screen
-          name="DashboardPasajero"
-          component={DashboardPasajero}
+          name="MainTabsPasajero"
+          component={MainTabsPasajero}
           options={{ 
             animation: 'fade', 
             gestureEnabled: false 
           }}
         />
-        {/* Dashboard de Conductor */}
+
         <Stack.Screen
-          name="DashboardDriver"
-          component={DashboardDriver}
+          name="MainTabsDriver"
+          component={MainTabsDriver}
           options={{ 
             animation: 'fade', 
             gestureEnabled: false 
           }}
         />
-        {/* Buscar Viaje */}
-        <Stack.Screen
-          name="SearchRide"
-          component={SearchRide}
-        />
-        {/* Historial de viajes */}
-        <Stack.Screen
-          name="History"
-          component={History}
-        />
-        {/* Configuración */}
-        <Stack.Screen
-          name="SettingPasajero"
-          component={SettingPasajero}
-        />
-        {/* Métricas */}
-        <Stack.Screen
-          name="Metrics"
-          component={Metrics}
-        />
+
         <Stack.Screen
           name="Home"
           component={ApiHealthCheckScreen}
           options={{ 
             title: 'Dashboard', 
             headerBackVisible: false,
-            animation: 'slide_from_left' // Diferencia el área administrativa
+            animation: 'slide_from_left'
           }}
         />
-        {/* Screens del Conductor */}
-        <Stack.Screen name="PublishRide" component={PublishRide} />
-        <Stack.Screen name="ManageRequests" component={ManageRequests} />
-        <Stack.Screen name="DriverMetrics" component={DriverMetrics} />
-        <Stack.Screen name="SettingConductor" component={SettingConductor} />
-
-        {/* Pantalla para resultados de búsqueda de viajes (Pasajeros) */}
-        <Stack.Screen name="ListOfDrivers" component={ListOfDrivers} />
 
       </Stack.Navigator>
     </NavigationContainer>

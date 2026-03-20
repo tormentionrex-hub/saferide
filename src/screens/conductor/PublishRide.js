@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import BottomNavigationDriver from '../../components/BottomNavigationDriver';
+
 import LocationPicker from '../../components/LocationPicker';
 import api from '../../services/api';
 import { getRouteDetails } from '../../services/locationService';
@@ -318,7 +318,7 @@ const PublishRide = ({ navigation }) => {
                 onSelect={handleLocationSelect}
             />
 
-            <BottomNavigationDriver navigation={navigation} activeTab="Viajes" />
+
         </SafeAreaView>
     );
 };

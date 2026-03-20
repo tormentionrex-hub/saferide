@@ -201,7 +201,7 @@ export default function SplashScreen({ navigation }) {
                 const data = routeData.current;
 
                 if (data && data.userRole && data.userName) {
-                    const route = data.userRole === 'conductor' ? 'DashboardDriver' : 'DashboardPasajero';
+                    const route = data.userRole === 'conductor' ? 'MainTabsDriver' : 'MainTabsPasajero';
                     navigation.reset({
                         index: 1,
                         routes: [

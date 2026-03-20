@@ -46,15 +46,16 @@ const NAV_ITEMS = [
     },
 ];
 
-const BottomNavigationBar = ({ navigation }) => {
+const BottomNavigationBar = ({ state, descriptors, navigation }) => {
     const primaryColor = '#045084';
     const activeColor = '#045084';    // Color del tab activo
     const inactiveColor = '#A0ADB8';  // Color de los tabs inactivos (gris apagado)
     const insets = useSafeAreaInsets();
 
-    // Obtenemos el nombre del screen actual para saber cuál tab resaltar
+    // Si no hay estado (caso de uso directo sin Tab.Navigator), usamos el hook useRoute
+    // Esto es para compatibilidad con las pantallas que aún lo importan manualmente
     const route = useRoute();
-    const currentRouteName = route.name;
+    const currentRouteName = state ? state.routes[state.index].name : route.name;
 
     return (
         <View style={[
@@ -67,27 +68,41 @@ const BottomNavigationBar = ({ navigation }) => {
                 const iconName = isActive ? item.activeIcon : item.inactiveIcon;
                 const color = isActive ? activeColor : inactiveColor;
 
+                const onPress = () => {
+                    if (state) {
+                        const event = navigation.emit({
+                            type: 'tabPress',
+                            target: item.target,
+                            canPreventDefault: true,
+                        });
+
+                        if (!isActive && !event.defaultPrevented) {
+                            navigation.navigate(item.target);
+                        }
+                    } else {
+                        navigation.navigate(item.target);
+                    }
+                };
+
                 return (
                     <TouchableOpacity
                         key={item.label}
                         style={styles.navItem}
                         activeOpacity={0.6}
-                        onPress={() => navigation.navigate(item.target)}
+                        onPress={onPress}
                     >
-                        {/* Ícono: lleno cuando activo, outline cuando inactivo */}
                         <Ionicons
                             name={iconName}
-                            size={isActive ? 26 : 24} // Ligeramente más grande cuando activo
+                            size={isActive ? 26 : 24}
                             color={color}
                         />
                         <Text style={[
                             styles.navText,
                             { color },
-                            isActive && styles.navTextActive // Negrita si está activo
+                            isActive && styles.navTextActive
                         ]}>
                             {item.label}
                         </Text>
-                        {/* Punto indicador debajo del tab activo */}
                         {isActive && <View style={styles.activeDot} />}
                     </TouchableOpacity>
                 );

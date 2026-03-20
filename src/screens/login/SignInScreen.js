@@ -162,9 +162,9 @@ export default function SignInScreen({ navigation }) {
                     // lleva al Login y nunca a pantallas de registro.
                     let dashboardRoute = 'Home';
                     if (userRole === 'pasajero') {
-                        dashboardRoute = 'DashboardPasajero';
+                        dashboardRoute = 'MainTabsPasajero';
                     } else if (userRole === 'conductor') {
-                        dashboardRoute = 'DashboardDriver';
+                        dashboardRoute = 'MainTabsDriver';
                     }
                     navigation.reset({
                         index: 1,

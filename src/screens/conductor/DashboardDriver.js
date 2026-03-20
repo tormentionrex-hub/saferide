@@ -11,7 +11,7 @@ import {
     StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import BottomNavigationDriver from '../../components/BottomNavigationDriver';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
@@ -103,8 +103,6 @@ export default function DashboardConductor({ route, navigation }) {
                 <ScrollIndicator si={si} thumbColor={theme.accent} />
                 </View>
 
-                {/* Barra de navegación inferior */}
-                <BottomNavigationDriver navigation={navigation} activeTab="Inicio" />
             </SafeAreaView>
         </Animated.View>
     );

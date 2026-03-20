@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
-import BottomNavigationDriver from '../../components/BottomNavigationDriver';
+
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
@@ -162,7 +162,7 @@ const RequestsScreen = ({ navigation }) => {
                 )}
             </View>
 
-            <BottomNavigationDriver navigation={navigation} activeTab="Mensajes" />
+
         </SafeAreaView>
     );
 };

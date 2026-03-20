@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import BottomNavigationDriver from '../../components/BottomNavigationDriver';
+
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
@@ -191,7 +191,7 @@ const SettingConductor = ({ navigation }) => {
                 <ScrollIndicator si={si} thumbColor={theme.accent} />
             </View>
 
-            <BottomNavigationDriver navigation={navigation} activeTab="Configuraciones" />
+
 
             {/* ── MODAL DE CONFIRMACIÓN ── */}
             <Modal visible={modal.visible} transparent animationType="none" statusBarTranslucent>
