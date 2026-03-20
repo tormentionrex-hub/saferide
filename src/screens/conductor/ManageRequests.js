@@ -16,6 +16,7 @@ import api from '../../services/api';
 
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import SettingsGearButton from '../../components/SettingsGearButton';
 
 /**
  * Pantalla que permite al conductor gestionar las solicitudes de pasajeros
@@ -129,6 +130,7 @@ const RequestsScreen = ({ navigation }) => {
                     <Text style={[styles.innerTitle, { color: theme.text }]}>
                         Solicitudes del Conductor
                     </Text>
+                    <SettingsGearButton navigation={navigation} color={theme.text} style={styles.gearBtn} />
                 </View>
 
                 {loading ? (
@@ -185,6 +187,10 @@ const styles = StyleSheet.create({
     backBtn: {
         position: 'absolute',
         left: 20,
+    },
+    gearBtn: {
+        position: 'absolute',
+        right: 20,
     },
     innerTitle: {
         fontSize: 18,

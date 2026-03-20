@@ -19,6 +19,7 @@ import api from '../../services/api';
 import { getRouteDetails } from '../../services/locationService';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import SettingsGearButton from '../../components/SettingsGearButton';
 
 /**
  * Pantalla para que los conductores publiquen un nuevo viaje con geolocalización avanzada.
@@ -149,6 +150,7 @@ const PublishRide = ({ navigation }) => {
                             <Ionicons name="chevron-back" size={24} color={theme.text} />
                         </TouchableOpacity>
                         <Text style={[styles.cardTitle, { color: theme.text }]}>Itinerario de Viaje</Text>
+                        <SettingsGearButton navigation={navigation} color={theme.text} style={styles.gearBtn} />
                     </View>
 
                     <View style={[styles.divider, { backgroundColor: theme.divider }]} />
@@ -348,6 +350,10 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: 0,
         padding: 4,
+    },
+    gearBtn: {
+        position: 'absolute',
+        right: 0,
     },
     cardTitle: {
         fontSize: 18,

@@ -16,6 +16,7 @@ import { LineChart } from 'react-native-chart-kit';
 import api from '../../services/api';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import SettingsGearButton from '../../components/SettingsGearButton';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -135,6 +136,7 @@ const DriverMetrics = ({ navigation }) => {
                         <Ionicons name="chevron-back" size={24} color={theme.text} />
                     </TouchableOpacity>
                     <Text style={[styles.innerTitle, { color: theme.text }]}>Estadísticas</Text>
+                    <SettingsGearButton navigation={navigation} color={theme.text} style={styles.gearBtn} />
                 </View>
 
                 {loading ? (
@@ -208,6 +210,7 @@ const styles = StyleSheet.create({
         paddingVertical: 20, borderBottomWidth: 1,
     },
     backBtn: { position: 'absolute', left: 20 },
+    gearBtn: { position: 'absolute', right: 20 },
     innerTitle: { fontSize: 18, fontWeight: 'bold' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     loadingText: { marginTop: 10, fontSize: 16 },
