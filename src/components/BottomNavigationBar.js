@@ -37,13 +37,6 @@ const NAV_ITEMS = [
         screens: ['Metrics'],
         target: 'Metrics',
     },
-    {
-        label: 'Config',
-        activeIcon: 'settings',
-        inactiveIcon: 'settings-outline',
-        screens: ['SettingPasajero'],
-        target: 'SettingPasajero',
-    },
 ];
 
 const BottomNavigationBar = ({ state, descriptors, navigation }) => {

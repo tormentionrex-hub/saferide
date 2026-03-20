@@ -24,6 +24,8 @@ import ManageRequests from './src/screens/conductor/ManageRequests';
 import DriverMetrics from './src/screens/conductor/DriverMetrics';
 import SettingConductor from './src/screens/conductor/SettingConductor';
 import ListOfDrivers from './src/screens/pasajero/ListOfDrivers';
+import CustomizeApp from './src/screens/pasajero/CustomizeApp';
+import ProfilePasajero from './src/screens/pasajero/ProfilePasajero';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BottomNavigationBar from './src/components/BottomNavigationBar';
@@ -45,7 +47,6 @@ function MainTabsPasajero() {
       <Tab.Screen name="SearchRide" component={SearchRide} />
       <Tab.Screen name="History" component={History} />
       <Tab.Screen name="Metrics" component={Metrics} />
-      <Tab.Screen name="SettingPasajero" component={SettingPasajero} />
       <Tab.Screen name="ListOfDrivers" component={ListOfDrivers} />
     </Tab.Navigator>
   );
@@ -158,6 +159,9 @@ export default function App() {
             animation: 'slide_from_left'
           }}
         />
+
+        <Stack.Screen name="CustomizeApp" component={CustomizeApp} />
+        <Stack.Screen name="ProfilePasajero" component={ProfilePasajero} />
 
       </Stack.Navigator>
     </NavigationContainer>
