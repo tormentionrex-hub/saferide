@@ -39,28 +39,31 @@ const NAV_ITEMS = [
     },
 ];
 
+// Componente de la Barra de Navegación Inferior para el flujo de Pasajeros
 const BottomNavigationBar = ({ state, descriptors, navigation }) => {
+    // Definición de la paleta de colores para los estados activo/inactivo
     const primaryColor = '#045084';
-    const activeColor = '#045084';    // Color del tab activo
-    const inactiveColor = '#A0ADB8';  // Color de los tabs inactivos (gris apagado)
-    const insets = useSafeAreaInsets();
+    const activeColor = '#045084';    // Color cuando el tab está seleccionado
+    const inactiveColor = '#A0ADB8';  // Color cuando el tab no está seleccionado
+    const insets = useSafeAreaInsets(); // Hook para manejar el espacio seguro en dispositivos modernos (notch, home bar)
 
-    // Si no hay estado (caso de uso directo sin Tab.Navigator), usamos el hook useRoute
-    // Esto es para compatibilidad con las pantallas que aún lo importan manualmente
+    // Lógica para determinar el nombre de la ruta actual
     const route = useRoute();
     const currentRouteName = state ? state.routes[state.index].name : route.name;
 
     return (
         <View style={[
             styles.container,
+            // Ajuste dinámico del padding inferior basándose en la zona segura del dispositivo
             { paddingBottom: insets.bottom > 0 ? insets.bottom : 14, height: 70 + (insets.bottom > 0 ? insets.bottom : 14) }
         ]}>
             {NAV_ITEMS.map((item) => {
-                // Determinamos si este tab está activo comparando el screen actual con los screens del item
+                // Verificación de si el item actual de la barra coincide con el screen activo
                 const isActive = item.screens.includes(currentRouteName);
                 const iconName = isActive ? item.activeIcon : item.inactiveIcon;
                 const color = isActive ? activeColor : inactiveColor;
 
+                // Función que maneja la navegación al tocar un icono
                 const onPress = () => {
                     if (state) {
                         const event = navigation.emit({
@@ -69,10 +72,12 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                             canPreventDefault: true,
                         });
 
+                        // Navegamos solo si no está activo y si no hay eventos que lo prevengan
                         if (!isActive && !event.defaultPrevented) {
                             navigation.navigate(item.target);
                         }
                     } else {
+                        // Navegación directa en caso de no estar dentro de un TabNavigator oficial
                         navigation.navigate(item.target);
                     }
                 };
@@ -84,11 +89,13 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                         activeOpacity={0.6}
                         onPress={onPress}
                     >
+                        {/* Ícono de Ionicons con tamaño dinámico según estado */}
                         <Ionicons
                             name={iconName}
                             size={isActive ? 26 : 24}
                             color={color}
                         />
+                        {/* Etiqueta del tab con color dinámico */}
                         <Text style={[
                             styles.navText,
                             { color },
@@ -96,6 +103,7 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                         ]}>
                             {item.label}
                         </Text>
+                        {/* Indicador visual (punto) para el tab activo */}
                         {isActive && <View style={styles.activeDot} />}
                     </TouchableOpacity>
                 );

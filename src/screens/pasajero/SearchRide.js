@@ -6,6 +6,7 @@ import {
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
+import { useDriverTheme } from '../../context/DriverThemeContext';
 
 import { API_URL } from '../../config';
 import { getCurrentLocation, reverseGeocode } from '../../services/locationService';
@@ -19,6 +20,7 @@ const REGION_SAN_JOSE = {
 };
 
 const SearchRide = ({ navigation }) => {
+    const { theme } = useDriverTheme();
     const mapRef = useRef(null);
     const si = useScrollIndicator();
 
@@ -80,7 +82,6 @@ const SearchRide = ({ navigation }) => {
             setOrigenCoords({ latitude, longitude });
             setOrigenNombre(nombre);
             setErrors(prev => ({ ...prev, origen: null }));
-            // Automáticamente pasar a seleccionar destino
             setSeleccionando('destino');
         } else {
             setDestinoCoords({ latitude, longitude });
@@ -115,7 +116,6 @@ const SearchRide = ({ navigation }) => {
         }
     };
 
-    // ─── Búsqueda ────────────────────────────────────────────────────────────
     const handleSearch = async () => {
         const newErrors = {};
         if (!origenCoords) newErrors.origen = 'Selecciona el origen tocando el mapa o usando el GPS.';
@@ -133,15 +133,10 @@ const SearchRide = ({ navigation }) => {
             params.append('destination', `${destinoCoords.latitude},${destinoCoords.longitude}`);
             params.append('date', formatearFecha(fechaSeleccionada));
 
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
-
             const response = await fetch(`${API_URL}/rides?${params.toString()}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
-                signal: controller.signal,
             });
-            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 const err = await response.json().catch(() => ({}));
@@ -156,26 +151,20 @@ const SearchRide = ({ navigation }) => {
                 Alert.alert('Error', result.message || 'No se pudo obtener los viajes.');
             }
         } catch (error) {
-            if (error.name === 'AbortError') {
-                Alert.alert('Error de Conexión', 'El servidor tardó mucho en responder.');
-            } else {
-                Alert.alert('Error', 'Hubo un problema al conectar con el servidor.');
-            }
+            Alert.alert('Error', 'Hubo un problema al conectar con el servidor.');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="dark-content" />
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
+            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
-            {/* ENCABEZADO */}
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Buscar Viaje</Text>
+            <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+                <Text style={[styles.headerTitle, { color: theme.text }]}>Buscar Viaje</Text>
             </View>
 
-            {/* MAPA */}
             <View style={styles.mapContainer}>
                 <MapView
                     ref={mapRef}
@@ -186,6 +175,7 @@ const SearchRide = ({ navigation }) => {
                     onPress={handleMapPress}
                     showsUserLocation={true}
                     showsMyLocationButton={false}
+                    customMapStyle={theme.dark ? darkMapStyle : []}
                 >
                     {origenCoords && (
                         <Marker
@@ -205,24 +195,22 @@ const SearchRide = ({ navigation }) => {
                     )}
                 </MapView>
 
-                {/* Botón GPS */}
-                <TouchableOpacity style={styles.gpsButton} onPress={handleGPS} disabled={gpsLoading}>
+                <TouchableOpacity style={[styles.gpsButton, { backgroundColor: theme.surface }]} onPress={handleGPS} disabled={gpsLoading}>
                     {gpsLoading
-                        ? <ActivityIndicator color="#045084" size="small" />
-                        : <Ionicons name="locate" size={24} color="#045084" />
+                        ? <ActivityIndicator color={theme.accent} size="small" />
+                        : <Ionicons name="locate" size={24} color={theme.accent} />
                     }
                 </TouchableOpacity>
 
-                {/* Indicador de modo activo */}
-                <View style={styles.modeIndicator}>
+                <View style={[styles.modeIndicator, { backgroundColor: theme.surface + 'EC' }]}>
                     <Ionicons
                         name="radio-button-on"
                         size={12}
-                        color={seleccionando === 'origen' ? '#045084' : '#FF5A5F'}
+                        color={seleccionando === 'origen' ? theme.accent : '#FF5A5F'}
                     />
-                    <Text style={styles.modeText}>
+                    <Text style={[styles.modeText, { color: theme.text }]}>
                         Tocando:{' '}
-                        <Text style={{ fontWeight: 'bold', color: seleccionando === 'origen' ? '#045084' : '#FF5A5F' }}>
+                        <Text style={{ fontWeight: 'bold', color: seleccionando === 'origen' ? theme.accent : '#FF5A5F' }}>
                             {seleccionando === 'origen' ? 'Origen' : 'Destino'}
                         </Text>
                     </Text>
@@ -233,60 +221,56 @@ const SearchRide = ({ navigation }) => {
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.content}
-                keyboardShouldPersistTaps="handled"
                 {...si.scrollProps}
             >
-                {/* Botones de selección Origen / Destino */}
                 <View style={styles.selectorRow}>
                     <TouchableOpacity
-                        style={[styles.selectorBtn, seleccionando === 'origen' && styles.selectorBtnBlue]}
+                        style={[styles.selectorBtn, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }, seleccionando === 'origen' && { backgroundColor: theme.accent, borderColor: theme.accent }]}
                         onPress={() => setSeleccionando('origen')}
                     >
-                        <Ionicons name="radio-button-on" size={14} color={seleccionando === 'origen' ? '#fff' : '#045084'} />
-                        <Text style={[styles.selectorText, seleccionando === 'origen' && styles.selectorTextActive]}>
+                        <Ionicons name="radio-button-on" size={14} color={seleccionando === 'origen' ? '#fff' : theme.accent} />
+                        <Text style={[styles.selectorText, { color: theme.textSecondary }, seleccionando === 'origen' && styles.selectorTextActive]}>
                             Origen
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={[styles.selectorBtn, seleccionando === 'destino' && styles.selectorBtnRed]}
+                        style={[styles.selectorBtn, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }, seleccionando === 'destino' && { backgroundColor: '#FF5A5F', borderColor: '#FF5A5F' }]}
                         onPress={() => setSeleccionando('destino')}
                     >
                         <Ionicons name="radio-button-on" size={14} color={seleccionando === 'destino' ? '#fff' : '#FF5A5F'} />
-                        <Text style={[styles.selectorText, seleccionando === 'destino' && styles.selectorTextActive]}>
+                        <Text style={[styles.selectorText, { color: theme.textSecondary }, seleccionando === 'destino' && styles.selectorTextActive]}>
                             Destino
                         </Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Tarjeta de Origen */}
-                <View style={styles.coordCard}>
-                    <View style={[styles.coordDot, { backgroundColor: '#045084' }]} />
+                <View style={[styles.coordCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }]}>
+                    <View style={[styles.coordDot, { backgroundColor: theme.accent }]} />
                     <View style={{ flex: 1 }}>
-                        <Text style={styles.coordLabel}>ORIGEN</Text>
-                        <Text style={styles.coordName} numberOfLines={1}>
+                        <Text style={[styles.coordLabel, { color: theme.textSecondary }]}>ORIGEN</Text>
+                        <Text style={[styles.coordName, { color: theme.text }]} numberOfLines={1}>
                             {origenNombre || 'No seleccionado'}
                         </Text>
                         {origenCoords && (
-                            <Text style={styles.coordValue}>
+                            <Text style={[styles.coordValue, { color: theme.textSecondary }]}>
                                 {origenCoords.latitude.toFixed(6)}, {origenCoords.longitude.toFixed(6)}
                             </Text>
                         )}
                     </View>
-                    {origenCoords && <Ionicons name="checkmark-circle" size={20} color="#045084" />}
+                    {origenCoords && <Ionicons name="checkmark-circle" size={20} color={theme.accent} />}
                 </View>
                 {errors.origen && <Text style={styles.errorText}>{errors.origen}</Text>}
 
-                {/* Tarjeta de Destino */}
-                <View style={[styles.coordCard, { marginTop: 8 }]}>
+                <View style={[styles.coordCard, { marginTop: 8, backgroundColor: theme.surfaceVariant, borderColor: theme.border }]}>
                     <View style={[styles.coordDot, { backgroundColor: '#FF5A5F' }]} />
                     <View style={{ flex: 1 }}>
-                        <Text style={styles.coordLabel}>DESTINO</Text>
-                        <Text style={styles.coordName} numberOfLines={1}>
+                        <Text style={[styles.coordLabel, { color: theme.textSecondary }]}>DESTINO</Text>
+                        <Text style={[styles.coordName, { color: theme.text }]} numberOfLines={1}>
                             {destinoNombre || 'No seleccionado'}
                         </Text>
                         {destinoCoords && (
-                            <Text style={styles.coordValue}>
+                            <Text style={[styles.coordValue, { color: theme.textSecondary }]}>
                                 {destinoCoords.latitude.toFixed(6)}, {destinoCoords.longitude.toFixed(6)}
                             </Text>
                         )}
@@ -295,18 +279,14 @@ const SearchRide = ({ navigation }) => {
                 </View>
                 {errors.destino && <Text style={styles.errorText}>{errors.destino}</Text>}
 
-                {/* Fecha */}
                 <View style={[styles.inputContainer, { marginTop: 16 }]}>
-                    <Text style={styles.label}>Fecha</Text>
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Fecha</Text>
                     <TouchableOpacity
-                        style={[styles.datePickerButton, errors.fecha && styles.inputError]}
-                        onPress={() => {
-                            setMostrarCalendario(true);
-                            if (errors.fecha) setErrors({ ...errors, fecha: null });
-                        }}
+                        style={[styles.datePickerButton, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }, errors.fecha && styles.inputError]}
+                        onPress={() => setMostrarCalendario(true)}
                     >
-                        <Ionicons name="calendar-outline" size={22} color="#045084" />
-                        <Text style={[styles.datePickerText, !fechaSeleccionada && styles.datePickerPlaceholder]}>
+                        <Ionicons name="calendar-outline" size={22} color={theme.accent} />
+                        <Text style={[styles.datePickerText, { color: theme.text }, !fechaSeleccionada && { color: theme.textSecondary }]}>
                             {formatearFechaDisplay(fechaSeleccionada)}
                         </Text>
                     </TouchableOpacity>
@@ -320,32 +300,45 @@ const SearchRide = ({ navigation }) => {
                             onChange={onCambiarFecha}
                         />
                     )}
-                    {mostrarCalendario && Platform.OS === 'ios' && (
-                        <TouchableOpacity style={styles.confirmButton} onPress={() => setMostrarCalendario(false)}>
-                            <Text style={styles.confirmButtonText}>Confirmar fecha</Text>
-                        </TouchableOpacity>
-                    )}
                 </View>
 
-                {/* Botón Buscar */}
-                <TouchableOpacity style={styles.searchButton} onPress={handleSearch} disabled={loading}>
+                <TouchableOpacity style={[styles.searchButton, { backgroundColor: theme.accent, shadowColor: theme.accent }]} onPress={handleSearch} disabled={loading}>
                     {loading
                         ? <ActivityIndicator color="#fff" />
                         : <Text style={styles.searchButtonText}>Buscar</Text>
                     }
                 </TouchableOpacity>
             </ScrollView>
-            <ScrollIndicator si={si} thumbColor="#045084" />
+            <ScrollIndicator si={si} thumbColor={theme.accent} />
             </View>
-
         </SafeAreaView>
     );
 };
 
+const darkMapStyle = [
+    { "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] },
+    { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] },
+    { "elementType": "labels.text.stroke", "stylers": [{ "color": "#242f3e" }] },
+    { "featureType": "administrative.locality", "elementType": "labels.text.fill", "stylers": [{ "color": "#d59563" }] },
+    { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#d59563" }] },
+    { "featureType": "poi.park", "elementType": "geometry", "stylers": [{ "color": "#263c3f" }] },
+    { "featureType": "poi.park", "elementType": "labels.text.fill", "stylers": [{ "color": "#6b9a76" }] },
+    { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#38413e" }] },
+    { "featureType": "road", "elementType": "geometry.stroke", "stylers": [{ "color": "#212a37" }] },
+    { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#9ca5b3" }] },
+    { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#746855" }] },
+    { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{ "color": "#1f2835" }] },
+    { "featureType": "road.highway", "elementType": "labels.text.fill", "stylers": [{ "color": "#f3d19c" }] },
+    { "featureType": "transit", "elementType": "geometry", "stylers": [{ "color": "#2f3948" }] },
+    { "featureType": "transit.station", "elementType": "labels.text.fill", "stylers": [{ "color": "#d59563" }] },
+    { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#17263c" }] },
+    { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#515c6d" }] },
+    { "featureType": "water", "elementType": "labels.text.stroke", "stylers": [{ "color": "#17263c" }] }
+];
+
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0,
     },
     header: {
@@ -355,16 +348,11 @@ const styles = StyleSheet.create({
         paddingTop: Platform.OS === 'ios' ? 40 : 15,
         height: Platform.OS === 'ios' ? 90 : 70,
         borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-        backgroundColor: '#FFF',
     },
     headerTitle: {
         fontFamily: 'Poppins-Bold',
         fontSize: 24,
-        color: '#045084',
     },
-
-    // ── Mapa ──────────────────────────────────────────────────────────────────
     mapContainer: {
         height: 260,
         position: 'relative',
@@ -376,7 +364,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 48,
         right: 12,
-        backgroundColor: '#fff',
         borderRadius: 30,
         width: 46,
         height: 46,
@@ -392,7 +379,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 10,
         left: 12,
-        backgroundColor: 'rgba(255,255,255,0.92)',
         borderRadius: 20,
         paddingHorizontal: 12,
         paddingVertical: 5,
@@ -403,18 +389,13 @@ const styles = StyleSheet.create({
     },
     modeText: {
         fontSize: 12,
-        color: '#333',
     },
-
-    // ── Scroll content ────────────────────────────────────────────────────────
     scrollView: { flex: 1 },
     content: {
         paddingHorizontal: 16,
         paddingTop: 14,
         paddingBottom: 120,
     },
-
-    // ── Selector Origen/Destino ───────────────────────────────────────────────
     selectorRow: {
         flexDirection: 'row',
         gap: 10,
@@ -429,35 +410,20 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         borderRadius: 10,
         borderWidth: 1.5,
-        borderColor: '#E0E0E0',
-        backgroundColor: '#F5F7FA',
-    },
-    selectorBtnBlue: {
-        backgroundColor: '#045084',
-        borderColor: '#045084',
-    },
-    selectorBtnRed: {
-        backgroundColor: '#FF5A5F',
-        borderColor: '#FF5A5F',
     },
     selectorText: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#555',
     },
     selectorTextActive: {
         color: '#fff',
     },
-
-    // ── Tarjetas de coordenadas ───────────────────────────────────────────────
     coordCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F5F7FA',
         borderRadius: 12,
         padding: 14,
         borderWidth: 1,
-        borderColor: '#E8ECF0',
         gap: 12,
     },
     coordDot: {
@@ -468,36 +434,28 @@ const styles = StyleSheet.create({
     coordLabel: {
         fontSize: 10,
         fontWeight: '700',
-        color: '#999',
         letterSpacing: 0.8,
     },
     coordName: {
         fontSize: 15,
         fontWeight: '600',
-        color: '#1A2B4C',
         marginTop: 2,
     },
     coordValue: {
         fontSize: 11,
-        color: '#7E8BA0',
         marginTop: 2,
         fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     },
-
-    // ── Fecha ─────────────────────────────────────────────────────────────────
     inputContainer: { marginBottom: 22 },
     label: {
         fontSize: 14,
-        color: '#555',
         marginBottom: 8,
         fontWeight: '600',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
     datePickerButton: {
-        backgroundColor: '#F5F7FA',
         borderWidth: 1,
-        borderColor: '#E0E0E0',
         borderRadius: 12,
         padding: 16,
         flexDirection: 'row',
@@ -505,29 +463,14 @@ const styles = StyleSheet.create({
         gap: 12,
         minHeight: 56,
     },
-    datePickerText: { fontSize: 16, color: '#333', flex: 1 },
-    datePickerPlaceholder: { color: '#999' },
-    confirmButton: {
-        backgroundColor: '#045084',
-        borderRadius: 10,
-        padding: 12,
-        alignItems: 'center',
-        marginTop: 10,
-    },
-    confirmButtonText: { color: '#FFF', fontWeight: 'bold', fontSize: 15 },
-
-    // ── Errores ───────────────────────────────────────────────────────────────
-    inputError: { borderColor: '#f53333', borderWidth: 2, backgroundColor: 'rgba(245, 51, 51, 0.05)' },
+    datePickerText: { fontSize: 16 },
+    inputError: { borderColor: '#f53333', borderWidth: 2 },
     errorText: { color: '#f53333', fontSize: 13, marginTop: 5, marginLeft: 2, fontWeight: '500' },
-
-    // ── Botón Buscar ──────────────────────────────────────────────────────────
     searchButton: {
-        backgroundColor: '#045084',
         paddingVertical: 16,
         borderRadius: 12,
         alignItems: 'center',
         marginTop: 8,
-        shadowColor: '#045084',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 6,

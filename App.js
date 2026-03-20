@@ -26,6 +26,7 @@ import AjustesConductor from './src/screens/conductor/AjustesConductor';
 import ProfileConductor from './src/screens/conductor/ProfileConductor';
 import ListOfDrivers from './src/screens/pasajero/ListOfDrivers';
 import PasajeroProfileScreen from './src/screens/pasajero/PasajeroProfileScreen';
+import CustomizeApp from './src/screens/pasajero/CustomizeApp';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BottomNavigationBar from './src/components/BottomNavigationBar';
@@ -167,6 +168,15 @@ export default function App() {
           name="PasajeroProfileScreen"
 
           component={PasajeroProfileScreen}
+          options={{ 
+            headerShown: false,
+            animation: 'slide_from_right'
+          }}
+        />
+
+        <Stack.Screen
+          name="CustomizeApp"
+          component={CustomizeApp}
           options={{ 
             headerShown: false,
             animation: 'slide_from_right'
