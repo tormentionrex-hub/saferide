@@ -14,10 +14,12 @@ import { Ionicons } from '@expo/vector-icons';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
 export default function DashboardConductor({ route, navigation }) {
     const { theme } = useDriverTheme();
     const [userName, setUserName] = useState('Conductor');
+    const si = useScrollIndicator();
 
     useEffect(() => {
         const fetchUserName = async () => {
@@ -38,7 +40,8 @@ export default function DashboardConductor({ route, navigation }) {
         <Animated.View style={{ flex: 1, backgroundColor: theme.bg }}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                <View style={{ flex: 1 }}>
+                <ScrollView contentContainerStyle={styles.scrollContent} {...si.scrollProps}>
 
                     {/* Header */}
                     <View style={styles.header}>
@@ -97,6 +100,8 @@ export default function DashboardConductor({ route, navigation }) {
                     </View>
 
                 </ScrollView>
+                <ScrollIndicator si={si} thumbColor={theme.accent} />
+                </View>
 
                 {/* Barra de navegación inferior */}
                 <BottomNavigationDriver navigation={navigation} activeTab="Inicio" />

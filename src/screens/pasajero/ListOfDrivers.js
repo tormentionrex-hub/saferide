@@ -2,11 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, StatusBar, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
+import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
 // Screen para mostrar la lista de conductores que coinciden con la búsqueda
 const ListOfDrivers = ({ route, navigation }) => {
-    // Obtenemos los viajes desde los parámetros de navegación que nos pasó SearchRide.js
     const rides = route.params?.rides || [];
+    const si = useScrollIndicator();
 
     // Función para manejar el clic en un viaje, reservado para el futuro screen
     const handleRideSelection = (rideId) => {
@@ -71,13 +72,16 @@ const ListOfDrivers = ({ route, navigation }) => {
                     </View>
                 ) : (
                     // Lista de viajes publicados
-                    <FlatList 
+                    <View style={{ flex: 1 }}>
+                    <FlatList
                         data={rides}
                         keyExtractor={(item) => item._id}
                         renderItem={renderRideItem}
                         contentContainerStyle={styles.listContainer}
-                        showsVerticalScrollIndicator={false}
+                        {...si.scrollProps}
                     />
+                    <ScrollIndicator si={si} thumbColor="#045084" />
+                    </View>
                 )}
             </View>
 
