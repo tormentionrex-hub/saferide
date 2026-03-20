@@ -149,8 +149,12 @@ export default function SignInScreen({ navigation }) {
                 await AsyncStorage.setItem('userToken', accessToken);
                 await AsyncStorage.setItem('userRole', userRole);
                 await AsyncStorage.setItem('userName', userName);
+                await AsyncStorage.setItem('userEmail', userData.email || '');
+                await AsyncStorage.setItem('userPhone', userData.phone || '');
+                await AsyncStorage.setItem('userPhoto', userData.photo || '');
 
                 setShowSuccess(true);
+
 
                 // Esperamos 2.5 segundos para mostrar la animación de éxito antes de redirigir
                 setTimeout(() => {

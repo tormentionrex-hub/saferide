@@ -1,77 +1,65 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, StatusBar, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useDriverTheme } from '../../context/DriverThemeContext';
 
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
 // Screen para mostrar la lista de conductores que coinciden con la búsqueda
 const ListOfDrivers = ({ route, navigation }) => {
+    const { theme } = useDriverTheme();
     const rides = route.params?.rides || [];
     const si = useScrollIndicator();
 
-    // Función para manejar el clic en un viaje, reservado para el futuro screen
+    // Función para manejar el clic en un viaje
     const handleRideSelection = (rideId) => {
-        // TODO: Navegar al screen futuro que mostrará el detalle del viaje o confirmará la reserva
-        // Ejemplo de uso futuro: navigation.navigate('FutureRideDetailScreen', { rideId });
         console.log('Viaje seleccionado:', rideId);
     };
 
     // Componente para renderizar cada elemento de la lista de resultados
     const renderRideItem = ({ item }) => {
-        // Extraemos nombre, origen y calificación del viaje
         const driverName = item.driver_id?.name || 'Conductor Desconocido';
-        
-        // Manejo seguro del origen ya que podría ser un string o un objeto dependiendo del backend
         const originDesc = typeof item.origin === 'object' 
             ? item.origin?.address || JSON.stringify(item.origin)
             : item.origin || 'Origen no especificado';
-            
         const rating = item.driver_id?.rating || 'N/A';
 
         return (
             <TouchableOpacity 
-                style={styles.card} 
+                style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} 
                 onPress={() => handleRideSelection(item._id)}
             >
                 <View style={styles.cardHeader}>
-                    {/* Nombre del conductor */}
-                    <Text style={styles.driverName}>{driverName}</Text>
-                    {/* Calificación a la derecha en la misma fila */}
+                    <Text style={[styles.driverName, { color: theme.text }]}>{driverName}</Text>
                     <Text style={styles.rating}>⭐ {rating}</Text>
                 </View>
-                {/* Origen abajo del nombre */}
-                <Text style={styles.originText}>Origen: {originDesc}</Text>
+                <Text style={[styles.originText, { color: theme.textSecondary }]}>Origen: {originDesc}</Text>
             </TouchableOpacity>
         );
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             
-            {/* Header con botón de retroceso */}
-            <View style={styles.header}>
+            <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
                 <TouchableOpacity 
                     style={styles.backButton} 
                     onPress={() => navigation.goBack()}
                     activeOpacity={0.7}
                 >
-                    <Ionicons name="chevron-back" size={30} color="#045084" />
+                    <Ionicons name="chevron-back" size={30} color={theme.text} />
                 </TouchableOpacity>
-                <Text style={styles.title}>Viajes Disponibles</Text>
-                {/* View vacío para compensar el espacio del botón de atrás y que el título quede centrado */}
+                <Text style={[styles.title, { color: theme.text }]}>Viajes Disponibles</Text>
                 <View style={{ width: 40 }} />
             </View>
 
             <View style={styles.content}>
-                
                 {rides.length === 0 ? (
-                    // Mensaje cuando no se encuentran viajes
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>No se encontró ningún viaje</Text>
+                        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No se encontró ningún viaje</Text>
                     </View>
                 ) : (
-                    // Lista de viajes publicados
                     <View style={{ flex: 1 }}>
                     <FlatList
                         data={rides}
@@ -80,11 +68,10 @@ const ListOfDrivers = ({ route, navigation }) => {
                         contentContainerStyle={styles.listContainer}
                         {...si.scrollProps}
                     />
-                    <ScrollIndicator si={si} thumbColor="#045084" />
+                    <ScrollIndicator si={si} thumbColor={theme.accent} />
                     </View>
                 )}
             </View>
-
         </SafeAreaView>
     );
 };
@@ -92,7 +79,6 @@ const ListOfDrivers = ({ route, navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F7FA', // Fondo claro y limpio
     },
     header: {
         flexDirection: 'row',
@@ -102,8 +88,6 @@ const styles = StyleSheet.create({
         paddingTop: Platform.OS === 'ios' ? 60 : 40,
         height: Platform.OS === 'ios' ? 110 : 100,
         borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-        backgroundColor: '#FFF',
     },
     backButton: {
         width: 40,
@@ -113,7 +97,6 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 20,
-        color: '#045084',
         fontWeight: 'bold',
         textAlign: 'center',
         flex: 1,
@@ -127,10 +110,10 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
     },
     card: {
-        backgroundColor: '#FFF',
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 15,
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
+        borderWidth: 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
@@ -146,7 +129,6 @@ const styles = StyleSheet.create({
     driverName: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#333',
         flex: 1,
     },
     rating: {
@@ -156,7 +138,6 @@ const styles = StyleSheet.create({
     },
     originText: {
         fontSize: 14,
-        color: '#666',
     },
     emptyContainer: {
         flex: 1,
@@ -165,7 +146,6 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: 18,
-        color: '#999',
         textAlign: 'center',
     }
 });
