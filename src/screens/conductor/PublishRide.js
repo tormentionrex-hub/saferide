@@ -18,14 +18,15 @@ import LocationPicker from '../../components/LocationPicker';
 import api from '../../services/api';
 import { getRouteDetails } from '../../services/locationService';
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
 /**
  * Pantalla para que los conductores publiquen un nuevo viaje con geolocalización avanzada.
  */
 const PublishRide = ({ navigation }) => {
     const { theme } = useDriverTheme();
-    // Color de placeholder legible en ambos modos
     const placeholderColor = theme.dark ? '#B0B0D8' : '#AAAAAA';
+    const si = useScrollIndicator();
 
     // --- ESTADOS DE UBICACIÓN ---
     const [origin, setOrigin] = useState(null);
@@ -137,10 +138,8 @@ const PublishRide = ({ navigation }) => {
         <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.surface }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
 
-            <ScrollView
-                contentContainerStyle={styles.content}
-                showsVerticalScrollIndicator={false}
-            >
+            <View style={{ flex: 1 }}>
+            <ScrollView contentContainerStyle={styles.content} {...si.scrollProps}>
                 {/* ── CARD ITINERARIO ─────────────────────────────────── */}
                 <View style={[styles.card, { backgroundColor: theme.surface }]}>
 
@@ -266,6 +265,8 @@ const PublishRide = ({ navigation }) => {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+            <ScrollIndicator si={si} thumbColor={theme.accent} />
+            </View>
 
             {/* Date Pickers */}
             {(mostrarCalendario || mostrarHora) && (

@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
 /**
  * Pantalla que permite al conductor gestionar las solicitudes de pasajeros
@@ -24,6 +25,7 @@ const RequestsScreen = ({ navigation }) => {
     const { theme } = useDriverTheme();
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
+    const si = useScrollIndicator();
 
     // --- CARGA DE DATOS DESDE EL BACKEND ---
     useEffect(() => {
@@ -137,6 +139,7 @@ const RequestsScreen = ({ navigation }) => {
                         </Text>
                     </View>
                 ) : (
+                    <View style={{ flex: 1 }}>
                     <FlatList
                         data={requests}
                         keyExtractor={(item) => item._id}
@@ -152,7 +155,10 @@ const RequestsScreen = ({ navigation }) => {
                         }
                         refreshing={loading}
                         onRefresh={() => {}}
+                        {...si.scrollProps}
                     />
+                    <ScrollIndicator si={si} thumbColor={theme.accent} />
+                    </View>
                 )}
             </View>
 

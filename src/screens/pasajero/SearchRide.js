@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
 import { API_URL } from '../../config';
 import { getCurrentLocation, reverseGeocode } from '../../services/locationService';
+import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
 const REGION_SAN_JOSE = {
     latitude: 9.9281,
@@ -19,6 +20,7 @@ const REGION_SAN_JOSE = {
 
 const SearchRide = ({ navigation }) => {
     const mapRef = useRef(null);
+    const si = useScrollIndicator();
 
     // Coordenadas seleccionadas en el mapa
     const [origenCoords, setOrigenCoords] = useState(null);
@@ -227,11 +229,12 @@ const SearchRide = ({ navigation }) => {
                 </View>
             </View>
 
+            <View style={{ flex: 1 }}>
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.content}
                 keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
+                {...si.scrollProps}
             >
                 {/* Botones de selección Origen / Destino */}
                 <View style={styles.selectorRow}>
@@ -332,6 +335,8 @@ const SearchRide = ({ navigation }) => {
                     }
                 </TouchableOpacity>
             </ScrollView>
+            <ScrollIndicator si={si} thumbColor="#045084" />
+            </View>
 
             <BottomNavigationBar navigation={navigation} />
         </SafeAreaView>

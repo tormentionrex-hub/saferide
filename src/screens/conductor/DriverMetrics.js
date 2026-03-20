@@ -15,12 +15,14 @@ import { LineChart } from 'react-native-chart-kit';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 import api from '../../services/api';
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
 const screenWidth = Dimensions.get('window').width;
 
 const DriverMetrics = ({ navigation }) => {
     const { theme } = useDriverTheme();
     const [loading, setLoading] = useState(true);
+    const si = useScrollIndicator();
     
     // --- ESTADO PARA DATOS ---
     const [stats, setStats] = useState({
@@ -143,7 +145,8 @@ const DriverMetrics = ({ navigation }) => {
                         </Text>
                     </View>
                 ) : (
-                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
+                    <View style={{ flex: 1 }}>
+                    <ScrollView contentContainerStyle={styles.scrollBody} {...si.scrollProps}>
 
                         <View style={styles.statsRow}>
                             <View style={[styles.statBox, { backgroundColor: theme.surfaceVariant }]}>
@@ -185,6 +188,8 @@ const DriverMetrics = ({ navigation }) => {
                             />
                         </View>
                     </ScrollView>
+                    <ScrollIndicator si={si} thumbColor={theme.accent} />
+                    </View>
                 )}
             </View>
 
