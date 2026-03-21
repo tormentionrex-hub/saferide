@@ -27,6 +27,7 @@ import ProfileConductor from './src/screens/conductor/ProfileConductor';
 import ListOfDrivers from './src/screens/pasajero/ListOfDrivers';
 import PasajeroProfileScreen from './src/screens/pasajero/PasajeroProfileScreen';
 import CustomizeApp from './src/screens/pasajero/CustomizeApp';
+import PaymentMethodScreen from './src/screens/pasajero/PaymentMethodScreen';
 import RideDetail from './src/screens/pasajero/RideDetail';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -182,6 +183,12 @@ export default function App() {
               headerShown: false,
               animation: 'slide_from_right'
             }}
+          />
+
+          <Stack.Screen
+            name="PaymentMethod"
+            component={PaymentMethodScreen}
+            options={{ headerShown: false, animation: 'slide_from_right' }}
           />
 
           <Stack.Screen

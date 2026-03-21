@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
+import { useDriverTheme } from '../context/DriverThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -41,11 +42,10 @@ const NAV_ITEMS = [
 
 // Componente de la Barra de Navegación Inferior para el flujo de Pasajeros
 const BottomNavigationBar = ({ state, descriptors, navigation }) => {
-    // Definición de la paleta de colores para los estados activo/inactivo
-    const primaryColor = '#045084';
-    const activeColor = '#045084';    // Color cuando el tab está seleccionado
-    const inactiveColor = '#A0ADB8';  // Color cuando el tab no está seleccionado
-    const insets = useSafeAreaInsets(); // Hook para manejar el espacio seguro en dispositivos modernos (notch, home bar)
+    const { theme } = useDriverTheme();
+    const activeColor   = theme.navActive;
+    const inactiveColor = theme.navInactive;
+    const insets = useSafeAreaInsets();
 
     // Lógica para determinar el nombre de la ruta actual
     const route = useRoute();
@@ -54,8 +54,12 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
     return (
         <View style={[
             styles.container,
-            // Ajuste dinámico del padding inferior basándose en la zona segura del dispositivo
-            { paddingBottom: insets.bottom > 0 ? insets.bottom : 14, height: 70 + (insets.bottom > 0 ? insets.bottom : 14) }
+            {
+                paddingBottom: insets.bottom > 0 ? insets.bottom : 14,
+                height: 70 + (insets.bottom > 0 ? insets.bottom : 14),
+                backgroundColor: theme.navBg,
+                borderTopColor: theme.navBorder,
+            }
         ]}>
             {NAV_ITEMS.map((item) => {
                 // Verificación de si el item actual de la barra coincide con el screen activo
@@ -104,7 +108,7 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                             {item.label}
                         </Text>
                         {/* Indicador visual (punto) para el tab activo */}
-                        {isActive && <View style={styles.activeDot} />}
+                        {isActive && <View style={[styles.activeDot, { backgroundColor: theme.navActive }]} />}
                     </TouchableOpacity>
                 );
             })}
@@ -115,7 +119,6 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(255,255,255,0.97)',
         width: '100%',
         justifyContent: 'space-around',
         alignItems: 'center',
@@ -124,7 +127,6 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         borderTopWidth: 1,
-        borderTopColor: '#F0F0F0',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -3 },
         shadowOpacity: 0.07,
@@ -145,14 +147,12 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     navTextActive: {
-        fontWeight: 'bold', // Texto en negrita cuando está activo
+        fontFamily: 'Poppins-SemiBold',
     },
-    // Pequeño punto azul debajo del tab activo como indicador adicional
     activeDot: {
         width: 4,
         height: 4,
         borderRadius: 2,
-        backgroundColor: '#045084',
         marginTop: 3,
     },
 });
