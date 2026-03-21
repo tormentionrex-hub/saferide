@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     KeyboardAvoidingView,
     Platform,
-    Modal,
     ActivityIndicator,
     StatusBar,
     Image,
@@ -36,6 +35,15 @@ export default function SignInScreen({ navigation }) {
 
     const [loading, setLoading] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+
+    // ── Animaciones del toast de éxito ──
+    const toastSlide   = useRef(new Animated.Value(120)).current;
+    const toastOpacity = useRef(new Animated.Value(0)).current;
+    const checkAnim    = useRef(new Animated.Value(0)).current;
+    const ring1Scale   = useRef(new Animated.Value(0.4)).current;
+    const ring1Opacity = useRef(new Animated.Value(1)).current;
+    const ring2Scale   = useRef(new Animated.Value(0.2)).current;
+    const ring2Opacity = useRef(new Animated.Value(0.7)).current;
 
     const [fontsLoaded] = useFonts({
         'Poppins-Bold': require('../../fonts/Poppins_700Bold.ttf'),
@@ -110,6 +118,54 @@ export default function SignInScreen({ navigation }) {
         })
     };
 
+    const showSuccessAnimation = () => {
+        // Resetear valores
+        toastSlide.setValue(120);
+        toastOpacity.setValue(0);
+        checkAnim.setValue(0);
+        ring1Scale.setValue(0.4);
+        ring1Opacity.setValue(1);
+        ring2Scale.setValue(0.2);
+        ring2Opacity.setValue(0.7);
+
+        setShowSuccess(true);
+
+        // 1. Toast sube con spring
+        Animated.parallel([
+            Animated.spring(toastSlide, {
+                toValue: 0, tension: 60, friction: 8, useNativeDriver: true,
+            }),
+            Animated.timing(toastOpacity, {
+                toValue: 1, duration: 220, useNativeDriver: true,
+            }),
+        ]).start();
+
+        // 2. Check hace pop después de 160ms
+        setTimeout(() => {
+            Animated.spring(checkAnim, {
+                toValue: 1, tension: 220, friction: 6, useNativeDriver: true,
+            }).start();
+        }, 160);
+
+        // 3. Ripple doble explota desde el círculo
+        setTimeout(() => {
+            Animated.parallel([
+                Animated.timing(ring1Scale, { toValue: 2.0, duration: 550, useNativeDriver: true }),
+                Animated.timing(ring1Opacity, { toValue: 0, duration: 550, useNativeDriver: true }),
+                Animated.timing(ring2Scale, { toValue: 2.6, duration: 750, useNativeDriver: true }),
+                Animated.timing(ring2Opacity, { toValue: 0, duration: 750, useNativeDriver: true }),
+            ]).start();
+        }, 200);
+
+        // 4. Fade out a los 1700ms
+        setTimeout(() => {
+            Animated.parallel([
+                Animated.timing(toastOpacity, { toValue: 0, duration: 350, useNativeDriver: true }),
+                Animated.timing(toastSlide, { toValue: 60, duration: 350, useNativeDriver: true }),
+            ]).start(() => setShowSuccess(false));
+        }, 1700);
+    };
+
     const validate = () => {
         let valid = true;
         if (!email.trim()) {
@@ -153,7 +209,7 @@ export default function SignInScreen({ navigation }) {
                 await AsyncStorage.setItem('userPhone', userData.phone || '');
                 await AsyncStorage.setItem('userPhoto', userData.photo || '');
 
-                setShowSuccess(true);
+                showSuccessAnimation();
 
 
                 // Esperamos 2.5 segundos para mostrar la animación de éxito antes de redirigir
@@ -317,21 +373,40 @@ export default function SignInScreen({ navigation }) {
                     </ScrollView>
                 </KeyboardAvoidingView>
 
-                {/* Success Modal */}
-                <Modal visible={showSuccess} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalCard}>
-                            <View style={styles.successCircle}>
-                                <Ionicons name="checkmark" size={52} color="#ffffff" />
-                            </View>
-                            <Text style={styles.modalTitle}>¡Inicio exitoso!</Text>
-                            <Text style={styles.modalSubtitle}>
-                                Tu sesión ha sido iniciada correctamente.{'\n'}Redirigiendo al panel principal...
-                            </Text>
-                            <ActivityIndicator color="#045084" style={{ marginTop: 16 }} />
+                {/* Toast de éxito animado */}
+                {showSuccess && (
+                    <Animated.View style={[
+                        styles.toast,
+                        { opacity: toastOpacity, transform: [{ translateY: toastSlide }] }
+                    ]}>
+                        {/* Ripple doble */}
+                        <View style={styles.ringWrapper}>
+                            <Animated.View style={[styles.ring, {
+                                transform: [{ scale: ring2Scale }],
+                                opacity: ring2Opacity,
+                                borderColor: 'rgba(56,189,248,0.35)',
+                            }]} />
+                            <Animated.View style={[styles.ring, {
+                                transform: [{ scale: ring1Scale }],
+                                opacity: ring1Opacity,
+                                borderColor: 'rgba(56,189,248,0.65)',
+                            }]} />
+                            {/* Círculo con check */}
+                            <Animated.View style={[
+                                styles.checkCircle,
+                                { transform: [{ scale: checkAnim }] }
+                            ]}>
+                                <Ionicons name="checkmark" size={26} color="#FFF" />
+                            </Animated.View>
                         </View>
-                    </View>
-                </Modal>
+
+                        {/* Texto */}
+                        <View style={styles.toastTextBlock}>
+                            <Text style={styles.toastTitle}>¡Sesión iniciada!</Text>
+                            <Text style={styles.toastSub}>Bienvenido de vuelta 👋</Text>
+                        </View>
+                    </Animated.View>
+                )}
             </SafeAreaView>
         </Animated.View>
     );
@@ -492,52 +567,66 @@ const styles = StyleSheet.create({
         textDecorationLine: 'none',
 
     },
-    // Modal
-    modalOverlay: {
+    // Toast de éxito
+    toast: {
+        position: 'absolute',
+        bottom: 52,
+        left: 24,
+        right: 24,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(5, 18, 40, 0.96)',
+        borderRadius: 22,
+        borderWidth: 1,
+        borderColor: 'rgba(56,189,248,0.4)',
+        paddingVertical: 18,
+        paddingHorizontal: 22,
+        gap: 18,
+        shadowColor: '#38BDF8',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.55,
+        shadowRadius: 22,
+        elevation: 20,
+        zIndex: 999,
+    },
+    ringWrapper: {
+        width: 54,
+        height: 54,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    ring: {
+        position: 'absolute',
+        width: 54,
+        height: 54,
+        borderRadius: 27,
+        borderWidth: 2,
+    },
+    checkCircle: {
+        width: 54,
+        height: 54,
+        borderRadius: 27,
+        backgroundColor: '#38BDF8',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#38BDF8',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.9,
+        shadowRadius: 14,
+        elevation: 8,
+    },
+    toastTextBlock: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 32,
     },
-    modalCard: {
-        backgroundColor: '#ffffff',
-        borderRadius: 24,
-        paddingVertical: 48,
-        paddingHorizontal: 32,
-        alignItems: 'center',
-        width: '100%',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.2,
-        shadowRadius: 24,
-        elevation: 10,
-    },
-    successCircle: {
-        width: 96,
-        height: 96,
-        borderRadius: 48,
-        backgroundColor: '#045084',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 24,
-        shadowColor: '#045084',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 6,
-    },
-    modalTitle: {
+    toastTitle: {
         fontFamily: 'Poppins-Bold',
-        fontSize: 22,
-        color: '#111827',
-        marginBottom: 12,
+        fontSize: 16,
+        color: '#FFFFFF',
+        marginBottom: 2,
     },
-    modalSubtitle: {
+    toastSub: {
         fontFamily: 'Poppins-Regular',
-        fontSize: 14,
-        color: '#6B7280',
-        textAlign: 'center',
-        lineHeight: 22,
+        fontSize: 13,
+        color: 'rgba(200,230,255,0.75)',
     },
 });
