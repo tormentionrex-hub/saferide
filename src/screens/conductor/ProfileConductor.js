@@ -23,12 +23,7 @@ import { Picker } from '@react-native-picker/picker';
 // IMPORTANTE: Asegúrate de tener configurado tu servicio de API
 import api from '../../services/api'; 
 import { useDriverTheme } from '../../context/DriverThemeContext';
-import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
-
-const COMPANIES = [
-    'Intel', 'Cargill', 'Deloitte', 'Citi', 'Experian', '3M', 'DHL', 
-    'Bill Gosling Outsourcing (BGO)', 'WeWork Costa Rica', 'Concentrix', 'Nestlé Costa Rica'
-];
+import { uploadToCloudinary } from '../../Cloudinary/Cloudinary';
 
 const ProfileConductor = ({ navigation }) => {
     const insets = useSafeAreaInsets();
@@ -175,6 +170,15 @@ const ProfileConductor = ({ navigation }) => {
             </View>
         );
     }
+
+    const handleUpload = async () => {
+        if (!imagen) return alert("Selecciona un archivo primero");
+
+        const res = await uploadToCloudinary(imagen);
+        console.log(res);
+        setUrl(res.secure_url); // obtenemos el link de Cloudinary
+        return res;
+    };
 
     return (
         <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg || theme.surface }]}>
@@ -363,73 +367,8 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
     },
     backBtn: { position: 'absolute', left: 16 },
-    headerTitle: { fontSize: 18, fontWeight: 'bold' },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    scrollContent: { padding: 20, paddingBottom: 40 },
-    
-    profileCard: {
-        alignItems: 'center',
-        marginBottom: 30,
-    },
-    avatar: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        borderWidth: 2,
-        marginBottom: 12,
-        backgroundColor: '#f0f0f0'
-    },
-    userName: {
-        fontSize: 22,
-        fontWeight: 'bold',
-    },
-    userEmail: {
-        fontSize: 14,
-    },
-
-    sectionTitle: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        letterSpacing: 1,
-        marginBottom: 10,
-        marginLeft: 4,
-    },
-    infoBox: {
-        borderRadius: 16,
-        borderWidth: 1,
-        padding: 16,
-        marginBottom: 20,
-    },
-    infoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 8,
-    },
-    infoTexts: {
-        marginLeft: 15,
-    },
-    infoLabel: {
-        fontSize: 11,
-    },
-    infoValue: {
-        fontSize: 15,
-        fontWeight: 'bold',
-    },
-    line: {
-        height: 1,
-        marginVertical: 10,
-        marginLeft: 35,
-    },
-
-    actionBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        borderRadius: 16,
-        borderWidth: 1,
-        marginBottom: 12,
-    },
-    actionBtnText: {
+    headerTitle: { fontSize: 18, fontFamily: 'Poppins-Bold' },
+    center: {
         flex: 1,
         marginLeft: 12,
         fontSize: 15,
