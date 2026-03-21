@@ -14,7 +14,7 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
         if (routeName === 'DashboardDriver') currentTab = 'Inicio';
         else if (routeName === 'PublishRide') currentTab = 'Viajes';
         else if (routeName === 'ManageRequests') currentTab = 'Mensajes';
-        else if (routeName === 'DriverMetrics') currentTab = 'Perfil';
+        else if (routeName === 'DriverMetrics') currentTab = 'Stats';
     }
 
     const getColor = (tabName) => currentTab === tabName ? theme.navActive : theme.navInactive;
@@ -85,17 +85,17 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                 <Text style={[styles.navText, { color: getColor('Mensajes') }]}>Mensajes</Text>
             </TouchableOpacity>
 
-            {/* 4. BOTÓN: PERFIL */}
-            <TouchableOpacity 
-                style={styles.navItem} 
+            {/* 4. BOTÓN: STATS */}
+            <TouchableOpacity
+                style={styles.navItem}
                 activeOpacity={0.6}
                 onPress={() => navigateTo('DriverMetrics')}
             >
-                <Ionicons 
-                    name={currentTab === 'Perfil' ? "person" : "person-outline"} 
-                    size={24} color={getColor('Perfil')} 
+                <Ionicons
+                    name={currentTab === 'Stats' ? "bar-chart" : "bar-chart-outline"}
+                    size={24} color={getColor('Stats')}
                 />
-                <Text style={[styles.navText, { color: getColor('Perfil') }]}>Perfil</Text>
+                <Text style={[styles.navText, { color: getColor('Stats') }]}>Stats</Text>
             </TouchableOpacity>
 
         </View>
@@ -128,10 +128,10 @@ const styles = StyleSheet.create({
         paddingTop: 10,
     },
     navText: {
-        fontSize: 10, 
+        fontSize: 10,
         marginTop: 4,
-        fontFamily: 'Poppins-Regular',
-        fontWeight: '500',
+        fontFamily: 'Poppins-SemiBold',
+        textAlign: 'center',
     }
 });
 
