@@ -94,7 +94,7 @@ const PaymentMethodScreen = ({ navigation }) => {
                     setToastVisible(false);
                     navigation.goBack();
                 });
-            }, 1900);
+            }, 1100);
         });
     };
 

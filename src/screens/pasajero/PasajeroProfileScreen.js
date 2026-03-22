@@ -24,6 +24,146 @@ const COMPANIES = [
 const PAYMENT_LABELS = { efectivo: 'Efectivo', sinpe: 'SINPE Móvil', tarjeta: 'Tarjeta' };
 const PAYMENT_ICONS  = { efectivo: 'cash-outline', sinpe: 'phone-portrait-outline', tarjeta: 'card-outline' };
 
+// ── Burbujas y colores por modo ───────────────────────────────────────────────
+const BUBBLES_LIGHT = ['#4F8EF7','#34D399','#F59E0B','#EC4899','#8B5CF6','#06B6D4','#F97316','#10B981'];
+const BUBBLES_DARK  = ['#818CF8','#A78BFA','#C084FC','#F472B6','#38BDF8','#34D399','#FB923C','#FBBF24'];
+
+// ── Hook sweet-alert con explosión de burbujas ────────────────────────────────
+const useSuccessAlert = () => {
+    const [visible, setVisible] = useState(false);
+    const cardScale   = useRef(new Animated.Value(0)).current;
+    const cardOpacity = useRef(new Animated.Value(0)).current;
+    const checkScale  = useRef(new Animated.Value(0)).current;
+    const bubbles     = useRef(
+        Array.from({ length: 8 }, () => ({
+            scale:  new Animated.Value(0),
+            transX: new Animated.Value(0),
+            transY: new Animated.Value(0),
+            opacity: new Animated.Value(1),
+        }))
+    ).current;
+
+    const show = () => {
+        // Reset
+        cardScale.setValue(0); cardOpacity.setValue(0); checkScale.setValue(0);
+        bubbles.forEach(b => { b.scale.setValue(0); b.transX.setValue(0); b.transY.setValue(0); b.opacity.setValue(1); });
+        setVisible(true);
+
+        // 1) Tarjeta entra con spring
+        Animated.parallel([
+            Animated.spring(cardScale,   { toValue: 1, friction: 5, tension: 160, useNativeDriver: true }),
+            Animated.timing(cardOpacity, { toValue: 1, duration: 120, useNativeDriver: true }),
+        ]).start();
+
+        // 2) Check pop (delay 120ms)
+        setTimeout(() => {
+            Animated.spring(checkScale, { toValue: 1, friction: 4, tension: 220, useNativeDriver: true }).start();
+        }, 120);
+
+        // 3) Explosión de burbujas (delay 60ms)
+        setTimeout(() => {
+            bubbles.forEach((b, i) => {
+                const angle    = (i / 8) * Math.PI * 2;
+                const dist     = 70 + (i % 3) * 20;
+                Animated.parallel([
+                    Animated.spring(b.scale,  { toValue: 1, friction: 6, tension: 180, useNativeDriver: true }),
+                    Animated.timing(b.transX, { toValue: Math.cos(angle) * dist, duration: 500, useNativeDriver: true }),
+                    Animated.timing(b.transY, { toValue: Math.sin(angle) * dist, duration: 500, useNativeDriver: true }),
+                    Animated.timing(b.opacity,{ toValue: 0, duration: 500, delay: 120, useNativeDriver: true }),
+                ]).start();
+            });
+        }, 60);
+
+        // 4) Salida de la tarjeta a los 1750ms → todo termina ~2s
+        setTimeout(() => {
+            Animated.parallel([
+                Animated.timing(cardScale,   { toValue: 0.8, duration: 250, useNativeDriver: true }),
+                Animated.timing(cardOpacity, { toValue: 0,   duration: 250, useNativeDriver: true }),
+            ]).start(() => setVisible(false));
+        }, 1750);
+    };
+
+    return { visible, show, cardScale, cardOpacity, checkScale, bubbles };
+};
+
+// ── Componente visual del sweet-alert ────────────────────────────────────────
+const SuccessAlert = ({ hook, isDark }) => {
+    const colors = isDark ? BUBBLES_DARK : BUBBLES_LIGHT;
+    const cardBg = isDark ? '#1E1B4B' : '#FFFFFF';
+    const checkBg = isDark ? '#6D28D9' : '#10B981';
+    const titleColor = isDark ? '#E0E7FF' : '#111827';
+    const subColor   = isDark ? '#A5B4FC' : '#6B7280';
+
+    if (!hook.visible) return null;
+
+    return (
+        <Modal transparent animationType="none" visible={hook.visible} statusBarTranslucent>
+            <View style={saStyles.overlay} pointerEvents="none">
+                {/* Burbujas */}
+                {hook.bubbles.map((b, i) => (
+                    <Animated.View
+                        key={i}
+                        style={[
+                            saStyles.bubble,
+                            {
+                                backgroundColor: colors[i],
+                                width:  10 + (i % 3) * 5,
+                                height: 10 + (i % 3) * 5,
+                                borderRadius: 10,
+                                opacity: b.opacity,
+                                transform: [
+                                    { scale: b.scale },
+                                    { translateX: b.transX },
+                                    { translateY: b.transY },
+                                ],
+                            },
+                        ]}
+                    />
+                ))}
+
+                {/* Tarjeta central */}
+                <Animated.View
+                    style={[
+                        saStyles.card,
+                        {
+                            backgroundColor: cardBg,
+                            opacity: hook.cardOpacity,
+                            transform: [{ scale: hook.cardScale }],
+                            shadowColor: isDark ? '#6D28D9' : '#000',
+                        },
+                    ]}
+                >
+                    {/* Círculo check */}
+                    <Animated.View style={[saStyles.checkCircle, { backgroundColor: checkBg, transform: [{ scale: hook.checkScale }] }]}>
+                        <Ionicons name="checkmark" size={34} color="#fff" />
+                    </Animated.View>
+                    <Text style={[saStyles.title, { color: titleColor }]}>¡Listo!</Text>
+                    <Text style={[saStyles.sub, { color: subColor }]}>Perfil actualizado</Text>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
+const saStyles = StyleSheet.create({
+    overlay: {
+        flex: 1, justifyContent: 'center', alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.35)',
+    },
+    bubble: { position: 'absolute' },
+    card: {
+        alignItems: 'center', paddingVertical: 36, paddingHorizontal: 48,
+        borderRadius: 28, elevation: 20,
+        shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 20,
+    },
+    checkCircle: {
+        width: 72, height: 72, borderRadius: 36,
+        justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+    },
+    title: { fontSize: 22, fontFamily: 'Poppins-Bold', marginBottom: 4 },
+    sub:   { fontSize: 14, fontFamily: 'Poppins-Regular' },
+});
+
 // ── Hook de animación para el modal de logout ─────────────────────────────────
 const useLogoutModal = () => {
     const [visible, setVisible] = useState(false);
@@ -61,7 +201,8 @@ const PasajeroProfileScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const { theme } = useDriverTheme();
     const si = useScrollIndicator();
-    const logoutModal = useLogoutModal();
+    const logoutModal  = useLogoutModal();
+    const successAlert = useSuccessAlert();
 
     const [loading,       setLoading]       = useState(true);
     const [userData,      setUserData]      = useState(null);
@@ -208,9 +349,9 @@ const PasajeroProfileScreen = ({ navigation }) => {
             await AsyncStorage.setItem('userCompany', editForm.company);
             if (profileImageUrl) await AsyncStorage.setItem('userPhoto', profileImageUrl);
 
-            Alert.alert('¡Listo!', 'Perfil actualizado correctamente');
             closeModal();
             loadProfile();
+            setTimeout(() => successAlert.show(), 320);
         } catch (e) {
             console.error('Update error:', e);
             Alert.alert('Error', 'No se pudo actualizar el perfil.');
@@ -426,7 +567,7 @@ const PasajeroProfileScreen = ({ navigation }) => {
                             </Text>
 
                             <ModalInput label="NOMBRE COMPLETO"    icon="person-outline" value={editForm.name}    onChangeText={t => setEditForm(p => ({ ...p, name: t }))}    placeholder="Tu nombre"          theme={theme} />
-                            <ModalInput label="CORREO ELECTRÓNICO" icon="mail-outline"   value={editForm.email}   onChangeText={t => setEditForm(p => ({ ...p, email: t }))}   placeholder="correo@empresa.com" keyboardType="email-address" theme={theme} />
+                            <ModalInput label="CORREO ELECTRÓNICO" icon="mail-outline" value={editForm.email} placeholder="correo@empresa.com" keyboardType="email-address" theme={theme} editable={false} locked />
                             <ModalInput label="TELÉFONO"           icon="call-outline"   value={editForm.phone}   onChangeText={t => setEditForm(p => ({ ...p, phone: t.replace(/[^0-9]/g, '') }))} placeholder="88888888" keyboardType="phone-pad" maxLength={8} theme={theme} />
 
                             <View style={styles.inputGroup}>
@@ -466,6 +607,10 @@ const PasajeroProfileScreen = ({ navigation }) => {
                     </Animated.View>
                 </KeyboardAvoidingView>
             </Modal>
+
+            {/* ── Sweet Alert: éxito con burbujas ── */}
+            <SuccessAlert hook={successAlert} isDark={theme.dark} />
+
         </SafeAreaView>
     );
 };
@@ -488,14 +633,24 @@ const InfoCard = ({ icon, label, value, theme, showArrow }) => (
     </View>
 );
 
-const ModalInput = ({ label, icon, theme, ...props }) => (
+const ModalInput = ({ label, icon, theme, locked, ...props }) => (
     <View style={styles.inputGroup}>
         <View style={styles.labelRow}>
-            <Ionicons name={icon} size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
+            <Ionicons name={icon} size={14} color={locked ? theme.textSecondary : theme.textSecondary} style={{ marginRight: 6 }} />
             <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>{label}</Text>
+            {locked && (
+                <View style={[styles.lockedBadge, { backgroundColor: theme.iconCircleBg || '#1C1C40' }]}>
+                    <Ionicons name="lock-closed" size={10} color={theme.textSecondary} style={{ marginRight: 3 }} />
+                    <Text style={[styles.lockedBadgeText, { color: theme.textSecondary }]}>No editable</Text>
+                </View>
+            )}
         </View>
         <TextInput
-            style={[styles.input, { color: theme.text, borderColor: theme.divider, backgroundColor: theme.bg }]}
+            style={[
+                styles.input,
+                { color: locked ? theme.textSecondary : theme.text, borderColor: theme.divider, backgroundColor: theme.bg },
+                locked && { opacity: 0.5 },
+            ]}
             placeholderTextColor={theme.textSecondary}
             {...props}
         />
@@ -593,6 +748,8 @@ const styles = StyleSheet.create({
     inputGroup: { marginBottom: 18 },
     labelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, marginLeft: 2 },
     inputLabel: { fontSize: 11, fontFamily: 'Poppins-SemiBold', letterSpacing: 0.8 },
+    lockedBadge: { flexDirection: 'row', alignItems: 'center', marginLeft: 8, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+    lockedBadgeText: { fontSize: 10, fontFamily: 'Poppins-Regular' },
     input: { height: 50, borderRadius: 13, borderWidth: 1, paddingHorizontal: 16, fontSize: 15, fontFamily: 'Poppins-Regular' },
     pickerContainer: { borderRadius: 13, borderWidth: 1, height: 50, justifyContent: 'center', overflow: 'hidden' },
     saveBtn: {
