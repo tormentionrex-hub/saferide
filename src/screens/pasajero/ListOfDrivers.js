@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
     StatusBar, Platform,
@@ -8,14 +8,30 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
+// ── Utilidad de Distancia Haversine ──────────────────────────────────────────
+const getHaversineDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Radio de la Tierra en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+};
+
 // ── Tarjeta de conductor ──────────────────────────────────────────────────────
 const DriverCard = ({ item, onPress, theme }) => {
     const driverName = item.driver_id?.name || 'Conductor Desconocido';
     const rating     = item.driver_id?.rating ?? null;
     const originName = item.origin?.name      || 'Origen';
     const destName   = item.destination?.name || 'Destino';
-    const date       = item.date
-        ? new Date(item.date).toLocaleDateString('es-CR', { day: '2-digit', month: 'short', year: 'numeric' })
+    const date       = item.date_time
+        ? new Date(item.date_time).toLocaleDateString('es-CR', { day: '2-digit', month: 'short', year: 'numeric' })
+        : null;
+    const time       = item.date_time
+        ? new Date(item.date_time).toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit', hour12: true })
         : null;
     const price      = item.price != null ? `₡${item.price.toLocaleString()}` : null;
     const seats      = item.available_seats ?? null;
@@ -81,6 +97,12 @@ const DriverCard = ({ item, onPress, theme }) => {
                         <Text style={[styles.footerChipText, { color: theme.textSecondary }]}>{date}</Text>
                     </View>
                 )}
+                {time && (
+                    <View style={styles.footerChip}>
+                        <Ionicons name="time-outline" size={13} color={theme.textSecondary} />
+                        <Text style={[styles.footerChipText, { color: theme.textSecondary }]}>{time}</Text>
+                    </View>
+                )}
                 {seats !== null && (
                     <View style={styles.footerChip}>
                         <Ionicons name="people-outline" size={13} color={theme.textSecondary} />
@@ -104,6 +126,36 @@ const ListOfDrivers = ({ route, navigation }) => {
     const insets    = useSafeAreaInsets();
     const si        = useScrollIndicator();
     const rides     = route.params?.rides || [];
+    const searchTime = route.params?.searchTime ? new Date(route.params.searchTime) : new Date();
+    const searchLoc  = route.params?.searchLocation;
+
+    // ── Filtrado y Ordenamiento ──────────────────────────────────────────────
+    const processedRides = useMemo(() => {
+        // 1. Filtrar por ventana de tiempo: [searchTime - 1h, searchTime + 4h]
+        let filtered = rides.filter(ride => {
+            if (!ride.date_time) return false;
+            const rideDate = new Date(ride.date_time);
+            const diffMs = rideDate.getTime() - searchTime.getTime();
+            const diffHrs = diffMs / (1000 * 60 * 60);
+            return diffHrs >= -1 && diffHrs <= 4;
+        });
+
+        // 2. Ordenar por cercanía al origen de búsqueda
+        if (searchLoc) {
+            filtered.sort((a, b) => {
+                const distA = getHaversineDistance(
+                    searchLoc.lat, searchLoc.lng,
+                    a.origin.coordinates.lat, a.origin.coordinates.lng
+                );
+                const distB = getHaversineDistance(
+                    searchLoc.lat, searchLoc.lng,
+                    b.origin.coordinates.lat, b.origin.coordinates.lng
+                );
+                return distA - distB;
+            });
+        }
+        return filtered;
+    }, [rides, searchTime, searchLoc]);
 
     const handleRideSelection = (ride) => {
         navigation.navigate('RideDetail', { ride });
@@ -158,7 +210,7 @@ const ListOfDrivers = ({ route, navigation }) => {
             ) : (
                 <View style={styles.listWrapper}>
                     <FlatList
-                        data={rides}
+                        data={processedRides}
                         keyExtractor={(item) => item._id?.toString() ?? Math.random().toString()}
                         renderItem={({ item }) => (
                             <DriverCard item={item} onPress={handleRideSelection} theme={theme} />
