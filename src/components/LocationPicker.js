@@ -13,7 +13,7 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { Ionicons } from '@expo/vector-icons';
-import { GOOGLE_MAPS_API_KEY } from '../config';
+import { GOOGLE_MAPS_API_KEY } from '../config.js';
 import { getCurrentLocation, reverseGeocode } from '../services/locationService';
 import { useDriverTheme } from '../context/DriverThemeContext';
 

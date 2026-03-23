@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as Location from 'expo-location';
-import { GOOGLE_MAPS_API_KEY } from '../config';
+import { GOOGLE_MAPS_API_KEY } from '../config.js';
 
 /**
  * Obtiene la ubicación GPS actual del dispositivo.

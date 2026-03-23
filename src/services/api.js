@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_URL } from '../config';
+import { API_URL } from '../config.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { navigate } from './navigationRef';
 
