@@ -66,15 +66,15 @@ export default function DashboardConductor({ route, navigation }) {
                     {/* Fila de Cards Secundarias */}
                     <View style={styles.row}>
 
-                        {/* Gestionar Solicitudes */}
+                        {/* Gestionar Viajes */}
                         <TouchableOpacity
                             style={[styles.smallCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder }]}
-                            onPress={() => navigation.navigate('ManageRequests')}
+                            onPress={() => navigation.navigate('ManageRides')}
                         >
                             <View style={[styles.smallIconCircle, { backgroundColor: theme.iconCircleBg }]}>
-                                <Ionicons name="person-add-outline" size={28} color={theme.accent} />
+                                <Ionicons name="map-outline" size={28} color={theme.accent} />
                             </View>
-                            <Text style={[styles.smallCardTitle, { color: theme.text }]}>Gestionar Solicitudes</Text>
+                            <Text style={[styles.smallCardTitle, { color: theme.text }]}>Gestionar Viajes</Text>
                         </TouchableOpacity>
 
                         {/* Métricas Personales */}
