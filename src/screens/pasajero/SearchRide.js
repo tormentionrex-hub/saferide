@@ -93,7 +93,11 @@ const SearchRide = ({ navigation }) => {
             
             const response = await api.get('/rides', { params });
             if (response.data.success) {
-                navigation.navigate('ListOfDrivers', { rides: response.data.data || [] });
+                navigation.navigate('ListOfDrivers', { 
+                    rides: response.data.data || [],
+                    searchTime: new Date().toISOString(),
+                    searchLocation: { lat: origen.lat, lng: origen.lng }
+                });
             } else {
                 Alert.alert('Aviso', 'No se encontraron viajes para esta ruta.');
             }
