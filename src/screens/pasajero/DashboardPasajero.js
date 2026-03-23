@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
     StyleSheet,
     Text,
@@ -30,14 +31,13 @@ const DashboardPasajero = ({ navigation, route }) => {
     // Valor animado para la rotación de la tuerca
     const rotateAnim = useRef(new Animated.Value(0)).current;
 
-    useEffect(() => {
-        // Si no llegó el nombre por los parámetros de navegación, lo buscamos en AsyncStorage
-        if (!route?.params?.userName) {
+    useFocusEffect(
+        useCallback(() => {
             AsyncStorage.getItem('userName').then((name) => {
                 if (name) setUserName(name);
             });
-        }
-    }, []);
+        }, [])
+    );
 
     // Lógica de apertura/cierre con animación
     const toggleModal = () => {
@@ -170,10 +170,10 @@ const DashboardPasajero = ({ navigation, route }) => {
                                 }}
                             >
                                 <View style={[styles.iconCircle, { backgroundColor: theme.surface }]}>
-                                    <Ionicons name="color-palette-outline" size={28} color={theme.accent} />
+                                    <Ionicons name="construct-outline" size={28} color={theme.accent} />
                                 </View>
-                                <Text style={[styles.optionLabel, { color: theme.text }]}>Personalizar apariencia</Text>
-                                <Text style={[styles.optionSub, { color: theme.textSecondary }]}>Colores y Temas</Text>
+                                <Text style={[styles.optionLabel, { color: theme.text }]}>Ajustes</Text>
+                                <Text style={[styles.optionSub, { color: theme.textSecondary }]}>Apariencia y más</Text>
                             </TouchableOpacity>
                         </View>
 

@@ -27,6 +27,8 @@ import ProfileConductor from './src/screens/conductor/ProfileConductor';
 import ListOfDrivers from './src/screens/pasajero/ListOfDrivers';
 import PasajeroProfileScreen from './src/screens/pasajero/PasajeroProfileScreen';
 import CustomizeApp from './src/screens/pasajero/CustomizeApp';
+import PaymentMethodScreen from './src/screens/pasajero/PaymentMethodScreen';
+import RideDetail from './src/screens/pasajero/RideDetail';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BottomNavigationBar from './src/components/BottomNavigationBar';
@@ -73,118 +75,132 @@ function MainTabsDriver() {
 export default function App() {
   return (
     <DriverThemeProvider>
-    <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator
-        initialRouteName="Splash"
-        screenOptions={{
-          headerShown: false,
-          animation: 'slide_from_right',
-          animationDuration: 400,
-        }}
-      >
-        <Stack.Screen
-          name="Splash"
-          component={SplashScreen}
-          options={{ 
-            headerShown: false, 
-            animation: 'fade'
-          }}
-        />
-        <Stack.Screen
-          name="Login"
-          component={RegisterScreen}
-          options={{ 
-            animation: 'fade',
-          }}
-        />
-        <Stack.Screen
-          name="Verification"
-          component={VerificationScreen}
-        />
-        <Stack.Screen
-          name="CreatePassword"
-          component={CreatePasswordScreen}
-        />
-        <Stack.Screen
-          name="AccountVerificationSucess"
-          component={AccountVerificationSucess}
-          options={{ 
-            animation: 'fade_from_bottom',
-          }}
-        />
-        <Stack.Screen
-          name="RoleSelection"
-          component={RoleSelectionScreen}
-          options={{ 
-            animation: 'slide_from_bottom',
-          }}
-        />
-        <Stack.Screen
-          name="SignIn"
-          component={SignInScreen}
-        />
-        <Stack.Screen
-          name="LoginSuccess"
-          component={LoginSuccessScreen}
-          options={{ 
-            animation: 'fade', 
-            gestureEnabled: false 
-          }}
-        />
-        
-        {/* Tab Navigators para flujos principales */}
-        <Stack.Screen
-          name="MainTabsPasajero"
-          component={MainTabsPasajero}
-          options={{ 
-            animation: 'fade', 
-            gestureEnabled: false 
-          }}
-        />
-
-        <Stack.Screen
-          name="MainTabsDriver"
-          component={MainTabsDriver}
-          options={{ 
-            animation: 'fade', 
-            gestureEnabled: false 
-          }}
-        />
-
-        <Stack.Screen name="AjustesConductor" component={AjustesConductor} options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="ProfileConductor" component={ProfileConductor}  options={{ animation: 'slide_from_right' }} />
-
-        <Stack.Screen
-          name="Home"
-          component={ApiHealthCheckScreen}
-          options={{
-            title: 'Dashboard',
-            headerBackVisible: false,
-            animation: 'slide_from_left'
-          }}
-        />
-
-        <Stack.Screen
-          name="PasajeroProfileScreen"
-
-          component={PasajeroProfileScreen}
-          options={{ 
+      <NavigationContainer ref={navigationRef}>
+        <Stack.Navigator
+          initialRouteName="Splash"
+          screenOptions={{
             headerShown: false,
-            animation: 'slide_from_right'
+            animation: 'slide_from_right',
+            animationDuration: 400,
           }}
-        />
+        >
+          <Stack.Screen
+            name="Splash"
+            component={SplashScreen}
+            options={{
+              headerShown: false,
+              animation: 'fade'
+            }}
+          />
+          <Stack.Screen
+            name="Login"
+            component={RegisterScreen}
+            options={{
+              animation: 'fade',
+            }}
+          />
+          <Stack.Screen
+            name="Verification"
+            component={VerificationScreen}
+          />
+          <Stack.Screen
+            name="CreatePassword"
+            component={CreatePasswordScreen}
+          />
+          <Stack.Screen
+            name="AccountVerificationSucess"
+            component={AccountVerificationSucess}
+            options={{
+              animation: 'fade_from_bottom',
+            }}
+          />
+          <Stack.Screen
+            name="RoleSelection"
+            component={RoleSelectionScreen}
+            options={{
+              animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen
+            name="SignIn"
+            component={SignInScreen}
+          />
+          <Stack.Screen
+            name="LoginSuccess"
+            component={LoginSuccessScreen}
+            options={{
+              animation: 'fade',
+              gestureEnabled: false
+            }}
+          />
 
-        <Stack.Screen
-          name="CustomizeApp"
-          component={CustomizeApp}
-          options={{ 
-            headerShown: false,
-            animation: 'slide_from_right'
-          }}
-        />
+          {/* Tab Navigators para flujos principales */}
+          <Stack.Screen
+            name="MainTabsPasajero"
+            component={MainTabsPasajero}
+            options={{
+              animation: 'fade',
+              gestureEnabled: false
+            }}
+          />
 
-      </Stack.Navigator>
-    </NavigationContainer>
+          <Stack.Screen
+            name="MainTabsDriver"
+            component={MainTabsDriver}
+            options={{
+              animation: 'fade',
+              gestureEnabled: false
+            }}
+          />
+
+          <Stack.Screen name="AjustesConductor" component={AjustesConductor} options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ProfileConductor" component={ProfileConductor} options={{ animation: 'slide_from_right' }} />
+
+          <Stack.Screen
+            name="Home"
+            component={ApiHealthCheckScreen}
+            options={{
+              title: 'Dashboard',
+              headerBackVisible: false,
+              animation: 'slide_from_left'
+            }}
+          />
+
+          <Stack.Screen
+            name="PasajeroProfileScreen"
+
+            component={PasajeroProfileScreen}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right'
+            }}
+          />
+
+          <Stack.Screen
+            name="CustomizeApp"
+            component={CustomizeApp}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right'
+            }}
+          />
+
+          <Stack.Screen
+            name="PaymentMethod"
+            component={PaymentMethodScreen}
+            options={{ headerShown: false, animation: 'slide_from_right' }}
+          />
+
+          <Stack.Screen
+            name="RideDetail"
+            component={RideDetail}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_bottom'
+            }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
     </DriverThemeProvider>
   );
 }

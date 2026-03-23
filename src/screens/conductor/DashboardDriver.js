@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
     StyleSheet,
     Text,
@@ -21,20 +22,13 @@ export default function DashboardConductor({ route, navigation }) {
     const [userName, setUserName] = useState('Conductor');
     const si = useScrollIndicator();
 
-    useEffect(() => {
-        const fetchUserName = async () => {
-            const nameFromParams = route?.params?.userName || route?.params?.name;
-            if (nameFromParams) {
-                setUserName(nameFromParams.split(' ')[0]);
-                return;
-            }
-            const storedName = await AsyncStorage.getItem('userName');
-            if (storedName) {
-                setUserName(storedName.split(' ')[0]);
-            }
-        };
-        fetchUserName();
-    }, [route?.params]);
+    useFocusEffect(
+        useCallback(() => {
+            AsyncStorage.getItem('userName').then((name) => {
+                if (name) setUserName(name.split(' ')[0]);
+            });
+        }, [])
+    );
 
     return (
         <Animated.View style={{ flex: 1, backgroundColor: theme.bg }}>

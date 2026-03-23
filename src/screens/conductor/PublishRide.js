@@ -6,11 +6,11 @@ import {
     StyleSheet,
     ActivityIndicator,
     Alert,
-    SafeAreaView,
     StatusBar,
     Platform,
     ScrollView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 
