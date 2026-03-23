@@ -27,12 +27,8 @@ const DriverCard = ({ item, onPress, theme }) => {
     const rating     = item.driver_id?.rating ?? null;
     const originName = item.origin?.name      || 'Origen';
     const destName   = item.destination?.name || 'Destino';
-    const date       = item.date_time
-        ? new Date(item.date_time).toLocaleDateString('es-CR', { day: '2-digit', month: 'short', year: 'numeric' })
-        : null;
-    const time       = item.date_time
-        ? new Date(item.date_time).toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit', hour12: true })
-        : null;
+    const date       = item.fecha || null;
+    const time       = item.hora || null;
     const price      = item.price != null ? `₡${item.price.toLocaleString()}` : null;
     const seats      = item.available_seats ?? null;
 
@@ -133,8 +129,12 @@ const ListOfDrivers = ({ route, navigation }) => {
     const processedRides = useMemo(() => {
         // 1. Filtrar por ventana de tiempo: [searchTime - 1h, searchTime + 4h]
         let filtered = rides.filter(ride => {
-            if (!ride.date_time) return false;
-            const rideDate = new Date(ride.date_time);
+            if (!ride.fecha || !ride.hora) return false;
+            // Parse robustly using components to avoid timezone offsets on "plano" strings
+            const [y, m, d] = ride.fecha.split('-').map(Number);
+            const [h, mm] = ride.hora.split(':').map(Number);
+            const rideDate = new Date(y, m - 1, d, h, mm, 0);
+            
             const diffMs = rideDate.getTime() - searchTime.getTime();
             const diffHrs = diffMs / (1000 * 60 * 60);
             return diffHrs >= -1 && diffHrs <= 4;

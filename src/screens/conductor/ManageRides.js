@@ -38,14 +38,14 @@ const ManageRides = ({ navigation }) => {
         const originName = item.origin?.name || 'Origen Desconocido';
         const destName = item.destination?.name || 'Destino Desconocido';
         const date = new Date(item.date_time);
-        
+
         return (
             <View style={[styles.rideCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <View style={styles.routeContainer}>
                     <Ionicons name="radio-button-on" size={16} color={theme.accent} />
                     <View style={[styles.line, { backgroundColor: theme.divider }]} />
                     <Ionicons name="location" size={16} color="#FF5A5F" />
-                    
+
                     <View style={styles.routeTextContainer}>
                         <Text style={[styles.locationText, { color: theme.text }]} numberOfLines={1}>{originName}</Text>
                         <Text style={[styles.locationText, { color: theme.text, marginTop: 15 }]} numberOfLines={1}>{destName}</Text>
@@ -75,7 +75,7 @@ const ManageRides = ({ navigation }) => {
                     </View>
                 </View>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[styles.manageBtn, { backgroundColor: theme.accent }]}
                     onPress={() => navigation.navigate('ListOfRequests', { rideId: item._id })}
                 >
@@ -95,9 +95,9 @@ const ManageRides = ({ navigation }) => {
                 <Text style={[styles.title, { color: theme.text }]}>Mis Viajes Publicados</Text>
                 <SettingsGearButton navigation={navigation} color={theme.text} style={styles.gearBtn} />
             </View>
-            
+
             {loading ? (
-                <ActivityIndicator size="large" color={theme.accent} style={{ marginTop: 50 }}/>
+                <ActivityIndicator size="large" color={theme.accent} style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={rides}

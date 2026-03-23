@@ -18,9 +18,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as MailComposer from 'expo-mail-composer';
 import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
+import api from '../../services/api';
 
 const { width, height } = Dimensions.get('window');
 const ICON = require('../../images/IconSafeRide.png');
@@ -166,29 +166,26 @@ export default function CreatePasswordScreen({ route, navigation }) {
         setLoading(true);
 
         try {
-            const isAvailable = await MailComposer.isAvailableAsync();
+            // Llamar al backend para enviar el código real vía SMTP
+            const response = await api.post('/auth/send-verification-code', {
+                email: email.trim()
+            });
 
-            if (isAvailable) {
-                await MailComposer.composeAsync({
-                    recipients: [email.trim()],
-                    subject: 'Tu código de verificación SafeRide',
-                    body: `Hola ${name.trim()},\n\nTu código de verificación de 4 dígitos es: ${pin}\n\nPor favor, ingrésalo en la aplicación para completar tu registro.\n\nEl equipo de SafeRide.`
-                });
-
+            if (response.data.success) {
                 navigation.navigate('Verification', {
                     email: email.trim(),
-                    verificationCode: pin,
                     name: name.trim(),
                     phone: phone,
                     company: company,
                     password: password,
                 });
             } else {
-                Alert.alert("Error", "No se puede abrir el cliente de correo en este dispositivo.");
+                Alert.alert("Error", response.data.message || "Ocurrió un problema al enviar el código.");
             }
         } catch (err) {
-            console.error("MailComposer error:", err);
-            Alert.alert("Error", "Ocurrió un problema al intentar enviar el correo de verificación.");
+            console.error("Verification error:", err);
+            const msg = err.response?.data?.message || "Ocurrió un problema al intentar enviar el correo de verificación.";
+            Alert.alert("Error", msg);
         } finally {
             setLoading(false);
         }
