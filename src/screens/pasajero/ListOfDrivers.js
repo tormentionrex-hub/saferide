@@ -1,12 +1,13 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
-    StatusBar, Platform,
+    StatusBar, Platform, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import api from '../../services/api';
 
 // ── Utilidad de Distancia Haversine ──────────────────────────────────────────
 const getHaversineDistance = (lat1, lon1, lat2, lon2) => {
@@ -27,12 +28,8 @@ const DriverCard = ({ item, onPress, theme }) => {
     const rating     = item.driver_id?.rating ?? null;
     const originName = item.origin?.name      || 'Origen';
     const destName   = item.destination?.name || 'Destino';
-    const date       = item.date_time
-        ? new Date(item.date_time).toLocaleDateString('es-CR', { day: '2-digit', month: 'short', year: 'numeric' })
-        : null;
-    const time       = item.date_time
-        ? new Date(item.date_time).toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit', hour12: true })
-        : null;
+    const date       = item.fecha || null;
+    const time       = item.hora || null;
     const price      = item.price != null ? `₡${item.price.toLocaleString()}` : null;
     const seats      = item.available_seats ?? null;
 
@@ -125,37 +122,118 @@ const ListOfDrivers = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const insets    = useSafeAreaInsets();
     const si        = useScrollIndicator();
-    const rides     = route.params?.rides || [];
+    
+    // Si vienen de búsqueda, usamos esos rides. Si no, cargamos todos.
+    const initialRides = route.params?.rides;
+    const [ridesData, setRidesData] = useState(initialRides || []);
+    const [loading, setLoading] = useState(!initialRides);
+    
     const searchTime = route.params?.searchTime ? new Date(route.params.searchTime) : new Date();
-    const searchLoc  = route.params?.searchLocation;
+    const searchOrigin  = route.params?.searchOrigin;
+    const searchDestination = route.params?.searchDestination;
+
+    useEffect(() => {
+        // Solo cargar si no se pasaron rides por parámetros
+        if (!initialRides) {
+            fetchRides();
+        }
+    }, [initialRides]);
+
+    const fetchRides = async () => {
+        setLoading(true);
+        try {
+            const response = await api.get('/rides');
+            if (response.data.success) {
+                setRidesData(response.data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching rides:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // ── Filtrado y Ordenamiento ──────────────────────────────────────────────
     const processedRides = useMemo(() => {
-        // 1. Filtrar por ventana de tiempo: [searchTime - 1h, searchTime + 4h]
-        let filtered = rides.filter(ride => {
-            if (!ride.date_time) return false;
-            const rideDate = new Date(ride.date_time);
-            const diffMs = rideDate.getTime() - searchTime.getTime();
-            const diffHrs = diffMs / (1000 * 60 * 60);
-            return diffHrs >= -1 && diffHrs <= 4;
+        let filtered = ridesData.filter(ride => {
+            if (!ride.fecha || !ride.hora) return false;
+            
+            // Si venimos de una búsqueda, verificamos proximidad (5km de margen como extra)
+            if (searchOrigin) {
+                // 1. Cercanía al origen
+                const distO = getHaversineDistance(
+                    searchOrigin.lat, searchOrigin.lng,
+                    ride.origin.coordinates.lat, ride.origin.coordinates.lng
+                );
+                if (distO > 2) return false;
+
+                // 2. Cercanía al destino (si se buscó uno)
+                if (searchDestination) {
+                    const distD = getHaversineDistance(
+                        searchDestination.lat, searchDestination.lng,
+                        ride.destination.coordinates.lat, ride.destination.coordinates.lng
+                    );
+                    if (distD > 2) return false;
+                }
+
+                // 3. Ventana de tiempo
+                const [y, m, d] = ride.fecha.split('-').map(Number);
+                const [h, mm] = ride.hora.split(':').map(Number);
+                const rideDate = new Date(y, m - 1, d, h, mm, 0);
+                
+                const diffMs = rideDate.getTime() - searchTime.getTime();
+                const diffHrs = diffMs / (1000 * 60 * 60);
+                
+                // Ventana expandida: desde 1 hora antes hasta 12 horas después para cubrir el día
+                return diffHrs >= -1 && diffHrs <= 12;
+            }
+            return true;
         });
 
-        // 2. Ordenar por cercanía al origen de búsqueda
-        if (searchLoc) {
+        // 2. Ordenar
+        if (searchOrigin && searchDestination) {
+            // Ordenar por suma de distancias (origen + destino) para encontrar el que mejor cuadre con la ruta completa
+            filtered.sort((a, b) => {
+                const distA_O = getHaversineDistance(
+                    searchOrigin.lat, searchOrigin.lng,
+                    a.origin.coordinates.lat, a.origin.coordinates.lng
+                );
+                const distA_D = getHaversineDistance(
+                    searchDestination.lat, searchDestination.lng,
+                    a.destination.coordinates.lat, a.destination.coordinates.lng
+                );
+                const distB_O = getHaversineDistance(
+                    searchOrigin.lat, searchOrigin.lng,
+                    b.origin.coordinates.lat, b.origin.coordinates.lng
+                );
+                const distB_D = getHaversineDistance(
+                    searchDestination.lat, searchDestination.lng,
+                    b.destination.coordinates.lat, b.destination.coordinates.lng
+                );
+                return (distA_O + distA_D) - (distB_O + distB_D);
+            });
+        } else if (searchOrigin) {
             filtered.sort((a, b) => {
                 const distA = getHaversineDistance(
-                    searchLoc.lat, searchLoc.lng,
+                    searchOrigin.lat, searchOrigin.lng,
                     a.origin.coordinates.lat, a.origin.coordinates.lng
                 );
                 const distB = getHaversineDistance(
-                    searchLoc.lat, searchLoc.lng,
+                    searchOrigin.lat, searchOrigin.lng,
                     b.origin.coordinates.lat, b.origin.coordinates.lng
                 );
                 return distA - distB;
             });
+        } else {
+            // Ordenar por fecha y hora si es listado general
+            filtered.sort((a, b) => {
+                const dateA = new Date(`${a.fecha}T${a.hora}:00`);
+                const dateB = new Date(`${b.fecha}T${b.hora}:00`);
+                return dateA - dateB;
+            });
         }
         return filtered;
-    }, [rides, searchTime, searchLoc]);
+    }, [ridesData, searchTime, searchOrigin, searchDestination]);
 
     const handleRideSelection = (ride) => {
         navigation.navigate('RideDetail', { ride });
@@ -178,25 +256,44 @@ const ListOfDrivers = ({ route, navigation }) => {
                     <Ionicons name="chevron-back" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <View style={styles.headerCenter}>
-                    <Text style={[styles.headerTitle, { color: theme.text }]}>Conductores</Text>
-                    {rides.length > 0 && (
+                    <Text style={[styles.headerTitle, { color: theme.text }]}>Viajes Disponibles</Text>
+                    {processedRides.length > 0 && (
                         <Text style={[styles.headerSub, { color: theme.textSecondary }]}>
-                            {rides.length} {rides.length === 1 ? 'viaje encontrado' : 'viajes encontrados'}
+                            {processedRides.length} {processedRides.length === 1 ? 'viaje encontrado' : 'viajes encontrados'}
                         </Text>
                     )}
                 </View>
                 <View style={{ width: 40 }} />
             </View>
+            {searchOrigin && searchDestination && (
+                <View style={[styles.routeSummary, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
+                    <View style={styles.routeSummaryRow}>
+                        <Ionicons name="radio-button-on" size={14} color={theme.accent} />
+                        <Text style={[styles.routeSummaryText, { color: theme.text }]} numberOfLines={1}>{searchOrigin.name}</Text>
+                    </View>
+                    <Ionicons name="ellipsis-vertical" size={10} color={theme.textSecondary} style={{ marginLeft: 2 }} />
+                    <View style={styles.routeSummaryRow}>
+                        <Ionicons name="location" size={14} color="#FF5A5F" />
+                        <Text style={[styles.routeSummaryText, { color: theme.text }]} numberOfLines={1}>{searchDestination.name}</Text>
+                    </View>
+                </View>
+            )}
 
             {/* ── CONTENIDO ── */}
-            {rides.length === 0 ? (
+            {loading ? (
+                <View style={styles.emptyContainer}>
+                    <ActivityIndicator size="large" color={theme.accent} />
+                </View>
+            ) : processedRides.length === 0 ? (
                 <View style={styles.emptyContainer}>
                     <View style={[styles.emptyIconCircle, { backgroundColor: theme.surfaceVariant }]}>
                         <Ionicons name="car-outline" size={48} color={theme.textSecondary} />
                     </View>
                     <Text style={[styles.emptyTitle, { color: theme.text }]}>Sin viajes disponibles</Text>
                     <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-                        No encontramos conductores para tu ruta.{'\n'}Intenta con otra fecha o destino.
+                        {searchOrigin 
+                            ? `No encontramos conductores para tu ruta entre ${searchOrigin.name} y ${searchDestination?.name || 'tu destino'}.`
+                            : "No hay viajes programados por ahora."}
                     </Text>
                     <TouchableOpacity
                         style={[styles.retryBtn, { backgroundColor: theme.accent }]}
@@ -204,7 +301,7 @@ const ListOfDrivers = ({ route, navigation }) => {
                         activeOpacity={0.85}
                     >
                         <Ionicons name="arrow-back" size={16} color="#fff" style={{ marginRight: 6 }} />
-                        <Text style={styles.retryBtnText}>Volver a buscar</Text>
+                        <Text style={styles.retryBtnText}>Volver</Text>
                     </TouchableOpacity>
                 </View>
             ) : (
@@ -221,6 +318,8 @@ const ListOfDrivers = ({ route, navigation }) => {
                         ]}
                         showsVerticalScrollIndicator={false}
                         {...si.scrollProps}
+                        onRefresh={initialRides ? undefined : fetchRides}
+                        refreshing={loading}
                     />
                     <ScrollIndicator si={si} thumbColor={theme.accent} />
                 </View>
@@ -301,6 +400,23 @@ const styles = StyleSheet.create({
         borderRadius: 14,
     },
     retryBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Poppins-Bold' },
+
+    // Resumen de ruta
+    routeSummary: {
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+    },
+    routeSummaryRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    routeSummaryText: {
+        fontSize: 13,
+        fontFamily: 'Poppins-Medium',
+        flex: 1,
+    },
 });
 
 export default ListOfDrivers;

@@ -11,6 +11,7 @@ import {
     StatusBar,
     Image,
     ScrollView,
+    ActivityIndicator,
     Animated,
     Easing,
     Dimensions
@@ -19,13 +20,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import api from '../../services/api';
 const { width, height } = Dimensions.get('window');
 const ICON = require('../../images/IconSafeRide.png');
 
 export default function VerificationScreen({ route, navigation }) {
 
-    const { email, verificationCode, name, phone, company, password } = route.params || { email: '', verificationCode: '1234' };
-    const [code, setCode] = useState(['', '', '', '']);
+    const { email, name, phone, company, password } = route.params || { email: '' };
+    const [code, setCode] = useState(['', '', '', '', '', '']);
+    const [verifying, setVerifying] = useState(false);
     const inputs = useRef([]);
 
     const [fontsLoaded] = useFonts({
@@ -63,7 +66,7 @@ export default function VerificationScreen({ route, navigation }) {
         newCode[index] = cleanText;
         setCode(newCode);
 
-        if (cleanText && index < 3) {
+        if (cleanText && index < 5) {
             inputs.current[index + 1].focus();
         }
     };
@@ -77,31 +80,47 @@ export default function VerificationScreen({ route, navigation }) {
     const handleVerify = async () => {
         const enteredCode = code.join('');
 
-        if (enteredCode.length < 4) {
-            Alert.alert('Error', 'Por favor ingresa todos los dígitos del PIN.');
+        if (enteredCode.length < 6) {
+            Alert.alert('Error', 'Por favor ingresa los 6 dígitos del código.');
             return;
         }
 
-        if (enteredCode !== verificationCode) {
-            Alert.alert('Error', 'El PIN de verificación es incorrecto. Por favor intenta de nuevo.');
-            setCode(['', '', '', '']);
+        setVerifying(true);
+        try {
+            const response = await api.post('/auth/verify-code', {
+                email,
+                code: enteredCode
+            });
+
+            if (response.data.success) {
+                navigation.replace('RoleSelection', {
+                    email: email,
+                    name: name,
+                    phone: phone,
+                    company: company,
+                    password: password,
+                });
+            }
+        } catch (err) {
+            console.error('Verify error:', err);
+            const msg = err.response?.data?.message || 'El código es incorrecto o ha expirado.';
+            Alert.alert('Error', msg);
+            setCode(['', '', '', '', '', '']);
             if (inputs.current[0]) inputs.current[0].focus();
-            return;
+        } finally {
+            setVerifying(false);
         }
-
-        // En lugar de registrar aquí, pasamos los datos a la pantalla de selección de rol
-        // Usamos .replace para limpiar el stack y asegurar que los parámetros lleguen frescos
-        navigation.replace('RoleSelection', {
-            email: email,
-            name: name,
-            phone: phone,
-            company: company,
-            password: password,
-        });
     };
 
-    const handleResend = () => {
-        Alert.alert('PIN Enviado', `Se ha reenviado un nuevo código a ${email}`);
+    const handleResend = async () => {
+        try {
+            const response = await api.post('/auth/send-verification-code', { email });
+            if (response.data.success) {
+                Alert.alert('Código Enviado', `Se ha reenviado un nuevo código a ${email}`);
+            }
+        } catch (err) {
+            Alert.alert('Error', 'No se pudo reenviar el código.');
+        }
     };
 
     if (!fontsLoaded) return null;
@@ -151,12 +170,12 @@ export default function VerificationScreen({ route, navigation }) {
                         {/* Heading */}
                         <Text style={styles.heading}>PIN de Verificación</Text>
                         <Text style={styles.subheading}>
-                            Ingresa el código de 4 dígitos enviado a tu correo electrónico.
+                            Ingresa el código de 6 dígitos enviado a tu correo electrónico {email}.
                         </Text>
 
                         {/* OTP Inputs */}
                         <View style={styles.codeContainer}>
-                            {[0, 1, 2, 3].map((index) => (
+                            {[0, 1, 2, 3, 4, 5].map((index) => (
                                 <TextInput
                                     key={index}
                                     ref={(ref) => (inputs.current[index] = ref)}
@@ -173,11 +192,16 @@ export default function VerificationScreen({ route, navigation }) {
                         {/* Action Buttons */}
                         <View style={styles.form}>
                             <TouchableOpacity
-                                style={styles.button}
+                                style={[styles.button, verifying && styles.buttonDisabled]}
                                 onPress={handleVerify}
+                                disabled={verifying}
                                 activeOpacity={0.85}
                             >
-                                <Text style={styles.buttonText}>Verificar</Text>
+                                {verifying ? (
+                                    <ActivityIndicator color="#FFFFFF" />
+                                ) : (
+                                    <Text style={styles.buttonText}>Verificar</Text>
+                                )}
                             </TouchableOpacity>
 
                             <Text style={styles.Text}>¿No recibiste el código?</Text>
@@ -262,19 +286,22 @@ const styles = StyleSheet.create({
         marginBottom: 30,
     },
     codeInput: {
-        width: 65,
-        height: 70,
+        width: 48,
+        height: 60,
         backgroundColor: 'rgba(255,255,255,0.1)',
         borderRadius: 12,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.2)',
-        fontSize: 26,
+        fontSize: 22,
         fontFamily: 'Poppins-Bold',
         textAlign: 'center',
         textAlignVertical: 'center',
         color: '#FFFFFF',
         padding: 0,
         includeFontPadding: false,
+    },
+    buttonDisabled: {
+        opacity: 0.6
     },
     form: {
         width: '100%',

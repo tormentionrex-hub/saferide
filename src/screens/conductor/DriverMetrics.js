@@ -79,7 +79,10 @@ const DriverMetrics = ({ navigation }) => {
                 }
 
                 allRides.forEach(ride => {
-                    const rideDate = new Date(ride.date_time);
+                    if (!ride.fecha) return;
+                    const [y, mm, dd] = ride.fecha.split('-').map(Number);
+                    const rideDate = new Date(y, mm - 1, dd);
+                    
                     months.forEach((m, idx) => {
                         if (rideDate.getFullYear() === m.year && rideDate.getMonth() === m.month && ride.status === 'completed') {
                             kmByMonth[idx] += (ride.distance_km || 0);

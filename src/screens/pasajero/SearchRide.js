@@ -8,7 +8,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 
-import { API_URL } from '../../config';
+import { API_URL } from '../../config.js';
 import api from '../../services/api';
 import LocationPicker from '../../components/LocationPicker';
 
@@ -96,7 +96,8 @@ const SearchRide = ({ navigation }) => {
                 navigation.navigate('ListOfDrivers', { 
                     rides: response.data.data || [],
                     searchTime: new Date().toISOString(),
-                    searchLocation: { lat: origen.lat, lng: origen.lng }
+                    searchOrigin: { lat: origen.lat, lng: origen.lng, name: origen.name },
+                    searchDestination: { lat: destino.lat, lng: destino.lng, name: destino.name }
                 });
             } else {
                 Alert.alert('Aviso', 'No se encontraron viajes para esta ruta.');
