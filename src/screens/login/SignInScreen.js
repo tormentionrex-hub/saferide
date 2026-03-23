@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_URL } from '../../config';
+import { API_URL } from '../../config.js';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const ICON = require('../../images/IconSafeRide.png');

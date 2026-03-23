@@ -8,7 +8,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 
-import { API_URL } from '../../config';
+import { API_URL } from '../../config.js';
 import api from '../../services/api';
 import LocationPicker from '../../components/LocationPicker';
 
