@@ -13,7 +13,7 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
         const routeName = state.routes[state.index].name;
         if (routeName === 'DashboardDriver') currentTab = 'Inicio';
         else if (routeName === 'PublishRide') currentTab = 'Viajes';
-        else if (routeName === 'ManageRequests') currentTab = 'Mensajes';
+        else if (routeName === 'ManageRides') currentTab = 'Mensajes';
         else if (routeName === 'DriverMetrics') currentTab = 'Stats';
     }
 
@@ -72,17 +72,17 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                 <Text style={[styles.navText, { color: getColor('Viajes') }]}>Viajes</Text>
             </TouchableOpacity>
 
-            {/* 3. BOTÓN: MENSAJES */}
+            {/* 3. BOTÓN: GESTIONAR VIAJES (ANTES MENSAJES) */}
             <TouchableOpacity 
                 style={styles.navItem} 
                 activeOpacity={0.6}
-                onPress={() => navigateTo('ManageRequests')}
+                onPress={() => navigateTo('ManageRides')}
             >
                 <Ionicons 
-                    name={currentTab === 'Mensajes' ? "chatbox" : "chatbox-outline"} 
+                    name={currentTab === 'Mensajes' ? "map" : "map-outline"} 
                     size={24} color={getColor('Mensajes')} 
                 />
-                <Text style={[styles.navText, { color: getColor('Mensajes') }]}>Mensajes</Text>
+                <Text style={[styles.navText, { color: getColor('Mensajes') }]}>Rutas</Text>
             </TouchableOpacity>
 
             {/* 4. BOTÓN: STATS */}
