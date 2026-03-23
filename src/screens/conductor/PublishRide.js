@@ -124,7 +124,7 @@ const PublishRide = ({ navigation }) => {
 
             if (response.data.success) {
                 Alert.alert('¡Éxito!', 'Tu viaje ha sido publicado.', [
-                    { text: 'OK', onPress: () => navigation.navigate('Home') }
+                    { text: 'OK', onPress: () => navigation.navigate('ListOfRequests') }
                 ]);
             }
         } catch (error) {
