@@ -96,7 +96,8 @@ const SearchRide = ({ navigation }) => {
                 navigation.navigate('ListOfDrivers', { 
                     rides: response.data.data || [],
                     searchTime: new Date().toISOString(),
-                    searchLocation: { lat: origen.lat, lng: origen.lng }
+                    searchOrigin: { lat: origen.lat, lng: origen.lng, name: origen.name },
+                    searchDestination: { lat: destino.lat, lng: destino.lng, name: destino.name }
                 });
             } else {
                 Alert.alert('Aviso', 'No se encontraron viajes para esta ruta.');
