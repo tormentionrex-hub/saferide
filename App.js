@@ -22,6 +22,7 @@ import Metrics from './src/screens/pasajero/Metrics';
 import PublishRide from './src/screens/conductor/PublishRide';
 import ManageRequests from './src/screens/conductor/ManageRequests';
 import DriverMetrics from './src/screens/conductor/DriverMetrics';
+import ManageRides from './src/screens/conductor/ManageRides';
 import AjustesConductor from './src/screens/conductor/AjustesConductor';
 import ProfileConductor from './src/screens/conductor/ProfileConductor';
 import ListOfDrivers from './src/screens/pasajero/ListOfDrivers';
@@ -29,6 +30,8 @@ import PasajeroProfileScreen from './src/screens/pasajero/PasajeroProfileScreen'
 import CustomizeApp from './src/screens/pasajero/CustomizeApp';
 import PaymentMethodScreen from './src/screens/pasajero/PaymentMethodScreen';
 import RideDetail from './src/screens/pasajero/RideDetail';
+import ScreenSaver from './src/screens/pasajero/ScreenSaver';
+import ListOfRequests from './src/screens/conductor/ListOfRequests';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BottomNavigationBar from './src/components/BottomNavigationBar';
@@ -66,7 +69,7 @@ function MainTabsDriver() {
     >
       <Tab.Screen name="DashboardDriver" component={DashboardDriver} />
       <Tab.Screen name="PublishRide" component={PublishRide} />
-      <Tab.Screen name="ManageRequests" component={ManageRequests} />
+      <Tab.Screen name="ManageRides" component={ManageRides} />
       <Tab.Screen name="DriverMetrics" component={DriverMetrics} />
     </Tab.Navigator>
   );
@@ -155,6 +158,7 @@ export default function App() {
 
           <Stack.Screen name="AjustesConductor" component={AjustesConductor} options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ProfileConductor" component={ProfileConductor} options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ManageRequests" component={ManageRequests} options={{ animation: 'slide_from_right' }} />
 
           <Stack.Screen
             name="Home"
@@ -197,6 +201,22 @@ export default function App() {
             options={{
               headerShown: false,
               animation: 'slide_from_bottom'
+            }}
+          />
+          <Stack.Screen
+            name="ScreenSaver"
+            component={ScreenSaver}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_bottom'
+            }}
+          />
+          <Stack.Screen
+            name="ListOfRequests"
+            component={ListOfRequests}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right'
             }}
           />
         </Stack.Navigator>

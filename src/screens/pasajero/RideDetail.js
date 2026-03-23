@@ -5,6 +5,7 @@ import {
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import api from '../../services/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -33,10 +34,15 @@ const RideDetail = ({ route, navigation }) => {
         }
     }, [origin, dest]);
 
-    const handleConfirmBooking = () => {
-        Alert.alert('¡Excelente!', 'Tu solicitud ha sido enviada al conductor.', [
-            { text: 'Ir al Inicio', onPress: () => navigation.navigate('DashboardPasajero') }
-        ]);
+    const handleConfirmBooking = async () => {
+        try {
+            const response = await api.post('/bookings', { ride_id: ride._id, seats_booked: 1 });
+            if (response.data.success) {
+                navigation.navigate('ScreenSaver');
+            }
+        } catch (error) {
+            Alert.alert('Error', error.response?.data?.message || 'Error al solicitar unirse al viaje.');
+        }
     };
 
     const darkMapStyle = [
@@ -134,7 +140,7 @@ const RideDetail = ({ route, navigation }) => {
                     style={[styles.bookBtn, { backgroundColor: theme.accent }]}
                     onPress={handleConfirmBooking}
                 >
-                    <Text style={styles.bookBtnText}>Confirmar Reservación</Text>
+                    <Text style={styles.bookBtnText}>Solicitar unirse</Text>
                 </TouchableOpacity>
             </View>
         </View>
