@@ -31,7 +31,6 @@ const FORBIDDEN_DOMAINS = [
 const ICON = require('../../images/IconSafeRide.png');
 
 
-
 export default function RegisterScreen({ navigation }) {
     const [email, setEmail] = useState('');
     const [error, setError] = useState('');
@@ -44,14 +43,14 @@ export default function RegisterScreen({ navigation }) {
     });
 
 
-    // Animation for color transition
+    // Animacion para el color de fondo
     const fadeAnim = useRef(new Animated.Value(0)).current;
-    // Animation for input focus
+    // Animacion para el input
     const focusAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
 
-        // Create an infinite loop
+        // Crear un bucle infinito
         Animated.loop(
             Animated.sequence([
                 Animated.timing(fadeAnim, {
@@ -76,7 +75,7 @@ export default function RegisterScreen({ navigation }) {
             toValue: Focused ? 1 : 0,
             duration: 400,
             easing: Easing.out(Easing.ease),
-            useNativeDriver: false, // Colors are not supported by native driver
+            useNativeDriver: false,
         }).start();
     }, [Focused]);
 
@@ -90,7 +89,6 @@ export default function RegisterScreen({ navigation }) {
             outputRange: [1, 3],
         }),
     };
-
 
 
     const validateEmail = (email) => {
@@ -132,7 +130,6 @@ export default function RegisterScreen({ navigation }) {
 
         <Animated.View style={styles.container}>
 
-            {/* Background Layer 1: Dark Blue Gradient */}
             <LinearGradient
                 colors={['#09314bff', '#0c4469ff', '#073050ff']}
                 style={StyleSheet.absoluteFill}
@@ -140,7 +137,6 @@ export default function RegisterScreen({ navigation }) {
                 end={{ x: 1, y: 1 }}
             />
 
-            {/* Background Layer 2: Light Blue Gradient (Animated Opacity) */}
             <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
                 <LinearGradient
                     colors={['#0a6191ff', '#0a8ac5ff', '#3dabdaff']}
@@ -149,6 +145,7 @@ export default function RegisterScreen({ navigation }) {
                     end={{ x: 0, y: 1 }}
                 />
             </Animated.View>
+
 
             <SafeAreaView style={styles.safeArea}>
 
@@ -210,7 +207,9 @@ export default function RegisterScreen({ navigation }) {
 
                             <Text style={styles.terms}>
                                 Al continuar, aceptas nuestros{' '}
-                                <Text style={styles.termsLink}>Términos de Servicio</Text>.
+                                <TouchableOpacity onPress={() => navigation.navigate('TermsOfService')}>
+                                    <Text style={styles.termsLink}>Términos de Servicio</Text>
+                                </TouchableOpacity>
                             </Text>
                         </View>
 
