@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
@@ -18,9 +18,26 @@ const ScreenSaver = ({ route, navigation }) => {
                 const res = await api.get(`/bookings/${bookingId}`);
                 if (res.data.success) {
                     const newStatus = res.data.data.status;
-                    setStatus(newStatus);
-                    if (newStatus === 'confirmed' || newStatus === 'deny' || newStatus === 'cancelled') {
+                    if (newStatus !== status && status === 'pending') {
+                        setStatus(newStatus);
+                        if (newStatus === 'deny') {
+                            clearInterval(intervalRef.current);
+                            navigation.navigate('SearchRide');
+                        } else if (newStatus === 'cancelled') {
+                            clearInterval(intervalRef.current);
+                            Alert.alert('Lo lamentamos', 'No fuiste aceptado a bordo', [
+                                { text: 'OK', onPress: () => navigation.navigate('SearchRide') }
+                            ]);
+                        } else if (newStatus === 'confirmed') {
+                            clearInterval(intervalRef.current);
+                            Alert.alert('Bienvenido', 'Bienvenido a bordo', [
+                                { text: 'OK', onPress: () => navigation.navigate('TripInProgress', { bookingId }) }
+                            ]);
+                        }
+                    } else if (newStatus === 'confirmed' || newStatus === 'deny' || newStatus === 'cancelled') {
                         clearInterval(intervalRef.current);
+                    } else {
+                        setStatus(newStatus);
                     }
                 }
             } catch (e) {

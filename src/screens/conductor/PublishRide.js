@@ -8,7 +8,8 @@ import {
     Alert,
     StatusBar,
     Platform,
-    ScrollView
+    ScrollView,
+    Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -47,6 +48,7 @@ const PublishRide = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
     const [calculatingRoute, setCalculatingRoute] = useState(false);
     const [errors, setErrors] = useState({});
+    const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
 
     useEffect(() => {
         const fetchRoute = async () => {
@@ -149,9 +151,7 @@ const PublishRide = ({ navigation }) => {
             const response = await api.post('/rides', payload);
 
             if (response.data.success) {
-                Alert.alert('¡Éxito!', 'Tu viaje ha sido publicado.', [
-                    { text: 'OK', onPress: () => navigation.navigate('ListOfRequests') }
-                ]);
+                setIsSuccessModalVisible(true);
             }
         } catch (error) {
             console.error('Error post detail:', JSON.stringify(error.response?.data, null, 2));
@@ -356,6 +356,47 @@ const PublishRide = ({ navigation }) => {
                 onSelect={handleLocationSelect}
             />
 
+            {/* Modal de Alerta Customizada de Éxito */}
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={isSuccessModalVisible}
+                onRequestClose={() => {
+                    setIsSuccessModalVisible(false);
+                    navigation.navigate('ListOfRequests');
+                }}
+            >
+                <TouchableOpacity 
+                    style={styles.modalOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => {
+                        setIsSuccessModalVisible(false);
+                        navigation.navigate('ListOfRequests');
+                    }}
+                >
+                    <View style={[styles.alertContent, { backgroundColor: theme.surface }]}>
+                        <View style={[styles.alertIconContainer, { backgroundColor: '#27AE6020' }]}>
+                            <Ionicons name="checkmark-circle-outline" size={32} color="#27AE60" />
+                        </View>
+                        <Text style={[styles.alertTitle, { color: theme.text }]}>¡Éxito!</Text>
+                        <Text style={[styles.alertMessage, { color: theme.textSecondary }]}>
+                            Tu viaje ha sido publicado.
+                        </Text>
+                        
+                        <View style={styles.alertActions}>
+                            <TouchableOpacity 
+                                style={[styles.alertConfirmBtn, { backgroundColor: '#27AE60' }]}
+                                onPress={() => {
+                                    setIsSuccessModalVisible(false);
+                                    navigation.navigate('ListOfRequests');
+                                }}
+                            >
+                                <Text style={styles.alertConfirmText}>¡Excelente!</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
 
         </SafeAreaView>
     );
@@ -520,6 +561,58 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontWeight: 'bold',
     },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    alertContent: {
+        width: '85%',
+        borderRadius: 24,
+        padding: 24,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 15,
+        elevation: 10,
+    },
+    alertIconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    alertTitle: {
+        fontSize: 20,
+        fontFamily: 'Poppins-Bold',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    alertMessage: {
+        fontSize: 14,
+        fontFamily: 'Poppins-Regular',
+        textAlign: 'center',
+        marginBottom: 24,
+        lineHeight: 20,
+    },
+    alertActions: {
+        width: '100%',
+    },
+    alertConfirmBtn: {
+        width: '100%',
+        paddingVertical: 14,
+        borderRadius: 14,
+        alignItems: 'center',
+    },
+    alertConfirmText: {
+        color: '#fff',
+        fontSize: 15,
+        fontFamily: 'Poppins-SemiBold',
+    }
 });
 
 export default PublishRide;

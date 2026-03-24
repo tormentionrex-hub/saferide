@@ -33,6 +33,8 @@ import PaymentMethodScreen from './src/screens/pasajero/PaymentMethodScreen';
 import RideDetail from './src/screens/pasajero/RideDetail';
 import ScreenSaver from './src/screens/pasajero/ScreenSaver';
 import ListOfRequests from './src/screens/conductor/ListOfRequests';
+import TripInProgress from './src/screens/pasajero/TripInProgress';
+import CurrentTrip from './src/screens/conductor/CurrentTrip';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BottomNavigationBar from './src/components/BottomNavigationBar';
@@ -216,6 +218,22 @@ export default function App() {
           <Stack.Screen
             name="ListOfRequests"
             component={ListOfRequests}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right'
+            }}
+          />
+          <Stack.Screen
+            name="TripInProgress"
+            component={TripInProgress}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right'
+            }}
+            />
+          <Stack.Screen
+            name="CurrentTrip"
+            component={CurrentTrip}
             options={{
               headerShown: false,
               animation: 'slide_from_right'
