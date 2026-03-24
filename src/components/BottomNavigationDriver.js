@@ -15,7 +15,7 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
         const routeName = state.routes[state.index].name;
         if (routeName === 'DashboardDriver') currentTab = 'Inicio';
         else if (routeName === 'PublishRide') currentTab = 'Viajes';
-        else if (routeName === 'ManageRides') currentTab = 'Mensajes';
+        else if (routeName === 'ManageRides') currentTab = 'Rutas';
         else if (routeName === 'DriverMetrics') currentTab = 'Stats';
     }
 
@@ -146,22 +146,22 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
 
                 <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('DashboardDriver')}>
                     <Ionicons name={currentTab === 'Inicio' ? "home" : "home-outline"} size={24} color={getColor('Inicio')} />
-                    <Text style={[styles.navText, { color: getColor('Inicio') }]}>Inicio</Text>
+                    <Text style={[styles.navText, { color: getColor('Inicio') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Inicio</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={handleViajesPress}>
                     <Ionicons name={currentTab === 'Viajes' ? "map" : "map-outline"} size={24} color={getColor('Viajes')} />
-                    <Text style={[styles.navText, { color: getColor('Viajes') }]}>Viajes</Text>
+                    <Text style={[styles.navText, { color: getColor('Viajes') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Viajes</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('ManageRides')}>
-                    <Ionicons name={currentTab === 'Mensajes' ? "map" : "map-outline"} size={24} color={getColor('Mensajes')} />
-                    <Text style={[styles.navText, { color: getColor('Mensajes') }]}>Rutas</Text>
+                    <Ionicons name={currentTab === 'Rutas' ? "map" : "map-outline"} size={24} color={getColor('Rutas')} />
+                    <Text style={[styles.navText, { color: getColor('Rutas') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Rutas</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('DriverMetrics')}>
                     <Ionicons name={currentTab === 'Stats' ? "bar-chart" : "bar-chart-outline"} size={24} color={getColor('Stats')} />
-                    <Text style={[styles.navText, { color: getColor('Stats') }]}>Stats</Text>
+                    <Text style={[styles.navText, { color: getColor('Stats') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Stats</Text>
                 </TouchableOpacity>
 
             </View>
@@ -173,10 +173,10 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         width: '100%',
-        justifyContent: 'space-around',
         alignItems: 'center',
         position: 'absolute',
         bottom: 0,
+        paddingHorizontal: 8,
         borderTopLeftRadius: 25,
         borderTopRightRadius: 25,
         shadowColor: '#000',
@@ -193,10 +193,12 @@ const styles = StyleSheet.create({
         paddingTop: 10,
     },
     navText: {
-        fontSize: 10,
+        fontSize: 11,
         marginTop: 4,
         fontFamily: 'Poppins-SemiBold',
         textAlign: 'center',
+        includeFontPadding: false,
+        width: '100%',
     },
     // ── Modal ──
     backdrop: {
