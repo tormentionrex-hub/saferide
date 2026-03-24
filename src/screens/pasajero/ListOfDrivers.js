@@ -160,14 +160,14 @@ const ListOfDrivers = ({ route, navigation }) => {
 
             // Si venimos de una búsqueda, verificamos proximidad (5km de margen como extra)
             if (searchOrigin) {
-                // 1. Cercanía al origen
+                // 1. Filtrado por cercanía al origen (máximo 2km de distancia)
                 const distO = getHaversineDistance(
                     searchOrigin.lat, searchOrigin.lng,
                     ride.origin.coordinates.lat, ride.origin.coordinates.lng
                 );
                 if (distO > 2) return false;
 
-                // 2. Cercanía al destino (si se buscó uno)
+                // 2. Filtrado por cercanía al destino (máximo 2km de distancia)
                 if (searchDestination) {
                     const distD = getHaversineDistance(
                         searchDestination.lat, searchDestination.lng,
@@ -176,16 +176,15 @@ const ListOfDrivers = ({ route, navigation }) => {
                     if (distD > 2) return false;
                 }
 
-                // 3. Ventana de tiempo
-                const [y, m, d] = ride.fecha.split('-').map(Number);
-                const [h, mm] = ride.hora.split(':').map(Number);
-                const rideDate = new Date(y, m - 1, d, h, mm, 0);
+                // 3. Ventana de tiempo (30 minutos antes hasta 3 horas después)
+                // Usamos la cadena de fecha/hora con el offset -06:00 para asegurar la comparación en Costa Rica
+                const rideDate = new Date(`${ride.fecha}T${ride.hora}:00-06:00`);
 
                 const diffMs = rideDate.getTime() - searchTime.getTime();
                 const diffHrs = diffMs / (1000 * 60 * 60);
 
-                // Ventana expandida: desde 1 hora antes hasta 12 horas después para cubrir el día
-                return diffHrs >= -1 && diffHrs <= 12;
+                // Solo permitimos viajes que ocurran entre T-30m y T+3h respecto al momento actual
+                return diffHrs >= -0.5 && diffHrs <= 3;
             }
             return true;
         });
