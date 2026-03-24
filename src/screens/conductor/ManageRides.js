@@ -149,7 +149,7 @@ const ManageRides = ({ navigation }) => {
 
             const [scheduledRes, inProgressRes] = await Promise.all([
                 api.get(`/rides/driver/${driverId}?status=scheduled`),
-                api.get(`/rides/driver/${driverId}?status=in_progress`),
+                api.get(`/rides/driver/${driverId}?status=in progress`),
             ]);
 
             const scheduled = scheduledRes.data.data || [];
@@ -168,7 +168,7 @@ const ManageRides = ({ navigation }) => {
     }, [navigation]);
 
     const handleCancelRide = (item) => {
-        if (item.status === 'in_progress') return;
+        if (item.status === 'in progress') return;
         setSelectedRide(item);
         setModalVisible(true);
     };
@@ -192,7 +192,7 @@ const ManageRides = ({ navigation }) => {
 
     const getStatusInfo = (status) => {
         if (status === 'scheduled') return { label: 'Agendado', color: '#2563EB', bg: '#EFF6FF' };
-        if (status === 'in_progress') return { label: 'En curso', color: '#D97706', bg: '#FFFBEB' };
+        if (status === 'in progress') return { label: 'En curso', color: '#D97706', bg: '#FFFBEB' };
         return { label: status, color: '#6B7280', bg: '#F3F4F6' };
     };
 
@@ -210,7 +210,7 @@ const ManageRides = ({ navigation }) => {
         const displayTime = isValidDate ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (item.hora || '--:--');
 
         const statusInfo = getStatusInfo(item.status);
-        const isInProgress = item.status === 'in_progress';
+        const isInProgress = item.status === 'in progress';
         const isCancelling = cancellingId === item._id;
 
         return (
