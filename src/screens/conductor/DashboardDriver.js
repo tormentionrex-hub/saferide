@@ -74,7 +74,7 @@ export default function DashboardConductor({ route, navigation }) {
                             <View style={[styles.smallIconCircle, { backgroundColor: theme.iconCircleBg }]}>
                                 <Ionicons name="map-outline" size={28} color={theme.accent} />
                             </View>
-                            <Text style={[styles.smallCardTitle, { color: theme.text }]}>Gestionar Viajes</Text>
+                            <Text style={[styles.smallCardTitle, { color: theme.text }]}>Gestionar Viajes Activos</Text>
                         </TouchableOpacity>
 
                         {/* Métricas Personales */}
