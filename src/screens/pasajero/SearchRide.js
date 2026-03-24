@@ -21,7 +21,7 @@ const SearchRide = ({ navigation }) => {
     const [pickerVisible, setPickerVisible] = useState(false);
     const [pickingFor, setPickingFor] = useState('origen');
 
-    const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
+    const [fechaSeleccionada, setFechaSeleccionada] = useState(new Date());
     const [mostrarCalendario, setMostrarCalendario] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
@@ -39,7 +39,7 @@ const SearchRide = ({ navigation }) => {
     // Ajustamos la región del mapa cuando cambian los puntos
     useEffect(() => {
         if (origen && destino) {
-             const coords = [
+            const coords = [
                 { latitude: origen.lat, longitude: origen.lng },
                 { latitude: destino.lat, longitude: destino.lng }
             ];
@@ -90,10 +90,10 @@ const SearchRide = ({ navigation }) => {
                 destination: `${destino.lat},${destino.lng}`,
                 date: fechaSeleccionada.toISOString().split('T')[0]
             };
-            
+
             const response = await api.get('/rides', { params });
             if (response.data.success) {
-                navigation.navigate('ListOfDrivers', { 
+                navigation.navigate('ListOfDrivers', {
                     rides: response.data.data || [],
                     searchTime: new Date().toISOString(),
                     searchOrigin: { lat: origen.lat, lng: origen.lng, name: origen.name },
@@ -120,7 +120,7 @@ const SearchRide = ({ navigation }) => {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor="transparent" translucent />
-            
+
             {/* MAPA DE FONDO */}
             <MapView
                 ref={mapRef}
@@ -154,7 +154,7 @@ const SearchRide = ({ navigation }) => {
             </MapView>
 
             {/* BOTÓN ATRÁS FLOTANTE */}
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={[styles.backFab, { backgroundColor: theme.surface }]}
                 onPress={() => navigation.goBack()}
             >
@@ -164,12 +164,12 @@ const SearchRide = ({ navigation }) => {
             {/* TARJETA PRINCIPAL DE PANEL DE BÚSQUEDA */}
             <View style={[styles.bottomCard, { backgroundColor: theme.surface }]}>
                 <View style={[styles.dragBar, { backgroundColor: theme.divider }]} />
-                
+
                 <Text style={[styles.title, { color: theme.text }]}>¿A dónde vamos?</Text>
-                
+
                 <View style={styles.inputsContainer}>
                     {/* ORIGEN */}
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={[styles.inputRow, { borderColor: errors.origen ? '#FF5A5F' : theme.border }]}
                         onPress={() => handleOpenPicker('origen')}
                     >
@@ -188,7 +188,7 @@ const SearchRide = ({ navigation }) => {
                     <View style={[styles.verticalLine, { backgroundColor: theme.divider }]} />
 
                     {/* DESTINO */}
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={[styles.inputRow, { borderColor: errors.destino ? '#FF5A5F' : theme.border }]}
                         onPress={() => handleOpenPicker('destino')}
                     >
@@ -207,7 +207,7 @@ const SearchRide = ({ navigation }) => {
 
                 {/* OPCIÓN DE FECHA */}
                 <View style={styles.row}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={[styles.dateBtn, { backgroundColor: theme.surfaceVariant }]}
                         onPress={() => setMostrarCalendario(true)}
                     >
@@ -218,7 +218,7 @@ const SearchRide = ({ navigation }) => {
                         <Ionicons name="chevron-down" size={16} color={theme.textSecondary} />
                     </TouchableOpacity>
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={[styles.searchBtn, { backgroundColor: theme.accent }]}
                         onPress={handleSearch}
                         disabled={loading}

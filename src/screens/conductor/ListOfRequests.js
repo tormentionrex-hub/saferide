@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, SafeAreaView, StatusBar, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, SafeAreaView, StatusBar, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 
 const ListOfRequests = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
@@ -83,6 +84,34 @@ const ListOfRequests = ({ route, navigation }) => {
         }
     };
 
+    const handleStartRide = async () => {
+        if (!specificRideId) return;
+        try {
+            setLoading(true);
+            const res = await api.patch(`/rides/${specificRideId}/start`);
+            if (res.data.success) {
+                Alert.alert('¡Viaje iniciado!', 'Recuerda conducir con precaución.', [
+                    { text: 'OK', onPress: () => navigation.navigate('CurrentTrip', { rideId: specificRideId }) }
+                ]);
+            }
+        } catch (e) {
+            Alert.alert('Error', e.response?.data?.message || 'No se pudo iniciar el viaje.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const confirmStartRide = () => {
+        Alert.alert(
+            "Confirmación",
+            "¿Estás seguro que deseas iniciar el viaje ahora? Sólo los pasajeros aceptados abordarán.",
+            [
+                { text: "Cancelar", style: "cancel" },
+                { text: "Sí, iniciar", onPress: handleStartRide }
+            ]
+        );
+    };
+
     const renderPassengerItem = ({ item }) => {
         const passenger = item.passenger_id || {};
 
@@ -130,7 +159,7 @@ const ListOfRequests = ({ route, navigation }) => {
                     data={requests.filter(r => r.status === 'pending')}
                     keyExtractor={(item, index) => item._id || index.toString()}
                     renderItem={renderPassengerItem}
-                    contentContainerStyle={{ padding: 20 }}
+                    contentContainerStyle={{ padding: 20, paddingBottom: specificRideId ? 20 : 100 }}
                     ListEmptyComponent={
                         <View style={{ alignItems: 'center', marginTop: 50 }}>
                             <Ionicons name="people-outline" size={60} color={theme.border} />
@@ -139,12 +168,22 @@ const ListOfRequests = ({ route, navigation }) => {
                     }
                 />
             )}
+            {specificRideId && !loading && (
+                <View style={[styles.startRideContainer, { backgroundColor: theme.surface, borderTopColor: theme.divider }]}>
+                    <Text style={[styles.startRideText, { color: theme.textSecondary }]}>¿Tienes todos los pasajeros a bordo?</Text>
+                    <TouchableOpacity style={[styles.startRideBtn, { backgroundColor: theme.accent }]} onPress={confirmStartRide}>
+                        <Text style={styles.startRideBtnText}>Iniciar Viaje</Text>
+                        <Ionicons name="arrow-forward" size={18} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+            )}
+            <BottomNavigationDriver navigation={navigation} activeTab="Mensajes" />
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+    container: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0 },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 20, borderBottomWidth: 1 },
     backBtn: { position: 'absolute', left: 20 },
     title: { fontSize: 18, fontWeight: 'bold' },
@@ -155,7 +194,11 @@ const styles = StyleSheet.create({
     btnGroup: { flexDirection: 'column', gap: 6 },
     acceptBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 },
     denyBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: '#E74C3C' },
-    btnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 }
+    btnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+    startRideContainer: { padding: 20, paddingBottom: 140, borderTopWidth: 1, alignItems: 'center' },
+    startRideText: { fontSize: 14, marginBottom: 12, fontWeight: 'bold' },
+    startRideBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', paddingVertical: 14, borderRadius: 14, gap: 10 },
+    startRideBtnText: { color: '#fff', fontSize: 15, fontWeight: 'bold' }
 });
 
 export default ListOfRequests;

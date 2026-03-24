@@ -11,6 +11,7 @@ import {
     Platform,
     Animated,
     Modal,
+    Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -27,6 +28,7 @@ const DashboardPasajero = ({ navigation, route }) => {
     // si está vacío lo lee de AsyncStorage (guardado al hacer login en SignInScreen).
     const [userName, setUserName] = useState(route?.params?.userName || '');
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isLogoutAlertVisible, setIsLogoutAlertVisible] = useState(false);
 
     // Valor animado para la rotación de la tuerca
     const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -59,8 +61,13 @@ const DashboardPasajero = ({ navigation, route }) => {
         outputRange: ['0deg', '360deg'],
     });
 
-    // Lógica de cierre de sesión
-    const handleLogout = async () => {
+    // Lógica de cierre de sesión refactorizada para diseño adhoc
+    const handleLogoutPress = () => {
+        setIsLogoutAlertVisible(true);
+    };
+
+    const confirmLogout = async () => {
+        setIsLogoutAlertVisible(false);
         setIsModalVisible(false);
         await AsyncStorage.multiRemove(['userToken', 'userRole', 'userName']);
         navigation.reset({
@@ -180,11 +187,50 @@ const DashboardPasajero = ({ navigation, route }) => {
                         {/* Botón de Cerrar Sesión en la parte inferior */}
                         <TouchableOpacity 
                             style={[styles.logoutModalBtn, { borderColor: theme.danger, backgroundColor: theme.surfaceVariant }]}
-                            onPress={handleLogout}
+                            onPress={handleLogoutPress}
                         >
                             <Ionicons name="log-out-outline" size={20} color={theme.danger} />
                             <Text style={[styles.logoutModalText, { color: theme.danger }]}>Cerrar sesión</Text>
                         </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Modal de Alerta Customizada de Cierre de Sesión */}
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={isLogoutAlertVisible}
+                onRequestClose={() => setIsLogoutAlertVisible(false)}
+            >
+                <TouchableOpacity 
+                    style={styles.modalOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setIsLogoutAlertVisible(false)}
+                >
+                    <View style={[styles.alertContent, { backgroundColor: theme.surface }]}>
+                        <View style={[styles.alertIconContainer, { backgroundColor: theme.danger + '20' }]}>
+                            <Ionicons name="log-out-outline" size={32} color={theme.danger} />
+                        </View>
+                        <Text style={[styles.alertTitle, { color: theme.text }]}>Cerrar sesión</Text>
+                        <Text style={[styles.alertMessage, { color: theme.textSecondary }]}>
+                            ¿Estás seguro que deseas salir de tu cuenta?
+                        </Text>
+                        
+                        <View style={styles.alertActions}>
+                            <TouchableOpacity 
+                                style={[styles.alertCancelBtn, { backgroundColor: theme.surfaceVariant }]}
+                                onPress={() => setIsLogoutAlertVisible(false)}
+                            >
+                                <Text style={[styles.alertCancelText, { color: theme.text }]}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.alertConfirmBtn, { backgroundColor: theme.danger }]}
+                                onPress={confirmLogout}
+                            >
+                                <Text style={styles.alertConfirmText}>Sí, salir</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </TouchableOpacity>
             </Modal>
@@ -346,6 +392,64 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontFamily: 'Poppins-Bold',
         marginLeft: 8,
+    },
+    alertContent: {
+        width: '85%',
+        borderRadius: 24,
+        padding: 24,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 15,
+        elevation: 10,
+    },
+    alertIconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    alertTitle: {
+        fontSize: 20,
+        fontFamily: 'Poppins-Bold',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    alertMessage: {
+        fontSize: 14,
+        fontFamily: 'Poppins-Regular',
+        textAlign: 'center',
+        marginBottom: 24,
+        lineHeight: 20,
+    },
+    alertActions: {
+        flexDirection: 'row',
+        width: '100%',
+        gap: 12,
+    },
+    alertCancelBtn: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 14,
+        alignItems: 'center',
+    },
+    alertCancelText: {
+        fontSize: 15,
+        fontFamily: 'Poppins-SemiBold',
+    },
+    alertConfirmBtn: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 14,
+        alignItems: 'center',
+    },
+    alertConfirmText: {
+        color: '#fff',
+        fontSize: 15,
+        fontFamily: 'Poppins-SemiBold',
     }
 });
 

@@ -31,7 +31,7 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                 navigation.navigate(routeName);
             }
         } else {
-            navigation.navigate(routeName);
+            navigation.navigate('MainTabsDriver', { screen: routeName });
         }
     };
 

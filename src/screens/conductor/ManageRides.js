@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, SafeAreaView, StatusBar, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { useDriverTheme } from '../../context/DriverThemeContext';
@@ -37,7 +37,19 @@ const ManageRides = ({ navigation }) => {
     const renderRideItem = ({ item }) => {
         const originName = item.origin?.name || 'Origen Desconocido';
         const destName = item.destination?.name || 'Destino Desconocido';
-        const date = new Date(item.date_time);
+        
+        let date;
+        if (item.fecha && item.hora) {
+            date = new Date(`${item.fecha}T${item.hora}:00`);
+        } else if (item.date_time) {
+            date = new Date(item.date_time);
+        } else {
+            date = new Date();
+        }
+
+        const isValidDate = !isNaN(date.getTime());
+        const displayDate = isValidDate ? date.toLocaleDateString() : (item.fecha || '--/--/----');
+        const displayTime = isValidDate ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (item.hora || '--:--');
 
         return (
             <View style={[styles.rideCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -47,8 +59,8 @@ const ManageRides = ({ navigation }) => {
                     <Ionicons name="location" size={16} color="#FF5A5F" />
 
                     <View style={styles.routeTextContainer}>
-                        <Text style={[styles.locationText, { color: theme.text }]} numberOfLines={1}>{originName}</Text>
-                        <Text style={[styles.locationText, { color: theme.text, marginTop: 15 }]} numberOfLines={1}>{destName}</Text>
+                        <Text style={[styles.locationText, { color: theme.text }]} numberOfLines={1}>Origen: {originName}</Text>
+                        <Text style={[styles.locationText, { color: theme.text, marginTop: 15 }]} numberOfLines={1}>Destino: {destName}</Text>
                     </View>
                 </View>
 
@@ -58,13 +70,13 @@ const ManageRides = ({ navigation }) => {
                     <View style={styles.detailItem}>
                         <Ionicons name="calendar-outline" size={16} color={theme.textSecondary} />
                         <Text style={[styles.detailText, { color: theme.textSecondary }]}>
-                            {date.toLocaleDateString()}
+                            {displayDate}
                         </Text>
                     </View>
                     <View style={styles.detailItem}>
                         <Ionicons name="time-outline" size={16} color={theme.textSecondary} />
                         <Text style={[styles.detailText, { color: theme.textSecondary }]}>
-                            {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {displayTime}
                         </Text>
                     </View>
                     <View style={styles.detailItem}>
@@ -117,7 +129,7 @@ const ManageRides = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+    container: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0 },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 20, borderBottomWidth: 1 },
     backBtn: { position: 'absolute', left: 20 },
     gearBtn: { position: 'absolute', right: 20 },

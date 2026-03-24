@@ -25,13 +25,13 @@ const getHaversineDistance = (lat1, lon1, lat2, lon2) => {
 // ── Tarjeta de conductor ──────────────────────────────────────────────────────
 const DriverCard = ({ item, onPress, theme }) => {
     const driverName = item.driver_id?.name || 'Conductor Desconocido';
-    const rating     = item.driver_id?.rating ?? null;
-    const originName = item.origin?.name      || 'Origen';
-    const destName   = item.destination?.name || 'Destino';
-    const date       = item.fecha || null;
-    const time       = item.hora || null;
-    const price      = item.price != null ? `₡${item.price.toLocaleString()}` : null;
-    const seats      = item.available_seats ?? null;
+    const rating = item.driver_id?.rating ?? null;
+    const originName = item.origin?.name || 'Origen';
+    const destName = item.destination?.name || 'Destino';
+    const date = item.fecha || null;
+    const time = item.hora || null;
+    const price = item.price != null ? `₡${item.price.toLocaleString()}` : null;
+    const seats = item.available_seats ?? null;
 
     const initials = driverName
         .split(' ')
@@ -120,16 +120,16 @@ const DriverCard = ({ item, onPress, theme }) => {
 // ── Pantalla principal ────────────────────────────────────────────────────────
 const ListOfDrivers = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
-    const insets    = useSafeAreaInsets();
-    const si        = useScrollIndicator();
-    
+    const insets = useSafeAreaInsets();
+    const si = useScrollIndicator();
+
     // Si vienen de búsqueda, usamos esos rides. Si no, cargamos todos.
     const initialRides = route.params?.rides;
     const [ridesData, setRidesData] = useState(initialRides || []);
     const [loading, setLoading] = useState(!initialRides);
-    
+
     const searchTime = route.params?.searchTime ? new Date(route.params.searchTime) : new Date();
-    const searchOrigin  = route.params?.searchOrigin;
+    const searchOrigin = route.params?.searchOrigin;
     const searchDestination = route.params?.searchDestination;
 
     useEffect(() => {
@@ -157,7 +157,7 @@ const ListOfDrivers = ({ route, navigation }) => {
     const processedRides = useMemo(() => {
         let filtered = ridesData.filter(ride => {
             if (!ride.fecha || !ride.hora) return false;
-            
+
             // Si venimos de una búsqueda, verificamos proximidad (5km de margen como extra)
             if (searchOrigin) {
                 // 1. Cercanía al origen
@@ -180,10 +180,10 @@ const ListOfDrivers = ({ route, navigation }) => {
                 const [y, m, d] = ride.fecha.split('-').map(Number);
                 const [h, mm] = ride.hora.split(':').map(Number);
                 const rideDate = new Date(y, m - 1, d, h, mm, 0);
-                
+
                 const diffMs = rideDate.getTime() - searchTime.getTime();
                 const diffHrs = diffMs / (1000 * 60 * 60);
-                
+
                 // Ventana expandida: desde 1 hora antes hasta 12 horas después para cubrir el día
                 return diffHrs >= -1 && diffHrs <= 12;
             }
@@ -291,7 +291,7 @@ const ListOfDrivers = ({ route, navigation }) => {
                     </View>
                     <Text style={[styles.emptyTitle, { color: theme.text }]}>Sin viajes disponibles</Text>
                     <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-                        {searchOrigin 
+                        {searchOrigin
                             ? `No encontramos conductores para tu ruta entre ${searchOrigin.name} y ${searchDestination?.name || 'tu destino'}.`
                             : "No hay viajes programados por ahora."}
                     </Text>
@@ -340,14 +340,14 @@ const styles = StyleSheet.create({
         paddingBottom: 14,
         borderBottomWidth: 1,
     },
-    backBtn:     { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
     headerCenter: { flex: 1, alignItems: 'center' },
     headerTitle: { fontSize: 18, fontFamily: 'Poppins-Bold' },
-    headerSub:   { fontSize: 12, fontFamily: 'Poppins-Regular', marginTop: 1 },
+    headerSub: { fontSize: 12, fontFamily: 'Poppins-Regular', marginTop: 1 },
 
     // Lista
-    listWrapper:  { flex: 1 },
-    listContent:  { paddingHorizontal: 16, paddingTop: 20 },
+    listWrapper: { flex: 1 },
+    listContent: { paddingHorizontal: 16, paddingTop: 20 },
 
     // Tarjeta
     card: {
@@ -361,21 +361,21 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.08,
         shadowRadius: 6,
     },
-    cardHeader:   { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 12 },
+    cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 12 },
     avatar: {
         width: 46, height: 46, borderRadius: 23,
         justifyContent: 'center', alignItems: 'center',
     },
-    avatarText:   { fontSize: 16, fontFamily: 'Poppins-Bold' },
-    driverName:   { fontSize: 15, fontFamily: 'Poppins-Bold' },
-    ratingRow:    { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
-    ratingText:   { fontSize: 12, fontFamily: 'Poppins-Regular' },
-    price:        { fontSize: 16, fontFamily: 'Poppins-Bold' },
+    avatarText: { fontSize: 16, fontFamily: 'Poppins-Bold' },
+    driverName: { fontSize: 15, fontFamily: 'Poppins-Bold' },
+    ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
+    ratingText: { fontSize: 12, fontFamily: 'Poppins-Regular' },
+    price: { fontSize: 16, fontFamily: 'Poppins-Bold' },
 
-    routeBox:   { borderRadius: 12, padding: 12, marginBottom: 12 },
-    routeRow:   { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    routeBox: { borderRadius: 12, padding: 12, marginBottom: 12 },
+    routeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     routeDivider: { height: 1, marginVertical: 8, marginLeft: 22 },
-    routeText:  { flex: 1, fontSize: 13, fontFamily: 'Poppins-Regular' },
+    routeText: { flex: 1, fontSize: 13, fontFamily: 'Poppins-Regular' },
 
     cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     footerChip: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
         width: 100, height: 100, borderRadius: 50,
         justifyContent: 'center', alignItems: 'center', marginBottom: 24,
     },
-    emptyTitle:    { fontSize: 20, fontFamily: 'Poppins-Bold', marginBottom: 10, textAlign: 'center' },
+    emptyTitle: { fontSize: 20, fontFamily: 'Poppins-Bold', marginBottom: 10, textAlign: 'center' },
     emptySubtitle: { fontSize: 14, fontFamily: 'Poppins-Regular', textAlign: 'center', lineHeight: 22, marginBottom: 32 },
     retryBtn: {
         flexDirection: 'row', alignItems: 'center',
