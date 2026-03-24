@@ -1,13 +1,15 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Animated as RNAnimated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDriverTheme } from '../context/DriverThemeContext';
+import api from '../services/api';
 
 const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: manualActiveTab }) => {
     const insets = useSafeAreaInsets();
     const { theme } = useDriverTheme();
+    const [showModal, setShowModal] = useState(false);
 
-    // Determinar la pestaña activa
     let currentTab = manualActiveTab || 'Inicio';
     if (state) {
         const routeName = state.routes[state.index].name;
@@ -19,6 +21,30 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
 
     const getColor = (tabName) => currentTab === tabName ? theme.navActive : theme.navInactive;
 
+    const handleViajesPress = async () => {
+        try {
+            const meRes = await api.get('/auth/me');
+            if (!meRes.data.success) { navigation.navigate('PublishRide'); return; }
+            const userId = meRes.data.data._id;
+
+            const res = await api.get(`/vehicles/driver/${userId}`);
+            const hasVehicle = res.data.success && res.data.data &&
+                (Array.isArray(res.data.data) ? res.data.data.length > 0 : true);
+
+            if (hasVehicle) {
+                navigation.navigate('PublishRide');
+            } else {
+                setShowModal(true);
+            }
+        } catch (e) {
+            if (e.response?.status === 404) {
+                setShowModal(true);
+            } else {
+                navigation.navigate('PublishRide');
+            }
+        }
+    };
+
     const navigateTo = (routeName) => {
         if (state) {
             const event = navigation.emit({
@@ -26,7 +52,6 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                 target: routeName,
                 canPreventDefault: true,
             });
-
             if (currentTab !== routeName && !event.defaultPrevented) {
                 navigation.navigate(routeName);
             }
@@ -36,76 +61,117 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
     };
 
     return (
-        <View style={[
-            styles.container,
-            {
-                paddingBottom: insets.bottom > 0 ? insets.bottom : 20,
-                height: 70 + (insets.bottom > 0 ? insets.bottom : 20),
-                backgroundColor: theme.navBg,
-                borderTopColor: theme.navBorder,
-            }
-        ]}>
-            
-            {/* 1. BOTÓN: INICIO (DashboardDriver) */}
-            <TouchableOpacity 
-                style={styles.navItem} 
-                activeOpacity={0.6}
-                onPress={() => navigateTo('DashboardDriver')}
+        <>
+            {/* ── MODAL ACCESO BLOQUEADO ── */}
+            <Modal
+                visible={showModal}
+                transparent
+                animationType="fade"
+                statusBarTranslucent
             >
-                <Ionicons 
-                    name={currentTab === 'Inicio' ? "home" : "home-outline"} 
-                    size={24} color={getColor('Inicio')} 
-                />
-                <Text style={[styles.navText, { color: getColor('Inicio') }]}>Inicio</Text>
-            </TouchableOpacity>
+                <View style={styles.backdrop}>
+                    <View style={[styles.card, {
+                        backgroundColor: theme.dark ? '#111128' : '#FFFFFF',
+                        borderColor: theme.dark ? 'rgba(116,143,255,0.25)' : 'rgba(75,104,255,0.15)',
+                    }]}>
 
-            {/* 2. BOTÓN: VIAJES */}
-            <TouchableOpacity 
-                style={styles.navItem} 
-                activeOpacity={0.6}
-                onPress={() => navigateTo('PublishRide')}
-            >
-                <Ionicons 
-                    name={currentTab === 'Viajes' ? "map" : "map-outline"} 
-                    size={24} color={getColor('Viajes')} 
-                />
-                <Text style={[styles.navText, { color: getColor('Viajes') }]}>Viajes</Text>
-            </TouchableOpacity>
+                        {/* Glow ring + icon */}
+                        <View style={[styles.iconWrapper, {
+                            backgroundColor: theme.dark ? '#1C1C40' : '#EEF2FF',
+                            shadowColor: theme.accent,
+                        }]}>
+                            <View style={[styles.iconInner, {
+                                backgroundColor: theme.dark ? '#252560' : '#E0E7FF',
+                            }]}>
+                                <Ionicons name="car-sport" size={42} color={theme.accent} />
+                                <View style={[styles.lockBadge, { backgroundColor: theme.dark ? '#0A0A18' : '#fff' }]}>
+                                    <Ionicons name="lock-closed" size={13} color={theme.accent} />
+                                </View>
+                            </View>
+                        </View>
 
-            {/* 3. BOTÓN: GESTIONAR VIAJES (ANTES MENSAJES) */}
-            <TouchableOpacity 
-                style={styles.navItem} 
-                activeOpacity={0.6}
-                onPress={() => navigateTo('ManageRides')}
-            >
-                <Ionicons 
-                    name={currentTab === 'Mensajes' ? "map" : "map-outline"} 
-                    size={24} color={getColor('Mensajes')} 
-                />
-                <Text style={[styles.navText, { color: getColor('Mensajes') }]}>Rutas</Text>
-            </TouchableOpacity>
+                        {/* Texto */}
+                        <Text style={[styles.title, { color: theme.dark ? '#EEEEFF' : '#1C1C1E' }]}>
+                            Acceso Bloqueado
+                        </Text>
+                        <Text style={[styles.subtitle, { color: theme.dark ? '#7A7A9D' : '#6B7280' }]}>
+                            Para comenzar a aceptar viajes, primero debes registrar un vehículo.
+                        </Text>
 
-            {/* 4. BOTÓN: STATS */}
-            <TouchableOpacity
-                style={styles.navItem}
-                activeOpacity={0.6}
-                onPress={() => navigateTo('DriverMetrics')}
-            >
-                <Ionicons
-                    name={currentTab === 'Stats' ? "bar-chart" : "bar-chart-outline"}
-                    size={24} color={getColor('Stats')}
-                />
-                <Text style={[styles.navText, { color: getColor('Stats') }]}>Stats</Text>
-            </TouchableOpacity>
+                        {/* Separador */}
+                        <View style={[styles.divider, {
+                            backgroundColor: theme.dark ? 'rgba(116,143,255,0.15)' : 'rgba(75,104,255,0.1)'
+                        }]} />
 
-        </View>
+                        {/* Botón principal */}
+                        <TouchableOpacity
+                            style={[styles.primaryBtn, { backgroundColor: theme.accent }]}
+                            activeOpacity={0.85}
+                            onPress={() => {
+                                setShowModal(false);
+                                navigation.navigate('RegisterVehicleStep1');
+                            }}
+                        >
+                            <Ionicons name="car-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={styles.primaryBtnText}>Registrar Vehículo</Text>
+                        </TouchableOpacity>
+
+                        {/* Botón cancelar */}
+                        <TouchableOpacity
+                            style={[styles.cancelBtn, {
+                                borderColor: theme.dark ? 'rgba(116,143,255,0.3)' : 'rgba(75,104,255,0.2)'
+                            }]}
+                            activeOpacity={0.7}
+                            onPress={() => setShowModal(false)}
+                        >
+                            <Text style={[styles.cancelBtnText, { color: theme.dark ? '#7A7A9D' : '#8E8E93' }]}>
+                                Cancelar
+                            </Text>
+                        </TouchableOpacity>
+
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ── BARRA DE NAVEGACIÓN ── */}
+            <View style={[
+                styles.container,
+                {
+                    paddingBottom: insets.bottom > 0 ? insets.bottom : 20,
+                    height: 70 + (insets.bottom > 0 ? insets.bottom : 20),
+                    backgroundColor: theme.navBg,
+                    borderTopColor: theme.navBorder,
+                }
+            ]}>
+
+                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('DashboardDriver')}>
+                    <Ionicons name={currentTab === 'Inicio' ? "home" : "home-outline"} size={24} color={getColor('Inicio')} />
+                    <Text style={[styles.navText, { color: getColor('Inicio') }]}>Inicio</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={handleViajesPress}>
+                    <Ionicons name={currentTab === 'Viajes' ? "map" : "map-outline"} size={24} color={getColor('Viajes')} />
+                    <Text style={[styles.navText, { color: getColor('Viajes') }]}>Viajes</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('ManageRides')}>
+                    <Ionicons name={currentTab === 'Mensajes' ? "map" : "map-outline"} size={24} color={getColor('Mensajes')} />
+                    <Text style={[styles.navText, { color: getColor('Mensajes') }]}>Rutas</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('DriverMetrics')}>
+                    <Ionicons name={currentTab === 'Stats' ? "bar-chart" : "bar-chart-outline"} size={24} color={getColor('Stats')} />
+                    <Text style={[styles.navText, { color: getColor('Stats') }]}>Stats</Text>
+                </TouchableOpacity>
+
+            </View>
+        </>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        backgroundColor: '#FFFFFF',
         width: '100%',
         justifyContent: 'space-around',
         alignItems: 'center',
@@ -113,13 +179,12 @@ const styles = StyleSheet.create({
         bottom: 0,
         borderTopLeftRadius: 25,
         borderTopRightRadius: 25,
-        shadowColor: "#000",
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: -2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 5,
         borderTopWidth: 1,
-        borderTopColor: '#F0F0F0',
     },
     navItem: {
         alignItems: 'center',
@@ -132,7 +197,105 @@ const styles = StyleSheet.create({
         marginTop: 4,
         fontFamily: 'Poppins-SemiBold',
         textAlign: 'center',
-    }
+    },
+    // ── Modal ──
+    backdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.72)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 28,
+    },
+    card: {
+        width: '100%',
+        borderRadius: 28,
+        padding: 32,
+        alignItems: 'center',
+        borderWidth: 1,
+        elevation: 20,
+        shadowColor: '#748FFF',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+    },
+    iconWrapper: {
+        width: 110,
+        height: 110,
+        borderRadius: 55,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
+        elevation: 10,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 20,
+    },
+    iconInner: {
+        width: 84,
+        height: 84,
+        borderRadius: 42,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    lockBadge: {
+        position: 'absolute',
+        bottom: 4,
+        right: 4,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 4,
+    },
+    title: {
+        fontSize: 22,
+        fontWeight: '800',
+        marginBottom: 10,
+        letterSpacing: 0.3,
+    },
+    subtitle: {
+        fontSize: 14,
+        textAlign: 'center',
+        lineHeight: 21,
+        paddingHorizontal: 8,
+    },
+    divider: {
+        width: '100%',
+        height: 1,
+        marginVertical: 24,
+    },
+    primaryBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 16,
+        elevation: 6,
+        shadowColor: '#748FFF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 10,
+        marginBottom: 12,
+    },
+    primaryBtnText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+        letterSpacing: 0.3,
+    },
+    cancelBtn: {
+        width: '100%',
+        paddingVertical: 13,
+        borderRadius: 16,
+        borderWidth: 1,
+        alignItems: 'center',
+    },
+    cancelBtnText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
 });
 
 export default BottomNavigationBarAlt;
