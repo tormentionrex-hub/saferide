@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
 import { useDriverTheme } from '../context/DriverThemeContext';
+import api from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -17,11 +18,11 @@ const NAV_ITEMS = [
         target: 'DashboardPasajero',
     },
     {
-        label: 'Buscar viaje',
-        activeIcon: 'compass',
-        inactiveIcon: 'compass-outline',
-        // Se ilumina tanto en SearchRide como en ListOfDrivers (flujo de búsqueda)
-        screens: ['SearchRide', 'ListOfDrivers'],
+        label: 'Tu viaje',
+        activeIcon: 'car',
+        inactiveIcon: 'car-outline',
+        // Se ilumina tanto en SearchRide como en ListOfDrivers, TripInProgress, ScreenSaver
+        screens: ['SearchRide', 'ListOfDrivers', 'TripInProgress', 'ScreenSaver'],
         target: 'SearchRide',
     },
     {
@@ -68,20 +69,38 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                 const color = isActive ? activeColor : inactiveColor;
 
                 // Función que maneja la navegación al tocar un icono
-                const onPress = () => {
-                    if (state) {
-                        const event = navigation.emit({
-                            type: 'tabPress',
-                            target: item.target,
-                            canPreventDefault: true,
-                        });
+                const onPress = async () => {
+                    const event = state ? navigation.emit({
+                        type: 'tabPress',
+                        target: item.target,
+                        canPreventDefault: true,
+                    }) : { defaultPrevented: false };
 
-                        // Navegamos solo si no está activo y si no hay eventos que lo prevengan
-                        if (!isActive && !event.defaultPrevented) {
-                            navigation.navigate(item.target);
+                    if (isActive || event.defaultPrevented) return;
+
+                    if (item.target === 'SearchRide') {
+                        try {
+                            const res = await api.get('/bookings');
+                            if (res.data && res.data.success && res.data.data) {
+                                const activeBooking = res.data.data.find(b => b.status === 'pending' || b.status === 'confirmed');
+                                if (activeBooking) {
+                                    if (activeBooking.status === 'pending') {
+                                        navigation.navigate('ScreenSaver', { bookingId: activeBooking._id });
+                                    } else {
+                                        navigation.navigate('TripInProgress', { bookingId: activeBooking._id });
+                                    }
+                                    return; // previene el navigation.navigate por defecto
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error fetching bookings:', error);
                         }
+                    }
+
+                    // Navegación por defecto
+                    if (!state) {
+                        navigation.navigate('MainTabsPasajero', { screen: item.target });
                     } else {
-                        // Navegación directa en caso de no estar dentro de un TabNavigator oficial
                         navigation.navigate(item.target);
                     }
                 };

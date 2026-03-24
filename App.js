@@ -20,7 +20,7 @@ import SearchRide from './src/screens/pasajero/SearchRide';
 import History from './src/screens/pasajero/History';
 import Metrics from './src/screens/pasajero/Metrics';
 import PublishRide from './src/screens/conductor/PublishRide';
-import ManageRequests from './src/screens/conductor/ManageRequests';
+
 import DriverMetrics from './src/screens/conductor/DriverMetrics';
 import ManageRides from './src/screens/conductor/ManageRides';
 import AjustesConductor from './src/screens/conductor/AjustesConductor';
@@ -32,6 +32,8 @@ import PaymentMethodScreen from './src/screens/pasajero/PaymentMethodScreen';
 import RideDetail from './src/screens/pasajero/RideDetail';
 import ScreenSaver from './src/screens/pasajero/ScreenSaver';
 import ListOfRequests from './src/screens/conductor/ListOfRequests';
+import TripInProgress from './src/screens/pasajero/TripInProgress';
+import CurrentTrip from './src/screens/conductor/CurrentTrip';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BottomNavigationBar from './src/components/BottomNavigationBar';
@@ -158,7 +160,7 @@ export default function App() {
 
           <Stack.Screen name="AjustesConductor" component={AjustesConductor} options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ProfileConductor" component={ProfileConductor} options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ManageRequests" component={ManageRequests} options={{ animation: 'slide_from_right' }} />
+
 
           <Stack.Screen
             name="Home"
@@ -214,6 +216,22 @@ export default function App() {
           <Stack.Screen
             name="ListOfRequests"
             component={ListOfRequests}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right'
+            }}
+          />
+          <Stack.Screen
+            name="TripInProgress"
+            component={TripInProgress}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right'
+            }}
+            />
+          <Stack.Screen
+            name="CurrentTrip"
+            component={CurrentTrip}
             options={{
               headerShown: false,
               animation: 'slide_from_right'
