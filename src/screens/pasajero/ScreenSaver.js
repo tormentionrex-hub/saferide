@@ -1,21 +1,90 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import api from '../../services/api';
 
-const ScreenSaver = ({ navigation }) => {
+const ScreenSaver = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
+    const bookingId = route.params?.bookingId;
+    const [status, setStatus] = useState('pending');
+    const intervalRef = useRef(null);
+
+    useEffect(() => {
+        if (!bookingId) return;
+
+        const checkStatus = async () => {
+            try {
+                const res = await api.get(`/bookings/${bookingId}`);
+                if (res.data.success) {
+                    const newStatus = res.data.data.status;
+                    setStatus(newStatus);
+                    if (newStatus === 'confirmed' || newStatus === 'deny' || newStatus === 'cancelled') {
+                        clearInterval(intervalRef.current);
+                    }
+                }
+            } catch (e) {
+                console.error('Error al verificar estado del booking:', e);
+            }
+        };
+
+        checkStatus();
+        intervalRef.current = setInterval(checkStatus, 5000);
+
+        return () => clearInterval(intervalRef.current);
+    }, [bookingId]);
+
+    const getContent = () => {
+        if (status === 'confirmed') {
+            return {
+                icon: 'checkmark-circle-outline',
+                iconColor: '#27AE60',
+                title: '¡Solicitud Aceptada!',
+                subtitle: 'El conductor ha aceptado tu solicitud. ¡Que tengas buen viaje!',
+                showLoader: false,
+            };
+        }
+        if (status === 'deny') {
+            return {
+                icon: 'close-circle-outline',
+                iconColor: '#E74C3C',
+                title: 'Solicitud Rechazada',
+                subtitle: 'El conductor ha rechazado tu solicitud. Puedes buscar otro viaje.',
+                showLoader: false,
+            };
+        }
+        if (status === 'cancelled') {
+            return {
+                icon: 'ban-outline',
+                iconColor: '#E74C3C',
+                title: 'Solicitud Cancelada',
+                subtitle: 'Esta reserva fue cancelada.',
+                showLoader: false,
+            };
+        }
+        return {
+            icon: 'time-outline',
+            iconColor: theme.accent,
+            title: 'Esperando respuesta...',
+            subtitle: 'La petición se ha enviado, espera la respuesta del conductor',
+            showLoader: true,
+        };
+    };
+
+    const { icon, iconColor, title, subtitle, showLoader } = getContent();
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.surface }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
             <View style={styles.content}>
-                <Ionicons name="time-outline" size={80} color={theme.accent} />
-                <Text style={[styles.text, { color: theme.text }]}>
-                    La petición se ha enviado, espera la respuesta del conductor
-                </Text>
+                <Ionicons name={icon} size={80} color={iconColor} />
+                <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
+                <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{subtitle}</Text>
+                {showLoader && (
+                    <ActivityIndicator style={{ marginTop: 30 }} size="large" color={theme.accent} />
+                )}
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={[styles.button, { backgroundColor: theme.accent }]}
                 onPress={() => navigation.navigate('DashboardPasajero')}
             >
@@ -35,14 +104,19 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        paddingHorizontal: 20,
     },
-    text: {
-        marginTop: 30,
+    title: {
+        marginTop: 25,
         fontSize: 22,
         fontWeight: 'bold',
         textAlign: 'center',
-        paddingHorizontal: 20,
-        lineHeight: 30,
+    },
+    subtitle: {
+        marginTop: 12,
+        fontSize: 15,
+        textAlign: 'center',
+        lineHeight: 22,
     },
     button: {
         paddingVertical: 15,

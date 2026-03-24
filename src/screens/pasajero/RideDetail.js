@@ -38,7 +38,7 @@ const RideDetail = ({ route, navigation }) => {
         try {
             const response = await api.post('/bookings', { ride_id: ride._id, seats_booked: 1 });
             if (response.data.success) {
-                navigation.navigate('ScreenSaver');
+                navigation.navigate('ScreenSaver', { bookingId: response.data.data._id });
             }
         } catch (error) {
             Alert.alert('Error', error.response?.data?.message || 'Error al solicitar unirse al viaje.');

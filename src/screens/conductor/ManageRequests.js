@@ -28,6 +28,19 @@ const RequestsScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const si = useScrollIndicator();
 
+    const handleUpdateStatus = async (bookingId, status) => {
+        try {
+            const res = await api.patch(`/bookings/${bookingId}/status`, { status });
+            if (res.data.success) {
+                setRequests(prev => prev.map(r => r._id === bookingId ? { ...r, status } : r));
+                const msg = status === 'confirmed' ? 'Solicitud aceptada.' : 'Solicitud rechazada.';
+                Alert.alert('Listo', msg);
+            }
+        } catch (e) {
+            Alert.alert('Error', e.response?.data?.message || 'No se pudo actualizar la solicitud.');
+        }
+    };
+
     // --- CARGA DE DATOS DESDE EL BACKEND ---
     useEffect(() => {
         const fetchRequests = async () => {
@@ -105,10 +118,35 @@ const RequestsScreen = ({ navigation }) => {
                             styles.statusTag,
                             item.status === 'confirmed'
                                 ? { backgroundColor: theme.dark ? '#1A3A25' : '#E7F9ED', color: '#27AE60' }
+                                : item.status === 'deny'
+                                ? { backgroundColor: theme.dark ? '#3A1010' : '#FDEDED', color: '#E74C3C' }
+                                : item.status === 'cancelled'
+                                ? { backgroundColor: theme.dark ? '#2A2A2A' : '#F5F5F5', color: '#888' }
                                 : { backgroundColor: theme.dark ? '#3A2A10' : '#FFF4E5', color: '#FF9500' }
                         ]}>
-                            {item.status === 'confirmed' ? 'Confirmado' : 'Pendiente'}
+                            {item.status === 'confirmed' ? 'Confirmado'
+                                : item.status === 'deny' ? 'Rechazado'
+                                : item.status === 'cancelled' ? 'Cancelado'
+                                : 'Pendiente'}
                         </Text>
+                        {item.status === 'pending' && (
+                            <View style={styles.actionRow}>
+                                <TouchableOpacity
+                                    style={styles.acceptInlineBtn}
+                                    onPress={() => handleUpdateStatus(item._id, 'confirmed')}
+                                >
+                                    <Ionicons name="checkmark" size={14} color="#fff" />
+                                    <Text style={styles.inlineBtnText}>Aceptar</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.denyInlineBtn}
+                                    onPress={() => handleUpdateStatus(item._id, 'deny')}
+                                >
+                                    <Ionicons name="close" size={14} color="#fff" />
+                                    <Text style={styles.inlineBtnText}>Rechazar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
                     </View>
 
                     <Ionicons name="chevron-forward" size={20} color={theme.accent} />
@@ -277,6 +315,34 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 12,
         fontSize: 16,
+    },
+    actionRow: {
+        flexDirection: 'row',
+        gap: 8,
+        marginTop: 8,
+    },
+    acceptInlineBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#27AE60',
+        paddingVertical: 5,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+    },
+    denyInlineBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#E74C3C',
+        paddingVertical: 5,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+    },
+    inlineBtnText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 'bold',
     },
 });
 

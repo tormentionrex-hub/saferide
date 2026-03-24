@@ -61,13 +61,27 @@ const ListOfRequests = ({ route, navigation }) => {
 
     const handleAccept = async (bookingId) => {
         try {
-            // Este endpoint depende del status real de tu API. (Asumo que lo tiene según bookingsRoutes.js que vi `PATCH /:id/status`)
-            // Por simplicidad en la UI solo mostramos alerta.
-            Alert.alert("Éxito", "Has aceptado la solicitud.");
+            const res = await api.patch(`/bookings/${bookingId}/status`, { status: 'confirmed' });
+            if (res.data.success) {
+                Alert.alert('Éxito', 'Has aceptado la solicitud.');
+                setRequests(prev => prev.filter(r => r._id !== bookingId));
+            }
         } catch (e) {
-            console.error(e);
+            Alert.alert('Error', e.response?.data?.message || 'No se pudo aceptar la solicitud.');
         }
-    }
+    };
+
+    const handleDeny = async (bookingId) => {
+        try {
+            const res = await api.patch(`/bookings/${bookingId}/status`, { status: 'deny' });
+            if (res.data.success) {
+                Alert.alert('Solicitud rechazada', 'Se notificó al pasajero.');
+                setRequests(prev => prev.filter(r => r._id !== bookingId));
+            }
+        } catch (e) {
+            Alert.alert('Error', e.response?.data?.message || 'No se pudo rechazar la solicitud.');
+        }
+    };
 
     const renderPassengerItem = ({ item }) => {
         const passenger = item.passenger_id || {};
@@ -81,12 +95,20 @@ const ListOfRequests = ({ route, navigation }) => {
                         Solicitó unirse a tu viaje ({item.seats_booked} asiento/s)
                     </Text>
                 </View>
-                <TouchableOpacity 
-                    style={[styles.acceptBtn, { backgroundColor: theme.accent }]}
-                    onPress={() => handleAccept(item._id)}
-                >
-                    <Text style={styles.btnText}>Aceptar</Text>
-                </TouchableOpacity>
+                <View style={styles.btnGroup}>
+                    <TouchableOpacity
+                        style={[styles.acceptBtn, { backgroundColor: theme.accent }]}
+                        onPress={() => handleAccept(item._id)}
+                    >
+                        <Text style={styles.btnText}>Aceptar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.denyBtn]}
+                        onPress={() => handleDeny(item._id)}
+                    >
+                        <Text style={styles.btnText}>Rechazar</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         );
     };
@@ -130,8 +152,10 @@ const styles = StyleSheet.create({
     avatar: { width: 50, height: 50, borderRadius: 25 },
     infoContainer: { flex: 1, marginLeft: 15 },
     nameText: { fontSize: 16, fontWeight: 'bold' },
-    acceptBtn: { paddingVertical: 8, paddingHorizontal: 15, borderRadius: 8 },
-    btnText: { color: '#fff', fontWeight: 'bold' }
+    btnGroup: { flexDirection: 'column', gap: 6 },
+    acceptBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 },
+    denyBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: '#E74C3C' },
+    btnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 }
 });
 
 export default ListOfRequests;
