@@ -103,7 +103,7 @@ const ScreenSaver = ({ route, navigation }) => {
             </View>
             <TouchableOpacity
                 style={[styles.button, { backgroundColor: theme.accent }]}
-                onPress={() => navigation.navigate('DashboardPasajero')}
+                onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
             >
                 <Text style={styles.buttonText}>Volver al Inicio</Text>
             </TouchableOpacity>

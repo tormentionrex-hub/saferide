@@ -177,7 +177,7 @@ const ManageRides = ({ navigation }) => {
         if (!selectedRide) return;
         try {
             setCancellingId(selectedRide._id);
-            await api.put(`/rides/${selectedRide._id}`, { status: 'canceled' });
+            await api.patch(`/rides/${selectedRide._id}/cancel`);
             setModalVisible(false);
             setSelectedRide(null);
             fetchRides();
