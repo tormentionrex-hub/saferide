@@ -172,28 +172,14 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                     <Text style={[styles.navText, { color: !hasVehicleRegistered ? theme.textSecondary : getColor('Viajes') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Viajes</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => handleRestrictedPress('ManageRides')}>
-                    <View>
-                        <Ionicons name={currentTab === 'Rutas' ? "map" : "map-outline"} size={24} color={!hasVehicleRegistered ? theme.textSecondary : getColor('Rutas')} />
-                        {!hasVehicleRegistered && !loadingVehicle && (
-                            <View style={styles.smallLock}>
-                                <Ionicons name="lock-closed" size={10} color="#FFF" />
-                            </View>
-                        )}
-                    </View>
-                    <Text style={[styles.navText, { color: !hasVehicleRegistered ? theme.textSecondary : getColor('Rutas') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Rutas</Text>
+                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('ManageRides')}>
+                    <Ionicons name={currentTab === 'Rutas' ? "map" : "map-outline"} size={24} color={getColor('Rutas')} />
+                    <Text style={[styles.navText, { color: getColor('Rutas') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Rutas</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => handleRestrictedPress('DriverMetrics')}>
-                    <View>
-                        <Ionicons name={currentTab === 'Stats' ? "bar-chart" : "bar-chart-outline"} size={24} color={!hasVehicleRegistered ? theme.textSecondary : getColor('Stats')} />
-                        {!hasVehicleRegistered && !loadingVehicle && (
-                            <View style={styles.smallLock}>
-                                <Ionicons name="lock-closed" size={10} color="#FFF" />
-                            </View>
-                        )}
-                    </View>
-                    <Text style={[styles.navText, { color: !hasVehicleRegistered ? theme.textSecondary : getColor('Stats') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Stats</Text>
+                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('DriverMetrics')}>
+                    <Ionicons name={currentTab === 'Stats' ? "bar-chart" : "bar-chart-outline"} size={24} color={getColor('Stats')} />
+                    <Text style={[styles.navText, { color: getColor('Stats') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Stats</Text>
                 </TouchableOpacity>
 
             </View>
