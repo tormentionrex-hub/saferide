@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Dimensions, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Dimensions, StatusBar, Easing } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -19,33 +19,58 @@ const TERMS_SECTIONS = [
 
     { title: "7. Pagos y Contribuciones", content: "El Usuario entiende y acepta que:\n\n • Los pagos realizados corresponden a una contribución por el traslado. \n\n • SafeRide podrá aplicar comisiones por el uso de la Plataforma. \n\n • Las tarifas serán visibles antes de confirmar el viaje. " },
 
-    { title: "8. Conducta y Comportamiento", content: "Fomentamos una comunidad de respeto y tolerancia. Cualquier comportamiento de acoso, discriminación o falta de civilidad hacia otros usuarios o personal de soporte resultará en la suspensión inmediata y permanente de la cuenta investigada." },
+    { title: "8. Responsabilidad y Relación entre Usuarios", content: "El Usuario reconoce que:\n\n • Los viajes se realizan entre particulares pertenecientes a una misma comunidad laboral. \n • SafeRide no interviene en la ejecución del servicio. \n • Cada Usuario es responsable de su conducta, decisiones y seguridad. \n\n SafeRide no será responsable por:\n\n • Accidentes o incidentes durante los viajes \n • Daños personales o materiales \n • Pérdida de objetos \n • Conductas inapropiadas de otros usuarios" },
 
-    { title: "9. Pagos y Contribuciones", content: "SafeRide facilita la compartición de gastos, no es un servicio de transporte tradicional o lucrativo. Los pasajeros acuerdan contribuir al costo del combustible y mantenimiento del vehículo bajo los términos fijados voluntariamente." },
+    { title: "9. Política de Conducta y Convivencia", content: "Dado que la Plataforma está diseñada para una comunidad de funcionarios, el Usuario se compromete a mantener un comportamiento respetuoso, profesional y seguro en todo momento.\n\n Queda estrictamente prohibido:\n\n 8.1 Acoso y Conductas Inapropiadas\n\n • Acoso físico, verbal o psicológico. \n• Acoso sexual, insinuaciones o comportamientos no consentidos.\n • Contacto físico inapropiado.\n• Comentarios ofensivos, humillantes o intimidatorios.\n\n 8.2 Acoso Digital\n\n • Mensajes ofensivos, insistentes o no deseados.\n • Amenazas o intimidación a través de la Plataforma.\n • Difusión de información privada sin consentimiento.\n\n 8.3 Conductas de Riesgo\n\n • Conducir de manera imprudente o negligente.\n • Uso del servicio bajo efectos de alcohol o drogas.\n • Poner en riesgo la integridad de otros funcionarios.\n\n 8.4 Uso Indebido de la Plataforma\n\n • Suplantación de identidad.\n • Uso de información falsa.\n • Manipulación del sistema o tarifas.\n • Uso con fines ilegales o no autorizados.\n\n 8.5 Discriminación\n\n • Cualquier conducta discriminatoria por motivos de género, orientación sexual, religión, nacionalidad, condición física u otros.\n\n El incumplimiento de estas normas podrá resultar en:\n\n • Suspensión inmediata de la cuenta\n • Expulsión permanente de la Plataforma\n • Reporte a instancias internas de la organización o autoridades competentes" },
 
-    { title: "10. Responsabilidad y Límites", content: "SafeRide actúa únicamente como intermediario tecnológico. No somos dueños de los vehículos ni ofrecemos los servicios de transporte personalmente. No garantizamos una disponibilidad continua y no nos hacemos responsables de daños a propiedades en eventos de fuerza mayor." },
+    { title: "10. Suspensión y Control de Acceso", content: "SafeRide se reserva el derecho de:\n\n • Suspender o cancelar cuentas que incumplan estos términos. \n• Restringir el acceso por motivos de seguridad. \n• Investigar reportes de conducta inapropiada." },
 
-    { title: "11. Propiedad Intelectual", content: "Todos los elementos de hardware, software, marcas comerciales, algoritmos y códigos asociados a SafeRide son propiedad exclusiva de la empresa matriz. Queda prohíbida su reproducción parcial o total sin consentimiento escrito y firmado." },
+    { title: "11. Protección de Datos", content: "El Usuario autoriza el tratamiento de sus datos para:\n\n • Operación del servicio \n• Verificación dentro de la organización \n• Mejora de la experiencia y seguridad" },
 
-    { title: "12. Modificaciones a los Términos", content: "Nos reservamos el estricto derecho de modificar estos términos en cualquier momento. Las modificaciones serán notificadas a través de la aplicación. Su uso continuo constituye la aceptación total de los nuevos términos establecidos." },
+    { title: "12. Modificaciones", content: "SafeRide podrá modificar estos Términos en cualquier momento. El uso continuo de la Plataforma implica la aceptación de dichos cambios." },
 
-    { title: "13. Suspensión de Cuentas", content: "Podemos suspender o cancelar definitivamente su cuenta si detectamos incumplimiento grave de estos términos. El usuario también puede cerrar su cuenta en cualquier momento solicitándolo directamente en la configuración del perfil interno." },
+    { title: "13. Legislación Aplicable", content: "Estos Términos se rigen por las leyes de la República de Costa Rica." },
 
-    { title: "14. Jurisdicción Aplicable", content: "Estos términos se regirán e interpretarán de acuerdo con las leyes aplicables del país de operación principal (Costa Rica). Cualquier disputa será resuelta amistosamente de primera mano, o eventualmente sometida a tribunales competentes." },
+    { title: "14. Aceptación Expresa", content: "Al seleccionar “Aceptar”, el Usuario declara que: \n\n • Comprende que el servicio es entre funcionarios de una misma comunidad. \n • Acepta que SafeRide actúa únicamente como intermediario. \n • Se compromete a cumplir con todas las normas establecidas." },
 ];
 
 function TermsServiceScreen({ navigation }) {
+    const insets = useSafeAreaInsets();
     const [reachedBottom, setReachedBottom] = useState(false);
     const [showButton, setShowButton] = useState(false);
     
-    // Animaciones para el botón
-    const fadeAnim = useRef(new Animated.Value(0)).current;
+    // Animaciones para botones y fondo
+    const bgFadeAnim = useRef(new Animated.Value(0)).current;
+    const buttonFadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(50)).current;
 
     useEffect(() => {
+
+        // Crear un bucle infinito
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(bgFadeAnim, {
+                    toValue: 1,
+                    duration: 5000,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(bgFadeAnim, {
+                    toValue: 0,
+                    duration: 5000,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
+    }, []);
+
+    useEffect(() => {
+
+        // Animacion para el boton
         if (showButton) {
             Animated.parallel([
-                Animated.timing(fadeAnim, {
+                Animated.timing(buttonFadeAnim, {
                     toValue: 1,
                     duration: 100,
                     useNativeDriver: true,
@@ -67,17 +92,17 @@ function TermsServiceScreen({ navigation }) {
         if (layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom) {
             if (!reachedBottom) {
                 setReachedBottom(true);
-                // Retardo de 2.5 segundos para mostrar el botón
+                // Retardo de 1.5 segundos para mostrar el botón
                 setTimeout(() => {
                     setShowButton(true);
-                }, 2500);
+                }, 1500);
             }
         }
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="light-content" backgroundColor="#073050ff" />
+        <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+            <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
             
             <View style={styles.header}>
                 <LinearGradient
@@ -86,10 +111,15 @@ function TermsServiceScreen({ navigation }) {
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                 />
-                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                    <Ionicons name="arrow-back" size={24} color="#FFF" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Términos y Servicios</Text>
+                
+                <View style={{ height: insets.top, width: '100%' }} />
+                
+                <View style={styles.headerContent}>
+                    <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                        <Ionicons name="arrow-back" size={24} color="#FFF" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Términos y Servicios</Text>
+                </View>
             </View>
 
             <ScrollView 
@@ -123,42 +153,77 @@ function TermsServiceScreen({ navigation }) {
                         
                         <Text style={styles.sectionContent}>
 
-                            {section.content.split(/(SafeRide|Costa Rica|El Usuario acepta que:|6.1 Usuarios Conductores|6.2 Usuarios Pasajeros)/g).map((part, i) => {
+                            {section.content.split(/(SafeRide|Costa Rica|El Usuario acepta que:|6.1 Usuarios Conductores|6.2 Usuarios Pasajeros|8.1 Acoso y Conductas Inapropiadas|8.2 Acoso Digital|8.3 Conductas de Riesgo|8.4 Uso Indebido de la Plataforma|8.5 Discriminación|El incumplimiento de estas normas podrá resultar en:|República de Costa Rica)/g).map((part, i) => {
                                 if (part === 'SafeRide') {
-                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#073050ff' }}>{part}</Text>;
+                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#075692ff' }}>{part}</Text>;
                                 } else if (part === 'El Usuario acepta que:') {
-                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#333' }}>{part}</Text>;
+                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#075692ff' }}>{part}</Text>;
                                 } else if (part === 'Costa Rica') {
-                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#333' }}>{part}</Text>;
+                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#075692ff' }}>{part}</Text>;
                                 } else if (part === '6.1 Usuarios Conductores') {
-                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#333' }}>{part}</Text>;
+                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#075692ff' }}>{part}</Text>;
                                 } else if (part === '6.2 Usuarios Pasajeros') {
-                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#333' }}>{part}</Text>;
+                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#075692ff' }}>{part}</Text>;
+                                } else if (part === '8.1 Acoso y Conductas Inapropiadas') {
+                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#075692ff' }}>{part}</Text>;
+                                } else if (part === '8.2 Acoso Digital') {
+                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#075692ff' }}>{part}</Text>;
+                                } else if (part === '8.3 Conductas de Riesgo') {
+                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#075692ff' }}>{part}</Text>;
+                                } else if (part === '8.4 Uso Indebido de la Plataforma') {
+                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#075692ff' }}>{part}</Text>;
+                                } else if (part === '8.5 Discriminación') {
+                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#075692ff' }}>{part}</Text>;
+                                } else if (part === 'El incumplimiento de estas normas podrá resultar en:') {
+                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#075692ff' }}>{part}</Text>;
+                                } else if (part === 'República de Costa Rica') {
+                                    return <Text key={i} style={{ fontWeight: 'bold', color: '#075692ff' }}>{part}</Text>;
                                 }
+                                
                                 return <React.Fragment key={i}>{part}</React.Fragment>;
                             })}
                         </Text>
+
                     </View>
                 ))}
+
+                <Text style={styles.declare}>
+                    "Declaro que he leído y acepto los Términos, Condiciones y Políticas de Uso de SafeRide, comprendiendo que es un servicio interno entre funcionarios."
+                </Text>
                 
                 <View style={styles.bottomSpacer}>
                     {!showButton && reachedBottom && (
-                        <Text style={styles.loadingText}>Procesando tu lectura...</Text>
+                        <Text style={styles.loadingText}>Procesando su lectura...</Text>
                     )}
                 </View>
             </ScrollView>
 
             {/* Contenedor del Botón Aceptar Flotante */}
             {showButton && (
+
                 <Animated.View style={[
                     styles.bottomButtonContainer, 
-                    { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+                    { opacity: buttonFadeAnim, transform: [{ translateY: slideAnim }] }
                 ]}>
                     <TouchableOpacity 
                         style={styles.acceptButton}
                         activeOpacity={0.8}
                         onPress={() => navigation.goBack()}
                     >
+                        <LinearGradient
+                            colors={['#09314bff', '#0c4469ff', '#073050ff']}
+                            style={StyleSheet.absoluteFill}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        />
+                        <Animated.View style={[StyleSheet.absoluteFill, { opacity: bgFadeAnim }]}>
+                            <LinearGradient
+                                colors={['#0a6191ff', '#0a8ac5ff', '#3dabdaff']}
+                                style={StyleSheet.absoluteFill}
+                                start={{ x: 1, y: 0 }}
+                                end={{ x: 0, y: 1 }}
+                            />
+                        </Animated.View>
                         <Text style={styles.acceptButtonText}>Aceptar Términos de Servicio</Text>
                     </TouchableOpacity>
                 </Animated.View>
@@ -173,15 +238,17 @@ const styles = StyleSheet.create({
         backgroundColor: '#f6f9fc',
     },
     header: {
-        height: 60,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 15,
-        elevation: 5,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
+    },
+    headerContent: {
+        marginTop: 10,
+        height: 60,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 15,
     },
     backButton: {
         padding: 5,
@@ -259,8 +326,20 @@ const styles = StyleSheet.create({
         lineHeight: 24,
         textAlign: 'justify',
     },
+
+    declare: {
+        backgroundColor: '#eaf4fc',
+        padding: 18,
+        borderRadius: 12,
+        fontSize: 15,
+        color: '#444',
+        lineHeight: 24,
+        textAlign: 'justify',
+        marginTop: 20,
+        fontStyle: 'italic',
+    },
     bottomSpacer: {
-        height: 100,
+        height: 90,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -276,7 +355,7 @@ const styles = StyleSheet.create({
         right: 0,
         paddingHorizontal: 20,
         paddingTop: 15,
-        paddingBottom: 25, 
+        paddingBottom: 70, 
         backgroundColor: '#ffffff',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
@@ -287,12 +366,13 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
     },
     acceptButton: {
-        backgroundColor: '#0a8ac5ff',
+        backgroundColor: 'transparent',
         borderRadius: 14,
         paddingVertical: 16,
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
+        overflow: 'hidden',
     },
     acceptButtonText: {
         color: '#ffffff',
