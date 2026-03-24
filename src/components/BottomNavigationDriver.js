@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Animated as RNAnimated } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Animated as RNAnimated, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDriverTheme } from '../context/DriverThemeContext';
@@ -9,6 +9,10 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
     const insets = useSafeAreaInsets();
     const { theme } = useDriverTheme();
     const [showModal, setShowModal] = useState(false);
+    
+    // Estado para saber si el conductor ya registró su auto (inicio como true para no parpadear)
+    const [hasVehicleRegistered, setHasVehicleRegistered] = useState(true);
+    const [loadingVehicle, setLoadingVehicle] = useState(true);
 
     let currentTab = manualActiveTab || 'Inicio';
     if (state) {
@@ -19,29 +23,36 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
         else if (routeName === 'DriverMetrics') currentTab = 'Stats';
     }
 
+    useEffect(() => {
+        const checkVehicle = async () => {
+            try {
+                const meRes = await api.get('/auth/me');
+                if (!meRes.data.success) { setHasVehicleRegistered(false); return; }
+                const userId = meRes.data.data._id;
+
+                const res = await api.get(`/vehicles/driver/${userId}`);
+                const vehicleExists = res.data.success && res.data.data &&
+                    (Array.isArray(res.data.data) ? res.data.data.length > 0 : true);
+
+                setHasVehicleRegistered(vehicleExists);
+            } catch (e) {
+                if (e.response?.status === 404) {
+                    setHasVehicleRegistered(false);
+                }
+            } finally {
+                setLoadingVehicle(false);
+            }
+        };
+        checkVehicle();
+    }, []);
+
     const getColor = (tabName) => currentTab === tabName ? theme.navActive : theme.navInactive;
 
-    const handleViajesPress = async () => {
-        try {
-            const meRes = await api.get('/auth/me');
-            if (!meRes.data.success) { navigation.navigate('PublishRide'); return; }
-            const userId = meRes.data.data._id;
-
-            const res = await api.get(`/vehicles/driver/${userId}`);
-            const hasVehicle = res.data.success && res.data.data &&
-                (Array.isArray(res.data.data) ? res.data.data.length > 0 : true);
-
-            if (hasVehicle) {
-                navigation.navigate('PublishRide');
-            } else {
-                setShowModal(true);
-            }
-        } catch (e) {
-            if (e.response?.status === 404) {
-                setShowModal(true);
-            } else {
-                navigation.navigate('PublishRide');
-            }
+    const handleRestrictedPress = (routeName) => {
+        if (!hasVehicleRegistered) {
+            setShowModal(true);
+        } else {
+            navigateTo(routeName);
         }
     };
 
@@ -149,19 +160,40 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                     <Text style={[styles.navText, { color: getColor('Inicio') }]}>Inicio</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={handleViajesPress}>
-                    <Ionicons name={currentTab === 'Viajes' ? "map" : "map-outline"} size={24} color={getColor('Viajes')} />
-                    <Text style={[styles.navText, { color: getColor('Viajes') }]}>Viajes</Text>
+                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => handleRestrictedPress('PublishRide')}>
+                    <View>
+                        <Ionicons name={currentTab === 'Viajes' ? "map" : "map-outline"} size={24} color={!hasVehicleRegistered ? theme.textSecondary : getColor('Viajes')} />
+                        {!hasVehicleRegistered && !loadingVehicle && (
+                            <View style={styles.smallLock}>
+                                <Ionicons name="lock-closed" size={10} color="#FFF" />
+                            </View>
+                        )}
+                    </View>
+                    <Text style={[styles.navText, { color: !hasVehicleRegistered ? theme.textSecondary : getColor('Viajes') }]}>Viajes</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('ManageRides')}>
-                    <Ionicons name={currentTab === 'Mensajes' ? "map" : "map-outline"} size={24} color={getColor('Mensajes')} />
-                    <Text style={[styles.navText, { color: getColor('Mensajes') }]}>Rutas</Text>
+                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => handleRestrictedPress('ManageRides')}>
+                    <View>
+                        <Ionicons name={currentTab === 'Mensajes' ? "list" : "list-outline"} size={24} color={!hasVehicleRegistered ? theme.textSecondary : getColor('Mensajes')} />
+                        {!hasVehicleRegistered && !loadingVehicle && (
+                            <View style={styles.smallLock}>
+                                <Ionicons name="lock-closed" size={10} color="#FFF" />
+                            </View>
+                        )}
+                    </View>
+                    <Text style={[styles.navText, { color: !hasVehicleRegistered ? theme.textSecondary : getColor('Mensajes') }]}>Rutas</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('DriverMetrics')}>
-                    <Ionicons name={currentTab === 'Stats' ? "bar-chart" : "bar-chart-outline"} size={24} color={getColor('Stats')} />
-                    <Text style={[styles.navText, { color: getColor('Stats') }]}>Stats</Text>
+                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => handleRestrictedPress('DriverMetrics')}>
+                    <View>
+                        <Ionicons name={currentTab === 'Stats' ? "bar-chart" : "bar-chart-outline"} size={24} color={!hasVehicleRegistered ? theme.textSecondary : getColor('Stats')} />
+                        {!hasVehicleRegistered && !loadingVehicle && (
+                            <View style={styles.smallLock}>
+                                <Ionicons name="lock-closed" size={10} color="#FFF" />
+                            </View>
+                        )}
+                    </View>
+                    <Text style={[styles.navText, { color: !hasVehicleRegistered ? theme.textSecondary : getColor('Stats') }]}>Stats</Text>
                 </TouchableOpacity>
 
             </View>
@@ -197,6 +229,22 @@ const styles = StyleSheet.create({
         marginTop: 4,
         fontFamily: 'Poppins-SemiBold',
         textAlign: 'center',
+    },
+    navTextActive: {
+        fontFamily: 'Poppins-SemiBold',
+    },
+    smallLock: {
+        position: 'absolute',
+        bottom: -2,
+        right: -4,
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        backgroundColor: '#EF5350',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: '#FFF',
     },
     // ── Modal ──
     backdrop: {
