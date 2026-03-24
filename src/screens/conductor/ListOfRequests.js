@@ -171,17 +171,44 @@ const ListOfRequests = ({ route, navigation }) => {
         if (!specificRideId) return;
         try {
             setStartRideLoading(true);
-            const res = await api.patch(`/rides/${specificRideId}/start`);
-            if (res.data.success) {
+
+            // Primero consultamos el estado actual del viaje
+            const rideRes = await api.get(`/rides/${specificRideId}`);
+            const currentStatus = rideRes.data?.data?.status;
+
+            if (currentStatus === 'in progress') {
+                // El ride ya fue iniciado previamente → navegamos directo sin volver a llamar /start
                 setStartRideVisible(false);
-                // Pequeña pausa para que se cierre el modal antes de navegar
                 setTimeout(() => {
                     navigation.navigate('CurrentTrip', { rideId: specificRideId });
                 }, 100);
+                return;
+            }
+
+            if (currentStatus !== 'scheduled') {
+                // Estado inválido (completed, cancelled, etc.)
+                const mensajes = {
+                    completed: 'Este viaje ya fue completado.',
+                    cancelled: 'Este viaje fue cancelado.',
+                };
+                Alert.alert('No disponible', mensajes[currentStatus] || `Estado del viaje: ${currentStatus}`);
+                setStartRideVisible(false);
+                return;
+            }
+
+            // El ride está en 'scheduled' → lo iniciamos normalmente
+            const res = await api.patch(`/rides/${specificRideId}/start`);
+            if (res.data.success) {
+                setStartRideVisible(false);
+                setTimeout(() => {
+                    navigation.navigate('CurrentTrip', { rideId: specificRideId });
+                }, 100);
+            } else {
+                Alert.alert('Error', res.data?.message || 'No se pudo iniciar el viaje.');
             }
         } catch (e) {
             console.error('Error starting ride:', e.response?.data || e.message);
-            Alert.alert('Error', e.response?.data?.message || 'No se pudo iniciar el viaje.');
+            Alert.alert('Error', e.response?.data?.message || 'Problema al conectar con el servidor.');
         } finally {
             setStartRideLoading(false);
         }
