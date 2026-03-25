@@ -5,6 +5,7 @@ import { DriverThemeProvider } from './src/context/DriverThemeContext';
 import { navigationRef } from './src/services/navigationRef';
 import ApiHealthCheckScreen from './src/screens/ApiHealthCheckScreen';
 import RegisterScreen from './src/screens/register/RegisterScreen';
+import TermsServiceScreen from './src/screens/register/TermsServiceScreen';
 import VerificationScreen from './src/screens/register/VerificationScreen';
 import CreatePasswordScreen from './src/screens/register/CreatePasswordScreen';
 import AccountVerificationSucess from './src/screens/register/AccountVerificationSucess';
@@ -101,6 +102,13 @@ export default function App() {
           <Stack.Screen
             name="Login"
             component={RegisterScreen}
+            options={{
+              animation: 'fade',
+            }}
+          />
+          <Stack.Screen
+            name="TermsOfService"
+            component={TermsServiceScreen}
             options={{
               animation: 'fade',
             }}
