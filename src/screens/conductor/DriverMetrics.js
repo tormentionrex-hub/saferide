@@ -65,8 +65,8 @@ const DriverMetrics = ({ navigation }) => {
             }
 
             // 3. Obtener Historial de Viajes para armar el gráfico
-            // Se solicita un límite alto para poder graficar correctamente los últimos meses
-            const rResponse = await api.get(`/rides/driver/${userId}?limit=1000`);
+            // Se solicita un límite alto y filtramos solo viajes enteramente 'completed'
+            const rResponse = await api.get(`/rides/driver/${userId}?limit=1000&status=completed`);
             const allRides = rResponse.data.data || [];
             
             // Procesar viajes de los últimos 6 meses
