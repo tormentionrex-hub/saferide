@@ -119,15 +119,15 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
                         <GooglePlacesAutocomplete
                             placeholder='¿A donde vas?'
                             textInputProps={{ placeholderTextColor: placeholderColor }}
+                            debounce={300} // Espera 300ms al teclear para evitar llamadas excesivas y parpadeos
                             onPress={(data, details = null) => {
-                                const lat = details.geometry.location.lat;
-                                const lng = details.geometry.location.lng;
+                                const lat = details?.geometry?.location?.lat || data.geometry?.location?.lat;
+                                const lng = details?.geometry?.location?.lng || data.geometry?.location?.lng;
                                 
-                                // En vez de confirmar directo, vamos al mapa para que el usuario rectifique
                                 setRegion({
                                     latitude: lat,
                                     longitude: lng,
-                                    latitudeDelta: 0.005, // Zoom de cuadra
+                                    latitudeDelta: 0.005,
                                     longitudeDelta: 0.005
                                 });
                                 setTab('map');
