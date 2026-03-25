@@ -49,6 +49,7 @@ const PublishRide = ({ navigation }) => {
     const [calculatingRoute, setCalculatingRoute] = useState(false);
     const [errors, setErrors] = useState({});
     const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+    const [newRideId, setNewRideId] = useState(null);
 
     useEffect(() => {
         const fetchRoute = async () => {
@@ -171,6 +172,7 @@ const PublishRide = ({ navigation }) => {
             const response = await api.post('/rides', payload);
 
             if (response.data.success) {
+                setNewRideId(response.data.data._id);
                 setIsSuccessModalVisible(true);
             }
         } catch (error) {
@@ -383,7 +385,7 @@ const PublishRide = ({ navigation }) => {
                 visible={isSuccessModalVisible}
                 onRequestClose={() => {
                     setIsSuccessModalVisible(false);
-                    navigation.navigate('ListOfRequests');
+                    navigation.navigate('ListOfRequests', { rideId: newRideId });
                 }}
             >
                 <TouchableOpacity 
@@ -391,7 +393,7 @@ const PublishRide = ({ navigation }) => {
                     activeOpacity={1} 
                     onPress={() => {
                         setIsSuccessModalVisible(false);
-                        navigation.navigate('ListOfRequests');
+                        navigation.navigate('ListOfRequests', { rideId: newRideId });
                     }}
                 >
                     <View style={[styles.alertContent, { backgroundColor: theme.surface }]}>
@@ -408,7 +410,7 @@ const PublishRide = ({ navigation }) => {
                                 style={[styles.alertConfirmBtn, { backgroundColor: '#27AE60' }]}
                                 onPress={() => {
                                     setIsSuccessModalVisible(false);
-                                    navigation.navigate('ListOfRequests');
+                                    navigation.navigate('ListOfRequests', { rideId: newRideId });
                                 }}
                             >
                                 <Text style={styles.alertConfirmText}>¡Excelente!</Text>
