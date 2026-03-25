@@ -21,6 +21,7 @@ const TripInProgress = ({ route, navigation }) => {
     // Estado para el ID resuelto (puede venir de params o de la búsqueda automática)
     const [resolvedBookingId, setResolvedBookingId] = useState(bookingId || null);
     const [noActiveTrip, setNoActiveTrip] = useState(false);
+    const [driverLocation, setDriverLocation] = useState(null);
 
     // Si no hay bookingId en params, buscamos automáticamente el booking activo del usuario
     useEffect(() => {
@@ -113,6 +114,37 @@ const TripInProgress = ({ route, navigation }) => {
             if (intervalId) clearInterval(intervalId);
         };
     }, [resolvedBookingId, navigation]);
+
+    // Polling secundario rápido para la ubicación del conductor
+    useEffect(() => {
+        if (!bookingData || !bookingData.ride_id) return;
+        
+        let locationInterval;
+        const rideId = bookingData.ride_id._id || bookingData.ride_id;
+
+        const fetchDriverLocation = async () => {
+            try {
+                const res = await api.get(`/location/${rideId}/driver`);
+                if (res.data?.success && res.data.location?.lat) {
+                    setDriverLocation({
+                        latitude: res.data.location.lat,
+                        longitude: res.data.location.lng
+                    });
+                }
+            } catch (error) {
+                // Silenciamos este error también
+                //console.log('Error silenciado fetching driver location:', error?.message);
+            }
+        };
+
+        fetchDriverLocation();
+        // Cada 10 segundos actualizamos la ubicación del conductor
+        locationInterval = setInterval(fetchDriverLocation, 10000);
+
+        return () => {
+            if (locationInterval) clearInterval(locationInterval);
+        };
+    }, [bookingData]);
 
     const handleCall = (phone) => {
         if (!phone) {
@@ -240,6 +272,16 @@ const TripInProgress = ({ route, navigation }) => {
                                 description={ride_id.destination.name}
                                 pinColor="#28a745"
                             />
+
+                            {/* Marcador en vivo del Conductor */}
+                            {driverLocation && (
+                                <Marker 
+                                    coordinate={driverLocation}
+                                    title={driver?.name || 'Tu Conductor'}
+                                    description="Ubicación en vivo"
+                                    pinColor="#000" // Diferenciarlo visualmente
+                                />
+                            )}
 
                             {/* Trazado virtual uniendo los dos puntos */}
                             <Polyline 

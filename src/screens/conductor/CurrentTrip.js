@@ -4,6 +4,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
 import MapView, { Marker, Polyline } from 'react-native-maps';
+import { useLocationTracker } from '../../hooks/useLocationTracker';
 
 const TripInProgressDriver = ({ route, navigation }) => {
     const { theme } = useDriverTheme(); 
@@ -11,6 +12,9 @@ const TripInProgressDriver = ({ route, navigation }) => {
     // ListOfRequests nos pasa rideId (el ID del viaje), no bookingId
     const rideId = route?.params?.rideId;
     const mapRef = useRef(null);
+
+    // Activamos el rastreo GPS en tiempo real para el driver
+    const { location: driverLocation, errorMsg: locationError } = useLocationTracker(true);
 
     const [loading, setLoading] = useState(true);
     const [bookingData, setBookingData] = useState(null);
@@ -163,6 +167,8 @@ const TripInProgressDriver = ({ route, navigation }) => {
                                 latitudeDelta: Math.abs(Number(originCoords.lat) - Number(destCoords.lat)) * 2 || 0.05,
                                 longitudeDelta: Math.abs(Number(originCoords.lng) - Number(destCoords.lng)) * 2 || 0.05,
                             }}
+                            showsUserLocation={true}
+                            showsMyLocationButton={true}
                             onMapReady={() => {
                                 if (mapRef.current) {
                                     mapRef.current.fitToCoordinates(
