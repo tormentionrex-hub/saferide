@@ -68,8 +68,12 @@ const TripInProgressDriver = ({ route, navigation }) => {
                             const currentStatus = rideCheck.data?.data?.status;
 
                             if (currentStatus === 'completed') {
-                                // Ya fue completado, solo navegamos
-                                navigation.navigate('MainTabsDriver');
+                                navigation.replace('RatePassenger', {
+                                    rideId,
+                                    passengerId: bookingData?.passenger_id?._id?.toString() || bookingData?.passenger_id?.toString(),
+                                    passengerName: bookingData?.passenger_id?.name,
+                                    passengerImage: bookingData?.passenger_id?.profileImage,
+                                });
                                 return;
                             }
 
@@ -82,8 +86,12 @@ const TripInProgressDriver = ({ route, navigation }) => {
                             const res = await api.patch(`/rides/${rideId}/complete`);
                             
                             if (res.data?.success) {
-                                Alert.alert('¡Viaje finalizado!', '¡Gracias por conducir con SafeRide!');
-                                navigation.navigate('MainTabsDriver'); 
+                                navigation.replace('RatePassenger', {
+                                    rideId,
+                                    passengerId: bookingData?.passenger_id?._id?.toString() || bookingData?.passenger_id?.toString(),
+                                    passengerName: bookingData?.passenger_id?.name,
+                                    passengerImage: bookingData?.passenger_id?.profileImage,
+                                });
                             } else {
                                 Alert.alert('Error', res.data?.message || 'No se pudo finalizar el viaje.');
                             }

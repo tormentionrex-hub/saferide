@@ -75,19 +75,23 @@ const TripInProgress = ({ route, navigation }) => {
                         // Detenemos las repeticiones inmediatamente
                         if (intervalId) clearInterval(intervalId);
                         
-                        // Validamos el mensaje a mostrar
-                        const title = data.status === 'completed' ? 'Viaje Completado' : 'Viaje Finalizado';
-                        const message = data.status === 'completed' 
-                            ? 'Has llegado a tu destino. ¡Gracias por usar SafeRide!' 
-                            : 'El viaje ha sido cancelado o rechazado.';
-                        
-                        // Redirigir a SearchRide para que pueda buscar otro viaje
-                        Alert.alert(title, message, [
-                            { 
-                                text: 'Buscar otro viaje', 
-                                onPress: () => navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' }) 
-                            }
-                        ]);
+                        if (data.status === 'completed') {
+                            // Llevar al pasajero a calificar al conductor
+                            navigation.replace('RateDriver', {
+                                rideId: data.ride_id?._id?.toString() || data.ride_id?.toString(),
+                                driverId: data.ride_id?.driver_id?._id?.toString() || data.ride_id?.driver_id?.toString(),
+                                driverName: data.ride_id?.driver_id?.name,
+                                driverImage: data.ride_id?.driver_id?.profileImage,
+                            });
+                        } else {
+                            // Cancelado o rechazado
+                            Alert.alert('Viaje Finalizado', 'El viaje ha sido cancelado o rechazado.', [
+                                {
+                                    text: 'Buscar otro viaje',
+                                    onPress: () => navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' })
+                                }
+                            ]);
+                        }
                     }
                 }
             } catch (error) {

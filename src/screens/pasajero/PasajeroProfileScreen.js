@@ -14,6 +14,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import { uploadToCloudinary } from '../../Cloudinary/Cloudinary';
 import { userService } from '../../services/userService';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import StarRating from '../../components/StarRating';
 
 const COMPANIES = [
     'Intel', 'Cargill', 'Deloitte', 'Citi', 'Experian',
@@ -423,6 +424,20 @@ const PasajeroProfileScreen = ({ navigation }) => {
                         <Text style={[styles.heroName, { color: theme.text }]}>
                             {userData?.name || 'Pasajero'}
                         </Text>
+
+                        {/* Rating */}
+                        <View style={styles.ratingContainer}>
+                            <StarRating 
+                                value={Math.round(userData?.rating || 5)} 
+                                size={18} 
+                                disabled 
+                                color="#FFC107"
+                            />
+                            <Text style={[styles.ratingValue, { color: theme.textSecondary }]}>
+                                {Number(userData?.rating || 5).toFixed(1)}
+                            </Text>
+                        </View>
+
                         <Text style={[styles.heroEmail, { color: theme.textSecondary }]}>
                             {userData?.email}
                         </Text>
@@ -689,6 +704,17 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, gap: 6,
     },
     roleText: { fontSize: 12, fontFamily: 'Poppins-SemiBold' },
+    ratingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+        gap: 4,
+    },
+    ratingValue: {
+        fontSize: 14,
+        fontFamily: 'Poppins-Bold',
+        marginLeft: 2,
+    },
 
     sectionTitle: { fontSize: 11, fontFamily: 'Poppins-SemiBold', letterSpacing: 1.4, marginBottom: 10, marginLeft: 4 },
 
