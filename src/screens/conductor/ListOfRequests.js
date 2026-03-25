@@ -224,10 +224,16 @@ const ListOfRequests = ({ route, navigation }) => {
                 <View style={styles.infoContainer}>
                     <View style={styles.nameRow}>
                         <Text style={[styles.nameText, { color: theme.text }]}>{passenger.name || 'Pasajero Anónimo'}</Text>
-                        {!isPending && (
+                        {item.status === 'confirmed' && (
                             <View style={styles.confirmedBadge}>
                                 <Ionicons name="checkmark-circle" size={14} color="#10B981" />
                                 <Text style={styles.confirmedText}>Aceptado</Text>
+                            </View>
+                        )}
+                        {item.status === 'cancelled' && (
+                            <View style={[styles.confirmedBadge, { backgroundColor: '#FEE2E2' }]}>
+                                <Ionicons name="ban" size={14} color="#EF4444" />
+                                <Text style={[styles.confirmedText, { color: '#EF4444' }]}>Cancelado</Text>
                             </View>
                         )}
                     </View>
@@ -236,7 +242,7 @@ const ListOfRequests = ({ route, navigation }) => {
                     </Text>
                 </View>
                 
-                {isPending && (
+                {item.status === 'pending' && (
                     <View style={styles.btnGroup}>
                         <TouchableOpacity
                             style={[styles.acceptBtn, { backgroundColor: theme.accent }]}
