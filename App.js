@@ -5,6 +5,7 @@ import { DriverThemeProvider } from './src/context/DriverThemeContext';
 import { navigationRef } from './src/services/navigationRef';
 import ApiHealthCheckScreen from './src/screens/ApiHealthCheckScreen';
 import RegisterScreen from './src/screens/register/RegisterScreen';
+import TermsServiceScreen from './src/screens/register/TermsServiceScreen';
 import VerificationScreen from './src/screens/register/VerificationScreen';
 import CreatePasswordScreen from './src/screens/register/CreatePasswordScreen';
 import AccountVerificationSucess from './src/screens/register/AccountVerificationSucess';
@@ -35,6 +36,8 @@ import ScreenSaver from './src/screens/pasajero/ScreenSaver';
 import ListOfRequests from './src/screens/conductor/ListOfRequests';
 import TripInProgress from './src/screens/pasajero/TripInProgress';
 import CurrentTrip from './src/screens/conductor/CurrentTrip';
+import RatePassenger from './src/screens/conductor/RatePassenger';
+import RateDriver from './src/screens/pasajero/RateDriver';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BottomNavigationBar from './src/components/BottomNavigationBar';
@@ -101,6 +104,13 @@ export default function App() {
           <Stack.Screen
             name="Login"
             component={RegisterScreen}
+            options={{
+              animation: 'fade',
+            }}
+          />
+          <Stack.Screen
+            name="TermsOfService"
+            component={TermsServiceScreen}
             options={{
               animation: 'fade',
             }}
@@ -237,6 +247,24 @@ export default function App() {
             options={{
               headerShown: false,
               animation: 'slide_from_right'
+            }}
+          />
+          <Stack.Screen
+            name="RatePassenger"
+            component={RatePassenger}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_bottom',
+              gestureEnabled: false,
+            }}
+          />
+          <Stack.Screen
+            name="RateDriver"
+            component={RateDriver}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_bottom',
+              gestureEnabled: false,
             }}
           />
         </Stack.Navigator>

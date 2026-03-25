@@ -73,6 +73,12 @@ export default function RegisterVehicleStep2({ route, navigation }) {
 
     const handleFinish = async () => {
         if (!policyNumber.trim()) return Alert.alert('Campo requerido', 'Ingresa el número de póliza.');
+        
+        // Validar que el número de póliza tenga entre 8 y 12 caracteres (estándar)
+        if (policyNumber.trim().length < 8 || policyNumber.trim().length > 12) {
+            return Alert.alert('Póliza inválida', 'El número de póliza debe tener entre 8 y 12 caracteres.');
+        }
+
         if (!expDate)             return Alert.alert('Campo requerido', 'Selecciona la fecha de vencimiento.');
         setLoading(true);
         try {
@@ -191,6 +197,7 @@ export default function RegisterVehicleStep2({ route, navigation }) {
                                 value={policyNumber}
                                 onChangeText={setPolicyNumber}
                                 autoCapitalize="characters"
+                                maxLength={12} // Limitar input a máximo 12 caracteres (estándar)
                             />
                             <Ionicons name="document-outline" size={16} color={theme.textSecondary} />
                         </View>

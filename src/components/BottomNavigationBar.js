@@ -119,11 +119,16 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                             color={color}
                         />
                         {/* Etiqueta del tab con color dinámico */}
-                        <Text style={[
-                            styles.navText,
-                            { color },
-                            isActive && styles.navTextActive
-                        ]}>
+                        <Text 
+                            style={[
+                                styles.navText,
+                                { color },
+                                isActive && styles.navTextActive
+                            ]}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                            allowFontScaling={false}
+                        >
                             {item.label}
                         </Text>
                         {/* Indicador visual (punto) para el tab activo */}
@@ -139,10 +144,10 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         width: '100%',
-        justifyContent: 'space-around',
         alignItems: 'center',
         position: 'absolute',
         bottom: 0,
+        paddingHorizontal: 8,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         borderTopWidth: 1,
@@ -160,10 +165,11 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     navText: {
-        fontSize: 10,
+        fontSize: 11,
         marginTop: 3,
         textAlign: 'center',
         width: '100%',
+        includeFontPadding: false,
     },
     navTextActive: {
         fontFamily: 'Poppins-SemiBold',
