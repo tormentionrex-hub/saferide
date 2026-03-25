@@ -102,6 +102,26 @@ const PublishRide = ({ navigation }) => {
 
         setLoading(true);
         try {
+            // --- VALIDACIÓN: SOLO UN VIAJE ACTIVO A LA VEZ ---
+            const meRes = await api.get('/auth/me');
+            if (meRes.data.success) {
+                const driverId = meRes.data.data._id;
+                const activeRidesRes = await api.get(`/rides/driver/${driverId}`);
+                if (activeRidesRes.data.success) {
+                    const activeRides = activeRidesRes.data.data.filter(r => 
+                        r.status === 'scheduled' || r.status === 'in progress'
+                    );
+                    if (activeRides.length > 0) {
+                        Alert.alert(
+                            'Viaje activo detectado',
+                            'No puedes publicar un nuevo viaje porque ya tienes uno programado o en curso. Debes finalizar o cancelar el actual primero.'
+                        );
+                        setLoading(false);
+                        return;
+                    }
+                }
+            }
+
             const fullDateTime = new Date(fechaSeleccionada);
             fullDateTime.setHours(horaSeleccionada.getHours(), horaSeleccionada.getMinutes(), 0, 0);
 

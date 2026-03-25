@@ -88,6 +88,31 @@ const ScreenSaver = ({ route, navigation }) => {
         };
     };
 
+    const handleCancel = () => {
+        Alert.alert(
+            'Confirmar cancelación',
+            '¿Estás seguro de que deseas cancelar tu reservación?',
+            [
+                { text: 'No, mantener', style: 'cancel' },
+                { 
+                    text: 'Sí, cancelar', 
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const res = await api.delete(`/bookings/${bookingId}`);
+                            if (res.data.success) {
+                                Alert.alert('Éxito', 'Tu reservación ha sido cancelada.');
+                                navigation.navigate('SearchRide');
+                            }
+                        } catch (e) {
+                            Alert.alert('Error', 'No se pudo cancelar la reservación.');
+                        }
+                    } 
+                }
+            ]
+        );
+    };
+
     const { icon, iconColor, title, subtitle, showLoader } = getContent();
 
     return (
@@ -101,12 +126,20 @@ const ScreenSaver = ({ route, navigation }) => {
                     <ActivityIndicator style={{ marginTop: 30 }} size="large" color={theme.accent} />
                 )}
             </View>
-            <TouchableOpacity
-                style={[styles.button, { backgroundColor: theme.accent }]}
-                onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
-            >
-                <Text style={styles.buttonText}>Volver al Inicio</Text>
-            </TouchableOpacity>
+            <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                    style={[styles.cancelButton, { borderColor: '#E74C3C' }]}
+                    onPress={handleCancel}
+                >
+                    <Text style={[styles.cancelButtonText, { color: '#E74C3C' }]}>Cancelar Reservación</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.button, { backgroundColor: theme.accent }]}
+                    onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
+                >
+                    <Text style={styles.buttonText}>Volver al Inicio</Text>
+                </TouchableOpacity>
+            </View>
         </SafeAreaView>
     );
 };
@@ -135,15 +168,29 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 22,
     },
+    buttonContainer: {
+        gap: 10,
+        marginBottom: 20,
+        marginHorizontal: 20,
+    },
     button: {
         paddingVertical: 15,
         borderRadius: 10,
         alignItems: 'center',
-        marginBottom: 20,
-        marginHorizontal: 20,
+    },
+    cancelButton: {
+        paddingVertical: 15,
+        borderRadius: 10,
+        alignItems: 'center',
+        borderWidth: 1,
+        backgroundColor: 'transparent',
     },
     buttonText: {
         color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    cancelButtonText: {
         fontSize: 16,
         fontWeight: 'bold',
     }
