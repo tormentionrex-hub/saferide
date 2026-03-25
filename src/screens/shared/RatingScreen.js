@@ -222,13 +222,13 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     iconBadge: {
-        width: 88,
-        height: 88,
+        width: 80,
+        height: 80,
         borderRadius: 44,
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 20,
-        marginBottom: 16,
+        marginTop: 10,
+        marginBottom: 10,
     },
     title: {
         fontSize: 26,
@@ -239,18 +239,18 @@ const styles = StyleSheet.create({
     subtitle: {
         fontSize: 15,
         textAlign: 'center',
-        marginBottom: 32,
+        marginBottom: 20,
         lineHeight: 22,
     },
     personSection: {
         alignItems: 'center',
-        marginBottom: 28,
+        marginBottom: 15,
     },
     avatar: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        marginBottom: 12,
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        marginBottom: 8,
     },
     avatarPlaceholder: {
         justifyContent: 'center',
@@ -279,8 +279,8 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         padding: 16,
         fontSize: 15,
-        minHeight: 120,
-        marginTop: 10,
+        minHeight: 100,
+        marginTop: 5,
     },
     charCount: {
         alignSelf: 'flex-end',
