@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
+import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import SettingsGearButton from '../../components/SettingsGearButton';
 
@@ -143,20 +144,16 @@ const ManageRides = ({ navigation }) => {
     const fetchRides = async () => {
         try {
             setLoading(true);
-            const meResponse = await api.get('/auth/me');
-            if (!meResponse.data.success) throw new Error('No se pudo identificar al conductor');
-            const driverId = meResponse.data.data._id;
-
-            const [scheduledRes, inProgressRes] = await Promise.all([
-                api.get(`/rides/driver/${driverId}?status=scheduled`),
-                api.get(`/rides/driver/${driverId}?status=in progress`),
-            ]);
-
-            const scheduled = scheduledRes.data.data || [];
-            const inProgress = inProgressRes.data.data || [];
-            setRides([...scheduled, ...inProgress]);
+            const activeRides = await sessionCache.getActiveRides();
+            
+            // Filtrar los viajes que queremos mostrar (scheduled e in progress)
+            const filtered = (activeRides || []).filter(r => 
+                r.status === 'scheduled' || r.status === 'in progress'
+            );
+            
+            setRides(filtered);
         } catch (error) {
-            console.error('Error fetching rides:', error);
+            console.error('Error fetching rides in ManageRides:', error);
         } finally {
             setLoading(false);
         }
@@ -178,9 +175,15 @@ const ManageRides = ({ navigation }) => {
         try {
             setCancellingId(selectedRide._id);
             await api.patch(`/rides/${selectedRide._id}/cancel`);
+            
+            // 1. Actualizar estado localmente sin re-fetch
+            setRides(prev => prev.filter(r => r._id !== selectedRide._id));
+            
+            // 2. Invalidar cache global para que otros screens se actualicen
+            sessionCache.clearActiveRides();
+
             setModalVisible(false);
             setSelectedRide(null);
-            fetchRides();
             Alert.alert('✅ Viaje cancelado', 'El viaje fue cancelado y los pasajeros fueron notificados.');
         } catch (error) {
             console.error('Error cancelando viaje:', error);
