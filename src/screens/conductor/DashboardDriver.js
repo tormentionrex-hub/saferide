@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../../services/api';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import SettingsGearButton from '../../components/SettingsGearButton';
@@ -69,7 +70,33 @@ export default function DashboardConductor({ route, navigation }) {
                             {/* Gestionar Viajes */}
                             <TouchableOpacity
                                 style={[styles.smallCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder }]}
-                                onPress={() => navigation.navigate('ManageRides')}
+                                onPress={async () => {
+                                    try {
+                                        const meRes = await api.get('/auth/me');
+                                        if (meRes.data.success) {
+                                            const driverId = meRes.data.data._id;
+                                            const ridesRes = await api.get(`/rides/driver/${driverId}`);
+                                            if (ridesRes.data.success) {
+                                                const activeRides = ridesRes.data.data;
+                                                const inProgressRide = activeRides.find(r => r.status === 'in progress');
+                                                const scheduledRide = activeRides.find(r => r.status === 'scheduled');
+
+                                                if (inProgressRide) {
+                                                    navigation.navigate('CurrentTrip', { rideId: inProgressRide._id });
+                                                } else if (scheduledRide) {
+                                                    navigation.navigate('ManageRides');
+                                                } else {
+                                                    navigation.navigate('ManageRides');
+                                                }
+                                                return;
+                                            }
+                                        }
+                                        navigation.navigate('ManageRides');
+                                    } catch (error) {
+                                        console.error('Error navigating from driver dashboard:', error);
+                                        navigation.navigate('ManageRides');
+                                    }
+                                }}
                             >
                                 <View style={[styles.smallIconCircle, { backgroundColor: theme.iconCircleBg }]}>
                                     <Ionicons name="map-outline" size={28} color={theme.accent} />
