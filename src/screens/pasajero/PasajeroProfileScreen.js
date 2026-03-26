@@ -506,7 +506,7 @@ const PasajeroProfileScreen = ({ navigation }) => {
                             activeOpacity={0.85}
                         >
                             <Ionicons name="create-outline" size={20} color="#FFF" />
-                            <Text style={styles.editBtnText}>Actualizar Información</Text>
+                            <Text style={styles.editBtnText}>Editar perfil</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -574,7 +574,7 @@ const PasajeroProfileScreen = ({ navigation }) => {
                         onPress={closeModal}
                         activeOpacity={1}
                     />
-                    <Animated.View style={[styles.modalContent, { backgroundColor: theme.surface || '#111128', transform: [{ translateY }] }]}>
+                    <Animated.View style={[styles.modalContent, { backgroundColor: theme.surface || '#111128', borderColor: theme.divider, transform: [{ translateY }] }]}>
                         <View {...panResponder.panHandlers} style={styles.dragArea}>
                             <View style={[styles.handleBar, { backgroundColor: theme.divider }]} />
                         </View>
@@ -614,23 +614,15 @@ const PasajeroProfileScreen = ({ navigation }) => {
                             <ModalInput label="CORREO ELECTRÓNICO" icon="mail-outline" value={editForm.email} placeholder="correo@empresa.com" keyboardType="email-address" theme={theme} editable={false} locked />
                             <ModalInput label="TELÉFONO"           icon="call-outline"   value={editForm.phone}   onChangeText={t => setEditForm(p => ({ ...p, phone: t.replace(/[^0-9]/g, '') }))} placeholder="88888888" keyboardType="phone-pad" maxLength={8} theme={theme} />
 
-                            <View style={styles.inputGroup}>
-                                <View style={styles.labelRow}>
-                                    <Ionicons name="business-outline" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
-                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>EMPRESA</Text>
-                                </View>
-                                <View style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}>
-                                    <Picker
-                                        selectedValue={editForm.company}
-                                        onValueChange={val => setEditForm(p => ({ ...p, company: val }))}
-                                        style={{ color: theme.text }}
-                                        dropdownIconColor={theme.accent}
-                                    >
-                                        <Picker.Item label="Selecciona una empresa" value="" />
-                                        {COMPANIES.map(c => <Picker.Item key={c} label={c} value={c} />)}
-                                    </Picker>
-                                </View>
-                            </View>
+                            <CustomSelect 
+                                label="EMPRESA" 
+                                icon="business-outline" 
+                                value={editForm.company}
+                                options={COMPANIES}
+                                onValueChange={val => setEditForm(p => ({ ...p, company: val }))}
+                                theme={theme}
+                                placeholder="Selecciona una empresa"
+                            />
 
                             <TouchableOpacity
                                 style={[styles.saveBtn, { backgroundColor: theme.accent }]}
@@ -660,6 +652,76 @@ const PasajeroProfileScreen = ({ navigation }) => {
 };
 
 /* ── Sub-componentes ── */
+
+const CustomSelect = ({ label, icon, value, options, onValueChange, theme, placeholder = "Selecciona..." }) => {
+    const [visible, setVisible] = useState(false);
+
+    return (
+        <View style={styles.inputGroup}>
+            <View style={styles.labelRow}>
+                <Ionicons name={icon} size={22} color={theme.textSecondary} style={{ marginRight: 6 }} />
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>{label}</Text>
+            </View>
+            
+            <TouchableOpacity 
+                activeOpacity={0.7}
+                onPress={() => setVisible(true)}
+                style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}
+            >
+                <Text style={{ color: value ? theme.text : theme.textSecondary, fontSize: 15, fontFamily: 'Poppins-Regular' }}>
+                    {value || placeholder}
+                </Text>
+                <Ionicons name="chevron-down" size={18} color={theme.accent} />
+            </TouchableOpacity>
+
+            <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
+                <TouchableOpacity 
+                    style={styles.selectOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setVisible(false)}
+                >
+                    <View style={[styles.selectBox, { backgroundColor: theme.surface || '#111128', borderColor: theme.divider }]}>
+                        <View style={[styles.handleBar, { backgroundColor: theme.divider, marginBottom: 16 }]} />
+                        <Text style={[styles.selectTitle, { color: theme.text }]}>{label}</Text>
+                        
+                        <ScrollView 
+                            showsVerticalScrollIndicator={false} 
+                            style={{ height: 350 }}
+                            contentContainerStyle={{ paddingBottom: 20 }}
+                        >
+                            {options && options.length > 0 ? options.map((opt, i) => (
+                                <TouchableOpacity 
+                                    key={i}
+                                    style={[
+                                        styles.selectOption, 
+                                        i < options.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.divider }
+                                    ]}
+                                    activeOpacity={0.6}
+                                    onPress={() => {
+                                        onValueChange(opt);
+                                        setVisible(false);
+                                    }}
+                                >
+                                    <Text style={[
+                                        styles.selectOptionText, 
+                                        { color: theme.text || '#FFFFFF' }, 
+                                        value === opt && { color: theme.accent, fontFamily: 'Poppins-Bold' }
+                                    ]}>
+                                        {opt}
+                                    </Text>
+                                    {value === opt && <Ionicons name="checkmark-circle" size={20} color={theme.accent} />}
+                                </TouchableOpacity>
+                            )) : (
+                                <Text style={{ color: theme.textSecondary, textAlign: 'center', marginTop: 20 }}>No hay opciones disponibles</Text>
+                            )}
+                        </ScrollView>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+        </View>
+    );
+};
+
 const SectionHeader = ({ title, theme }) => (
     <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{title}</Text>
 );
@@ -769,8 +831,22 @@ const styles = StyleSheet.create({
     },
     deleteBtnText: { fontSize: 15, fontFamily: 'Poppins-SemiBold' },
 
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
-    modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingTop: 12, maxHeight: '92%' },
+    modalOverlay: { 
+        flex: 1, 
+        backgroundColor: 'rgba(0,0,0,0.65)', 
+        justifyContent: 'flex-end',
+    },
+
+    modalContent: { 
+        borderTopLeftRadius: 32, 
+        borderTopRightRadius: 32, 
+        padding: 24, 
+        paddingTop: 12, 
+        maxHeight: '92%',
+        borderWidth: 1.5,
+        borderBottomWidth: 0,
+    },
+
     logoutBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000', opacity: 0.55 },
     logoutModalOuter: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
     logoutCard: {
@@ -799,20 +875,124 @@ const styles = StyleSheet.create({
         width: 30, height: 30, borderRadius: 15,
         justifyContent: 'center', alignItems: 'center', borderWidth: 2,
     },
-    photoHint: { textAlign: 'center', fontSize: 12, fontFamily: 'Poppins-Regular', marginBottom: 22 },
-    inputGroup: { marginBottom: 18 },
-    labelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, marginLeft: 2 },
-    inputLabel: { fontSize: 11, fontFamily: 'Poppins-SemiBold', letterSpacing: 0.8 },
-    lockedBadge: { flexDirection: 'row', alignItems: 'center', marginLeft: 8, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
-    lockedBadgeText: { fontSize: 10, fontFamily: 'Poppins-Regular' },
-    input: { height: 50, borderRadius: 13, borderWidth: 1, paddingHorizontal: 16, fontSize: 15, fontFamily: 'Poppins-Regular' },
-    pickerContainer: { borderRadius: 13, borderWidth: 1, height: 50, justifyContent: 'center', overflow: 'hidden' },
-    saveBtn: {
-        height: 54, borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-        marginTop: 8, marginBottom: 24, elevation: 4,
-        shadowColor: '#748FFF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 10,
+
+    photoHint: {
+        textAlign: 'center', 
+        fontSize: 12,
+        fontFamily: 'Poppins-Regular', 
+        marginBottom: 22,
     },
-    saveBtnText: { color: '#FFF', fontSize: 16, fontFamily: 'Poppins-SemiBold' },
+    
+    inputGroup: { 
+        marginBottom: 18 
+    },
+    
+    labelRow: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        marginBottom: 8, 
+        marginLeft: 2 
+    },
+    
+    inputLabel: { 
+        fontSize: 11, 
+        fontFamily: 'Poppins-SemiBold', 
+        letterSpacing: 0.8 
+    },
+
+    lockedBadge: {
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        marginLeft: 8, 
+        paddingHorizontal: 7, 
+        paddingVertical: 2, 
+        borderRadius: 6
+    },
+
+    lockedBadgeText: {
+        fontSize: 10, 
+        fontFamily: 'Poppins-Regular'
+    },
+    
+    input: {
+        height: 52, 
+        borderRadius: 15, 
+        borderWidth: 1.5,
+        paddingHorizontal: 16, 
+        fontSize: 15, 
+        fontFamily: 'Poppins-Regular',
+    },
+    
+    pickerContainer: {
+        borderRadius: 15, 
+        borderWidth: 1.5,
+        height: 52, 
+        justifyContent: 'space-between', 
+        overflow: 'hidden',
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        paddingHorizontal: 16,
+    },
+    
+    selectOverlay: {
+        flex: 1, 
+        backgroundColor: 'rgba(0,0,0,0.4)', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        padding: 24
+    },
+    
+    selectBox: {
+        width: '100%', 
+        borderRadius: 24, 
+        padding: 20, 
+        borderWidth: 2,
+        elevation: 10, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 10 }, 
+        shadowOpacity: 0.3, 
+        shadowRadius: 15
+    },
+    
+    selectTitle: { 
+        fontSize: 16, 
+        fontFamily: 'Poppins-Bold', 
+        marginBottom: 16, 
+        textAlign: 'center' 
+    },
+    
+    selectOption: {
+        paddingVertical: 15, 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center'
+    },
+    
+    selectOptionText: { 
+        fontSize: 15, 
+        fontFamily: 'Poppins-Regular' 
+    },
+
+    saveBtn: {
+        height: 54, 
+        borderRadius: 16, 
+        flexDirection: 'row', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        marginTop: 8, 
+        marginBottom: 24, 
+        elevation: 4,
+        shadowColor: '#748FFF', 
+        shadowOffset: { width: 0, height: 4 }, 
+        shadowOpacity: 0.35, 
+        shadowRadius: 10,
+    },
+    
+    saveBtnText: { 
+        color: '#FFF', 
+        fontSize: 16, 
+        fontFamily: 'Poppins-SemiBold' 
+    },
 });
 
 export default PasajeroProfileScreen;
