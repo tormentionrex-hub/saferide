@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
-    Alert, SafeAreaView, StatusBar, Platform, Dimensions, Animated
+    Alert, SafeAreaView, StatusBar, Platform, Dimensions, Animated, Modal
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -14,6 +14,47 @@ import LocationPicker from '../../components/LocationPicker';
 
 const { width, height } = Dimensions.get('window');
 
+const ActiveBookingModal = ({ visible, onConfirm, theme }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    return (
+        <Modal transparent visible={visible} animationType="none">
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: theme.accent + '20' }]}>
+                        <Ionicons name="information-circle" size={44} color={theme.accent} />
+                    </View>
+                    <Text style={[modalStyles.modalTitle, { color: theme.text }]}>Ya tienes un viaje registrado</Text>
+                    <Text style={[modalStyles.modalSubtitle, { color: theme.textSecondary }]}>
+                        Tienes una reserva pendiente o confirmada. Revisa tu estado antes de buscar otro viaje.
+                    </Text>
+                    
+                    <TouchableOpacity 
+                        style={[modalStyles.modalConfirmBtn, { backgroundColor: theme.accent }]} 
+                        onPress={onConfirm}
+                    >
+                        <Text style={modalStyles.modalConfirmBtnText}>Ir a mi dashboard</Text>
+                        <Ionicons name="arrow-forward" size={18} color="#fff" />
+                    </TouchableOpacity>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
 const SearchRide = ({ navigation }) => {
     const { theme } = useDriverTheme();
     const [origen, setOrigen] = useState(null);
@@ -25,6 +66,7 @@ const SearchRide = ({ navigation }) => {
     const [mostrarCalendario, setMostrarCalendario] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
+    const [showActiveBookingModal, setShowActiveBookingModal] = useState(false);
 
     // Coordenadas para el mapa (por defecto San José)
     const [region, setRegion] = useState({
@@ -91,11 +133,7 @@ const SearchRide = ({ navigation }) => {
                 const activeBooking = bookingsRes.data.data.find(b => b.status === 'pending' || b.status === 'confirmed');
                 if (activeBooking) {
                     setLoading(false);
-                    Alert.alert(
-                        'Ya tienes un viaje registrado', 
-                        'Tienes una reserva pendiente o confirmada. Revisa tu estado antes de buscar otro viaje.',
-                        [{ text: 'OK', onPress: () => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' }) }]
-                    );
+                    setShowActiveBookingModal(true);
                     return;
                 }
             }
@@ -270,6 +308,15 @@ const SearchRide = ({ navigation }) => {
                     <Text style={{ color: '#fff', fontWeight: 'bold' }}>Confirmar</Text>
                 </TouchableOpacity>
             )}
+
+            <ActiveBookingModal 
+                visible={showActiveBookingModal}
+                theme={theme}
+                onConfirm={() => {
+                    setShowActiveBookingModal(false);
+                    navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' });
+                }}
+            />
         </SafeAreaView>
     );
 };
@@ -377,6 +424,16 @@ const styles = StyleSheet.create({
         bottom: 250,
         alignSelf: 'center',
     }
+});
+
+const modalStyles = StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 25 },
+    card: { width: '100%', borderRadius: 30, padding: 32, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 15 },
+    iconCircle: { width: 90, height: 90, borderRadius: 45, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+    modalTitle: { fontSize: 24, fontWeight: '800', marginBottom: 10, textAlign: 'center' },
+    modalSubtitle: { fontSize: 15, textAlign: 'center', marginBottom: 25, lineHeight: 22 },
+    modalConfirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', paddingVertical: 16, borderRadius: 16, elevation: 2 },
+    modalConfirmBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
 
 export default SearchRide;
