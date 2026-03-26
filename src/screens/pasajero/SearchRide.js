@@ -85,6 +85,21 @@ const SearchRide = ({ navigation }) => {
 
         setLoading(true);
         try {
+            // Verificar si el usuario ya tiene un viaje registrado (pending o confirmed)
+            const bookingsRes = await api.get('/bookings');
+            if (bookingsRes.data && bookingsRes.data.success && bookingsRes.data.data) {
+                const activeBooking = bookingsRes.data.data.find(b => b.status === 'pending' || b.status === 'confirmed');
+                if (activeBooking) {
+                    setLoading(false);
+                    Alert.alert(
+                        'Ya tienes un viaje registrado', 
+                        'Tienes una reserva pendiente o confirmada. Revisa tu estado antes de buscar otro viaje.',
+                        [{ text: 'OK', onPress: () => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' }) }]
+                    );
+                    return;
+                }
+            }
+
             const params = {
                 origin: `${origen.lat},${origen.lng}`,
                 destination: `${destino.lat},${destino.lng}`,
@@ -103,6 +118,7 @@ const SearchRide = ({ navigation }) => {
                 Alert.alert('Aviso', 'No se encontraron viajes para esta ruta.');
             }
         } catch (error) {
+            console.error('Error searching:', error);
             Alert.alert('Error', 'Hubo un problema al buscar viajes.');
         } finally {
             setLoading(false);
