@@ -112,7 +112,15 @@ export default function RegisterVehicleStep2({ route, navigation }) {
             if (res.data.success) {
                 sessionCache.clearVehicleStatus();
                 Alert.alert('¡Registro exitoso!', 'Tu vehículo ha sido registrado.', [
-                    { text: 'Aceptar', onPress: () => navigation.navigate('ProfileConductor', { scrollToVehicle: true }) }
+                    {
+                        text: 'Aceptar', onPress: () => navigation.reset({
+                            index: 1,
+                            routes: [
+                                { name: 'MainTabsDriver' },
+                                { name: 'ProfileConductor', params: { scrollToVehicle: true } },
+                            ],
+                        })
+                    }
                 ]);
             } else {
                 Alert.alert('Error', res.data.message || 'No se pudo registrar el vehículo.');
