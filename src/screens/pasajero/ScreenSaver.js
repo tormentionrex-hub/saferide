@@ -1,13 +1,54 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert, Platform, Modal, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
+
+const RejectionModal = ({ visible, onConfirm, theme }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    return (
+        <Modal transparent visible={visible} animationType="none">
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#FEE2E2' }]}>
+                        <Ionicons name="close-circle" size={44} color="#EF4444" />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>Solicitud Rechazada</Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        Lo sentimos, el conductor ha rechazado tu solicitud. Puedes intentar buscar otro viaje disponible.
+                    </Text>
+                    <TouchableOpacity 
+                        style={[modalStyles.confirmBtn, { backgroundColor: theme.accent }]} 
+                        onPress={onConfirm}
+                    >
+                        <Text style={modalStyles.confirmBtnText}>Buscar otro viaje</Text>
+                        <Ionicons name="search" size={18} color="#fff" />
+                    </TouchableOpacity>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
 
 const ScreenSaver = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const bookingId = route.params?.bookingId;
     const [status, setStatus] = useState('pending');
+    const [showRejectionModal, setShowRejectionModal] = useState(false);
     const intervalRef = useRef(null);
 
     useEffect(() => {
@@ -22,11 +63,11 @@ const ScreenSaver = ({ route, navigation }) => {
                         setStatus(newStatus);
                         if (newStatus === 'deny') {
                             clearInterval(intervalRef.current);
-                            navigation.navigate('SearchRide');
+                            setShowRejectionModal(true);
                         } else if (newStatus === 'cancelled') {
                             clearInterval(intervalRef.current);
                             Alert.alert('Lo lamentamos', 'No fuiste aceptado a bordo', [
-                                { text: 'OK', onPress: () => navigation.navigate('SearchRide') }
+                                { text: 'OK', onPress: () => navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' }) }
                             ]);
                         } else if (newStatus === 'confirmed') {
                             clearInterval(intervalRef.current);
@@ -61,7 +102,7 @@ const ScreenSaver = ({ route, navigation }) => {
         };
 
         checkStatus();
-        intervalRef.current = setInterval(checkStatus, 5000);
+        intervalRef.current = setInterval(checkStatus, 12000); // Aumentado de 5s a 12s para evitar error 429
 
         return () => clearInterval(intervalRef.current);
     }, [bookingId]);
@@ -117,7 +158,7 @@ const ScreenSaver = ({ route, navigation }) => {
                             const res = await api.delete(`/bookings/${bookingId}`);
                             if (res.data.success) {
                                 Alert.alert('Éxito', 'Tu reservación ha sido cancelada.');
-                                navigation.navigate('SearchRide');
+                                navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
                             }
                         } catch (e) {
                             Alert.alert('Error', 'No se pudo cancelar la reservación.');
@@ -166,6 +207,15 @@ const ScreenSaver = ({ route, navigation }) => {
                     <Text style={styles.buttonText}>Volver al Inicio</Text>
                 </TouchableOpacity>
             </View>
+
+            <RejectionModal 
+                visible={showRejectionModal} 
+                theme={theme}
+                onConfirm={() => {
+                    setShowRejectionModal(false);
+                    navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
+                }}
+            />
         </SafeAreaView>
     );
 };
@@ -229,6 +279,16 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     }
+});
+
+const modalStyles = StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 25 },
+    card: { width: '100%', borderRadius: 30, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 15 },
+    iconCircle: { width: 90, height: 90, borderRadius: 45, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+    title: { fontSize: 24, fontWeight: '800', marginBottom: 10, textAlign: 'center' },
+    subtitle: { fontSize: 15, textAlign: 'center', marginBottom: 25, lineHeight: 22 },
+    confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', paddingVertical: 16, borderRadius: 16, elevation: 2 },
+    confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
 
 export default ScreenSaver;

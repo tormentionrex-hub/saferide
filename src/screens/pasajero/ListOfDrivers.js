@@ -285,7 +285,14 @@ const ListOfDrivers = ({ route, navigation }) => {
                         </Text>
                     )}
                 </View>
-                <View style={{ width: 40 }} />
+                <TouchableOpacity 
+                    style={styles.refreshBtn} 
+                    onPress={fetchRides} 
+                    activeOpacity={0.7}
+                    disabled={loading}
+                >
+                    <Ionicons name="refresh" size={24} color={theme.text} />
+                </TouchableOpacity>
             </View>
             {searchOrigin && searchDestination && (
                 <View style={[styles.routeSummary, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
@@ -359,10 +366,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
+        paddingTop: 60, // Aumentado para bajar el header
         paddingBottom: 14,
         borderBottomWidth: 1,
     },
     backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+    refreshBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
     headerCenter: { flex: 1, alignItems: 'center' },
     headerTitle: { fontSize: 18, fontFamily: 'Poppins-Bold' },
     headerSub: { fontSize: 12, fontFamily: 'Poppins-Regular', marginTop: 1 },
