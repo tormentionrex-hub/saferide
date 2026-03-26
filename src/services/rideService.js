@@ -31,5 +31,19 @@ export const rideService = {
         } catch (error) {
             throw error;
         }
+    },
+
+    /**
+     * Get bookings for a specific passenger (history)
+     * @param {string} passengerId - The ID of the passenger
+     * @returns {Promise<Object>} API response data
+     */
+    getBookingsByPassenger: async (passengerId) => {
+        try {
+            const response = await api.get(`/bookings/passenger/${passengerId}`);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
     }
 };
