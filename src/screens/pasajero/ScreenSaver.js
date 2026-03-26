@@ -3,6 +3,57 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Acti
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
+import BottomNavigationBar from '../../components/BottomNavigationBar';
+
+const CancelConfirmationModal = ({ visible, onConfirm, onCancel, theme }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    return (
+        <Modal transparent visible={visible} animationType="none">
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#FEE2E2' }]}>
+                        <Ionicons name="alert-circle" size={44} color="#EF4444" />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>Confirmar cancelación</Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        ¿Estás seguro de que deseas cancelar tu reservación? Esta acción no se puede deshacer.
+                    </Text>
+                    
+                    <View style={{ width: '100%', gap: 12 }}>
+                        <TouchableOpacity 
+                            style={[modalStyles.confirmBtn, { backgroundColor: '#EF4444' }]} 
+                            onPress={onConfirm}
+                        >
+                            <Text style={modalStyles.confirmBtnText}>Sí, cancelar reservación</Text>
+                            <Ionicons name="trash-outline" size={18} color="#fff" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={[modalStyles.cancelBtn, { borderColor: theme.border }]} 
+                            onPress={onCancel}
+                        >
+                            <Text style={[modalStyles.cancelBtnText, { color: theme.textSecondary }]}>Mantener reservación</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
 
 const RejectionModal = ({ visible, onConfirm, theme }) => {
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
@@ -49,6 +100,7 @@ const ScreenSaver = ({ route, navigation }) => {
     const bookingId = route.params?.bookingId;
     const [status, setStatus] = useState('pending');
     const [showRejectionModal, setShowRejectionModal] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
     const intervalRef = useRef(null);
 
     useEffect(() => {
@@ -145,28 +197,20 @@ const ScreenSaver = ({ route, navigation }) => {
     };
 
     const handleCancel = () => {
-        Alert.alert(
-            'Confirmar cancelación',
-            '¿Estás seguro de que deseas cancelar tu reservación?',
-            [
-                { text: 'No, mantener', style: 'cancel' },
-                { 
-                    text: 'Sí, cancelar', 
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const res = await api.delete(`/bookings/${bookingId}`);
-                            if (res.data.success) {
-                                Alert.alert('Éxito', 'Tu reservación ha sido cancelada.');
-                                navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
-                            }
-                        } catch (e) {
-                            Alert.alert('Error', 'No se pudo cancelar la reservación.');
-                        }
-                    } 
-                }
-            ]
-        );
+        setShowCancelModal(true);
+    };
+
+    const confirmCancel = async () => {
+        try {
+            setShowCancelModal(false);
+            const res = await api.delete(`/bookings/${bookingId}`);
+            if (res.data.success) {
+                Alert.alert('Éxito', 'Tu reservación ha sido cancelada.');
+                navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
+            }
+        } catch (e) {
+            Alert.alert('Error', 'No se pudo cancelar la reservación.');
+        }
     };
 
     const { icon, iconColor, title, subtitle, showLoader } = getContent();
@@ -216,6 +260,15 @@ const ScreenSaver = ({ route, navigation }) => {
                     navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
                 }}
             />
+
+            <CancelConfirmationModal
+                visible={showCancelModal}
+                theme={theme}
+                onConfirm={confirmCancel}
+                onCancel={() => setShowCancelModal(false)}
+            />
+
+            <BottomNavigationBar navigation={navigation} />
         </SafeAreaView>
     );
 };
@@ -255,7 +308,7 @@ const styles = StyleSheet.create({
     },
     buttonContainer: {
         gap: 10,
-        marginBottom: 20,
+        marginBottom: 105, // Aumentado para dejar espacio al BottomNavigationBar
         marginHorizontal: 20,
     },
     button: {
@@ -289,6 +342,8 @@ const modalStyles = StyleSheet.create({
     subtitle: { fontSize: 15, textAlign: 'center', marginBottom: 25, lineHeight: 22 },
     confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', paddingVertical: 16, borderRadius: 16, elevation: 2 },
     confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    cancelBtn: { width: '100%', paddingVertical: 16, borderRadius: 16, alignItems: 'center', borderWidth: 1, marginTop: 4 },
+    cancelBtnText: { fontSize: 16, fontWeight: '600' },
 });
 
 export default ScreenSaver;
