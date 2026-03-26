@@ -21,6 +21,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 
 import api from '../../services/api';
+import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { uploadToCloudinary } from '../../Cloudinary/Cloudinary';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
@@ -149,6 +150,7 @@ const ProfileConductor = ({ navigation, route }) => {
                 text: 'Sí, salir', style: 'destructive',
                 onPress: async () => {
                     await AsyncStorage.clear();
+                    sessionCache.clear();
                     navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
                 }
             }
