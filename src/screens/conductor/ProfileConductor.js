@@ -404,14 +404,16 @@ const ProfileConductor = ({ navigation, route }) => {
                             <Text style={styles.editBtnText}>Editar perfil</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={[styles.editBtn, { backgroundColor: theme.accent }]}
-                            onPress={() => setVehicleModalVisible(true)}
-                            activeOpacity={0.85}
-                        >
-                            <Ionicons name="create-outline" size={20} color="#FFF" />
-                            <Text style={styles.editBtnText}>Editar vehículo</Text>
-                        </TouchableOpacity>
+                        {vehicleData?._id && (
+                            <TouchableOpacity
+                                style={[styles.editBtn, { backgroundColor: theme.accent }]}
+                                onPress={() => setVehicleModalVisible(true)}
+                                activeOpacity={0.85}
+                            >
+                                <Ionicons name="create-outline" size={20} color="#FFF" />
+                                <Text style={styles.editBtnText}>Editar vehículo</Text>
+                            </TouchableOpacity>
+                        )}
 
 
 
@@ -449,7 +451,7 @@ const ProfileConductor = ({ navigation, route }) => {
                                 onPress={() => setModalVisible(false)}
                                 style={[styles.closeBtn, { backgroundColor: theme.iconCircleBg || '#1C1C40' }]}
                             >
-                                <Ionicons name="close" size={18} color={theme.textSecondary} />
+                                <Ionicons name="close" size={30} color={theme.textSecondary} />
                             </TouchableOpacity>
                         </View>
 
