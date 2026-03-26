@@ -91,15 +91,21 @@ const ListOfRequests = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [startRideVisible, setStartRideVisible] = useState(false);
     const [startRideLoading, setStartRideLoading] = useState(false);
     const [confirmedCount, setConfirmedCount] = useState(0);
 
     const specificRideId = route.params?.rideId;
 
-    const fetchRequests = async () => {
+    const fetchRequests = async (isRefresh = false) => {
         try {
-            setLoading(true);
+            if (isRefresh) {
+                setRefreshing(true);
+            } else {
+                setLoading(true);
+            }
+            
             if (specificRideId) {
                 const bookingsRes = await api.get(`/bookings/ride/${specificRideId}`);
                 if (bookingsRes.data.success) {
@@ -135,7 +141,12 @@ const ListOfRequests = ({ route, navigation }) => {
             console.error('Error fetching requests:', error);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
+    };
+
+    const handleRefresh = () => {
+        fetchRequests(true);
     };
 
     useEffect(() => {
@@ -242,6 +253,12 @@ const ListOfRequests = ({ route, navigation }) => {
                                 <Text style={[styles.confirmedText, { color: '#EF4444' }]}>Cancelado</Text>
                             </View>
                         )}
+                        {item.status === 'deny' && (
+                            <View style={[styles.confirmedBadge, { backgroundColor: '#FEE2E2' }]}>
+                                <Ionicons name="close-circle" size={14} color="#EF4444" />
+                                <Text style={[styles.confirmedText, { color: '#EF4444' }]}>Rechazado</Text>
+                            </View>
+                        )}
                     </View>
                     <Text style={{ color: theme.textSecondary, marginTop: 4 }}>
                         {item.seats_booked} asiento/s solicitado/s
@@ -288,6 +305,12 @@ const ListOfRequests = ({ route, navigation }) => {
                     <Ionicons name="chevron-back" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={[styles.title, { color: theme.text }]}>Solicitudes {specificRideId ? 'del Viaje' : 'de Pasajeros'}</Text>
+                <TouchableOpacity 
+                    onPress={handleRefresh} 
+                    style={styles.refreshBtn}
+                >
+                    <Ionicons name="refresh" size={24} color={theme.text} />
+                </TouchableOpacity>
             </View>
             
             {loading ? (
@@ -297,6 +320,8 @@ const ListOfRequests = ({ route, navigation }) => {
                     data={displayRequests}
                     keyExtractor={(item, index) => item._id || index.toString()}
                     renderItem={renderPassengerItem}
+                    onRefresh={handleRefresh}
+                    refreshing={refreshing}
                     contentContainerStyle={{ padding: 20, paddingBottom: specificRideId ? 200 : 100 }}
                     ListEmptyComponent={
                         <View style={{ alignItems: 'center', marginTop: 50 }}>
@@ -337,6 +362,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0 },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 20, borderBottomWidth: 1 },
     backBtn: { position: 'absolute', left: 20 },
+    refreshBtn: { position: 'absolute', right: 20 },
     title: { fontSize: 18, fontWeight: 'bold' },
     passengerCard: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 15, borderWidth: 1, marginBottom: 15, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
     avatar: { width: 50, height: 50, borderRadius: 25 },

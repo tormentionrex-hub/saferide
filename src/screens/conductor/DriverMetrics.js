@@ -28,7 +28,7 @@ const DriverMetrics = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const si = useScrollIndicator();
-    
+
     // --- ESTADO PARA DATOS ---
     const [stats, setStats] = useState({
         kmTotal: "0",
@@ -38,7 +38,7 @@ const DriverMetrics = ({ navigation }) => {
         dataRides: [0, 0, 0, 0, 0, 0],
         labels: ["Ene", "Feb", "Mar", "Abr", "May", "Jun"]
     });
-    
+
     // --- ESTADO PARA HISTORIAL POR MESES ---
     const [monthlyDetails, setMonthlyDetails] = useState([]);
 
@@ -62,12 +62,30 @@ const DriverMetrics = ({ navigation }) => {
                 }
             } catch (e) {
                 console.log("No se encontraron métricas previas, usando ceros.");
-            }
-
-            // 3. Obtener Historial de Viajes para armar el gráfico
+            }            // 3. Obtener Historial de Viajes para armar el gráfico
             // Se solicita un límite alto y filtramos solo viajes enteramente 'completed'
             const rResponse = await api.get(`/rides/driver/${userId}?limit=1000&status=completed`);
-            const allRides = rResponse.data.data || [];
+            const rawRides = rResponse.data.data || [];
+            
+            // --- NUEVO: Verificación de pasajeros por viaje (Frontend Only) ---
+            // Consultamos las reservaciones de cada viaje para asegurar que hubo pasajeros reales.
+            // Esto se hace porque no podemos tocar el backend para que lo devuelva poblado.
+            const ridesWithPassData = await Promise.all(
+                rawRides.map(async (ride) => {
+                    try {
+                        const bRes = await api.get(`/bookings/ride/${ride._id}`);
+                        const bookings = bRes.data.data || [];
+                        return { ...ride, bookings };
+                    } catch (e) {
+                        return { ...ride, bookings: [] };
+                    }
+                })
+            );
+
+            // Filtramos solo aquellos viajes que tienen al menos una reservación en estado 'completed'
+            const allRides = ridesWithPassData.filter(ride => 
+                ride.bookings && ride.bookings.some(b => b.status === 'completed')
+            );
             
             // Procesar viajes de los últimos 6 meses
             const now = new Date();
@@ -90,44 +108,43 @@ const DriverMetrics = ({ navigation }) => {
 
             allRides.forEach(ride => {
                 if (!ride.fecha) return;
-                
+
                 // Verificamos driver_id (puede venir como objeto poblado o como string)
                 if (ride.driver_id) {
                     const rideDriverId = typeof ride.driver_id === 'object' ? ride.driver_id._id : ride.driver_id;
                     if (rideDriverId.toString() !== userId.toString()) return;
                 }
 
-                if (ride.status === 'completed') {
-                    calcTotalKm += (ride.distance_km || 0);
-                    calcTotalRides += 1;
+                // El filtro a continuación asegura que solo contemos KM y viajes con pasajeros reales
+                calcTotalKm += (ride.distance_km || 0);
+                calcTotalRides += 1;
 
-                    // Agrupación mensual
-                    const [y, mStr] = ride.fecha.split('-');
-                    const monthKey = `${y}-${mStr}`;
-                    if (!monthlyObj[monthKey]) {
-                        monthlyObj[monthKey] = { year: y, month: mStr, km: 0, rides: 0 };
-                    }
-                    monthlyObj[monthKey].km += (ride.distance_km || 0);
-                    monthlyObj[monthKey].rides += 1;
+                // Agrupación mensual
+                const [y, mStr] = ride.fecha.split('-');
+                const monthKey = `${y}-${mStr}`;
+                if (!monthlyObj[monthKey]) {
+                    monthlyObj[monthKey] = { year: y, month: mStr, km: 0, rides: 0 };
                 }
+                monthlyObj[monthKey].km += (ride.distance_km || 0);
+                monthlyObj[monthKey].rides += 1;
 
-                const [y, mm, dd] = ride.fecha.split('-').map(Number);
-                const rideDate = new Date(y, mm - 1, dd);
-                
+                const [y_num, mm, dd] = ride.fecha.split('-').map(Number);
+                const rideDate = new Date(y_num, mm - 1, dd);
+
                 months.forEach((m, idx) => {
-                    if (rideDate.getFullYear() === m.year && rideDate.getMonth() === m.month && ride.status === 'completed') {
+                    if (rideDate.getFullYear() === m.year && rideDate.getMonth() === m.month) {
                         kmByMonth[idx] += (ride.distance_km || 0);
                         ridesByMonth[idx] += 1;
                     }
                 });
             });
 
-            // Si la base de datos de métricas aún no se ha actualizado (está en 0),
-            // usamos el cálculo local en base a los viajes completados.
-            const finalKm = metricsData.kilometers_driven > 0 ? metricsData.kilometers_driven : calcTotalKm;
-            const finalRides = metricsData.total_rides > 0 ? metricsData.total_rides : calcTotalRides;
-            // Cálculo estimado de CO2: km * emisión promedio (0.12kg/km) * factor carpooling (0.6)
-            const finalCo2 = metricsData.carbon_footprint > 0 ? metricsData.carbon_footprint : (calcTotalKm * 0.12 * 0.6);
+            // Forzamos el uso del cálculo local (calcTotalKm, calcTotalRides) 
+            // ya que el endpoint /metrics del backend cuenta viajes vacíos.
+            const finalKm = calcTotalKm;
+            const finalRides = calcTotalRides;
+            // Cálculo estimado de CO2 basado en los KM reales con pasajeros
+            const finalCo2 = (calcTotalKm * 0.12 * 0.6);
 
             setStats({
                 kmTotal: finalKm.toFixed(1),
@@ -222,81 +239,81 @@ const DriverMetrics = ({ navigation }) => {
                     </View>
                 ) : (
                     <View style={{ flex: 1 }}>
-                    <ScrollView 
-                        contentContainerStyle={styles.scrollBody} 
-                        {...si.scrollProps}
-                        refreshControl={
-                            <RefreshControl 
-                                refreshing={refreshing} 
-                                onRefresh={onRefresh} 
-                                colors={[theme.accent]} 
-                                tintColor={theme.accent} 
-                            />
-                        }
-                    >
+                        <ScrollView
+                            contentContainerStyle={styles.scrollBody}
+                            {...si.scrollProps}
+                            refreshControl={
+                                <RefreshControl
+                                    refreshing={refreshing}
+                                    onRefresh={onRefresh}
+                                    colors={[theme.accent]}
+                                    tintColor={theme.accent}
+                                />
+                            }
+                        >
 
-                        <View style={styles.statsRow}>
-                            <View style={[styles.statBox, { backgroundColor: theme.surfaceVariant }]}>
-                                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Km{"\n"}compartidos</Text>
-                                <Text style={[styles.statValue, { color: theme.text }]}>{stats.kmTotal}</Text>
+                            <View style={styles.statsRow}>
+                                <View style={[styles.statBox, { backgroundColor: theme.surfaceVariant }]}>
+                                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Km{"\n"}compartidos</Text>
+                                    <Text style={[styles.statValue, { color: theme.text }]}>{stats.kmTotal}</Text>
+                                </View>
+                                <View style={[styles.statBox, { backgroundColor: theme.surfaceVariant }]}>
+                                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Viajes{"\n"}realizados</Text>
+                                    <Text style={[styles.statValue, { color: theme.text }]}>{stats.viajesTotal}</Text>
+                                </View>
+                                <View style={[styles.statBox, { backgroundColor: theme.surfaceVariant }]}>
+                                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>CO₂{"\n"}ahorrado</Text>
+                                    <Text style={[styles.statValue, { color: theme.text }]}>
+                                        {stats.co2Total} <Text style={{ fontSize: 10, color: theme.textSecondary }}>kg</Text>
+                                    </Text>
+                                </View>
                             </View>
-                            <View style={[styles.statBox, { backgroundColor: theme.surfaceVariant }]}>
-                                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Viajes{"\n"}realizados</Text>
-                                <Text style={[styles.statValue, { color: theme.text }]}>{stats.viajesTotal}</Text>
-                            </View>
-                            <View style={[styles.statBox, { backgroundColor: theme.surfaceVariant }]}>
-                                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>CO₂{"\n"}ahorrado</Text>
-                                <Text style={[styles.statValue, { color: theme.text }]}>
-                                    {stats.co2Total} <Text style={{ fontSize: 10, color: theme.textSecondary }}>kg</Text>
-                                </Text>
-                            </View>
-                        </View>
 
-                        <View style={[styles.chartContainer, { backgroundColor: theme.surface, borderColor: theme.divider }]}>
-                            <Text style={[styles.chartHeaderTitle, { color: theme.text }]}>Kilómetros por mes</Text>
-                            <View style={styles.valRow}>
-                                <Text style={[styles.mainValText, { color: theme.text }]}>{stats.kmTotal} km</Text>
-                                <Text style={styles.percentText}>Total</Text>
-                            </View>
-                            <Text style={[styles.timeLabel, { color: theme.textSecondary }]}>Últimos 6 meses</Text>
-                            <LineChart
-                                data={{
-                                    labels: stats.labels,
-                                    datasets: [{ data: stats.dataKm.length > 0 ? stats.dataKm : [0] }]
-                                }}
-                                width={screenWidth - 90}
-                                height={180}
-                                chartConfig={chartConfig}
-                                bezier
-                                withInnerLines={false}
-                                withOuterLines={false}
-                                withShadow={!theme.dark}
-                                style={styles.chartStyle}
-                            />
-                        </View>
-
-                        {/* SECTION: DETALLE POR MES */}
-                        {monthlyDetails.length > 0 && (
                             <View style={[styles.chartContainer, { backgroundColor: theme.surface, borderColor: theme.divider }]}>
-                                <Text style={[styles.chartHeaderTitle, { color: theme.text, marginBottom: 15 }]}>Historial Mensual</Text>
-                                {monthlyDetails.map((item, index) => (
-                                    <View key={item.key} style={[styles.monthRow, { borderBottomColor: theme.divider, borderBottomWidth: index === monthlyDetails.length - 1 ? 0 : StyleSheet.hairlineWidth }]}>
-                                        <View style={styles.monthLeft}>
-                                            <View style={[styles.monthIconBg, { backgroundColor: theme.surfaceVariant }]}>
-                                                <Ionicons name="calendar-outline" size={20} color={theme.accent} />
-                                            </View>
-                                            <Text style={[styles.monthName, { color: theme.text }]}>{item.name}</Text>
-                                        </View>
-                                        <View style={styles.monthRight}>
-                                            <Text style={[styles.monthStatLabel, { color: theme.textSecondary }]}>{item.rides} Viajes • {item.co2} kg CO₂</Text>
-                                            <Text style={[styles.monthStatKm, { color: theme.text }]}>{item.km} km</Text>
-                                        </View>
-                                    </View>
-                                ))}
+                                <Text style={[styles.chartHeaderTitle, { color: theme.text }]}>Kilómetros por mes</Text>
+                                <View style={styles.valRow}>
+                                    <Text style={[styles.mainValText, { color: theme.text }]}>{stats.kmTotal} km</Text>
+                                    <Text style={styles.percentText}>Total</Text>
+                                </View>
+                                <Text style={[styles.timeLabel, { color: theme.textSecondary }]}>Últimos 6 meses</Text>
+                                <LineChart
+                                    data={{
+                                        labels: stats.labels,
+                                        datasets: [{ data: stats.dataKm.length > 0 ? stats.dataKm : [0] }]
+                                    }}
+                                    width={screenWidth - 90}
+                                    height={180}
+                                    chartConfig={chartConfig}
+                                    bezier
+                                    withInnerLines={false}
+                                    withOuterLines={false}
+                                    withShadow={!theme.dark}
+                                    style={styles.chartStyle}
+                                />
                             </View>
-                        )}
-                    </ScrollView>
-                    <ScrollIndicator si={si} thumbColor={theme.accent} />
+
+                            {/* SECTION: DETALLE POR MES */}
+                            {monthlyDetails.length > 0 && (
+                                <View style={[styles.chartContainer, { backgroundColor: theme.surface, borderColor: theme.divider }]}>
+                                    <Text style={[styles.chartHeaderTitle, { color: theme.text, marginBottom: 15 }]}>Historial Mensual</Text>
+                                    {monthlyDetails.map((item, index) => (
+                                        <View key={item.key} style={[styles.monthRow, { borderBottomColor: theme.divider, borderBottomWidth: index === monthlyDetails.length - 1 ? 0 : StyleSheet.hairlineWidth }]}>
+                                            <View style={styles.monthLeft}>
+                                                <View style={[styles.monthIconBg, { backgroundColor: theme.surfaceVariant }]}>
+                                                    <Ionicons name="calendar-outline" size={20} color={theme.accent} />
+                                                </View>
+                                                <Text style={[styles.monthName, { color: theme.text }]}>{item.name}</Text>
+                                            </View>
+                                            <View style={styles.monthRight}>
+                                                <Text style={[styles.monthStatLabel, { color: theme.textSecondary }]}>{item.rides} Viajes • {item.co2} kg CO₂</Text>
+                                                <Text style={[styles.monthStatKm, { color: theme.text }]}>{item.km} km</Text>
+                                            </View>
+                                        </View>
+                                    ))}
+                                </View>
+                            )}
+                        </ScrollView>
+                        <ScrollIndicator si={si} thumbColor={theme.accent} />
                     </View>
                 )}
             </View>

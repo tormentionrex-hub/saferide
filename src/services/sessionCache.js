@@ -89,7 +89,7 @@ const sessionCache = {
         const driverId = await sessionCache.getDriverId();
         if (!driverId) return [];
 
-        if (!force && cache.activeRides && (now - cache.activeRides.lastCheck < 20000)) {
+        if (!force && cache.activeRides && (now - cache.activeRides.lastCheck < 40000)) {
             return cache.activeRides.data;
         }
 
