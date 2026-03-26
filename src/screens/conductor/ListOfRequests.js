@@ -328,7 +328,7 @@ const ListOfRequests = ({ route, navigation }) => {
                 confirmedCount={confirmedCount}
             />
 
-            <BottomNavigationDriver navigation={navigation} activeTab="Mensajes" />
+            <BottomNavigationDriver navigation={navigation} activeTab="Rutas" />
         </SafeAreaView>
     );
 };

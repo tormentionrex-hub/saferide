@@ -155,7 +155,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 <View style={{ width: 28 }} /> 
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
                 {/* Mapa con bordes redondeados y sombra */}
                 <View style={styles.mapContainer}>
                     {hasCoords ? (
@@ -296,17 +296,17 @@ const TripInProgressDriver = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+    container: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0 },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
-        paddingTop: Platform.OS === 'android' ? 8 : 4,
-        paddingBottom: 8,
+        paddingTop: 15,
+        paddingBottom: 15,
     },
-    headerTitle: { fontSize: 17, fontWeight: '700' },
-    scrollContent: { padding: 20, paddingBottom: 120 },
+    headerTitle: { fontSize: 18, fontWeight: '700' },
+    scrollContent: { padding: 20, paddingBottom: 150 },
     mapContainer: {
         height: 200,
         borderRadius: 20,
