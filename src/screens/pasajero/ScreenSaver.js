@@ -55,7 +55,53 @@ const CancelConfirmationModal = ({ visible, onConfirm, onCancel, theme }) => {
     );
 };
 
-const RejectionModal = ({ visible, onConfirm, theme }) => {
+const RejectionModal = ({ visible, onConfirm, theme, status }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    const isDeny = status === 'deny' || !status;
+
+    return (
+        <Modal transparent visible={visible} animationType="none">
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#FFF1F2' }]}>
+                        <Ionicons name={isDeny ? "close-circle" : "alert-circle"} size={44} color="#E11D48" />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>
+                        {isDeny ? 'Solicitud Rechazada' : 'Reserva Actualizada'}
+                    </Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        {isDeny 
+                            ? 'Lo sentimos, el conductor ha rechazado tu solicitud en este momento.'
+                            : 'Lo sentimos, ha habido un cambio y no fuiste aceptado a bordo.'}
+                    </Text>
+                    <TouchableOpacity 
+                        style={[modalStyles.confirmBtn, { backgroundColor: '#E11D48' }]} 
+                        onPress={onConfirm}
+                    >
+                        <Text style={modalStyles.confirmBtnText}>Buscar otro viaje</Text>
+                        <Ionicons name="search" size={18} color="#fff" />
+                    </TouchableOpacity>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
+const SuccessActionModal = ({ visible, onConfirm, theme, title, message }) => {
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -75,19 +121,18 @@ const RejectionModal = ({ visible, onConfirm, theme }) => {
         <Modal transparent visible={visible} animationType="none">
             <View style={modalStyles.overlay}>
                 <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
-                    <View style={[modalStyles.iconCircle, { backgroundColor: '#FEE2E2' }]}>
-                        <Ionicons name="close-circle" size={44} color="#EF4444" />
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
+                        <Ionicons name="checkmark-circle" size={44} color="#10B981" />
                     </View>
-                    <Text style={[modalStyles.title, { color: theme.text }]}>Solicitud Rechazada</Text>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>{title || '¡Éxito!'}</Text>
                     <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
-                        Lo sentimos, el conductor ha rechazado tu solicitud. Puedes intentar buscar otro viaje disponible.
+                        {message || 'La operación se realizó correctamente.'}
                     </Text>
                     <TouchableOpacity 
-                        style={[modalStyles.confirmBtn, { backgroundColor: theme.accent }]} 
+                        style={[modalStyles.confirmBtn, { backgroundColor: '#10B981' }]} 
                         onPress={onConfirm}
                     >
-                        <Text style={modalStyles.confirmBtnText}>Buscar otro viaje</Text>
-                        <Ionicons name="search" size={18} color="#fff" />
+                        <Text style={modalStyles.confirmBtnText}>Entendido</Text>
                     </TouchableOpacity>
                 </Animated.View>
             </View>
@@ -100,7 +145,9 @@ const ScreenSaver = ({ route, navigation }) => {
     const bookingId = route.params?.bookingId;
     const [status, setStatus] = useState('pending');
     const [showRejectionModal, setShowRejectionModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
+    const [isCancellingLocally, setIsCancellingLocally] = useState(false);
     const intervalRef = useRef(null);
 
     useEffect(() => {
@@ -116,11 +163,9 @@ const ScreenSaver = ({ route, navigation }) => {
                         if (newStatus === 'deny') {
                             clearInterval(intervalRef.current);
                             setShowRejectionModal(true);
-                        } else if (newStatus === 'cancelled') {
+                        } else if (newStatus === 'cancelled' && !isCancellingLocally) {
                             clearInterval(intervalRef.current);
-                            Alert.alert('Lo lamentamos', 'No fuiste aceptado a bordo', [
-                                { text: 'OK', onPress: () => navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' }) }
-                            ]);
+                            setShowRejectionModal(true); // Reutilizamos RejectionModal para informar cancelación externa
                         } else if (newStatus === 'confirmed') {
                             clearInterval(intervalRef.current);
                             try {
@@ -202,13 +247,14 @@ const ScreenSaver = ({ route, navigation }) => {
 
     const confirmCancel = async () => {
         try {
+            setIsCancellingLocally(true);
             setShowCancelModal(false);
             const res = await api.delete(`/bookings/${bookingId}`);
             if (res.data.success) {
-                Alert.alert('Éxito', 'Tu reservación ha sido cancelada.');
-                navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
+                setShowSuccessModal(true);
             }
         } catch (e) {
+            setIsCancellingLocally(false);
             Alert.alert('Error', 'No se pudo cancelar la reservación.');
         }
     };
@@ -255,6 +301,7 @@ const ScreenSaver = ({ route, navigation }) => {
             <RejectionModal 
                 visible={showRejectionModal} 
                 theme={theme}
+                status={status}
                 onConfirm={() => {
                     setShowRejectionModal(false);
                     navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
@@ -268,6 +315,17 @@ const ScreenSaver = ({ route, navigation }) => {
                 onCancel={() => setShowCancelModal(false)}
             />
 
+            <SuccessActionModal
+                visible={showSuccessModal}
+                theme={theme}
+                title="Cancelación Exitosa"
+                message="Tu reservación ha sido cancelada correctamente."
+                onConfirm={() => {
+                    setShowSuccessModal(false);
+                    navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
+                }}
+            />
+
             <BottomNavigationBar navigation={navigation} />
         </SafeAreaView>
     );
@@ -276,8 +334,6 @@ const ScreenSaver = ({ route, navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        // justifyContent: 'center', // Removido para que el header esté arriba
-        padding: 20,
     },
     header: {
         position: 'absolute',

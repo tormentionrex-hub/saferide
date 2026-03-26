@@ -87,6 +87,46 @@ const StartRideModal = ({ visible, onClose, onConfirm, loading, confirmedCount }
     );
 };
 
+/* ─── Modal de Pasajero retiró solicitud ─────────────────────────── */
+const WithdrawalModal = ({ visible, onClose, theme }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    return (
+        <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#FEE2E2' }]}>
+                        <Ionicons name="person-remove" size={44} color="#EF4444" />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>Solicitud Retirada</Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        Lo sentimos, el pasajero ha retirado su solicitud de reserva. No puedes confirmar a este pasajero.
+                    </Text>
+                    <TouchableOpacity 
+                        style={[modalStyles.confirmBtn, { backgroundColor: theme.accent }]} 
+                        onPress={onClose}
+                    >
+                        <Text style={modalStyles.confirmBtnText}>Entendido</Text>
+                    </TouchableOpacity>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
 const ListOfRequests = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const [requests, setRequests] = useState([]);
@@ -95,6 +135,7 @@ const ListOfRequests = ({ route, navigation }) => {
     const [startRideVisible, setStartRideVisible] = useState(false);
     const [startRideLoading, setStartRideLoading] = useState(false);
     const [confirmedCount, setConfirmedCount] = useState(0);
+    const [withdrawalVisible, setWithdrawalVisible] = useState(false);
 
     const specificRideId = route.params?.rideId;
 
@@ -155,6 +196,14 @@ const ListOfRequests = ({ route, navigation }) => {
 
     const handleAccept = async (bookingId) => {
         try {
+            // Verificar estado actual antes de proceder
+            const checkRes = await api.get(`/bookings/${bookingId}`);
+            if (checkRes.data.success && checkRes.data.data.status === 'cancelled') {
+                setWithdrawalVisible(true);
+                fetchRequests(); // Actualizar lista
+                return;
+            }
+
             const res = await api.patch(`/bookings/${bookingId}/status`, { status: 'confirmed' });
             if (res.data.success) {
                 Alert.alert('Éxito', 'Has aceptado la solicitud.');
@@ -170,6 +219,14 @@ const ListOfRequests = ({ route, navigation }) => {
 
     const handleDeny = async (bookingId) => {
         try {
+            // Verificar estado actual antes de proceder
+            const checkRes = await api.get(`/bookings/${bookingId}`);
+            if (checkRes.data.success && checkRes.data.data.status === 'cancelled') {
+                setWithdrawalVisible(true);
+                fetchRequests(); // Actualizar lista
+                return;
+            }
+
             const res = await api.patch(`/bookings/${bookingId}/status`, { status: 'deny' });
             if (res.data.success) {
                 Alert.alert('Solicitud rechazada', 'Se notificó al pasajero.');
@@ -351,6 +408,12 @@ const ListOfRequests = ({ route, navigation }) => {
                 onConfirm={handleStartRide}
                 loading={startRideLoading}
                 confirmedCount={confirmedCount}
+            />
+
+            <WithdrawalModal
+                visible={withdrawalVisible}
+                theme={theme}
+                onClose={() => setWithdrawalVisible(false)}
             />
 
             <BottomNavigationDriver navigation={navigation} activeTab="Rutas" />

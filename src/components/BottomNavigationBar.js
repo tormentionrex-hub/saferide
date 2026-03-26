@@ -160,6 +160,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         position: 'absolute',
         bottom: 0,
+        left: 0,
+        right: 0,
         paddingHorizontal: 8,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
