@@ -12,26 +12,42 @@ let cache = {
     activeRides: null,   // { data: array, lastCheck: timestamp }
 };
 
+// Promesas en vuelo — evita peticiones duplicadas simultáneas
+let inflightDriverId = null;
+let inflightVehicleStatus = null;
+
 const sessionCache = {
     /**
-     * Obtiene el ID del driver actual (usando cache si está disponible)
+     * Obtiene el ID del driver actual (usando cache si está disponible).
+     * Si hay una petición en vuelo, los llamadores simultáneos esperan
+     * la misma promesa en lugar de lanzar peticiones duplicadas.
      */
     getDriverId: async () => {
         if (cache.driverId) return cache.driverId;
-        try {
-            const res = await api.get('/auth/me');
-            if (res.data.success) {
-                cache.driverId = res.data.data._id;
-                return cache.driverId;
-            }
-        } catch (error) {
-            console.error('[SessionCache] Error getting driverId:', error.message);
-        }
-        return null;
+        if (inflightDriverId) return inflightDriverId;
+
+        inflightDriverId = api.get('/auth/me')
+            .then(res => {
+                if (res.data.success) {
+                    cache.driverId = res.data.data._id;
+                    return cache.driverId;
+                }
+                return null;
+            })
+            .catch(error => {
+                console.error('[SessionCache] Error getting driverId:', error.message);
+                return null;
+            })
+            .finally(() => {
+                inflightDriverId = null;
+            });
+
+        return inflightDriverId;
     },
 
     /**
-     * Verifica si el conductor tiene vehículo (cache de 5 min)
+     * Verifica si el conductor tiene vehículo (cache de 5 min).
+     * Deduplica peticiones simultáneas igual que getDriverId.
      */
     getVehicleStatus: async (force = false) => {
         const now = Date.now();
@@ -42,20 +58,27 @@ const sessionCache = {
             return cache.vehicleStatus.hasVehicle;
         }
 
-        try {
-            const res = await api.get(`/vehicles/driver/${driverId}`);
-            const hasVehicle = res.data.success && res.data.data && 
-                (Array.isArray(res.data.data) ? res.data.data.length > 0 : true);
-            
-            cache.vehicleStatus = { hasVehicle, lastCheck: now };
-            return hasVehicle;
-        } catch (error) {
-            if (error.response?.status === 404) {
-                cache.vehicleStatus = { hasVehicle: false, lastCheck: now };
-                return false;
-            }
-            return cache.vehicleStatus?.hasVehicle || false;
-        }
+        if (inflightVehicleStatus) return inflightVehicleStatus;
+
+        inflightVehicleStatus = api.get(`/vehicles/driver/${driverId}`)
+            .then(res => {
+                const hasVehicle = res.data.success && res.data.data &&
+                    (Array.isArray(res.data.data) ? res.data.data.length > 0 : true);
+                cache.vehicleStatus = { hasVehicle, lastCheck: Date.now() };
+                return hasVehicle;
+            })
+            .catch(error => {
+                if (error.response?.status === 404) {
+                    cache.vehicleStatus = { hasVehicle: false, lastCheck: Date.now() };
+                    return false;
+                }
+                return cache.vehicleStatus?.hasVehicle || false;
+            })
+            .finally(() => {
+                inflightVehicleStatus = null;
+            });
+
+        return inflightVehicleStatus;
     },
 
     /**
@@ -92,6 +115,13 @@ const sessionCache = {
     },
 
     /**
+     * Invalida el cache del vehículo para forzar re-consulta en el próximo uso
+     */
+    clearVehicleStatus: () => {
+        cache.vehicleStatus = null;
+    },
+
+    /**
      * Limpia el cache (por ejemplo al cerrar sesión)
      */
     clear: () => {
@@ -100,6 +130,8 @@ const sessionCache = {
             vehicleStatus: null,
             activeRides: null,
         };
+        inflightDriverId = null;
+        inflightVehicleStatus = null;
     }
 };
 

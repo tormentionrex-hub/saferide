@@ -22,6 +22,7 @@ import History from './src/screens/pasajero/History';
 import Metrics from './src/screens/pasajero/Metrics';
 import PublishRide from './src/screens/conductor/PublishRide';
 import DriverMetrics from './src/screens/conductor/DriverMetrics';
+import PreviousTripsScreen from './src/screens/conductor/PreviousTripsScreen';
 import ManageRides from './src/screens/conductor/ManageRides';
 import AjustesConductor from './src/screens/conductor/AjustesConductor';
 import ProfileConductor from './src/screens/conductor/ProfileConductor';
@@ -77,7 +78,7 @@ function MainTabsDriver() {
       <Tab.Screen name="DashboardDriver" component={DashboardDriver} />
       <Tab.Screen name="PublishRide" component={PublishRide} />
       <Tab.Screen name="ManageRides" component={ManageRides} />
-      <Tab.Screen name="DriverMetrics" component={DriverMetrics} />
+      <Tab.Screen name="PreviousTrips" component={PreviousTripsScreen} />
     </Tab.Navigator>
   );
 }
@@ -172,6 +173,7 @@ export default function App() {
 
           <Stack.Screen name="AjustesConductor" component={AjustesConductor} options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ProfileConductor" component={ProfileConductor} options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="DriverMetrics" component={DriverMetrics} options={{ animation: 'slide_from_right', headerShown: false }} />
           <Stack.Screen name="RegisterVehicleStep1" component={RegisterVehicleStep1} options={{ animation: 'slide_from_right', headerShown: false }} />
           <Stack.Screen name="RegisterVehicleStep2" component={RegisterVehicleStep2} options={{ animation: 'slide_from_right', headerShown: false }} />
 

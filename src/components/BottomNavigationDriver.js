@@ -20,7 +20,7 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
         if (routeName === 'DashboardDriver') currentTab = 'Inicio';
         else if (routeName === 'PublishRide') currentTab = 'Viajes';
         else if (routeName === 'ManageRides' || routeName === 'CurrentTrip' || routeName === 'ListOfRequests') currentTab = 'Rutas';
-        else if (routeName === 'DriverMetrics') currentTab = 'Stats';
+        else if (routeName === 'PreviousTrips') currentTab = 'History';
     }
 
     useEffect(() => {
@@ -35,8 +35,22 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                 setLoadingVehicle(false);
             }
         };
+
         checkVehicle();
-    }, []);
+
+        // Re-verificar cuando el tab navigator vuelve a recibir foco
+        // (ej: el usuario regresa desde RegisterVehicle al Dashboard)
+        const unsubscribe = navigation.addListener('focus', async () => {
+            try {
+                const hasVehicle = await sessionCache.getVehicleStatus();
+                setHasVehicleRegistered(hasVehicle);
+            } catch (e) {
+                setHasVehicleRegistered(false);
+            }
+        });
+
+        return unsubscribe;
+    }, [navigation]);
 
     const getColor = (tabName) => currentTab === tabName ? theme.navActive : theme.navInactive;
 
@@ -164,10 +178,11 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                     <Text style={[styles.navText, { color: !hasVehicleRegistered ? theme.textSecondary : getColor('Viajes') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Viajes</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                    style={styles.navItem} 
-                    activeOpacity={0.6} 
-                onPress={async () => {
+                <TouchableOpacity
+                    style={styles.navItem}
+                    activeOpacity={0.6}
+                    onPress={async () => {
+                        if (!hasVehicleRegistered) { setShowModal(true); return; }
                         try {
                             const activeRides = await sessionCache.getActiveRides();
                             if (activeRides && activeRides.length > 0) {
@@ -186,13 +201,20 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                         }
                     }}
                 >
-                    <Ionicons name={currentTab === 'Rutas' ? "map" : "map-outline"} size={24} color={getColor('Rutas')} />
-                    <Text style={[styles.navText, { color: getColor('Rutas') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Rutas</Text>
+                    <View>
+                        <Ionicons name={currentTab === 'Rutas' ? "map" : "map-outline"} size={24} color={!hasVehicleRegistered ? theme.textSecondary : getColor('Rutas')} />
+                        {!hasVehicleRegistered && !loadingVehicle && (
+                            <View style={styles.smallLock}>
+                                <Ionicons name="lock-closed" size={10} color="#FFF" />
+                            </View>
+                        )}
+                    </View>
+                    <Text style={[styles.navText, { color: !hasVehicleRegistered ? theme.textSecondary : getColor('Rutas') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Rutas</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('DriverMetrics')}>
-                    <Ionicons name={currentTab === 'Stats' ? "bar-chart" : "bar-chart-outline"} size={24} color={getColor('Stats')} />
-                    <Text style={[styles.navText, { color: getColor('Stats') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Stats</Text>
+                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('PreviousTrips')}>
+                    <Ionicons name={currentTab === 'History' ? "time" : "time-outline"} size={24} color={getColor('History')} />
+                    <Text style={[styles.navText, { color: getColor('History') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Historial</Text>
                 </TouchableOpacity>
 
             </View>
