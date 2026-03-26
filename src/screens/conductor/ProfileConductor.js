@@ -33,6 +33,33 @@ const COMPANIES = [
     'WeWork Costa Rica', 'Concentrix', 'Nestlé Costa Rica'
 ];
 
+const VEHICLE_BRANDS = [
+    'Toyota', 'Hyundai', 'Suzuki', 'Nissan', 'Kia', 'Mitsubishi',
+    'Honda', 'Mazda', 'Ford', 'Chevrolet', 'Volkswagen', 'BMW', 'Mercedes-Benz'
+];
+
+const MODELS_MAP = {
+    'Toyota': ['Corolla', 'RAV4', 'Hilux', 'Yaris', 'Land Cruiser', 'Fortuner', 'Prado', 'Etios'],
+    'Hyundai': ['Tucson', 'Accent', 'Elantra', 'Santa Fe', 'Creta', 'I10', 'Venue', 'Staria'],
+    'Suzuki': ['Swift', 'Vitara', 'Jimny', 'Grand Vitara', 'S-Presso', 'Ertiga', 'Baleno', 'Dzire'],
+    'Nissan': ['Sentra', 'Versa', 'Frontier', 'Kicks', 'Qashqai', 'X-Trail', 'Navara'],
+    'Kia': ['Rio', 'Sportage', 'Sorento', 'Picanto', 'Seltos', 'Cerato', 'Soluto'],
+    'Mitsubishi': ['L200', 'Montero', 'ASX', 'Outlander', 'Eclipse Cross', 'Xpander'],
+    'Honda': ['Civic', 'CR-V', 'HR-V', 'Accord', 'Fit', 'City'],
+    'Mazda': ['CX-5', 'CX-3', 'Mazda 3', 'Mazda 2', 'BT-50', 'CX-30'],
+    'Ford': ['Ranger', 'Everest', 'Explorer', 'EcoSport', 'F-150'],
+    'Chevrolet': ['Tracker', 'Colorado', 'Spark', 'Aveo', 'Captiva'],
+};
+
+const DEFAULT_MODELS = ['Sedan', 'SUV', 'Pickup', 'Microbus', 'Hatchback', 'Van', 'Otro'];
+
+const VEHICLE_COLORS = [
+    'Blanco', 'Negro', 'Plateado', 'Gris', 'Azul', 'Rojo', 'Verde',
+    'Blanco Perla', 'Bronce', 'Champagne', 'Bordeaux', 'Café', 'Oro', 'Crema'
+];
+
+const YEARS = Array.from({ length: 31 }, (_, i) => (new Date().getFullYear() - i).toString());
+
 const ProfileConductor = ({ navigation, route }) => {
     const insets = useSafeAreaInsets();
     const { theme } = useDriverTheme();
@@ -45,9 +72,13 @@ const ProfileConductor = ({ navigation, route }) => {
     const [userData, setUserData] = useState(null);
     const [vehicleData, setVehicleData] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
+    const [vehicleModalVisible, setVehicleModalVisible] = useState(false);
     const [updating, setUpdating] = useState(false);
     const [editForm, setEditForm] = useState({
         name: '', phone: '', company: '', profileImage: null
+    });
+    const [editVehicleForm, setEditVehicleForm] = useState({
+        brand: '', model: '', year: '', color: '', licensePlate: ''
     });
 
     const loadProfile = async () => {
@@ -70,6 +101,13 @@ const ProfileConductor = ({ navigation, route }) => {
                             ? resVehicle.data.data[0]
                             : resVehicle.data.data;
                         setVehicleData(vehicle);
+                        setEditVehicleForm({
+                            brand: vehicle.brand || '',
+                            model: vehicle.model || '',
+                            year: vehicle.year?.toString() || '',
+                            color: vehicle.color || '',
+                            licensePlate: vehicle.license_plate || ''
+                        });
                     }
                 } catch (vehError) {
                     if (vehError.response?.status === 404) setVehicleData(null);
@@ -105,13 +143,44 @@ const ProfileConductor = ({ navigation, route }) => {
     };
 
     const handleUpdateProfile = async () => {
+
         try {
             setUpdating(true);
+
+            // 1. Validar que al menos algo haya cambiado
+            const Changes =
+                editForm.name !== userData.name ||
+                editForm.phone !== userData.phone ||
+                editForm.company !== userData.company ||
+                (editForm.profileImage !== userData.profileImage && editForm.profileImage !== null);
+
+            if (!Changes) {
+                Alert.alert('No hay cambios', 'No has realizado ningún cambio para actualizar.');
+                setUpdating(false);
+                return;
+            }
+
+            // 2. Validar campos obligatorios
+            if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.company.trim()) {
+                Alert.alert('Datos incompletos', 'Todos los campos son obligatorios para actualizar tu perfil.');
+                setUpdating(false);
+                return;
+            }
+
+            // 3. Validar formato de nombre
+            if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$/.test(editForm.name.trim())) {
+                Alert.alert('Formato Inválido', 'El nombre solo puede contener letras y espacios.');
+                setUpdating(false);
+                return;
+            }
+
+            // 4. Validar formato de teléfono
             if (!/^\d{8}$/.test(editForm.phone)) {
                 Alert.alert('Formato Inválido', 'El número de teléfono debe tener exactamente 8 dígitos.');
                 setUpdating(false);
                 return;
             }
+
             let profileImageUrl = userData.profileImage;
             if (editForm.profileImage && editForm.profileImage !== userData.profileImage) {
                 const uriParts = editForm.profileImage.split('.');
@@ -126,6 +195,7 @@ const ProfileConductor = ({ navigation, route }) => {
                 }
                 profileImageUrl = cloudResult.secure_url;
             }
+
             await api.put(`/users/${userData._id}`, {
                 name: editForm.name,
                 phone: editForm.phone,
@@ -135,9 +205,55 @@ const ProfileConductor = ({ navigation, route }) => {
             Alert.alert('¡Listo!', 'Perfil actualizado correctamente');
             setModalVisible(false);
             loadProfile();
+
         } catch (error) {
             console.error('Error al actualizar perfil:', error);
             Alert.alert('Error', 'No se pudo actualizar el perfil. Revisa tu conexión.');
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleUpdateVehicle = async () => {
+        try {
+            setUpdating(true);
+
+            // 1. Validar si hay cambios
+            const hasChanges = 
+                editVehicleForm.brand !== vehicleData.brand ||
+                editVehicleForm.model !== vehicleData.model ||
+                editVehicleForm.year !== (vehicleData.year ? vehicleData.year.toString() : '') ||
+                editVehicleForm.color !== vehicleData.color;
+
+            if (!hasChanges) {
+                Alert.alert('No hay cambios', 'No has realizado ningún cambio en los datos del vehículo.');
+                setUpdating(false);
+                return;
+            }
+
+            // 2. Validar que tengamos datos mínimos
+            if (!editVehicleForm.brand || !editVehicleForm.model || !editVehicleForm.year || !editVehicleForm.color) {
+                Alert.alert('Datos incompletos', 'Por favor selecciona marca, modelo, año y color.');
+                setUpdating(false);
+                return;
+            }
+
+            // Solicitud al backend
+            // El backend no permite actualizar placa (según updateVehicle controller)
+            await api.put(`/vehicles/${vehicleData._id}`, {
+                brand: editVehicleForm.brand,
+                model: editVehicleForm.model,
+                year: parseInt(editVehicleForm.year),
+                color: editVehicleForm.color,
+            });
+
+            Alert.alert('¡Listo!', 'Información del vehículo actualizada');
+            setVehicleModalVisible(false);
+            loadProfile(); // Recargamos para refrescar la vista principal
+        } catch (error) {
+            console.error('Error al actualizar vehículo:', error);
+            const msg = error.response?.data?.message || 'No se pudo actualizar el vehículo.';
+            Alert.alert('Error', msg);
         } finally {
             setUpdating(false);
         }
@@ -169,7 +285,10 @@ const ProfileConductor = ({ navigation, route }) => {
         ? userData.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
         : '?';
 
+
+
     return (
+
         <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg || '#0A0A18' }]}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg || '#0A0A18'} />
 
@@ -189,6 +308,7 @@ const ProfileConductor = ({ navigation, route }) => {
 
                     {/* ── Tarjeta hero con foto ── */}
                     <View style={[styles.heroCard, { backgroundColor: theme.surfaceVariant || '#16163A', borderColor: theme.cardBorder }]}>
+
                         {/* Foto de perfil */}
                         <View style={styles.avatarWrapper}>
                             {userData?.profileImage ? (
@@ -210,13 +330,13 @@ const ProfileConductor = ({ navigation, route }) => {
                         <Text style={[styles.userName, { color: theme.text }]}>
                             {userData?.name || 'Conductor'}
                         </Text>
-                        
+
                         {/* Rating */}
                         <View style={styles.ratingContainer}>
-                            <StarRating 
-                                value={Math.round(userData?.rating || 5)} 
-                                size={18} 
-                                disabled 
+                            <StarRating
+                                value={Math.round(userData?.rating || 5)}
+                                size={18}
+                                disabled
                                 color="#FFC107"
                             />
                             <Text style={[styles.ratingValue, { color: theme.textSecondary }]}>
@@ -245,31 +365,31 @@ const ProfileConductor = ({ navigation, route }) => {
 
                     {/* ── Sección: Vehículo ── */}
                     <View onLayout={(e) => setVehicleSectionY(e.nativeEvent.layout.y)}>
-                    <SectionHeader title="VEHÍCULO ASIGNADO" theme={theme} />
+                        <SectionHeader title="VEHÍCULO ASIGNADO" theme={theme} />
 
-                    {vehicleData ? (
-                        <>
-                            <InfoCard
-                                icon="car-outline"
-                                label="Modelo"
-                                value={`${vehicleData.brand} ${vehicleData.model} (${vehicleData.year})`}
-                                theme={theme}
-                            />
-                            <InfoCard
-                                icon="card-outline"
-                                label="Placa / Matrícula"
-                                value={vehicleData.license_plate || 'No registrada'}
-                                theme={theme}
-                            />
-                        </>
-                    ) : (
-                        <View style={[styles.emptyCard, { backgroundColor: theme.surfaceVariant || '#16163A', borderColor: theme.cardBorder }]}>
-                            <Ionicons name="car-outline" size={30} color={theme.textSecondary} />
-                            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                                No hay vehículo registrado
-                            </Text>
-                        </View>
-                    )}
+                        {vehicleData ? (
+                            <>
+                                <InfoCard
+                                    icon="car-outline"
+                                    label="Modelo"
+                                    value={`${vehicleData.brand} ${vehicleData.model} (${vehicleData.year})`}
+                                    theme={theme}
+                                />
+                                <InfoCard
+                                    icon="card-outline"
+                                    label="Placa / Matrícula"
+                                    value={vehicleData.license_plate || 'No registrada'}
+                                    theme={theme}
+                                />
+                            </>
+                        ) : (
+                            <View style={[styles.emptyCard, { backgroundColor: theme.surfaceVariant || '#16163A', borderColor: theme.cardBorder }]}>
+                                <Ionicons name="car-outline" size={30} color={theme.textSecondary} />
+                                <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                                    No hay vehículo registrado
+                                </Text>
+                            </View>
+                        )}
 
                     </View>
 
@@ -281,8 +401,19 @@ const ProfileConductor = ({ navigation, route }) => {
                             activeOpacity={0.85}
                         >
                             <Ionicons name="create-outline" size={20} color="#FFF" />
-                            <Text style={styles.editBtnText}>Actualizar Información</Text>
+                            <Text style={styles.editBtnText}>Actualizar Información Personal</Text>
                         </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.editBtn, { backgroundColor: theme.accent }]}
+                            onPress={() => setVehicleModalVisible(true)}
+                            activeOpacity={0.85}
+                        >
+                            <Ionicons name="create-outline" size={20} color="#FFF" />
+                            <Text style={styles.editBtnText}>Actualizar Información del Vehículo</Text>
+                        </TouchableOpacity>
+
+
 
                         <TouchableOpacity
                             style={[styles.logoutBtn, { borderColor: theme.danger, backgroundColor: 'rgba(255,107,107,0.07)' }]}
@@ -385,6 +516,138 @@ const ProfileConductor = ({ navigation, route }) => {
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
+
+
+            {/* ─── Modal de Edición del vehículo ─── */}
+            <Modal
+                visible={vehicleModalVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setVehicleModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+                        <View style={[styles.handleBar, { backgroundColor: theme.divider }]} />
+
+                        <View style={styles.modalHeader}>
+                            <Text style={[styles.modalTitle, { color: theme.text }]}>Editar información del vehículo</Text>
+                            <TouchableOpacity
+                                onPress={() => setVehicleModalVisible(false)}
+                                style={[styles.closeBtn, { backgroundColor: theme.iconCircleBg || '#1C1C40' }]}
+                            >
+                                <Ionicons name="close" size={18} color={theme.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {/* MARCA SELECT */}
+                            <View style={styles.inputGroup}>
+                                <View style={styles.labelRow}>
+                                    <Ionicons name="car-outline" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
+                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>MARCA</Text>
+                                </View>
+                                <View style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}>
+                                    <Picker
+                                        selectedValue={editVehicleForm.brand}
+                                        onValueChange={val => setEditVehicleForm(prev => ({ ...prev, brand: val, model: '' }))}
+                                        style={{ color: theme.text }}
+                                        dropdownIconColor={theme.accent}
+                                    >
+                                        <Picker.Item label="Selecciona marca" value="" />
+                                        {VEHICLE_BRANDS.map(b => <Picker.Item key={b} label={b} value={b} />)}
+                                    </Picker>
+                                </View>
+                            </View>
+
+                            {/* MODELO SELECT */}
+                            <View style={styles.inputGroup}>
+                                <View style={styles.labelRow}>
+                                    <Ionicons name="car-outline" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
+                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>MODELO</Text>
+                                </View>
+                                <View style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}>
+                                    <Picker
+                                        selectedValue={editVehicleForm.model}
+                                        onValueChange={val => setEditVehicleForm(prev => ({ ...prev, model: val }))}
+                                        style={{ color: theme.text }}
+                                        dropdownIconColor={theme.accent}
+                                    >
+                                        <Picker.Item label="Selecciona modelo" value="" />
+                                        {(MODELS_MAP[editVehicleForm.brand] || DEFAULT_MODELS).map(m => (
+                                            <Picker.Item key={m} label={m} value={m} />
+                                        ))}
+                                    </Picker>
+                                </View>
+                            </View>
+
+                            {/* AÑO SELECT */}
+                            <View style={styles.inputGroup}>
+                                <View style={styles.labelRow}>
+                                    <Ionicons name="calendar-outline" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
+                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>AÑO</Text>
+                                </View>
+                                <View style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}>
+                                    <Picker
+                                        selectedValue={editVehicleForm.year}
+                                        onValueChange={val => setEditVehicleForm(prev => ({ ...prev, year: val }))}
+                                        style={{ color: theme.text }}
+                                        dropdownIconColor={theme.accent}
+                                    >
+                                        <Picker.Item label="Selecciona año" value="" />
+                                        {YEARS.map(y => <Picker.Item key={y} label={y} value={y} />)}
+                                    </Picker>
+                                </View>
+                            </View>
+
+                            {/* COLOR SELECT */}
+                            <View style={styles.inputGroup}>
+                                <View style={styles.labelRow}>
+                                    <Ionicons name="color-palette-outline" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
+                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>COLOR</Text>
+                                </View>
+                                <View style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}>
+                                    <Picker
+                                        selectedValue={editVehicleForm.color}
+                                        onValueChange={val => setEditVehicleForm(prev => ({ ...prev, color: val }))}
+                                        style={{ color: theme.text }}
+                                        dropdownIconColor={theme.accent}
+                                    >
+                                        <Picker.Item label="Selecciona color" value="" />
+                                        {VEHICLE_COLORS.map(c => <Picker.Item key={c} label={c} value={c} />)}
+                                    </Picker>
+                                </View>
+                            </View>
+
+                            {/* MATRÍCULA (Lock) */}
+                            <ModalInput
+                                label="MATRÍCULA"
+                                icon="document-text-outline"
+                                value={editVehicleForm.licensePlate}
+                                placeholder="ABC-123"
+                                theme={theme}
+                                editable={false} // No se puede editar placa según backend user request
+                            />
+
+                            <TouchableOpacity
+                                style={[styles.saveBtn, { backgroundColor: theme.accent }]}
+                                onPress={handleUpdateVehicle}
+                                disabled={updating}
+                                activeOpacity={0.85}
+                            >
+                                {updating ? (
+                                    <ActivityIndicator color="#FFF" />
+                                ) : (
+                                    <>
+                                        <Ionicons name="checkmark-circle-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
+                                        <Text style={styles.saveBtnText}>Guardar Cambios</Text>
+                                    </>
+                                )}
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
         </SafeAreaView>
     );
 };
