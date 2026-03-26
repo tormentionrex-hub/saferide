@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert, Platform, ScrollView, Image, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
@@ -103,10 +103,32 @@ const WaitingForTheStart = ({ route, navigation }) => {
         );
     };
 
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '---';
-        const date = new Date(dateStr);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const formatTime = (timeStr) => {
+        if (!timeStr) return '---';
+        // Si ya viene como HH:mm (por ejemplo "08:30"), lo devolvemos tal cual o lo formateamos levemente
+        return timeStr;
+    };
+
+    const calculateArrivalTime = (startTime, durationMin) => {
+        if (!startTime || !durationMin) return '---';
+        try {
+            const [hours, minutes] = startTime.split(':').map(Number);
+            const date = new Date();
+            date.setHours(hours, minutes + (durationMin || 0));
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+        } catch (e) {
+            return '---';
+        }
+    };
+
+    const handleWhatsApp = (phone) => {
+        if (!phone) {
+            Alert.alert('Error', 'El conductor no tiene un número de teléfono registrado.');
+            return;
+        }
+        const cleanPhone = phone.replace(/\D/g, '');
+        const finalPhone = cleanPhone.length === 8 ? `506${cleanPhone}` : cleanPhone;
+        Linking.openURL(`https://wa.me/${finalPhone}`);
     };
 
     return (
@@ -162,11 +184,11 @@ const WaitingForTheStart = ({ route, navigation }) => {
                                 <View style={styles.row}>
                                     <View style={styles.halfRow}>
                                         <Text style={[styles.label, { color: theme.textSecondary }]}>Salida</Text>
-                                        <Text style={[styles.value, { color: theme.text }]}>{formatDate(rideData?.departure_time)}</Text>
+                                        <Text style={[styles.value, { color: theme.text }]}>{formatTime(rideData?.hora)}</Text>
                                     </View>
                                     <View style={styles.halfRow}>
                                         <Text style={[styles.label, { color: theme.textSecondary }]}>Llegada esperada</Text>
-                                        <Text style={[styles.value, { color: theme.text }]}>{formatDate(rideData?.arrival_time)}</Text>
+                                        <Text style={[styles.value, { color: theme.text }]}>{calculateArrivalTime(rideData?.hora, rideData?.duration_minutes)}</Text>
                                     </View>
                                 </View>
                             </View>
@@ -174,13 +196,37 @@ const WaitingForTheStart = ({ route, navigation }) => {
                             {/* Información del Conductor */}
                             <View style={[styles.card, { backgroundColor: theme.bg, borderColor: theme.border }]}>
                                 <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Conductor</Text>
-                                <View style={styles.infoRow}>
-                                    <Ionicons name="person-circle" size={24} color={theme.textSecondary} />
-                                    <View style={styles.textContainer}>
-                                        <Text style={[styles.value, { color: theme.text, fontSize: 16 }]}>
-                                            {rideData?.driver_id?.name || '---'}
-                                        </Text>
+                                <View style={styles.driverContainer}>
+                                    <View style={styles.driverHeader}>
+                                        {rideData?.driver_id?.profileImage ? (
+                                            <Image 
+                                                source={{ uri: rideData.driver_id.profileImage }} 
+                                                style={styles.driverPhoto} 
+                                            />
+                                        ) : (
+                                            <View style={[styles.driverPhoto, { backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center' }]}>
+                                                <Ionicons name="person" size={24} color={theme.textSecondary} />
+                                            </View>
+                                        )}
+                                        <View style={styles.driverInfo}>
+                                            <Text style={[styles.driverName, { color: theme.text }]}>
+                                                {rideData?.driver_id?.name || '---'}
+                                            </Text>
+                                            <Text style={[styles.driverPhone, { color: theme.textSecondary }]}>
+                                                Tel: {rideData?.driver_id?.phone || 'No disponible'}
+                                            </Text>
+                                        </View>
                                     </View>
+                                    
+                                    {rideData?.driver_id?.phone && (
+                                        <TouchableOpacity 
+                                            style={[styles.whatsappButton, { backgroundColor: '#25D366' }]}
+                                            onPress={() => handleWhatsApp(rideData.driver_id.phone)}
+                                        >
+                                            <Ionicons name="logo-whatsapp" size={20} color="#FFF" />
+                                            <Text style={styles.whatsappText}>Contactar por WhatsApp</Text>
+                                        </TouchableOpacity>
+                                    )}
                                 </View>
                             </View>
 
@@ -337,6 +383,46 @@ const styles = StyleSheet.create({
     cancelButtonText: {
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    // Nuevos estilos para Conductor y WhatsApp
+    driverContainer: {
+        marginTop: 5,
+    },
+    driverHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    driverPhoto: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        marginRight: 15,
+    },
+    driverInfo: {
+        flex: 1,
+    },
+    driverName: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    driverPhone: {
+        fontSize: 12,
+        marginTop: 2,
+    },
+    whatsappButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        borderRadius: 8,
+        marginTop: 5,
+    },
+    whatsappText: {
+        color: '#FFF',
+        fontWeight: 'bold',
+        marginLeft: 8,
+        fontSize: 14,
     }
 });
 
