@@ -203,7 +203,7 @@ const RatingScreen = ({
 
                 <TouchableOpacity style={styles.skipBtn} onPress={onSkip}>
                     <Text style={[styles.skipBtnText, { color: theme.textSecondary }]}>
-                        Omitir por ahora
+                        Omitir
                     </Text>
                 </TouchableOpacity>
             </ScrollView>
