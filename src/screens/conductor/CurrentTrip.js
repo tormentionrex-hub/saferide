@@ -6,9 +6,11 @@ import api from '../../services/api';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useLocationTracker } from '../../hooks/useLocationTracker';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
+import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
 const TripInProgressDriver = ({ route, navigation }) => {
     const { theme } = useDriverTheme(); 
+    const si = useScrollIndicator({ alwaysVisible: true });
     
     // ListOfRequests nos pasa rideId (el ID del viaje), no bookingId
     const rideId = route?.params?.rideId;
@@ -155,8 +157,13 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 <View style={{ width: 28 }} /> 
             </View>
 
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
-                {/* Mapa con bordes redondeados y sombra */}
+            <View style={{ flex: 1 }}>
+                <ScrollView 
+                    style={{ flex: 1 }} 
+                    contentContainerStyle={styles.scrollContent}
+                    {...si.scrollProps}
+                >
+                    {/* Mapa con bordes redondeados y sombra */}
                 <View style={styles.mapContainer}>
                     {hasCoords ? (
                         <MapView
@@ -284,7 +291,9 @@ const TripInProgressDriver = ({ route, navigation }) => {
                     <MaterialCommunityIcons name="logout" size={24} color="#FFF" />
                     <Text style={styles.finishButtonText}>Finalizar viaje</Text>
                 </TouchableOpacity>
-            </ScrollView>
+                </ScrollView>
+                <ScrollIndicator si={si} thumbColor={theme.accent} />
+            </View>
 
             {/* BARRA DE NAVEGACIÓN INFERIOR */}
             <BottomNavigationDriver 
