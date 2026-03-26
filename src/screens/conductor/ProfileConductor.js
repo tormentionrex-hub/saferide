@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -32,10 +32,13 @@ const COMPANIES = [
     'WeWork Costa Rica', 'Concentrix', 'Nestlé Costa Rica'
 ];
 
-const ProfileConductor = ({ navigation }) => {
+const ProfileConductor = ({ navigation, route }) => {
     const insets = useSafeAreaInsets();
     const { theme } = useDriverTheme();
     const si = useScrollIndicator();
+
+    const scrollRef = useRef(null);
+    const [vehicleSectionY, setVehicleSectionY] = useState(0);
 
     const [loading, setLoading] = useState(true);
     const [userData, setUserData] = useState(null);
@@ -79,6 +82,14 @@ const ProfileConductor = ({ navigation }) => {
     };
 
     useEffect(() => { loadProfile(); }, []);
+
+    useEffect(() => {
+        if (!loading && route?.params?.scrollToVehicle && vehicleSectionY > 0 && scrollRef.current) {
+            setTimeout(() => {
+                scrollRef.current.scrollTo({ y: vehicleSectionY, animated: true });
+            }, 400);
+        }
+    }, [loading, vehicleSectionY]);
 
     const pickImage = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -172,7 +183,7 @@ const ProfileConductor = ({ navigation }) => {
             </View>
 
             <View style={{ flex: 1 }}>
-                <ScrollView {...si.scrollProps} contentContainerStyle={styles.scrollContent}>
+                <ScrollView ref={scrollRef} {...si.scrollProps} contentContainerStyle={styles.scrollContent}>
 
                     {/* ── Tarjeta hero con foto ── */}
                     <View style={[styles.heroCard, { backgroundColor: theme.surfaceVariant || '#16163A', borderColor: theme.cardBorder }]}>
@@ -231,6 +242,7 @@ const ProfileConductor = ({ navigation }) => {
                     <InfoCard icon="business-outline" label="Empresa" value={userData?.company || 'No registrada'} theme={theme} />
 
                     {/* ── Sección: Vehículo ── */}
+                    <View onLayout={(e) => setVehicleSectionY(e.nativeEvent.layout.y)}>
                     <SectionHeader title="VEHÍCULO ASIGNADO" theme={theme} />
 
                     {vehicleData ? (
@@ -256,6 +268,8 @@ const ProfileConductor = ({ navigation }) => {
                             </Text>
                         </View>
                     )}
+
+                    </View>
 
                     {/* ── Acciones ── */}
                     <View style={styles.actionsWrapper}>

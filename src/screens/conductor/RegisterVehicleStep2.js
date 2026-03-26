@@ -11,6 +11,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import api from '../../services/api';
+import sessionCache from '../../services/sessionCache';
 import { uploadToCloudinary } from '../../Cloudinary/Cloudinary';
 
 export default function RegisterVehicleStep2({ route, navigation }) {
@@ -109,8 +110,9 @@ export default function RegisterVehicleStep2({ route, navigation }) {
                 ...(insuranceUrl && { insurance_certificate: insuranceUrl }),
             });
             if (res.data.success) {
+                sessionCache.clearVehicleStatus();
                 Alert.alert('¡Registro exitoso!', 'Tu vehículo ha sido registrado.', [
-                    { text: 'Aceptar', onPress: () => navigation.navigate('DashboardDriver') }
+                    { text: 'Aceptar', onPress: () => navigation.navigate('ProfileConductor', { scrollToVehicle: true }) }
                 ]);
             } else {
                 Alert.alert('Error', res.data.message || 'No se pudo registrar el vehículo.');
