@@ -13,6 +13,9 @@ import RoleSelectionScreen from './src/screens/register/RoleSelectionScreen';
 import SignInScreen from './src/screens/login/SignInScreen';
 import SplashScreen from './src/screens/SplashScreen';
 import LoginSuccessScreen from './src/screens/login/LoginSuccessScreen';
+import ForgotPasswordEmail from './src/screens/login/ForgotPasswordEmail';
+import ForgotPasswordCode from './src/screens/login/ForgotPasswordCode';
+import ForgotPasswordNewPassword from './src/screens/login/ForgotPasswordNewPassword';
 
 // Importación de los dashboards para la redirección después del login
 import DashboardPasajero from './src/screens/pasajero/DashboardPasajero';
@@ -278,6 +281,9 @@ export default function App() {
               gestureEnabled: false,
             }}
           />
+          <Stack.Screen name="ForgotPasswordEmail" component={ForgotPasswordEmail} options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ForgotPasswordCode" component={ForgotPasswordCode} options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ForgotPasswordNewPassword" component={ForgotPasswordNewPassword} options={{ animation: 'slide_from_right' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </DriverThemeProvider>

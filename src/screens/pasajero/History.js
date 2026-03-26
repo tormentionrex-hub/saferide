@@ -55,7 +55,7 @@ const HistoryItem = memo(({ item, theme, calculateArrivalTime, handleContact }) 
     const originCoords = ride.origin?.coordinates;
     const destCoords = ride.destination?.coordinates;
 
-    const isCancelled = item.status === 'cancelled';
+    const isCancelled = item.status === 'cancelled' || item.status === 'canceled';
     const statusColor = isCancelled ? '#FF3B30' : '#4CD964';
 
     return (
@@ -194,13 +194,13 @@ const History = ({ navigation }) => {
 
             if (response.success) {
                 const sorted = response.data
-                    .filter(b => b.ride_id && b.ride_id.fecha && (b.status === 'completed' || b.status === 'cancelled'))
+                    .filter(b => b.ride_id && b.ride_id.fecha && (b.status === 'completed' || b.status === 'cancelled' || b.status === 'canceled'))
                     .sort((a, b) => {
                         const dateA = DateTime.fromISO(a.ride_id.fecha + 'T' + a.ride_id.hora);
                         const dateB = DateTime.fromISO(b.ride_id.fecha + 'T' + b.ride_id.hora);
                         return dateB - dateA;
                     });
-                
+
                 setAllHistory(sorted);
 
                 // Extract months
@@ -209,13 +209,11 @@ const History = ({ navigation }) => {
                     if (!acc.includes(ym)) acc.push(ym);
                     return acc;
                 }, []);
-                
+
                 setAvailableMonths(months);
 
                 // Set initial month filter
-                if (months.length > 0 && !selectedMonth) {
-                    setSelectedMonth(months[0]);
-                }
+                setSelectedMonth(prev => (months.length > 0 && !prev) ? months[0] : prev);
             }
         } catch (error) {
             console.error('Error fetching passenger history:', error);
@@ -223,19 +221,14 @@ const History = ({ navigation }) => {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [selectedMonth]);
+    }, []);
 
     useFocusEffect(
         useCallback(() => {
             setDisplayLimit(3);
-            fetchHistory(true);
+            fetchHistory();
         }, [fetchHistory])
     );
-
-    // Initial fetch to populate data
-    useEffect(() => {
-        fetchHistory();
-    }, []);
 
     // Filter whenever selectedMonth or allHistory changes
     useEffect(() => {
