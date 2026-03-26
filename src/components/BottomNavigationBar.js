@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
@@ -94,7 +94,10 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                                             
                                             if (rideStatus === 'scheduled') {
                                                 navigation.navigate('WaitingForTheStart', { bookingId: activeBooking._id });
+                                            } else if (rideStatus === 'in progress') {
+                                                navigation.navigate('TripInProgress', { bookingId: activeBooking._id });
                                             } else {
+                                                // Por defecto si el viaje tiene otro estado confirmado (ej. finalizando)
                                                 navigation.navigate('TripInProgress', { bookingId: activeBooking._id });
                                             }
                                         } catch (e) {
@@ -107,6 +110,9 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                             }
                         } catch (error) {
                             console.error('Error fetching bookings:', error);
+                            if (error.response && error.response.status === 429) {
+                                Alert.alert('Aviso', 'Por favor, espera unos segundos antes de intentar nuevamente.');
+                            }
                         }
                     }
 
