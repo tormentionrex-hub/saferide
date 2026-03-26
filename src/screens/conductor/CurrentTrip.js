@@ -5,6 +5,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useLocationTracker } from '../../hooks/useLocationTracker';
+import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 
 const TripInProgressDriver = ({ route, navigation }) => {
     const { theme } = useDriverTheme(); 
@@ -284,6 +285,12 @@ const TripInProgressDriver = ({ route, navigation }) => {
                     <Text style={styles.finishButtonText}>Finalizar viaje</Text>
                 </TouchableOpacity>
             </ScrollView>
+
+            {/* BARRA DE NAVEGACIÓN INFERIOR */}
+            <BottomNavigationDriver 
+                navigation={navigation} 
+                activeTab="Rutas" 
+            />
         </SafeAreaView>
     );
 };
@@ -295,10 +302,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingTop: Platform.OS === 'android' ? 8 : 4,
+        paddingBottom: 8,
     },
-    headerTitle: { fontSize: 18, fontWeight: '700' },
-    scrollContent: { padding: 20 },
+    headerTitle: { fontSize: 17, fontWeight: '700' },
+    scrollContent: { padding: 20, paddingBottom: 120 },
     mapContainer: {
         height: 200,
         borderRadius: 20,

@@ -285,7 +285,10 @@ const ManageRides = ({ navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.surface }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
             <View style={[styles.header, { borderBottomColor: theme.divider }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <TouchableOpacity 
+                    onPress={() => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })} 
+                    style={styles.backBtn}
+                >
                     <Ionicons name="chevron-back" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={[styles.title, { color: theme.text }]}>Mis Viajes Publicados</Text>

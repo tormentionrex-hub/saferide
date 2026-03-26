@@ -4,6 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDriverTheme } from '../context/DriverThemeContext';
 import api from '../services/api';
+ 
+// Cache para evitar llamadas repetitivas al API en el mismo componente
+let vehicleCache = {
+    driverId: null,
+    hasVehicle: null,
+    lastCheck: 0
+};
 
 const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: manualActiveTab }) => {
     const insets = useSafeAreaInsets();
@@ -19,7 +26,7 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
         const routeName = state.routes[state.index].name;
         if (routeName === 'DashboardDriver') currentTab = 'Inicio';
         else if (routeName === 'PublishRide') currentTab = 'Viajes';
-        else if (routeName === 'ManageRides') currentTab = 'Rutas';
+        else if (routeName === 'ManageRides' || routeName === 'CurrentTrip') currentTab = 'Rutas';
         else if (routeName === 'DriverMetrics') currentTab = 'Stats';
     }
 
@@ -30,11 +37,26 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                 if (!meRes.data.success) { setHasVehicleRegistered(false); return; }
                 const userId = meRes.data.data._id;
 
+                // Verificar si ya tenemos el resultado en cache para este usuario (valdez de 5 minutos)
+                const now = Date.now();
+                if (vehicleCache.driverId === userId && vehicleCache.hasVehicle !== null && (now - vehicleCache.lastCheck < 300000)) {
+                    setHasVehicleRegistered(vehicleCache.hasVehicle);
+                    setLoadingVehicle(false);
+                    return;
+                }
+
                 const res = await api.get(`/vehicles/driver/${userId}`);
                 const vehicleExists = res.data.success && res.data.data &&
                     (Array.isArray(res.data.data) ? res.data.data.length > 0 : true);
 
                 setHasVehicleRegistered(vehicleExists);
+                
+                // Actualizar cache
+                vehicleCache = {
+                    driverId: userId,
+                    hasVehicle: vehicleExists,
+                    lastCheck: now
+                };
             } catch (e) {
                 if (e.response?.status === 404) {
                     setHasVehicleRegistered(false);
@@ -172,7 +194,37 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                     <Text style={[styles.navText, { color: !hasVehicleRegistered ? theme.textSecondary : getColor('Viajes') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Viajes</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('ManageRides')}>
+                <TouchableOpacity 
+                    style={styles.navItem} 
+                    activeOpacity={0.6} 
+                    onPress={async () => {
+                        try {
+                            const meRes = await api.get('/auth/me');
+                            if (meRes.data.success) {
+                                const driverId = meRes.data.data._id;
+                                const ridesRes = await api.get(`/rides/driver/${driverId}`);
+                                if (ridesRes.data.success) {
+                                    const activeRides = ridesRes.data.data;
+                                    const inProgressRide = activeRides.find(r => r.status === 'in progress');
+                                    const scheduledRide = activeRides.find(r => r.status === 'scheduled');
+
+                                    if (inProgressRide) {
+                                        navigation.navigate('CurrentTrip', { rideId: inProgressRide._id });
+                                    } else if (scheduledRide) {
+                                        navigateTo('ManageRides');
+                                    } else {
+                                        navigateTo('ManageRides');
+                                    }
+                                    return;
+                                }
+                            }
+                            navigateTo('ManageRides');
+                        } catch (error) {
+                            console.error('Error navigating Rutas:', error);
+                            navigateTo('ManageRides');
+                        }
+                    }}
+                >
                     <Ionicons name={currentTab === 'Rutas' ? "map" : "map-outline"} size={24} color={getColor('Rutas')} />
                     <Text style={[styles.navText, { color: getColor('Rutas') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Rutas</Text>
                 </TouchableOpacity>
