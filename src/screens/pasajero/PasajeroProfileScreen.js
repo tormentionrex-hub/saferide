@@ -317,6 +317,35 @@ const PasajeroProfileScreen = ({ navigation }) => {
     const handleUpdateProfile = async () => {
         try {
             setUpdating(true);
+
+            // 1. Validar que al menos algo haya cambiado
+            const hasChanges = 
+                editForm.name !== userData.name || 
+                editForm.phone !== userData.phone || 
+                editForm.company !== userData.company || 
+                (editForm.profileImage !== userData.profileImage && editForm.profileImage !== null);
+
+            if (!hasChanges) {
+                Alert.alert('No hay cambios', 'No has realizado ningún cambio para actualizar.');
+                setUpdating(false);
+                return;
+            }
+
+            // 2. Validar campos obligatorios
+            if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.company.trim()) {
+                Alert.alert('Datos incompletos', 'Todos los campos son obligatorios.');
+                setUpdating(false);
+                return;
+            }
+
+            // 3. Validar formato de nombre
+            if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$/.test(editForm.name.trim())) {
+                Alert.alert('Formato Inválido', 'El nombre solo puede contener letras y espacios.');
+                setUpdating(false);
+                return;
+            }
+
+            // 4. Validar formato de teléfono
             if (!/^\d{8}$/.test(editForm.phone)) {
                 Alert.alert('Formato Inválido', 'El teléfono debe tener exactamente 8 dígitos.');
                 setUpdating(false);
