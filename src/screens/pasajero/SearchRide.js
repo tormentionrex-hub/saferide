@@ -103,7 +103,7 @@ const SearchRide = ({ navigation }) => {
             const params = {
                 origin: `${origen.lat},${origen.lng}`,
                 destination: `${destino.lat},${destino.lng}`,
-                date: fechaSeleccionada.toISOString().split('T')[0]
+                date: new Date(fechaSeleccionada.getTime() - fechaSeleccionada.getTimezoneOffset() * 60000).toISOString().split('T')[0]
             };
 
             const response = await api.get('/rides', { params });
