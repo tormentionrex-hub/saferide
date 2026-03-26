@@ -13,6 +13,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../../services/api';
+import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import SettingsGearButton from '../../components/SettingsGearButton';
@@ -35,63 +37,80 @@ export default function DashboardConductor({ route, navigation }) {
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
                 <View style={{ flex: 1 }}>
-                <ScrollView contentContainerStyle={styles.scrollContent} {...si.scrollProps}>
+                    <ScrollView contentContainerStyle={styles.scrollContent} {...si.scrollProps}>
 
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <View style={styles.headerLeft}>
-                            <Text style={[styles.welcomeText, { color: theme.text }]}>Hola, {userName}</Text>
-                            <TouchableOpacity style={styles.iconButton}>
-                                <Ionicons name="notifications-outline" size={24} color={theme.text} />
-                                <View style={[styles.notificationDot, { backgroundColor: theme.accent, borderColor: theme.bg }]} />
+                        {/* Header */}
+                        <View style={styles.header}>
+                            <View style={styles.headerLeft}>
+                                <Text style={[styles.welcomeText, { color: theme.text }]}>Hola, {userName}</Text>
+                                <TouchableOpacity style={styles.iconButton}>
+                                    <Ionicons name="notifications-outline" size={24} color={theme.text} />
+                                    <View style={[styles.notificationDot, { backgroundColor: theme.accent, borderColor: theme.bg }]} />
+                                </TouchableOpacity>
+                            </View>
+                            <SettingsGearButton navigation={navigation} color={theme.text} />
+                        </View>
+
+                        {/* Card Principal: Publicar Viaje */}
+                        <TouchableOpacity
+                            style={[styles.mainCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder }]}
+                            onPress={() => navigation.navigate('PublishRide')}
+                        >
+                            <View style={[styles.mainIconCircle, { backgroundColor: theme.iconCircleBg }]}>
+                                <Ionicons name="options-outline" size={32} color={theme.accent} />
+                            </View>
+                            <Text style={[styles.mainCardTitle, { color: theme.text }]}>Publicar Viaje</Text>
+                            <Text style={[styles.mainCardDescription, { color: theme.textSecondary }]}>
+                                Define tu ruta y comparte los asientos libres de tu coche.
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Fila de Cards Secundarias */}
+                        <View style={styles.row}>
+
+                            {/* Gestionar Viajes */}
+                            <TouchableOpacity
+                                style={[styles.smallCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder }]}
+                                onPress={async () => {
+                                    try {
+                                        const activeRides = await sessionCache.getActiveRides();
+                                        if (activeRides && activeRides.length > 0) {
+                                            const inProgressRide = activeRides.find(r => r.status === 'in progress');
+                                            if (inProgressRide) {
+                                                navigation.navigate('CurrentTrip', { rideId: inProgressRide._id });
+                                            } else {
+                                                navigation.navigate('ManageRides');
+                                            }
+                                            return;
+                                        }
+                                        navigation.navigate('ManageRides');
+                                    } catch (error) {
+                                        console.error('Error navigating from driver dashboard:', error);
+                                        navigation.navigate('ManageRides');
+                                    }
+                                }}
+                            >
+                                <View style={[styles.smallIconCircle, { backgroundColor: theme.iconCircleBg }]}>
+                                    <Ionicons name="map-outline" size={28} color={theme.accent} />
+                                </View>
+                                <Text style={[styles.smallCardTitle, { color: theme.text }]}>Gestionar Viajes Activos</Text>
                             </TouchableOpacity>
+
+                            {/* Métricas Personales */}
+                            <TouchableOpacity
+                                style={[styles.smallCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder }]}
+                                onPress={() => navigation.navigate('DriverMetrics')}
+                            >
+                                <View style={[styles.smallIconCircle, { backgroundColor: theme.iconCircleBg }]}>
+                                    <Ionicons name="bar-chart-outline" size={28} color={theme.accent} />
+                                </View>
+                                <Text style={[styles.smallCardTitle, { color: theme.text }]}>Métricas Personales</Text>
+                            </TouchableOpacity>
+
                         </View>
-                        <SettingsGearButton navigation={navigation} color={theme.text} />
-                    </View>
 
-                    {/* Card Principal: Publicar Viaje */}
-                    <TouchableOpacity
-                        style={[styles.mainCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder }]}
-                        onPress={() => navigation.navigate('PublishRide')}
-                    >
-                        <View style={[styles.mainIconCircle, { backgroundColor: theme.iconCircleBg }]}>
-                            <Ionicons name="options-outline" size={32} color={theme.accent} />
-                        </View>
-                        <Text style={[styles.mainCardTitle, { color: theme.text }]}>Publicar Viaje</Text>
-                        <Text style={[styles.mainCardDescription, { color: theme.textSecondary }]}>
-                            Define tu ruta y comparte los asientos libres de tu coche.
-                        </Text>
-                    </TouchableOpacity>
-
-                    {/* Fila de Cards Secundarias */}
-                    <View style={styles.row}>
-
-                        {/* Gestionar Viajes */}
-                        <TouchableOpacity
-                            style={[styles.smallCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder }]}
-                            onPress={() => navigation.navigate('ManageRides')}
-                        >
-                            <View style={[styles.smallIconCircle, { backgroundColor: theme.iconCircleBg }]}>
-                                <Ionicons name="map-outline" size={28} color={theme.accent} />
-                            </View>
-                            <Text style={[styles.smallCardTitle, { color: theme.text }]}>Gestionar Viajes Activos</Text>
-                        </TouchableOpacity>
-
-                        {/* Métricas Personales */}
-                        <TouchableOpacity
-                            style={[styles.smallCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder }]}
-                            onPress={() => navigation.navigate('DriverMetrics')}
-                        >
-                            <View style={[styles.smallIconCircle, { backgroundColor: theme.iconCircleBg }]}>
-                                <Ionicons name="bar-chart-outline" size={28} color={theme.accent} />
-                            </View>
-                            <Text style={[styles.smallCardTitle, { color: theme.text }]}>Métricas Personales</Text>
-                        </TouchableOpacity>
-
-                    </View>
-
-                </ScrollView>
-                <ScrollIndicator si={si} thumbColor={theme.accent} />
+                    </ScrollView>
+                    <ScrollIndicator si={si} thumbColor={theme.accent} />
                 </View>
 
             </SafeAreaView>

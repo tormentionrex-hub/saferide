@@ -34,8 +34,55 @@ const RideDetail = ({ route, navigation }) => {
         }
     }, [origin, dest]);
 
+    // Redirigir si ya tiene un booking pendiente o confirmado
+    useEffect(() => {
+        const checkActiveBooking = async () => {
+            try {
+                const meRes = await api.get('/auth/me');
+                if (meRes.data.success) {
+                    const passengerId = meRes.data.data._id;
+                    const bookingsRes = await api.get(`/bookings/passenger/${passengerId}`);
+                    if (bookingsRes.data.success) {
+                        const activeBooking = bookingsRes.data.data.find(b => 
+                            b.status === 'pending' || b.status === 'confirmed'
+                        );
+                        if (activeBooking) {
+                            if (activeBooking.status === 'pending') {
+                                navigation.replace('ScreenSaver', { bookingId: activeBooking._id });
+                            } else {
+                                navigation.replace('TripInProgress', { bookingId: activeBooking._id });
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking active booking in RideDetail:', error);
+            }
+        };
+        checkActiveBooking();
+    }, []);
+
     const handleConfirmBooking = async () => {
         try {
+            // --- VALIDACIÓN: SOLO UNA RESERVA ACTIVA A LA VEZ ---
+            const meRes = await api.get('/auth/me');
+            if (meRes.data.success) {
+                const passengerId = meRes.data.data._id;
+                const bookingsRes = await api.get(`/bookings/passenger/${passengerId}`);
+                if (bookingsRes.data.success) {
+                    const activeBooking = bookingsRes.data.data.find(b => 
+                        b.status === 'pending' || b.status === 'confirmed'
+                    );
+                    if (activeBooking) {
+                        Alert.alert(
+                            'Solicitud en curso',
+                            'No puedes solicitar unirte a un nuevo viaje porque ya tienes una reservación pendiente o confirmada.'
+                        );
+                        return;
+                    }
+                }
+            }
+
             const response = await api.post('/bookings', { ride_id: ride._id, seats_booked: 1 });
             if (response.data.success) {
                 navigation.navigate('ScreenSaver', { bookingId: response.data.data._id });

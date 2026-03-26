@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -7,13 +7,16 @@ import {
     ScrollView,
     TouchableOpacity,
     Dimensions,
-    ActivityIndicator
+    ActivityIndicator,
+    RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LineChart } from 'react-native-chart-kit';
+import { useFocusEffect } from '@react-navigation/native';
 
 import api from '../../services/api';
+import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import SettingsGearButton from '../../components/SettingsGearButton';
@@ -23,6 +26,7 @@ const screenWidth = Dimensions.get('window').width;
 const DriverMetrics = ({ navigation }) => {
     const { theme } = useDriverTheme();
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const si = useScrollIndicator();
     
     // --- ESTADO PARA DATOS ---
@@ -34,80 +38,147 @@ const DriverMetrics = ({ navigation }) => {
         dataRides: [0, 0, 0, 0, 0, 0],
         labels: ["Ene", "Feb", "Mar", "Abr", "May", "Jun"]
     });
+    
+    // --- ESTADO PARA HISTORIAL POR MESES ---
+    const [monthlyDetails, setMonthlyDetails] = useState([]);
 
-    useEffect(() => {
-        const fetchMetrics = async () => {
+    const fetchMetrics = useCallback(async () => {
+        try {
+            // 1. Obtener ID del usuario actual mediante sessionCache
+            const userId = await sessionCache.getDriverId();
+            if (!userId) throw new Error("No se pudo obtener información del usuario");
+
+            // 2. Obtener Métricas Generales (Carbono, Km totales, etc.)
+            let metricsData = {
+                kilometers_driven: 0,
+                total_rides: 0,
+                carbon_footprint: 0
+            };
+
             try {
-                // 1. Obtener ID del usuario actual
-                const meResponse = await api.get('/auth/me');
-                if (!meResponse.data.success) throw new Error("No se pudo obtener información del usuario");
-                const userId = meResponse.data.data._id;
-
-                // 2. Obtener Métricas Generales (Carbono, Km totales, etc.)
-                let metricsData = {
-                    kilometers_driven: 0,
-                    total_rides: 0,
-                    carbon_footprint: 0
-                };
-
-                try {
-                    const mResponse = await api.get(`/metrics/user/${userId}`);
-                    if (mResponse.data.success) {
-                        metricsData = mResponse.data.data;
-                    }
-                } catch (e) {
-                    console.log("No se encontraron métricas previas, usando ceros.");
+                const mResponse = await api.get(`/metrics/user/${userId}`);
+                if (mResponse.data.success) {
+                    metricsData = mResponse.data.data;
                 }
-
-                // 3. Obtener Historial de Viajes para armar el gráfico
-                const rResponse = await api.get(`/rides/driver/${userId}`);
-                const allRides = rResponse.data.data || [];
-                
-                // Procesar viajes de los últimos 6 meses
-                const now = new Date();
-                const months = [];
-                const monthLabels = [];
-                const kmByMonth = [];
-                const ridesByMonth = [];
-
-                for (let i = 5; i >= 0; i--) {
-                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                    months.push({ year: d.getFullYear(), month: d.getMonth() });
-                    monthLabels.push(d.toLocaleString('es-ES', { month: 'short' }).replace(/^\w/, c => c.toUpperCase()));
-                    kmByMonth.push(0);
-                    ridesByMonth.push(0);
-                }
-
-                allRides.forEach(ride => {
-                    if (!ride.fecha) return;
-                    const [y, mm, dd] = ride.fecha.split('-').map(Number);
-                    const rideDate = new Date(y, mm - 1, dd);
-                    
-                    months.forEach((m, idx) => {
-                        if (rideDate.getFullYear() === m.year && rideDate.getMonth() === m.month && ride.status === 'completed') {
-                            kmByMonth[idx] += (ride.distance_km || 0);
-                            ridesByMonth[idx] += 1;
-                        }
-                    });
-                });
-
-                setStats({
-                    kmTotal: metricsData.kilometers_driven.toLocaleString(),
-                    viajesTotal: metricsData.total_rides.toString(),
-                    co2Total: metricsData.carbon_footprint.toFixed(1),
-                    dataKm: kmByMonth,
-                    dataRides: ridesByMonth,
-                    labels: monthLabels
-                });
-
-                setLoading(false);
-            } catch (error) {
-                console.error("Error al traer datos de Mongo:", error);
-                setLoading(false);
+            } catch (e) {
+                console.log("No se encontraron métricas previas, usando ceros.");
             }
-        };
-        fetchMetrics();
+
+            // 3. Obtener Historial de Viajes para armar el gráfico
+            // Se solicita un límite alto y filtramos solo viajes enteramente 'completed'
+            const rResponse = await api.get(`/rides/driver/${userId}?limit=1000&status=completed`);
+            const allRides = rResponse.data.data || [];
+            
+            // Procesar viajes de los últimos 6 meses
+            const now = new Date();
+            const months = [];
+            const monthLabels = [];
+            const kmByMonth = [];
+            const ridesByMonth = [];
+
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                months.push({ year: d.getFullYear(), month: d.getMonth() });
+                monthLabels.push(d.toLocaleString('es-ES', { month: 'short' }).replace(/^\w/, c => c.toUpperCase()));
+                kmByMonth.push(0);
+                ridesByMonth.push(0);
+            }
+
+            let calcTotalKm = 0;
+            let calcTotalRides = 0;
+            const monthlyObj = {};
+
+            allRides.forEach(ride => {
+                if (!ride.fecha) return;
+                
+                // Verificamos driver_id (puede venir como objeto poblado o como string)
+                if (ride.driver_id) {
+                    const rideDriverId = typeof ride.driver_id === 'object' ? ride.driver_id._id : ride.driver_id;
+                    if (rideDriverId.toString() !== userId.toString()) return;
+                }
+
+                if (ride.status === 'completed') {
+                    calcTotalKm += (ride.distance_km || 0);
+                    calcTotalRides += 1;
+
+                    // Agrupación mensual
+                    const [y, mStr] = ride.fecha.split('-');
+                    const monthKey = `${y}-${mStr}`;
+                    if (!monthlyObj[monthKey]) {
+                        monthlyObj[monthKey] = { year: y, month: mStr, km: 0, rides: 0 };
+                    }
+                    monthlyObj[monthKey].km += (ride.distance_km || 0);
+                    monthlyObj[monthKey].rides += 1;
+                }
+
+                const [y, mm, dd] = ride.fecha.split('-').map(Number);
+                const rideDate = new Date(y, mm - 1, dd);
+                
+                months.forEach((m, idx) => {
+                    if (rideDate.getFullYear() === m.year && rideDate.getMonth() === m.month && ride.status === 'completed') {
+                        kmByMonth[idx] += (ride.distance_km || 0);
+                        ridesByMonth[idx] += 1;
+                    }
+                });
+            });
+
+            // Si la base de datos de métricas aún no se ha actualizado (está en 0),
+            // usamos el cálculo local en base a los viajes completados.
+            const finalKm = metricsData.kilometers_driven > 0 ? metricsData.kilometers_driven : calcTotalKm;
+            const finalRides = metricsData.total_rides > 0 ? metricsData.total_rides : calcTotalRides;
+            // Cálculo estimado de CO2: km * emisión promedio (0.12kg/km) * factor carpooling (0.6)
+            const finalCo2 = metricsData.carbon_footprint > 0 ? metricsData.carbon_footprint : (calcTotalKm * 0.12 * 0.6);
+
+            setStats({
+                kmTotal: finalKm.toFixed(1),
+                viajesTotal: finalRides.toString(),
+                co2Total: finalCo2.toFixed(1),
+                dataKm: kmByMonth,
+                dataRides: ridesByMonth,
+                labels: monthLabels
+            });
+
+            // Mapear, procesar y guardar la data agrupada
+            const monthNamesDict = {
+                '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril',
+                '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto',
+                '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre'
+            };
+
+            const sortedMonthlyData = Object.keys(monthlyObj)
+                .sort((a, b) => b.localeCompare(a)) // Ordenar descendente (más nuevos primero)
+                .map(key => {
+                    const item = monthlyObj[key];
+                    const monthCo2 = item.km * 0.12 * 0.6;
+                    return {
+                        key,
+                        name: `${monthNamesDict[item.month]} ${item.year}`,
+                        km: item.km.toFixed(1),
+                        rides: item.rides,
+                        co2: monthCo2.toFixed(1)
+                    };
+                });
+
+            setMonthlyDetails(sortedMonthlyData);
+
+        } catch (error) {
+            console.error("Error al traer datos de Mongo:", error);
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchMetrics();
+        }, [fetchMetrics])
+    );
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await fetchMetrics();
+        setRefreshing(false);
+    };
 
     const chartConfig = {
         backgroundColor: theme.surface,
@@ -151,7 +222,18 @@ const DriverMetrics = ({ navigation }) => {
                     </View>
                 ) : (
                     <View style={{ flex: 1 }}>
-                    <ScrollView contentContainerStyle={styles.scrollBody} {...si.scrollProps}>
+                    <ScrollView 
+                        contentContainerStyle={styles.scrollBody} 
+                        {...si.scrollProps}
+                        refreshControl={
+                            <RefreshControl 
+                                refreshing={refreshing} 
+                                onRefresh={onRefresh} 
+                                colors={[theme.accent]} 
+                                tintColor={theme.accent} 
+                            />
+                        }
+                    >
 
                         <View style={styles.statsRow}>
                             <View style={[styles.statBox, { backgroundColor: theme.surfaceVariant }]}>
@@ -192,6 +274,27 @@ const DriverMetrics = ({ navigation }) => {
                                 style={styles.chartStyle}
                             />
                         </View>
+
+                        {/* SECTION: DETALLE POR MES */}
+                        {monthlyDetails.length > 0 && (
+                            <View style={[styles.chartContainer, { backgroundColor: theme.surface, borderColor: theme.divider }]}>
+                                <Text style={[styles.chartHeaderTitle, { color: theme.text, marginBottom: 15 }]}>Historial Mensual</Text>
+                                {monthlyDetails.map((item, index) => (
+                                    <View key={item.key} style={[styles.monthRow, { borderBottomColor: theme.divider, borderBottomWidth: index === monthlyDetails.length - 1 ? 0 : StyleSheet.hairlineWidth }]}>
+                                        <View style={styles.monthLeft}>
+                                            <View style={[styles.monthIconBg, { backgroundColor: theme.surfaceVariant }]}>
+                                                <Ionicons name="calendar-outline" size={20} color={theme.accent} />
+                                            </View>
+                                            <Text style={[styles.monthName, { color: theme.text }]}>{item.name}</Text>
+                                        </View>
+                                        <View style={styles.monthRight}>
+                                            <Text style={[styles.monthStatLabel, { color: theme.textSecondary }]}>{item.rides} Viajes • {item.co2} kg CO₂</Text>
+                                            <Text style={[styles.monthStatKm, { color: theme.text }]}>{item.km} km</Text>
+                                        </View>
+                                    </View>
+                                ))}
+                            </View>
+                        )}
                     </ScrollView>
                     <ScrollIndicator si={si} thumbColor={theme.accent} />
                     </View>
@@ -234,7 +337,14 @@ const styles = StyleSheet.create({
     mainValText: { fontSize: 18, fontWeight: 'bold' },
     percentText: { fontSize: 11, fontWeight: 'bold', color: '#4CAF50', marginLeft: 8 },
     timeLabel: { fontSize: 10, marginBottom: 10 },
-    chartStyle: { marginLeft: -15, marginTop: 10 }
+    chartStyle: { marginLeft: -15, marginTop: 10 },
+    monthRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
+    monthLeft: { flexDirection: 'row', alignItems: 'center' },
+    monthIconBg: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+    monthName: { fontSize: 16, fontWeight: 'bold', textTransform: 'capitalize' },
+    monthRight: { alignItems: 'flex-end' },
+    monthStatLabel: { fontSize: 11, marginBottom: 4 },
+    monthStatKm: { fontSize: 15, fontWeight: 'bold' }
 });
 
 export default DriverMetrics;

@@ -1,47 +1,50 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Animated as RNAnimated } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Animated as RNAnimated, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDriverTheme } from '../context/DriverThemeContext';
-import api from '../services/api';
+import sessionCache from '../services/sessionCache';
 
 const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: manualActiveTab }) => {
     const insets = useSafeAreaInsets();
     const { theme } = useDriverTheme();
     const [showModal, setShowModal] = useState(false);
+    
+    // Estado para saber si el conductor ya registró su auto (inicio como true para no parpadear)
+    const [hasVehicleRegistered, setHasVehicleRegistered] = useState(true);
+    const [loadingVehicle, setLoadingVehicle] = useState(true);
 
     let currentTab = manualActiveTab || 'Inicio';
     if (state) {
         const routeName = state.routes[state.index].name;
         if (routeName === 'DashboardDriver') currentTab = 'Inicio';
         else if (routeName === 'PublishRide') currentTab = 'Viajes';
-        else if (routeName === 'ManageRides') currentTab = 'Rutas';
+        else if (routeName === 'ManageRides' || routeName === 'CurrentTrip' || routeName === 'ListOfRequests') currentTab = 'Rutas';
         else if (routeName === 'DriverMetrics') currentTab = 'Stats';
     }
 
+    useEffect(() => {
+        const checkVehicle = async () => {
+            try {
+                const hasVehicle = await sessionCache.getVehicleStatus();
+                setHasVehicleRegistered(hasVehicle);
+            } catch (e) {
+                console.error('[BottomNav] Error in vehicle check:', e);
+                setHasVehicleRegistered(false);
+            } finally {
+                setLoadingVehicle(false);
+            }
+        };
+        checkVehicle();
+    }, []);
+
     const getColor = (tabName) => currentTab === tabName ? theme.navActive : theme.navInactive;
 
-    const handleViajesPress = async () => {
-        try {
-            const meRes = await api.get('/auth/me');
-            if (!meRes.data.success) { navigation.navigate('PublishRide'); return; }
-            const userId = meRes.data.data._id;
-
-            const res = await api.get(`/vehicles/driver/${userId}`);
-            const hasVehicle = res.data.success && res.data.data &&
-                (Array.isArray(res.data.data) ? res.data.data.length > 0 : true);
-
-            if (hasVehicle) {
-                navigation.navigate('PublishRide');
-            } else {
-                setShowModal(true);
-            }
-        } catch (e) {
-            if (e.response?.status === 404) {
-                setShowModal(true);
-            } else {
-                navigation.navigate('PublishRide');
-            }
+    const handleRestrictedPress = (routeName) => {
+        if (!hasVehicleRegistered) {
+            setShowModal(true);
+        } else {
+            navigateTo(routeName);
         }
     };
 
@@ -149,12 +152,40 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                     <Text style={[styles.navText, { color: getColor('Inicio') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Inicio</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={handleViajesPress}>
-                    <Ionicons name={currentTab === 'Viajes' ? "map" : "map-outline"} size={24} color={getColor('Viajes')} />
-                    <Text style={[styles.navText, { color: getColor('Viajes') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Viajes</Text>
+                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => handleRestrictedPress('PublishRide')}>
+                    <View>
+                        <Ionicons name={currentTab === 'Viajes' ? "map" : "map-outline"} size={24} color={!hasVehicleRegistered ? theme.textSecondary : getColor('Viajes')} />
+                        {!hasVehicleRegistered && !loadingVehicle && (
+                            <View style={styles.smallLock}>
+                                <Ionicons name="lock-closed" size={10} color="#FFF" />
+                            </View>
+                        )}
+                    </View>
+                    <Text style={[styles.navText, { color: !hasVehicleRegistered ? theme.textSecondary : getColor('Viajes') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Viajes</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('ManageRides')}>
+                <TouchableOpacity 
+                    style={styles.navItem} 
+                    activeOpacity={0.6} 
+                onPress={async () => {
+                        try {
+                            const activeRides = await sessionCache.getActiveRides();
+                            if (activeRides && activeRides.length > 0) {
+                                const inProgressRide = activeRides.find(r => r.status === 'in progress');
+                                if (inProgressRide) {
+                                    navigation.navigate('CurrentTrip', { rideId: inProgressRide._id });
+                                } else {
+                                    navigateTo('ManageRides');
+                                }
+                                return;
+                            }
+                            navigateTo('ManageRides');
+                        } catch (error) {
+                            console.error('Error navigating Rutas:', error);
+                            navigateTo('ManageRides');
+                        }
+                    }}
+                >
                     <Ionicons name={currentTab === 'Rutas' ? "map" : "map-outline"} size={24} color={getColor('Rutas')} />
                     <Text style={[styles.navText, { color: getColor('Rutas') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Rutas</Text>
                 </TouchableOpacity>
@@ -199,6 +230,22 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         includeFontPadding: false,
         width: '100%',
+    },
+    navTextActive: {
+        fontFamily: 'Poppins-SemiBold',
+    },
+    smallLock: {
+        position: 'absolute',
+        bottom: -2,
+        right: -4,
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        backgroundColor: '#EF5350',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: '#FFF',
     },
     // ── Modal ──
     backdrop: {

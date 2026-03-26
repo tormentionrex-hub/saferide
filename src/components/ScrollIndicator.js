@@ -20,9 +20,9 @@ const TRACK_H     = 120;
 const INDICATOR_H = 36;
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
-export const useScrollIndicator = () => {
+export const useScrollIndicator = ({ alwaysVisible = false } = {}) => {
     const scrollY   = useRef(new Animated.Value(0)).current;
-    const opacity   = useRef(new Animated.Value(0)).current;
+    const opacity   = useRef(new Animated.Value(alwaysVisible ? 1 : 0)).current;
     const fadeTimer = useRef(null);
 
     // useState para que al conocer las dimensiones se recalcule la interpolación
@@ -30,6 +30,7 @@ export const useScrollIndicator = () => {
     const [viewH,    setViewH]    = useState(1);
 
     const showIndicator = useCallback(() => {
+        if (alwaysVisible) return;
         if (fadeTimer.current) clearTimeout(fadeTimer.current);
         Animated.timing(opacity, {
             toValue: 1, duration: 150, useNativeDriver: true,
@@ -39,7 +40,7 @@ export const useScrollIndicator = () => {
                 toValue: 0, duration: 600, useNativeDriver: true,
             }).start();
         }, 1200);
-    }, []);
+    }, [alwaysVisible, opacity]);
 
     const scrollProps = {
         scrollEventThrottle: 16,

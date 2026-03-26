@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
@@ -30,9 +30,24 @@ const ScreenSaver = ({ route, navigation }) => {
                             ]);
                         } else if (newStatus === 'confirmed') {
                             clearInterval(intervalRef.current);
-                            Alert.alert('Bienvenido', 'Bienvenido a bordo', [
-                                { text: 'OK', onPress: () => navigation.navigate('TripInProgress', { bookingId }) }
-                            ]);
+                            try {
+                                const rideId = res.data.data.ride_id._id || res.data.data.ride_id;
+                                const rideRes = await api.get(`/rides/${rideId}`);
+                                const rideStatus = rideRes.data.data.status;
+                                
+                                if (rideStatus === 'scheduled') {
+                                    Alert.alert('Viaje Programado', 'Tu solicitud fue aceptada. Espera a que el conductor inicie el viaje.', [
+                                        { text: 'OK', onPress: () => navigation.navigate('WaitingForTheStart', { bookingId }) }
+                                    ]);
+                                } else {
+                                    Alert.alert('Bienvenido', 'Bienvenido a bordo', [
+                                        { text: 'OK', onPress: () => navigation.navigate('TripInProgress', { bookingId }) }
+                                    ]);
+                                }
+                            } catch (error) {
+                                console.error('Error getting ride status:', error);
+                                navigation.navigate('WaitingForTheStart', { bookingId });
+                            }
                         }
                     } else if (newStatus === 'confirmed' || newStatus === 'deny' || newStatus === 'cancelled') {
                         clearInterval(intervalRef.current);
@@ -88,11 +103,47 @@ const ScreenSaver = ({ route, navigation }) => {
         };
     };
 
+    const handleCancel = () => {
+        Alert.alert(
+            'Confirmar cancelación',
+            '¿Estás seguro de que deseas cancelar tu reservación?',
+            [
+                { text: 'No, mantener', style: 'cancel' },
+                { 
+                    text: 'Sí, cancelar', 
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const res = await api.delete(`/bookings/${bookingId}`);
+                            if (res.data.success) {
+                                Alert.alert('Éxito', 'Tu reservación ha sido cancelada.');
+                                navigation.navigate('SearchRide');
+                            }
+                        } catch (e) {
+                            Alert.alert('Error', 'No se pudo cancelar la reservación.');
+                        }
+                    } 
+                }
+            ]
+        );
+    };
+
     const { icon, iconColor, title, subtitle, showLoader } = getContent();
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.surface }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
+            
+            {/* Header con botón Atrás */}
+            <View style={styles.header}>
+                <TouchableOpacity 
+                    style={styles.backButton} 
+                    onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
+                >
+                    <Ionicons name="arrow-back" size={26} color={theme.text} />
+                </TouchableOpacity>
+            </View>
+
             <View style={styles.content}>
                 <Ionicons name={icon} size={80} color={iconColor} />
                 <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
@@ -101,12 +152,20 @@ const ScreenSaver = ({ route, navigation }) => {
                     <ActivityIndicator style={{ marginTop: 30 }} size="large" color={theme.accent} />
                 )}
             </View>
-            <TouchableOpacity
-                style={[styles.button, { backgroundColor: theme.accent }]}
-                onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
-            >
-                <Text style={styles.buttonText}>Volver al Inicio</Text>
-            </TouchableOpacity>
+            <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                    style={[styles.cancelButton, { borderColor: '#E74C3C' }]}
+                    onPress={handleCancel}
+                >
+                    <Text style={[styles.cancelButtonText, { color: '#E74C3C' }]}>Cancelar Reservación</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.button, { backgroundColor: theme.accent }]}
+                    onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
+                >
+                    <Text style={styles.buttonText}>Volver al Inicio</Text>
+                </TouchableOpacity>
+            </View>
         </SafeAreaView>
     );
 };
@@ -114,8 +173,17 @@ const ScreenSaver = ({ route, navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'center',
+        // justifyContent: 'center', // Removido para que el header esté arriba
         padding: 20,
+    },
+    header: {
+        position: 'absolute',
+        top: Platform.OS === 'ios' ? 60 : 40,
+        left: 20,
+        zIndex: 10,
+    },
+    backButton: {
+        padding: 8,
     },
     content: {
         flex: 1,
@@ -135,15 +203,29 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 22,
     },
+    buttonContainer: {
+        gap: 10,
+        marginBottom: 20,
+        marginHorizontal: 20,
+    },
     button: {
         paddingVertical: 15,
         borderRadius: 10,
         alignItems: 'center',
-        marginBottom: 20,
-        marginHorizontal: 20,
+    },
+    cancelButton: {
+        paddingVertical: 15,
+        borderRadius: 10,
+        alignItems: 'center',
+        borderWidth: 1,
+        backgroundColor: 'transparent',
     },
     buttonText: {
         color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    cancelButtonText: {
         fontSize: 16,
         fontWeight: 'bold',
     }

@@ -234,8 +234,31 @@ const ListOfDrivers = ({ route, navigation }) => {
         return filtered;
     }, [ridesData, searchTime, searchOrigin, searchDestination]);
 
-    const handleRideSelection = (ride) => {
-        navigation.navigate('RideDetail', { ride });
+    const handleRideSelection = async (ride) => {
+        try {
+            const meRes = await api.get('/auth/me');
+            if (meRes.data.success) {
+                const passengerId = meRes.data.data._id;
+                const bookingsRes = await api.get(`/bookings/passenger/${passengerId}`);
+                if (bookingsRes.data.success) {
+                    const activeBooking = bookingsRes.data.data.find(b => 
+                        b.status === 'pending' || b.status === 'confirmed'
+                    );
+                    if (activeBooking) {
+                        Alert.alert(
+                            'Reservación activa',
+                            'Ya tienes una solicitud pendiente o confirmada. Debes completarla o cancelarla antes de buscar otro viaje.'
+                        );
+                        return;
+                    }
+                }
+            }
+            navigation.navigate('RideDetail', { ride });
+        } catch (error) {
+            console.error('Error verificando estado del pasajero:', error);
+            // Si hay error en la validación, permitimos pasar al detalle pero fallará al intentar reservar
+            navigation.navigate('RideDetail', { ride });
+        }
     };
 
     return (

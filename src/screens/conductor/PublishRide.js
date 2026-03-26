@@ -49,6 +49,7 @@ const PublishRide = ({ navigation }) => {
     const [calculatingRoute, setCalculatingRoute] = useState(false);
     const [errors, setErrors] = useState({});
     const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+    const [newRideId, setNewRideId] = useState(null);
 
     useEffect(() => {
         const fetchRoute = async () => {
@@ -102,6 +103,26 @@ const PublishRide = ({ navigation }) => {
 
         setLoading(true);
         try {
+            // --- VALIDACIÓN: SOLO UN VIAJE ACTIVO A LA VEZ ---
+            const meRes = await api.get('/auth/me');
+            if (meRes.data.success) {
+                const driverId = meRes.data.data._id;
+                const activeRidesRes = await api.get(`/rides/driver/${driverId}`);
+                if (activeRidesRes.data.success) {
+                    const activeRides = activeRidesRes.data.data.filter(r => 
+                        r.status === 'scheduled' || r.status === 'in progress'
+                    );
+                    if (activeRides.length > 0) {
+                        Alert.alert(
+                            'Viaje activo detectado',
+                            'No puedes publicar un nuevo viaje porque ya tienes uno programado o en curso. Debes finalizar o cancelar el actual primero.'
+                        );
+                        setLoading(false);
+                        return;
+                    }
+                }
+            }
+
             const fullDateTime = new Date(fechaSeleccionada);
             fullDateTime.setHours(horaSeleccionada.getHours(), horaSeleccionada.getMinutes(), 0, 0);
 
@@ -151,6 +172,7 @@ const PublishRide = ({ navigation }) => {
             const response = await api.post('/rides', payload);
 
             if (response.data.success) {
+                setNewRideId(response.data.data._id);
                 setIsSuccessModalVisible(true);
             }
         } catch (error) {
@@ -363,7 +385,7 @@ const PublishRide = ({ navigation }) => {
                 visible={isSuccessModalVisible}
                 onRequestClose={() => {
                     setIsSuccessModalVisible(false);
-                    navigation.navigate('ListOfRequests');
+                    navigation.navigate('ListOfRequests', { rideId: newRideId });
                 }}
             >
                 <TouchableOpacity 
@@ -371,7 +393,7 @@ const PublishRide = ({ navigation }) => {
                     activeOpacity={1} 
                     onPress={() => {
                         setIsSuccessModalVisible(false);
-                        navigation.navigate('ListOfRequests');
+                        navigation.navigate('ListOfRequests', { rideId: newRideId });
                     }}
                 >
                     <View style={[styles.alertContent, { backgroundColor: theme.surface }]}>
@@ -388,7 +410,7 @@ const PublishRide = ({ navigation }) => {
                                 style={[styles.alertConfirmBtn, { backgroundColor: '#27AE60' }]}
                                 onPress={() => {
                                     setIsSuccessModalVisible(false);
-                                    navigation.navigate('ListOfRequests');
+                                    navigation.navigate('ListOfRequests', { rideId: newRideId });
                                 }}
                             >
                                 <Text style={styles.alertConfirmText}>¡Excelente!</Text>

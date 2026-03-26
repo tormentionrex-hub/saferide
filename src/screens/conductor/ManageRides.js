@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
+import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import SettingsGearButton from '../../components/SettingsGearButton';
 
@@ -143,20 +144,16 @@ const ManageRides = ({ navigation }) => {
     const fetchRides = async () => {
         try {
             setLoading(true);
-            const meResponse = await api.get('/auth/me');
-            if (!meResponse.data.success) throw new Error('No se pudo identificar al conductor');
-            const driverId = meResponse.data.data._id;
-
-            const [scheduledRes, inProgressRes] = await Promise.all([
-                api.get(`/rides/driver/${driverId}?status=scheduled`),
-                api.get(`/rides/driver/${driverId}?status=in_progress`),
-            ]);
-
-            const scheduled = scheduledRes.data.data || [];
-            const inProgress = inProgressRes.data.data || [];
-            setRides([...scheduled, ...inProgress]);
+            const activeRides = await sessionCache.getActiveRides();
+            
+            // Filtrar los viajes que queremos mostrar (scheduled e in progress)
+            const filtered = (activeRides || []).filter(r => 
+                r.status === 'scheduled' || r.status === 'in progress'
+            );
+            
+            setRides(filtered);
         } catch (error) {
-            console.error('Error fetching rides:', error);
+            console.error('Error fetching rides in ManageRides:', error);
         } finally {
             setLoading(false);
         }
@@ -168,7 +165,7 @@ const ManageRides = ({ navigation }) => {
     }, [navigation]);
 
     const handleCancelRide = (item) => {
-        if (item.status === 'in_progress') return;
+        if (item.status === 'in progress') return;
         setSelectedRide(item);
         setModalVisible(true);
     };
@@ -178,9 +175,15 @@ const ManageRides = ({ navigation }) => {
         try {
             setCancellingId(selectedRide._id);
             await api.patch(`/rides/${selectedRide._id}/cancel`);
+            
+            // 1. Actualizar estado localmente sin re-fetch
+            setRides(prev => prev.filter(r => r._id !== selectedRide._id));
+            
+            // 2. Invalidar cache global para que otros screens se actualicen
+            sessionCache.clearActiveRides();
+
             setModalVisible(false);
             setSelectedRide(null);
-            fetchRides();
             Alert.alert('✅ Viaje cancelado', 'El viaje fue cancelado y los pasajeros fueron notificados.');
         } catch (error) {
             console.error('Error cancelando viaje:', error);
@@ -192,7 +195,7 @@ const ManageRides = ({ navigation }) => {
 
     const getStatusInfo = (status) => {
         if (status === 'scheduled') return { label: 'Agendado', color: '#2563EB', bg: '#EFF6FF' };
-        if (status === 'in_progress') return { label: 'En curso', color: '#D97706', bg: '#FFFBEB' };
+        if (status === 'in progress') return { label: 'En curso', color: '#D97706', bg: '#FFFBEB' };
         return { label: status, color: '#6B7280', bg: '#F3F4F6' };
     };
 
@@ -210,7 +213,7 @@ const ManageRides = ({ navigation }) => {
         const displayTime = isValidDate ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (item.hora || '--:--');
 
         const statusInfo = getStatusInfo(item.status);
-        const isInProgress = item.status === 'in_progress';
+        const isInProgress = item.status === 'in progress';
         const isCancelling = cancellingId === item._id;
 
         return (
@@ -285,7 +288,10 @@ const ManageRides = ({ navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.surface }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
             <View style={[styles.header, { borderBottomColor: theme.divider }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <TouchableOpacity 
+                    onPress={() => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })} 
+                    style={styles.backBtn}
+                >
                     <Ionicons name="chevron-back" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={[styles.title, { color: theme.text }]}>Mis Viajes Publicados</Text>

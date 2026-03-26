@@ -33,9 +33,12 @@ import CustomizeApp from './src/screens/pasajero/CustomizeApp';
 import PaymentMethodScreen from './src/screens/pasajero/PaymentMethodScreen';
 import RideDetail from './src/screens/pasajero/RideDetail';
 import ScreenSaver from './src/screens/pasajero/ScreenSaver';
+import WaitingForTheStart from './src/screens/pasajero/WaitingForTheStart';
 import ListOfRequests from './src/screens/conductor/ListOfRequests';
 import TripInProgress from './src/screens/pasajero/TripInProgress';
 import CurrentTrip from './src/screens/conductor/CurrentTrip';
+import RatePassenger from './src/screens/conductor/RatePassenger';
+import RateDriver from './src/screens/pasajero/RateDriver';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BottomNavigationBar from './src/components/BottomNavigationBar';
@@ -224,6 +227,14 @@ export default function App() {
             }}
           />
           <Stack.Screen
+            name="WaitingForTheStart"
+            component={WaitingForTheStart}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_bottom'
+            }}
+          />
+          <Stack.Screen
             name="ListOfRequests"
             component={ListOfRequests}
             options={{
@@ -245,6 +256,24 @@ export default function App() {
             options={{
               headerShown: false,
               animation: 'slide_from_right'
+            }}
+          />
+          <Stack.Screen
+            name="RatePassenger"
+            component={RatePassenger}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_bottom',
+              gestureEnabled: false,
+            }}
+          />
+          <Stack.Screen
+            name="RateDriver"
+            component={RateDriver}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_bottom',
+              gestureEnabled: false,
             }}
           />
         </Stack.Navigator>

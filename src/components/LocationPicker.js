@@ -119,10 +119,18 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
                         <GooglePlacesAutocomplete
                             placeholder='¿A donde vas?'
                             textInputProps={{ placeholderTextColor: placeholderColor }}
+                            debounce={300} // Espera 300ms al teclear para evitar llamadas excesivas y parpadeos
                             onPress={(data, details = null) => {
-                                const lat = details.geometry.location.lat;
-                                const lng = details.geometry.location.lng;
-                                handleConfirmSelection(lat, lng, data.structured_formatting.main_text, data.description);
+                                const lat = details?.geometry?.location?.lat || data.geometry?.location?.lat;
+                                const lng = details?.geometry?.location?.lng || data.geometry?.location?.lng;
+                                
+                                setRegion({
+                                    latitude: lat,
+                                    longitude: lng,
+                                    latitudeDelta: 0.005,
+                                    longitudeDelta: 0.005
+                                });
+                                setTab('map');
                             }}
                             query={{
                                 key: GOOGLE_MAPS_API_KEY,
@@ -183,14 +191,21 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
                             <MapView
                                 style={styles.map}
                                 initialRegion={region}
-                                onRegionChangeComplete={(r) => setRegion(r)}
-                                onPress={(e) => setMarkerCoords(e.nativeEvent.coordinate)}
+                                onRegionChangeComplete={(r) => {
+                                    setRegion(r);
+                                    setMarkerCoords({ latitude: r.latitude, longitude: r.longitude });
+                                }}
+                                showsUserLocation={true}
                                 userInterfaceStyle={theme.dark ? 'dark' : 'light'}
-                            >
-                                {markerCoords && <Marker coordinate={markerCoords} draggable />}
-                            </MapView>
+                            />
+                            
+                            {/* Pin central fijo (Estilo Uber) */}
+                            <View style={styles.fixedCenterPin} pointerEvents="none">
+                                <Ionicons name="location" size={48} color={theme.accent} style={{ textShadowColor: 'rgba(0,0,0,0.3)', textShadowRadius: 4 }} />
+                            </View>
+
                             <View style={styles.mapOverlay}>
-                                <Text style={styles.mapHelper}>Toca el mapa para colocar el pin</Text>
+                                <Text style={styles.mapHelper}>Arrastra el mapa para ajustar con precisión</Text>
                                 {markerCoords && (
                                     <TouchableOpacity
                                         style={[styles.confirmMapBtn, { backgroundColor: theme.accent }]}
@@ -285,6 +300,16 @@ const styles = StyleSheet.create({
         left: 20,
         right: 20,
         alignItems: 'center',
+    },
+    fixedCenterPin: {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        marginLeft: -24, 
+        marginTop: -44, // Apunta exacto al centro
+        zIndex: 10,
+        alignItems: 'center',
+        justifyContent: 'flex-end'
     },
     mapHelper: {
         backgroundColor: 'rgba(10, 10, 24, 0.75)',

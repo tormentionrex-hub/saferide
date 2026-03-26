@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
+import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 
@@ -109,9 +110,8 @@ const ListOfRequests = ({ route, navigation }) => {
                     setConfirmedCount(confirmed);
                 }
             } else {
-                const meResponse = await api.get('/auth/me');
-                if (!meResponse.data.success) throw new Error('No se pudo identificar al conductor');
-                const driverId = meResponse.data.data._id;
+                const driverId = await sessionCache.getDriverId();
+                if (!driverId) throw new Error('No se pudo identificar al conductor');
 
                 const ridesResponse = await api.get(`/rides/driver/${driverId}?status=scheduled`);
                 const driverRides = ridesResponse.data.data || [];
@@ -147,6 +147,8 @@ const ListOfRequests = ({ route, navigation }) => {
             const res = await api.patch(`/bookings/${bookingId}/status`, { status: 'confirmed' });
             if (res.data.success) {
                 Alert.alert('Éxito', 'Has aceptado la solicitud.');
+                // Invalidar cache de viajes ya que cambiaron los asientos/estado
+                sessionCache.clearActiveRides();
                 // En lugar de filtrar, recargamos para actualizar el conteo de confirmados
                 fetchRequests();
             }
@@ -160,6 +162,8 @@ const ListOfRequests = ({ route, navigation }) => {
             const res = await api.patch(`/bookings/${bookingId}/status`, { status: 'deny' });
             if (res.data.success) {
                 Alert.alert('Solicitud rechazada', 'Se notificó al pasajero.');
+                // Invalidar cache de viajes ya que cambiaron los asientos/estado
+                sessionCache.clearActiveRides();
                 fetchRequests();
             }
         } catch (e) {
@@ -171,17 +175,46 @@ const ListOfRequests = ({ route, navigation }) => {
         if (!specificRideId) return;
         try {
             setStartRideLoading(true);
-            const res = await api.patch(`/rides/${specificRideId}/start`);
-            if (res.data.success) {
+
+            // Primero consultamos el estado actual del viaje
+            const rideRes = await api.get(`/rides/${specificRideId}`);
+            const currentStatus = rideRes.data?.data?.status;
+
+            if (currentStatus === 'in progress') {
+                // El ride ya fue iniciado previamente → navegamos directo sin volver a llamar /start
                 setStartRideVisible(false);
-                // Pequeña pausa para que se cierre el modal antes de navegar
                 setTimeout(() => {
                     navigation.navigate('CurrentTrip', { rideId: specificRideId });
                 }, 100);
+                return;
+            }
+
+            if (currentStatus !== 'scheduled') {
+                // Estado inválido (completed, cancelled, etc.)
+                const mensajes = {
+                    completed: 'Este viaje ya fue completado.',
+                    cancelled: 'Este viaje fue cancelado.',
+                };
+                Alert.alert('No disponible', mensajes[currentStatus] || `Estado del viaje: ${currentStatus}`);
+                setStartRideVisible(false);
+                return;
+            }
+
+            // El ride está en 'scheduled' → lo iniciamos normalmente
+            const res = await api.patch(`/rides/${specificRideId}/start`);
+            if (res.data.success) {
+                // Invalidar cache de viajes ya que cambió a 'in progress'
+                sessionCache.clearActiveRides();
+                setStartRideVisible(false);
+                setTimeout(() => {
+                    navigation.navigate('CurrentTrip', { rideId: specificRideId });
+                }, 100);
+            } else {
+                Alert.alert('Error', res.data?.message || 'No se pudo iniciar el viaje.');
             }
         } catch (e) {
             console.error('Error starting ride:', e.response?.data || e.message);
-            Alert.alert('Error', e.response?.data?.message || 'No se pudo iniciar el viaje.');
+            Alert.alert('Error', e.response?.data?.message || 'Problema al conectar con el servidor.');
         } finally {
             setStartRideLoading(false);
         }
@@ -197,10 +230,16 @@ const ListOfRequests = ({ route, navigation }) => {
                 <View style={styles.infoContainer}>
                     <View style={styles.nameRow}>
                         <Text style={[styles.nameText, { color: theme.text }]}>{passenger.name || 'Pasajero Anónimo'}</Text>
-                        {!isPending && (
+                        {item.status === 'confirmed' && (
                             <View style={styles.confirmedBadge}>
                                 <Ionicons name="checkmark-circle" size={14} color="#10B981" />
                                 <Text style={styles.confirmedText}>Aceptado</Text>
+                            </View>
+                        )}
+                        {item.status === 'cancelled' && (
+                            <View style={[styles.confirmedBadge, { backgroundColor: '#FEE2E2' }]}>
+                                <Ionicons name="ban" size={14} color="#EF4444" />
+                                <Text style={[styles.confirmedText, { color: '#EF4444' }]}>Cancelado</Text>
                             </View>
                         )}
                     </View>
@@ -209,7 +248,7 @@ const ListOfRequests = ({ route, navigation }) => {
                     </Text>
                 </View>
                 
-                {isPending && (
+                {item.status === 'pending' && (
                     <View style={styles.btnGroup}>
                         <TouchableOpacity
                             style={[styles.acceptBtn, { backgroundColor: theme.accent }]}
@@ -236,7 +275,16 @@ const ListOfRequests = ({ route, navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.surface }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
             <View style={[styles.header, { borderBottomColor: theme.divider }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <TouchableOpacity 
+                    onPress={() => {
+                        if (specificRideId) {
+                            navigation.navigate('MainTabsDriver', { screen: 'ManageRides' });
+                        } else {
+                            navigation.goBack();
+                        }
+                    }} 
+                    style={styles.backBtn}
+                >
                     <Ionicons name="chevron-back" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={[styles.title, { color: theme.text }]}>Solicitudes {specificRideId ? 'del Viaje' : 'de Pasajeros'}</Text>
@@ -280,7 +328,7 @@ const ListOfRequests = ({ route, navigation }) => {
                 confirmedCount={confirmedCount}
             />
 
-            <BottomNavigationDriver navigation={navigation} activeTab="Mensajes" />
+            <BottomNavigationDriver navigation={navigation} activeTab="Rutas" />
         </SafeAreaView>
     );
 };
