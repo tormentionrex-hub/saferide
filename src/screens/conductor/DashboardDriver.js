@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
+import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import SettingsGearButton from '../../components/SettingsGearButton';
@@ -72,24 +73,15 @@ export default function DashboardConductor({ route, navigation }) {
                                 style={[styles.smallCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder }]}
                                 onPress={async () => {
                                     try {
-                                        const meRes = await api.get('/auth/me');
-                                        if (meRes.data.success) {
-                                            const driverId = meRes.data.data._id;
-                                            const ridesRes = await api.get(`/rides/driver/${driverId}`);
-                                            if (ridesRes.data.success) {
-                                                const activeRides = ridesRes.data.data;
-                                                const inProgressRide = activeRides.find(r => r.status === 'in progress');
-                                                const scheduledRide = activeRides.find(r => r.status === 'scheduled');
-
-                                                if (inProgressRide) {
-                                                    navigation.navigate('CurrentTrip', { rideId: inProgressRide._id });
-                                                } else if (scheduledRide) {
-                                                    navigation.navigate('ManageRides');
-                                                } else {
-                                                    navigation.navigate('ManageRides');
-                                                }
-                                                return;
+                                        const activeRides = await sessionCache.getActiveRides();
+                                        if (activeRides && activeRides.length > 0) {
+                                            const inProgressRide = activeRides.find(r => r.status === 'in progress');
+                                            if (inProgressRide) {
+                                                navigation.navigate('CurrentTrip', { rideId: inProgressRide._id });
+                                            } else {
+                                                navigation.navigate('ManageRides');
                                             }
+                                            return;
                                         }
                                         navigation.navigate('ManageRides');
                                     } catch (error) {

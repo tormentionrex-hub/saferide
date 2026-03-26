@@ -3,14 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, Animated as RNAnimated
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDriverTheme } from '../context/DriverThemeContext';
-import api from '../services/api';
- 
-// Cache para evitar llamadas repetitivas al API en el mismo componente
-let vehicleCache = {
-    driverId: null,
-    hasVehicle: null,
-    lastCheck: 0
-};
+import sessionCache from '../services/sessionCache';
 
 const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: manualActiveTab }) => {
     const insets = useSafeAreaInsets();
@@ -33,34 +26,11 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
     useEffect(() => {
         const checkVehicle = async () => {
             try {
-                const meRes = await api.get('/auth/me');
-                if (!meRes.data.success) { setHasVehicleRegistered(false); return; }
-                const userId = meRes.data.data._id;
-
-                // Verificar si ya tenemos el resultado en cache para este usuario (valdez de 5 minutos)
-                const now = Date.now();
-                if (vehicleCache.driverId === userId && vehicleCache.hasVehicle !== null && (now - vehicleCache.lastCheck < 300000)) {
-                    setHasVehicleRegistered(vehicleCache.hasVehicle);
-                    setLoadingVehicle(false);
-                    return;
-                }
-
-                const res = await api.get(`/vehicles/driver/${userId}`);
-                const vehicleExists = res.data.success && res.data.data &&
-                    (Array.isArray(res.data.data) ? res.data.data.length > 0 : true);
-
-                setHasVehicleRegistered(vehicleExists);
-                
-                // Actualizar cache
-                vehicleCache = {
-                    driverId: userId,
-                    hasVehicle: vehicleExists,
-                    lastCheck: now
-                };
+                const hasVehicle = await sessionCache.getVehicleStatus();
+                setHasVehicleRegistered(hasVehicle);
             } catch (e) {
-                if (e.response?.status === 404) {
-                    setHasVehicleRegistered(false);
-                }
+                console.error('[BottomNav] Error in vehicle check:', e);
+                setHasVehicleRegistered(false);
             } finally {
                 setLoadingVehicle(false);
             }
@@ -197,26 +167,17 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                 <TouchableOpacity 
                     style={styles.navItem} 
                     activeOpacity={0.6} 
-                    onPress={async () => {
+                onPress={async () => {
                         try {
-                            const meRes = await api.get('/auth/me');
-                            if (meRes.data.success) {
-                                const driverId = meRes.data.data._id;
-                                const ridesRes = await api.get(`/rides/driver/${driverId}`);
-                                if (ridesRes.data.success) {
-                                    const activeRides = ridesRes.data.data;
-                                    const inProgressRide = activeRides.find(r => r.status === 'in progress');
-                                    const scheduledRide = activeRides.find(r => r.status === 'scheduled');
-
-                                    if (inProgressRide) {
-                                        navigation.navigate('CurrentTrip', { rideId: inProgressRide._id });
-                                    } else if (scheduledRide) {
-                                        navigateTo('ManageRides');
-                                    } else {
-                                        navigateTo('ManageRides');
-                                    }
-                                    return;
+                            const activeRides = await sessionCache.getActiveRides();
+                            if (activeRides && activeRides.length > 0) {
+                                const inProgressRide = activeRides.find(r => r.status === 'in progress');
+                                if (inProgressRide) {
+                                    navigation.navigate('CurrentTrip', { rideId: inProgressRide._id });
+                                } else {
+                                    navigateTo('ManageRides');
                                 }
+                                return;
                             }
                             navigateTo('ManageRides');
                         } catch (error) {

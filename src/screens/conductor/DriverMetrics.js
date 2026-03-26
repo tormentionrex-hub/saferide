@@ -16,6 +16,7 @@ import { LineChart } from 'react-native-chart-kit';
 import { useFocusEffect } from '@react-navigation/native';
 
 import api from '../../services/api';
+import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import SettingsGearButton from '../../components/SettingsGearButton';
@@ -43,10 +44,9 @@ const DriverMetrics = ({ navigation }) => {
 
     const fetchMetrics = useCallback(async () => {
         try {
-            // 1. Obtener ID del usuario actual
-            const meResponse = await api.get('/auth/me');
-            if (!meResponse.data.success) throw new Error("No se pudo obtener información del usuario");
-            const userId = meResponse.data.data._id;
+            // 1. Obtener ID del usuario actual mediante sessionCache
+            const userId = await sessionCache.getDriverId();
+            if (!userId) throw new Error("No se pudo obtener información del usuario");
 
             // 2. Obtener Métricas Generales (Carbono, Km totales, etc.)
             let metricsData = {

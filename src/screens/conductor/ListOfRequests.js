@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
+import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 
@@ -109,9 +110,8 @@ const ListOfRequests = ({ route, navigation }) => {
                     setConfirmedCount(confirmed);
                 }
             } else {
-                const meResponse = await api.get('/auth/me');
-                if (!meResponse.data.success) throw new Error('No se pudo identificar al conductor');
-                const driverId = meResponse.data.data._id;
+                const driverId = await sessionCache.getDriverId();
+                if (!driverId) throw new Error('No se pudo identificar al conductor');
 
                 const ridesResponse = await api.get(`/rides/driver/${driverId}?status=scheduled`);
                 const driverRides = ridesResponse.data.data || [];
@@ -147,6 +147,8 @@ const ListOfRequests = ({ route, navigation }) => {
             const res = await api.patch(`/bookings/${bookingId}/status`, { status: 'confirmed' });
             if (res.data.success) {
                 Alert.alert('Éxito', 'Has aceptado la solicitud.');
+                // Invalidar cache de viajes ya que cambiaron los asientos/estado
+                sessionCache.clearActiveRides();
                 // En lugar de filtrar, recargamos para actualizar el conteo de confirmados
                 fetchRequests();
             }
@@ -160,6 +162,8 @@ const ListOfRequests = ({ route, navigation }) => {
             const res = await api.patch(`/bookings/${bookingId}/status`, { status: 'deny' });
             if (res.data.success) {
                 Alert.alert('Solicitud rechazada', 'Se notificó al pasajero.');
+                // Invalidar cache de viajes ya que cambiaron los asientos/estado
+                sessionCache.clearActiveRides();
                 fetchRequests();
             }
         } catch (e) {
@@ -199,6 +203,8 @@ const ListOfRequests = ({ route, navigation }) => {
             // El ride está en 'scheduled' → lo iniciamos normalmente
             const res = await api.patch(`/rides/${specificRideId}/start`);
             if (res.data.success) {
+                // Invalidar cache de viajes ya que cambió a 'in progress'
+                sessionCache.clearActiveRides();
                 setStartRideVisible(false);
                 setTimeout(() => {
                     navigation.navigate('CurrentTrip', { rideId: specificRideId });
