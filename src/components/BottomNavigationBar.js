@@ -21,8 +21,8 @@ const NAV_ITEMS = [
         label: 'Tu viaje',
         activeIcon: 'car',
         inactiveIcon: 'car-outline',
-        // Se ilumina tanto en SearchRide como en ListOfDrivers, TripInProgress, ScreenSaver
-        screens: ['SearchRide', 'ListOfDrivers', 'TripInProgress', 'ScreenSaver'],
+        // Se ilumina tanto en SearchRide como en ListOfDrivers, TripInProgress, ScreenSaver, WaitingForTheStart
+        screens: ['SearchRide', 'ListOfDrivers', 'TripInProgress', 'ScreenSaver', 'WaitingForTheStart'],
         target: 'SearchRide',
     },
     {
@@ -87,7 +87,20 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                                     if (activeBooking.status === 'pending') {
                                         navigation.navigate('ScreenSaver', { bookingId: activeBooking._id });
                                     } else {
-                                        navigation.navigate('TripInProgress', { bookingId: activeBooking._id });
+                                        try {
+                                            const rideId = activeBooking.ride_id._id || activeBooking.ride_id;
+                                            const rideRes = await api.get(`/rides/${rideId}`);
+                                            const rideStatus = rideRes.data.data.status;
+                                            
+                                            if (rideStatus === 'scheduled') {
+                                                navigation.navigate('WaitingForTheStart', { bookingId: activeBooking._id });
+                                            } else {
+                                                navigation.navigate('TripInProgress', { bookingId: activeBooking._id });
+                                            }
+                                        } catch (e) {
+                                            console.error('Error fetching ride status in navbar:', e);
+                                            navigation.navigate('WaitingForTheStart', { bookingId: activeBooking._id });
+                                        }
                                     }
                                     return; // previene el navigation.navigate por defecto
                                 }

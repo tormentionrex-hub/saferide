@@ -30,9 +30,24 @@ const ScreenSaver = ({ route, navigation }) => {
                             ]);
                         } else if (newStatus === 'confirmed') {
                             clearInterval(intervalRef.current);
-                            Alert.alert('Bienvenido', 'Bienvenido a bordo', [
-                                { text: 'OK', onPress: () => navigation.navigate('TripInProgress', { bookingId }) }
-                            ]);
+                            try {
+                                const rideId = res.data.data.ride_id._id || res.data.data.ride_id;
+                                const rideRes = await api.get(`/rides/${rideId}`);
+                                const rideStatus = rideRes.data.data.status;
+                                
+                                if (rideStatus === 'scheduled') {
+                                    Alert.alert('Viaje Programado', 'Tu solicitud fue aceptada. Espera a que el conductor inicie el viaje.', [
+                                        { text: 'OK', onPress: () => navigation.navigate('WaitingForTheStart', { bookingId }) }
+                                    ]);
+                                } else {
+                                    Alert.alert('Bienvenido', 'Bienvenido a bordo', [
+                                        { text: 'OK', onPress: () => navigation.navigate('TripInProgress', { bookingId }) }
+                                    ]);
+                                }
+                            } catch (error) {
+                                console.error('Error getting ride status:', error);
+                                navigation.navigate('WaitingForTheStart', { bookingId });
+                            }
                         }
                     } else if (newStatus === 'confirmed' || newStatus === 'deny' || newStatus === 'cancelled') {
                         clearInterval(intervalRef.current);

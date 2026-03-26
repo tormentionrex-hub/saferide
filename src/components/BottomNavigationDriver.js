@@ -19,7 +19,7 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
         const routeName = state.routes[state.index].name;
         if (routeName === 'DashboardDriver') currentTab = 'Inicio';
         else if (routeName === 'PublishRide') currentTab = 'Viajes';
-        else if (routeName === 'ManageRides' || routeName === 'CurrentTrip') currentTab = 'Rutas';
+        else if (routeName === 'ManageRides' || routeName === 'CurrentTrip' || routeName === 'ListOfRequests') currentTab = 'Rutas';
         else if (routeName === 'DriverMetrics') currentTab = 'Stats';
     }
 

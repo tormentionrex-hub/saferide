@@ -33,6 +33,7 @@ import CustomizeApp from './src/screens/pasajero/CustomizeApp';
 import PaymentMethodScreen from './src/screens/pasajero/PaymentMethodScreen';
 import RideDetail from './src/screens/pasajero/RideDetail';
 import ScreenSaver from './src/screens/pasajero/ScreenSaver';
+import WaitingForTheStart from './src/screens/pasajero/WaitingForTheStart';
 import ListOfRequests from './src/screens/conductor/ListOfRequests';
 import TripInProgress from './src/screens/pasajero/TripInProgress';
 import CurrentTrip from './src/screens/conductor/CurrentTrip';
@@ -220,6 +221,14 @@ export default function App() {
           <Stack.Screen
             name="ScreenSaver"
             component={ScreenSaver}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_bottom'
+            }}
+          />
+          <Stack.Screen
+            name="WaitingForTheStart"
+            component={WaitingForTheStart}
             options={{
               headerShown: false,
               animation: 'slide_from_bottom'
