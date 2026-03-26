@@ -118,6 +118,17 @@ const ScreenSaver = ({ route, navigation }) => {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.surface }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
+            
+            {/* Header con botón Atrás */}
+            <View style={styles.header}>
+                <TouchableOpacity 
+                    style={styles.backButton} 
+                    onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
+                >
+                    <Ionicons name="arrow-back" size={26} color={theme.text} />
+                </TouchableOpacity>
+            </View>
+
             <View style={styles.content}>
                 <Ionicons name={icon} size={80} color={iconColor} />
                 <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
@@ -147,8 +158,17 @@ const ScreenSaver = ({ route, navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'center',
+        // justifyContent: 'center', // Removido para que el header esté arriba
         padding: 20,
+    },
+    header: {
+        position: 'absolute',
+        top: Platform.OS === 'ios' ? 60 : 40,
+        left: 20,
+        zIndex: 10,
+    },
+    backButton: {
+        padding: 8,
     },
     content: {
         flex: 1,
