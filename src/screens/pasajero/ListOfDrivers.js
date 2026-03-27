@@ -181,22 +181,32 @@ const ListOfDrivers = ({ route, navigation }) => {
         let filtered = ridesData.filter(ride => {
             if (!ride.fecha || !ride.hora) return false;
 
-            // Si venimos de una búsqueda, verificamos proximidad (5km de margen como extra)
             if (searchOrigin) {
-                // 1. Filtrado por cercanía al origen (máximo 2km de distancia)
-                const distO = getHaversineDistance(
-                    searchOrigin.lat, searchOrigin.lng,
-                    ride.origin.coordinates.lat, ride.origin.coordinates.lng
-                );
-                if (distO > 2) return false;
+                const oLat = ride.origin.coordinates.lat;
+                const oLng = ride.origin.coordinates.lng;
+                const dLat = ride.destination.coordinates.lat;
+                const dLng = ride.destination.coordinates.lng;
 
-                // 2. Filtrado por cercanía al destino (máximo 2km de distancia)
+                // 1. Origen del pasajero debe estar a ≤5km del segmento de ruta del conductor
+                const distO = pointToSegmentDistance(
+                    searchOrigin.lat, searchOrigin.lng,
+                    oLat, oLng, dLat, dLng
+                );
+                if (distO > 5) return false;
+
                 if (searchDestination) {
-                    const distD = getHaversineDistance(
+                    // 2. Destino del pasajero debe estar a ≤5km del segmento de ruta
+                    const distD = pointToSegmentDistance(
                         searchDestination.lat, searchDestination.lng,
-                        ride.destination.coordinates.lat, ride.destination.coordinates.lng
+                        oLat, oLng, dLat, dLng
                     );
-                    if (distD > 2) return false;
+                    if (distD > 5) return false;
+
+                    // 3. Check de dirección: el origen del pasajero debe proyectarse
+                    // antes que su destino a lo largo de la ruta del conductor
+                    const tO = projectionT(searchOrigin.lat, searchOrigin.lng, oLat, oLng, dLat, dLng);
+                    const tD = projectionT(searchDestination.lat, searchDestination.lng, oLat, oLng, dLat, dLng);
+                    if (tO >= tD) return false;
                 }
 
                 // 3. Ventana de tiempo (30 minutos antes hasta 3 horas después)
@@ -212,38 +222,21 @@ const ListOfDrivers = ({ route, navigation }) => {
             return true;
         });
 
-        // 2. Ordenar
+        // 2. Ordenar por proximidad al segmento de ruta
         if (searchOrigin && searchDestination) {
-            // Ordenar por suma de distancias (origen + destino) para encontrar el que mejor cuadre con la ruta completa
             filtered.sort((a, b) => {
-                const distA_O = getHaversineDistance(
-                    searchOrigin.lat, searchOrigin.lng,
-                    a.origin.coordinates.lat, a.origin.coordinates.lng
-                );
-                const distA_D = getHaversineDistance(
-                    searchDestination.lat, searchDestination.lng,
-                    a.destination.coordinates.lat, a.destination.coordinates.lng
-                );
-                const distB_O = getHaversineDistance(
-                    searchOrigin.lat, searchOrigin.lng,
-                    b.origin.coordinates.lat, b.origin.coordinates.lng
-                );
-                const distB_D = getHaversineDistance(
-                    searchDestination.lat, searchDestination.lng,
-                    b.destination.coordinates.lat, b.destination.coordinates.lng
-                );
-                return (distA_O + distA_D) - (distB_O + distB_D);
+                const segA = [a.origin.coordinates.lat, a.origin.coordinates.lng, a.destination.coordinates.lat, a.destination.coordinates.lng];
+                const segB = [b.origin.coordinates.lat, b.origin.coordinates.lng, b.destination.coordinates.lat, b.destination.coordinates.lng];
+                const scoreA = pointToSegmentDistance(searchOrigin.lat, searchOrigin.lng, ...segA)
+                             + pointToSegmentDistance(searchDestination.lat, searchDestination.lng, ...segA);
+                const scoreB = pointToSegmentDistance(searchOrigin.lat, searchOrigin.lng, ...segB)
+                             + pointToSegmentDistance(searchDestination.lat, searchDestination.lng, ...segB);
+                return scoreA - scoreB;
             });
         } else if (searchOrigin) {
             filtered.sort((a, b) => {
-                const distA = getHaversineDistance(
-                    searchOrigin.lat, searchOrigin.lng,
-                    a.origin.coordinates.lat, a.origin.coordinates.lng
-                );
-                const distB = getHaversineDistance(
-                    searchOrigin.lat, searchOrigin.lng,
-                    b.origin.coordinates.lat, b.origin.coordinates.lng
-                );
+                const distA = pointToSegmentDistance(searchOrigin.lat, searchOrigin.lng, a.origin.coordinates.lat, a.origin.coordinates.lng, a.destination.coordinates.lat, a.destination.coordinates.lng);
+                const distB = pointToSegmentDistance(searchOrigin.lat, searchOrigin.lng, b.origin.coordinates.lat, b.origin.coordinates.lng, b.destination.coordinates.lat, b.destination.coordinates.lng);
                 return distA - distB;
             });
         } else {
