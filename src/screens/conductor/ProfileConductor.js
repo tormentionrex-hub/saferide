@@ -26,6 +26,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import { uploadToCloudinary } from '../../Cloudinary/Cloudinary';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import StarRating from '../../components/StarRating';
+import { useCustomAlert } from '../../context/CustomAlertContext';
 
 const COMPANIES = [
     'Intel', 'Cargill', 'Deloitte', 'Citi', 'Experian',
@@ -80,6 +81,8 @@ const ProfileConductor = ({ navigation, route }) => {
     const [editVehicleForm, setEditVehicleForm] = useState({
         brand: '', model: '', year: '', color: '', licensePlate: ''
     });
+
+    const { showAlert } = useCustomAlert();
 
     const loadProfile = async () => {
         try {
@@ -155,28 +158,28 @@ const ProfileConductor = ({ navigation, route }) => {
                 (editForm.profileImage !== userData.profileImage && editForm.profileImage !== null);
 
             if (!Changes) {
-                Alert.alert('No hay cambios', 'No has realizado ningún cambio para actualizar.');
+                showAlert('No hay cambios', 'No has realizado ningún cambio para actualizar.', 'info');
                 setUpdating(false);
                 return;
             }
 
             // 2. Validar campos obligatorios
             if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.company.trim()) {
-                Alert.alert('Datos incompletos', 'Todos los campos son obligatorios para actualizar tu perfil.');
+                showAlert('Datos incompletos', 'Todos los campos son obligatorios para actualizar tu perfil.', 'warning');
                 setUpdating(false);
                 return;
             }
 
             // 3. Validar formato de nombre
             if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$/.test(editForm.name.trim())) {
-                Alert.alert('Formato Inválido', 'El nombre solo puede contener letras y espacios.');
+                showAlert('Formato Inválido', 'El nombre solo puede contener letras y espacios.', 'error');
                 setUpdating(false);
                 return;
             }
 
             // 4. Validar formato de teléfono
             if (!/^\d{8}$/.test(editForm.phone)) {
-                Alert.alert('Formato Inválido', 'El número de teléfono debe tener exactamente 8 dígitos.');
+                showAlert('Formato Inválido', 'El número de teléfono debe tener exactamente 8 dígitos.', 'error');
                 setUpdating(false);
                 return;
             }
@@ -202,13 +205,13 @@ const ProfileConductor = ({ navigation, route }) => {
                 company: editForm.company,
                 profileImage: profileImageUrl,
             });
-            Alert.alert('¡Listo!', 'Perfil actualizado correctamente');
+            showAlert('¡Listo!', 'Perfil actualizado correctamente', 'success');
             setModalVisible(false);
             loadProfile();
 
         } catch (error) {
             console.error('Error al actualizar perfil:', error);
-            Alert.alert('Error', 'No se pudo actualizar el perfil. Revisa tu conexión.');
+            showAlert('Error', 'No se pudo actualizar el perfil. Revisa tu conexión.', 'error');
         } finally {
             setUpdating(false);
         }
@@ -226,14 +229,14 @@ const ProfileConductor = ({ navigation, route }) => {
                 editVehicleForm.color !== vehicleData.color;
 
             if (!hasChanges) {
-                Alert.alert('No hay cambios', 'No has realizado ningún cambio en los datos del vehículo.');
+                showAlert('No hay cambios', 'No has realizado ningún cambio en los datos del vehículo.', 'info');
                 setUpdating(false);
                 return;
             }
 
             // 2. Validar que tengamos datos mínimos
             if (!editVehicleForm.brand || !editVehicleForm.model || !editVehicleForm.year || !editVehicleForm.color) {
-                Alert.alert('Datos incompletos', 'Por favor selecciona marca, modelo, año y color.');
+                showAlert('Datos incompletos', 'Por favor selecciona marca, modelo, año y color.', 'warning');
                 setUpdating(false);
                 return;
             }
@@ -247,13 +250,13 @@ const ProfileConductor = ({ navigation, route }) => {
                 color: editVehicleForm.color,
             });
 
-            Alert.alert('¡Listo!', 'Información del vehículo actualizada');
+            showAlert('¡Listo!', 'Información del vehículo actualizada', 'success');
             setVehicleModalVisible(false);
             loadProfile(); // Recargamos para refrescar la vista principal
         } catch (error) {
             console.error('Error al actualizar vehículo:', error);
             const msg = error.response?.data?.message || 'No se pudo actualizar el vehículo.';
-            Alert.alert('Error', msg);
+            showAlert('Error', msg, 'error');
         } finally {
             setUpdating(false);
         }
