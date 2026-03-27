@@ -442,14 +442,16 @@ const ProfileConductor = ({ navigation, route }) => {
                             <Text style={styles.editBtnText}>Editar perfil</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={[styles.editBtn, { backgroundColor: theme.accent }]}
-                            onPress={() => setVehicleModalVisible(true)}
-                            activeOpacity={0.85}
-                        >
-                            <Ionicons name="create-outline" size={20} color="#FFF" />
-                            <Text style={styles.editBtnText}>Actualizar Información del Vehículo</Text>
-                        </TouchableOpacity>
+                        {vehicleData && (
+                            <TouchableOpacity
+                                style={[styles.editBtn, { backgroundColor: theme.accent }]}
+                                onPress={() => setVehicleModalVisible(true)}
+                                activeOpacity={0.85}
+                            >
+                                <Ionicons name="create-outline" size={20} color="#FFF" />
+                                <Text style={styles.editBtnText}>Actualizar Información del Vehículo</Text>
+                            </TouchableOpacity>
+                        )}
 
 
 
