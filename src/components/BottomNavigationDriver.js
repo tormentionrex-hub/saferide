@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Animated as RNAnimated, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,34 +24,30 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
         else if (routeName === 'PreviousTrips') currentTab = 'History';
     }
 
-    useEffect(() => {
-        const checkVehicle = async () => {
-            try {
-                const hasVehicle = await sessionCache.getVehicleStatus();
-                setHasVehicleRegistered(hasVehicle);
-            } catch (e) {
-                console.error('[BottomNav] Error in vehicle check:', e);
-                setHasVehicleRegistered(false);
-            } finally {
-                setLoadingVehicle(false);
-            }
-        };
-
-        checkVehicle();
-
-        // Re-verificar cuando el tab navigator vuelve a recibir foco
-        // (ej: el usuario regresa desde RegisterVehicle al Dashboard)
-        const unsubscribe = navigation.addListener('focus', async () => {
-            try {
-                const hasVehicle = await sessionCache.getVehicleStatus();
-                setHasVehicleRegistered(hasVehicle);
-            } catch (e) {
-                setHasVehicleRegistered(false);
-            }
-        });
-
-        return unsubscribe;
-    }, [navigation]);
+    // Re-verificar estado del vehículo cada vez que el tab navigator recibe foco.
+    // useFocusEffect garantiza que se ejecute también cuando hacemos navigation.reset().
+    useFocusEffect(
+        useCallback(() => {
+            let active = true;
+            const checkVehicle = async () => {
+                try {
+                    setLoadingVehicle(true);
+                    // force=true para ignorar el caché y siempre consultar el API
+                    const hasVehicle = await sessionCache.getVehicleStatus(true);
+                    if (active) {
+                        setHasVehicleRegistered(hasVehicle);
+                    }
+                } catch (e) {
+                    console.error('[BottomNav] Error in vehicle check:', e);
+                    if (active) setHasVehicleRegistered(false);
+                } finally {
+                    if (active) setLoadingVehicle(false);
+                }
+            };
+            checkVehicle();
+            return () => { active = false; };
+        }, [])
+    );
 
     const getColor = (tabName) => currentTab === tabName ? theme.navActive : theme.navInactive;
 

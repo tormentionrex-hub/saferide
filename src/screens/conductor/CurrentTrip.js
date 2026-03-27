@@ -4,6 +4,95 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
 import MapView, { Marker, Polyline } from 'react-native-maps';
+
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBjX1C4jk1I2E5MB2FnABjTZC0uXt0ullA';
+
+const FinalizeTripModal = ({ visible, onConfirm, onCancel, theme, loading }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    return (
+        <Modal transparent visible={visible} animationType="none" onRequestClose={onCancel}>
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#FEE2E2' }]}>
+                        <Ionicons name="flag" size={44} color="#EF4444" />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>Finalizar viaje</Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        ¿Estás seguro de que has llegado al destino? Esta acción concluirá el viaje actual y notificará a los pasajeros.
+                    </Text>
+                    
+                    <View style={{ width: '100%', gap: 12 }}>
+                        <TouchableOpacity 
+                            style={[modalStyles.confirmBtn, { backgroundColor: '#EF4444' }, loading && { opacity: 0.7 }]} 
+                            onPress={onConfirm}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <>
+                                    <Text style={modalStyles.confirmBtnText}>Sí, he llegado al destino</Text>
+                                    <MaterialCommunityIcons name="logout" size={18} color="#fff" />
+                                </>
+                            )}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={[modalStyles.cancelBtn, { borderColor: theme.border }]} 
+                            onPress={onCancel}
+                            disabled={loading}
+                        >
+                            <Text style={[modalStyles.cancelBtnText, { color: theme.textSecondary }]}>Aún no, volver</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
+const decodePolyline = (encoded) => {
+    const points = [];
+    let index = 0, lat = 0, lng = 0;
+    while (index < encoded.length) {
+        let shift = 0, result = 0, byte;
+        do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+        lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+        shift = 0; result = 0;
+        do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+        lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+        points.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
+    }
+    return points;
+};
+
+const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
+    try {
+        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLng}&destination=${destLat},${destLng}&key=${GOOGLE_MAPS_API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.status === 'OK' && data.routes?.length > 0) {
+            return decodePolyline(data.routes[0].overview_polyline.points);
+        }
+    } catch (e) {
+        console.log('[CurrentTrip] Error obteniendo ruta:', e.message);
+    }
+    return null;
+};
 import { useLocationTracker } from '../../hooks/useLocationTracker';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
@@ -23,6 +112,10 @@ const TripInProgressDriver = ({ route, navigation }) => {
     const [loading, setLoading] = useState(true);
     const [bookingData, setBookingData] = useState(null);
     const [rideData, setRideData] = useState(null);
+    const [routeCoords, setRouteCoords] = useState(null);
+    const [finishModalVisible, setFinishModalVisible] = useState(false);
+    const [finishingTrip, setFinishingTrip] = useState(false);
+    const routeFetched = useRef(false);
 
     // Cargamos tanto el ride como el primer booking confirmado del viaje
     useEffect(() => {
@@ -36,7 +129,17 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 // 1. Traemos los datos del ride (origen, destino, etc.)
                 const rideRes = await api.get(`/rides/${rideId}`);
                 if (rideRes.data?.success) {
-                    setRideData(rideRes.data.data);
+                    const ride = rideRes.data.data;
+                    setRideData(ride);
+
+                    // Cargamos la ruta real por carretera una sola vez
+                    const oc = ride?.origin?.coordinates;
+                    const dc = ride?.destination?.coordinates;
+                    if (!routeFetched.current && oc?.lat && dc?.lat) {
+                        routeFetched.current = true;
+                        fetchRoutePolyline(Number(oc.lat), Number(oc.lng), Number(dc.lat), Number(dc.lng))
+                            .then(coords => { if (coords) setRouteCoords(coords); });
+                    }
                 }
 
                 // 2. Traemos los bookings confirmados de este ride para mostrar al pasajero
@@ -55,11 +158,60 @@ const TripInProgressDriver = ({ route, navigation }) => {
         };
 
         fetchTripDetails();
-        intervalId = setInterval(fetchTripDetails, 30000); // 30s para no saturar el rate limiter del backend
+        intervalId = setInterval(fetchTripDetails, 30000);
         return () => {
             if (intervalId) clearInterval(intervalId);
         };
     }, [rideId]);
+
+    const confirmFinalize = async () => {
+        try {
+            setFinishingTrip(true);
+            // 1. Consultamos el estado actual del ride antes de actuar
+            const rideCheck = await api.get(`/rides/${rideId}`);
+            const currentStatus = rideCheck.data?.data?.status;
+
+            if (currentStatus === 'completed') {
+                setFinishModalVisible(false);
+                navigation.replace('RatePassenger', {
+                    rideId,
+                    passengerId: bookingData?.passenger_id?._id?.toString() || bookingData?.passenger_id?.toString(),
+                    passengerName: bookingData?.passenger_id?.name,
+                    passengerImage: bookingData?.passenger_id?.profileImage,
+                });
+                return;
+            }
+
+            if (currentStatus === 'scheduled') {
+                // Nunca se marcó 'in progress', lo iniciamos primero
+                await api.patch(`/rides/${rideId}/start`);
+            }
+
+            // 2. Ahora lo completamos (garantizado en 'in progress')
+            const res = await api.patch(`/rides/${rideId}/complete`);
+            
+            if (res.data?.success) {
+                setFinishModalVisible(false);
+                navigation.replace('RatePassenger', {
+                    rideId,
+                    passengerId: bookingData?.passenger_id?._id?.toString() || bookingData?.passenger_id?.toString(),
+                    passengerName: bookingData?.passenger_id?.name,
+                    passengerImage: bookingData?.passenger_id?.profileImage,
+                });
+            } else {
+                setFinishModalVisible(false);
+                Alert.alert('Error', res.data?.message || 'No se pudo finalizar el viaje.');
+            }
+        } catch (error) {
+            setFinishModalVisible(false);
+            // Mostramos el mensaje real del servidor para facilitar el debug
+            const serverMsg = error.response?.data?.message || error.message || 'Error desconocido';
+            console.error('Error finalizing trip:', serverMsg, error.response?.status);
+            Alert.alert('Error al finalizar', serverMsg);
+        } finally {
+            setFinishingTrip(false);
+        }
+    };
 
     const handleFinalizeTrip = () => {
         showAlert(
@@ -299,6 +451,14 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 navigation={navigation}
                 activeTab="Rutas"
             />
+
+            <FinalizeTripModal 
+                visible={finishModalVisible}
+                onConfirm={confirmFinalize}
+                onCancel={() => setFinishModalVisible(false)}
+                theme={theme}
+                loading={finishingTrip}
+            />
         </SafeAreaView>
     );
 };
@@ -374,6 +534,18 @@ const styles = StyleSheet.create({
         marginTop: 10
     },
     finishButtonText: { color: '#FFF', fontSize: 18, fontWeight: '700', marginLeft: 10 }
+});
+
+const modalStyles = StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 25 },
+    card: { width: '100%', borderRadius: 30, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 15 },
+    iconCircle: { width: 90, height: 90, borderRadius: 45, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+    title: { fontSize: 24, fontWeight: '800', marginBottom: 10, textAlign: 'center' },
+    subtitle: { fontSize: 15, textAlign: 'center', marginBottom: 25, lineHeight: 22 },
+    confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', paddingVertical: 16, borderRadius: 16, elevation: 2 },
+    confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    cancelBtn: { width: '100%', paddingVertical: 16, borderRadius: 16, alignItems: 'center', borderWidth: 1, marginTop: 4 },
+    cancelBtnText: { fontSize: 16, fontWeight: '600' },
 });
 
 export default TripInProgressDriver;

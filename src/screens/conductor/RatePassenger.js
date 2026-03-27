@@ -13,10 +13,10 @@ const RatePassenger = ({ route, navigation }) => {
             personRole="Pasajero"
             title="Por favor califique su experiencia"
             subtitle="Calificar al pasajero"
-            accentColor="#EF5350"
-            badgeColor={{ bg: '#E8F5E9', icon: '#4CAF50' }}
-            onSuccess={() => navigation.navigate('MainTabsDriver')}
-            onSkip={() => navigation.navigate('MainTabsDriver')}
+            accentColor="#1976D2"
+            badgeColor={{ bg: '#E3F2FD', icon: '#1976D2' }}
+            onSuccess={() => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })}
+            onSkip={() => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })}
         />
     );
 };

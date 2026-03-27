@@ -156,34 +156,33 @@ const RideDetail = ({ route, navigation }) => {
                     <View style={styles.priceTag}>
                         <Text style={styles.priceValue}>₡{ride.price}</Text>
                     </View>
-                </View>
 
-                <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+                    <View style={[styles.divider, { backgroundColor: theme.divider }]} />
 
-                {/* Ruta Detallada */}
-                <View style={styles.routeBox}>
-                    <View style={styles.iconColumn}>
-                        <Ionicons name="radio-button-on" size={16} color={theme.accent} />
-                        <View style={[styles.dotLine, { backgroundColor: theme.divider }]} />
-                        <Ionicons name="location" size={16} color="#FF5A5F" />
+                    {/* Ruta Detallada */}
+                    <View style={styles.routeBox}>
+                        <View style={styles.iconColumn}>
+                            <Ionicons name="radio-button-on" size={16} color={theme.accent} />
+                            <View style={[styles.dotLine, { backgroundColor: theme.divider }]} />
+                            <Ionicons name="location" size={16} color="#FF5A5F" />
+                        </View>
+                        <View style={styles.textColumn}>
+                            <Text style={[styles.locationText, { color: theme.text }]} numberOfLines={1}>{origin.name}</Text>
+                            <Text style={[styles.locationText, { color: theme.text, marginTop: 15 }]} numberOfLines={1}>{dest.name}</Text>
+                        </View>
                     </View>
-                    <View style={styles.textColumn}>
-                        <Text style={[styles.locationText, { color: theme.text }]} numberOfLines={1}>{origin.name}</Text>
-                        <Text style={[styles.locationText, { color: theme.text, marginTop: 15 }]} numberOfLines={1}>{dest.name}</Text>
-                    </View>
-                </View>
 
-                {/* Métricas del Viaje */}
-                <View style={styles.statsRow}>
-                    <View style={[styles.statItem, { backgroundColor: theme.surfaceVariant }]}>
-                        <Ionicons name="people-outline" size={18} color={theme.accent} />
-                        <Text style={[styles.statText, { color: theme.text }]}>{ride.available_seats} asientos</Text>
+                    {/* Métricas del Viaje */}
+                    <View style={styles.statsRow}>
+                        <View style={[styles.statItem, { backgroundColor: theme.surfaceVariant }]}>
+                            <Ionicons name="people-outline" size={18} color={theme.accent} />
+                            <Text style={[styles.statText, { color: theme.text }]}>{ride.available_seats} asientos</Text>
+                        </View>
+                        <View style={[styles.statItem, { backgroundColor: theme.surfaceVariant }]}>
+                            <Ionicons name="time-outline" size={18} color={theme.accent} />
+                            <Text style={[styles.statText, { color: theme.text }]}>{ride.duration_minutes} min</Text>
+                        </View>
                     </View>
-                    <View style={[styles.statItem, { backgroundColor: theme.surfaceVariant }]}>
-                        <Ionicons name="time-outline" size={18} color={theme.accent} />
-                        <Text style={[styles.statText, { color: theme.text }]}>{ride.duration_minutes} min</Text>
-                    </View>
-                </View>
 
                 {/* Botón de Acción Principal */}
                 <TouchableOpacity
@@ -230,6 +229,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 0,
         width: '100%',
+        maxHeight: height * 0.6,
         paddingHorizontal: 25,
         paddingTop: 12,
         paddingBottom: Platform.OS === 'ios' ? 45 : 30,

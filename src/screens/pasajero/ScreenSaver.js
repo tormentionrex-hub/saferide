@@ -185,6 +185,48 @@ const ScheduledModal = ({ visible, onConfirm, theme, type }) => {
         </Modal>
     );
 };
+
+const TimeoutModal = ({ visible, onConfirm, theme }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    return (
+        <Modal transparent visible={visible} animationType="none">
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#FFF7ED' }]}>
+                        <Ionicons name="hourglass-outline" size={50} color="#F97316" />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>Tiempo Agotado</Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        El conductor no respondió a tiempo y la solicitud fue cancelada automáticamente para liberar tu cupo.
+                    </Text>
+                    <TouchableOpacity 
+                        style={[modalStyles.confirmBtn, { backgroundColor: '#F97316' }]} 
+                        onPress={onConfirm}
+                    >
+                        <Text style={modalStyles.confirmBtnText}>Entendido</Text>
+                        <Ionicons name="search" size={18} color="#fff" />
+                    </TouchableOpacity>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
+/* ─── Pantalla ScreenSaver ────────────────────────────────────────── */
 const ScreenSaver = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const bookingId = route.params?.bookingId;
@@ -193,6 +235,7 @@ const ScreenSaver = ({ route, navigation }) => {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [showScheduledModal, setShowScheduledModal] = useState(false);
+    const [showTimeoutModal, setShowTimeoutModal] = useState(false);
     const [modalType, setModalType] = useState('scheduled'); // 'scheduled' or 'in-progress'
     const [isCancellingLocally, setIsCancellingLocally] = useState(false);
     const intervalRef = useRef(null);
@@ -232,8 +275,26 @@ const ScreenSaver = ({ route, navigation }) => {
                                 navigation.navigate('WaitingForTheStart', { bookingId });
                             }
                         }
+                    } else if (newStatus === 'pending') {
+                        // AUTO CANCEL OUTDATED PENDING
+                        const lastUpdate = res.data.data.updatedAt || res.data.data.createdAt || res.data.data.timestamp;
+                        const timeDiff = Date.now() - new Date(lastUpdate).getTime();
+                        
+                        if (lastUpdate && timeDiff > 2 * 60 * 1000) {
+                            clearInterval(intervalRef.current);
+                            try {
+                                // Borramos el booking para que el usuario pueda intentar de nuevo
+                                await api.delete(`/bookings/${bookingId}`);
+                            } catch (err) {
+                                console.error('Error deleting timed out booking:', err);
+                            }
+                            setStatus('timeout');
+                            setShowTimeoutModal(true);
+                        }
                     } else if (newStatus === 'confirmed' || newStatus === 'deny' || newStatus === 'cancelled') {
                         clearInterval(intervalRef.current);
+                        setStatus(newStatus);
+                        if (newStatus === 'deny') setShowRejectionModal(true);
                     } else {
                         setStatus(newStatus);
                     }
@@ -330,16 +391,18 @@ const ScreenSaver = ({ route, navigation }) => {
             </View>
             <View style={styles.buttonContainer}>
                 <TouchableOpacity
-                    style={[styles.cancelButton, { borderColor: '#E74C3C' }]}
-                    onPress={handleCancel}
-                >
-                    <Text style={[styles.cancelButtonText, { color: '#E74C3C' }]}>Cancelar Reservación</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
                     style={[styles.button, { backgroundColor: theme.accent }]}
                     onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
                 >
+                    <Ionicons name="home-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
                     <Text style={styles.buttonText}>Volver al Inicio</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.cancelButton, { borderColor: '#E74C3C' }]}
+                    onPress={handleCancel}
+                >
+                    <Ionicons name="close-circle-outline" size={18} color="#E74C3C" style={{ marginRight: 8 }} />
+                    <Text style={[styles.cancelButtonText, { color: '#E74C3C' }]}>Cancelar Reservación</Text>
                 </TouchableOpacity>
             </View>
 
@@ -385,6 +448,15 @@ const ScreenSaver = ({ route, navigation }) => {
                 }}
             />
 
+            <TimeoutModal 
+                visible={showTimeoutModal}
+                theme={theme}
+                onConfirm={() => {
+                    setShowTimeoutModal(false);
+                    navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
+                }}
+            />
+
             <BottomNavigationBar navigation={navigation} />
         </SafeAreaView>
     );
@@ -422,20 +494,26 @@ const styles = StyleSheet.create({
         lineHeight: 22,
     },
     buttonContainer: {
-        gap: 10,
-        marginBottom: 105, // Aumentado para dejar espacio al BottomNavigationBar
+        gap: 12,
+        marginBottom: 105,
         marginHorizontal: 20,
     },
     button: {
-        paddingVertical: 15,
-        borderRadius: 10,
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 14,
         alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
     },
     cancelButton: {
-        paddingVertical: 15,
-        borderRadius: 10,
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 14,
         alignItems: 'center',
-        borderWidth: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        borderWidth: 1.5,
         backgroundColor: 'transparent',
     },
     buttonText: {

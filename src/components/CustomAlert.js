@@ -73,6 +73,7 @@ const CustomAlert = ({
             case 'success': return { name: 'checkmark-circle', color: '#00C851' };
             case 'error': return { name: 'alert-circle', color: theme.danger || '#ff4444' };
             case 'warning': return { name: 'warning', color: '#FFBB33' };
+            case 'confirm': return { name: 'help-circle', color: theme.danger || '#ff4444' };
             case 'info': return { name: 'information-circle', color: theme.accent || '#33b5e5' };
             default: return { name: 'help-circle', color: theme.accent };
         }
@@ -200,8 +201,13 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 22,
     },
-    button: {
+    buttonRow: {
+        flexDirection: 'row',
         width: '100%',
+        gap: 12,
+    },
+    button: {
+        flex: 1,
         height: 54,
         borderRadius: 16,
         justifyContent: 'center',
@@ -233,6 +239,11 @@ const styles = StyleSheet.create({
     buttonText: {
         color: '#FFF',
         fontSize: 15,
+        fontFamily: 'Poppins-SemiBold',
+        fontWeight: '600',
+    },
+    secondaryButtonText: {
+        fontSize: 16,
         fontFamily: 'Poppins-SemiBold',
         fontWeight: '600',
     },

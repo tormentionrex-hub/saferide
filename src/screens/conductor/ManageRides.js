@@ -132,6 +132,45 @@ const CancelModal = ({ visible, ride, onClose, onConfirm, cancelling }) => {
     );
 };
 
+/* ─── Modal de Éxito de Cancelación ───────────────────────────────── */
+const SuccessCancelModal = ({ visible, onClose }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    return (
+        <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
+            <View style={modal.overlay}>
+                <Animated.View style={[modal.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }] }]}>
+                    <View style={[modal.iconCircle, { backgroundColor: '#ECFDF5' }]}>
+                        <Ionicons name="checkmark-circle" size={44} color="#10B981" />
+                    </View>
+                    <Text style={modal.title}>Viaje cancelado</Text>
+                    <Text style={[modal.subtitle, { marginBottom: 25 }]}>
+                        El viaje fue cancelado exitosamente y los pasajeros han sido notificados.
+                    </Text>
+                    <View style={modal.buttonsCol}>
+                        <TouchableOpacity style={[modal.btnDestructive, { backgroundColor: '#10B981' }]} onPress={onClose}>
+                            <Text style={modal.btnDestructiveText}>Entendido</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
 /* ─── Pantalla principal ──────────────────────────────────────────── */
 const ManageRides = ({ navigation }) => {
     const { theme } = useDriverTheme();
@@ -140,6 +179,7 @@ const ManageRides = ({ navigation }) => {
     const [cancellingId, setCancellingId] = useState(null);
     const [selectedRide, setSelectedRide] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
+    const [successModalVisible, setSuccessModalVisible] = useState(false);
 
     const fetchRides = async () => {
         try {
@@ -184,7 +224,7 @@ const ManageRides = ({ navigation }) => {
 
             setModalVisible(false);
             setSelectedRide(null);
-            Alert.alert('✅ Viaje cancelado', 'El viaje fue cancelado y los pasajeros fueron notificados.');
+            setSuccessModalVisible(true);
         } catch (error) {
             console.error('Error cancelando viaje:', error);
             Alert.alert('Error', 'No se pudo cancelar el viaje. Inténtalo de nuevo.');
@@ -321,6 +361,11 @@ const ManageRides = ({ navigation }) => {
                 onClose={() => { setModalVisible(false); setSelectedRide(null); }}
                 onConfirm={handleModalConfirm}
                 cancelling={!!cancellingId}
+            />
+
+            <SuccessCancelModal 
+                visible={successModalVisible}
+                onClose={() => setSuccessModalVisible(false)}
             />
         </SafeAreaView>
     );

@@ -2,12 +2,13 @@ import React, { useState, useRef } from 'react';
 import {
     View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
     TextInput, Alert, ActivityIndicator, ScrollView, Image,
-    StatusBar, Platform, Animated,
+    StatusBar, Platform, Animated, Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
 import StarRating from '../../components/StarRating';
+import TripCompletedOverlay from '../../components/TripCompletedOverlay';
 
 const RATING_LABELS = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'];
 
@@ -47,9 +48,20 @@ const RatingScreen = ({
     const [loading, setLoading] = useState(false);
     const [submitError, setSubmitError] = useState(null);
     const [isFocused, setIsFocused] = useState(false);
-    
+    const [showSuccess, setShowSuccess] = useState(false);
+
     // Animación para el label de rating
     const labelAnim = useRef(new Animated.Value(0)).current;
+
+    // Animaciones del modal de éxito
+    const checkScale = useRef(new Animated.Value(0)).current;
+    const checkOpacity = useRef(new Animated.Value(0)).current;
+    const textOpacity = useRef(new Animated.Value(0)).current;
+
+    const triggerSuccessModal = (callback) => {
+        setShowSuccess(true);
+        // El auto-navegado ahora lo maneja el componente TripCompletedOverlay a través de su prop onFinish
+    };
 
     const handleRatingChange = (newRating) => {
         setRating(newRating);
@@ -84,11 +96,7 @@ const RatingScreen = ({
         try {
             console.log('[DEBUG] Enviando reseña a /reviews/direct-submit con payload:', payload);
             const response = await api.post('/reviews/direct-submit', payload);
-            Alert.alert(
-                '¡Excelente!',
-                `Ya se ha calificado al ${personRole.toLowerCase()} correctamente. Puedes volver al inicio.`,
-                [{ text: 'Volver al Inicio', onPress: onSuccess }]
-            );
+            triggerSuccessModal(onSuccess);
         } catch (error) {
             console.error('Error al enviar reseña:', error.response?.data || error.message);
             const errorMessage = error.response?.data?.message || 'No se pudo enviar la calificación';
@@ -101,6 +109,16 @@ const RatingScreen = ({
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
+
+            {/* Modal de éxito animado y premium */}
+            <TripCompletedOverlay 
+                visible={showSuccess}
+                theme={theme}
+                onFinish={() => {
+                    setShowSuccess(false);
+                    onSuccess();
+                }}
+            />
 
             <ScrollView
                 contentContainerStyle={styles.content}
@@ -201,7 +219,10 @@ const RatingScreen = ({
                     )}
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.skipBtn} onPress={onSkip}>
+                <TouchableOpacity 
+                    style={styles.skipBtn} 
+                    onPress={() => triggerSuccessModal(onSkip)}
+                >
                     <Text style={[styles.skipBtnText, { color: theme.textSecondary }]}>
                         Omitir
                     </Text>
@@ -323,6 +344,52 @@ const styles = StyleSheet.create({
     skipBtnText: {
         fontSize: 15,
         fontWeight: '500',
+    },
+    successOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    successCard: {
+        backgroundColor: '#FFF',
+        borderRadius: 28,
+        paddingVertical: 44,
+        paddingHorizontal: 36,
+        alignItems: 'center',
+        width: '78%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 20,
+        elevation: 12,
+    },
+    successCircle: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 28,
+    },
+    successCircleInner: {
+        width: 88,
+        height: 88,
+        borderRadius: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    successTitle: {
+        fontSize: 26,
+        fontWeight: '800',
+        color: '#1A1A1A',
+        marginBottom: 10,
+    },
+    successMessage: {
+        fontSize: 15,
+        color: '#666',
+        textAlign: 'center',
+        lineHeight: 22,
     },
 });
 

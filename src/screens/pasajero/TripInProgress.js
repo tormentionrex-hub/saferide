@@ -7,6 +7,92 @@ import api from '../../services/api';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBjX1C4jk1I2E5MB2FnABjTZC0uXt0ullA';
+
+// Decodifica el polyline codificado de Google Maps en array de coordenadas
+const decodePolyline = (encoded) => {
+    const points = [];
+    let index = 0, lat = 0, lng = 0;
+    while (index < encoded.length) {
+        let shift = 0, result = 0, byte;
+        do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+        lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+        shift = 0; result = 0;
+        do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+        lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+        points.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
+    }
+    return points;
+};
+
+// Obtiene la ruta real entre dos puntos usando Google Directions API
+const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
+    try {
+        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLng}&destination=${destLat},${destLng}&key=${GOOGLE_MAPS_API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.status === 'OK' && data.routes?.length > 0) {
+            return decodePolyline(data.routes[0].overview_polyline.points);
+        }
+    } catch (e) {
+        console.log('[TripInProgress] Error obteniendo ruta:', e.message);
+    }
+    return null;
+};
+
+/* ─── Modal de Estado Final del Viaje ─────────────────────────────── */
+const TripStatusModal = ({ visible, status, onConfirm, theme }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    const isCompleted = status === 'completed';
+
+    return (
+        <Modal transparent visible={visible} animationType="none">
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: isCompleted ? '#ECFDF5' : '#FEF2F2' }]}>
+                        <Ionicons 
+                            name={isCompleted ? "checkmark-circle" : "alert-circle"} 
+                            size={50} 
+                            color={isCompleted ? "#10B981" : "#EF4444"} 
+                        />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>
+                        {isCompleted ? '¡Viaje Finalizado!' : 'Viaje Interrumpido'}
+                    </Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        {isCompleted 
+                            ? 'Has llegado a tu destino. Esperamos que hayas tenido un excelente viaje.'
+                            : 'Lo sentimos, el viaje ha sido cancelado o rechazado por el conductor.'}
+                    </Text>
+                    <TouchableOpacity 
+                        style={[modalStyles.confirmBtn, { backgroundColor: isCompleted ? '#10B981' : '#EF4444' }]} 
+                        onPress={onConfirm}
+                    >
+                        <Text style={modalStyles.confirmBtnText}>
+                            {isCompleted ? 'Calificar Conductor' : 'Buscar otro viaje'}
+                        </Text>
+                        <Ionicons name={isCompleted ? "star" : "search"} size={18} color="#fff" />
+                    </TouchableOpacity>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
 const TripInProgress = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const { showAlert } = useCustomAlert();
@@ -24,6 +110,9 @@ const TripInProgress = ({ route, navigation }) => {
     const [resolvedBookingId, setResolvedBookingId] = useState(bookingId || null);
     const [noActiveTrip, setNoActiveTrip] = useState(false);
     const [driverLocation, setDriverLocation] = useState(null);
+    const [routeCoords, setRouteCoords] = useState(null);
+    const [statusModalVisible, setStatusModalVisible] = useState(false);
+    const [finalStatus, setFinalStatus] = useState(null);
 
     // Si no hay bookingId en params, buscamos automáticamente el booking activo del usuario
     useEffect(() => {
@@ -144,6 +233,16 @@ const TripInProgress = ({ route, navigation }) => {
         // Cada 10 segundos actualizamos la ubicación del conductor
         locationInterval = setInterval(fetchDriverLocation, 10000);
 
+        // Cargamos la ruta real por carretera una sola vez cuando llegan las coordenadas
+        const originCoords = bookingData.ride_id?.origin?.coordinates;
+        const destCoords = bookingData.ride_id?.destination?.coordinates;
+        if (!routeCoords && originCoords?.lat && destCoords?.lat) {
+            fetchRoutePolyline(
+                Number(originCoords.lat), Number(originCoords.lng),
+                Number(destCoords.lat), Number(destCoords.lng)
+            ).then(coords => { if (coords) setRouteCoords(coords); });
+        }
+
         return () => {
             if (locationInterval) clearInterval(locationInterval);
         };
@@ -210,8 +309,6 @@ const TripInProgress = ({ route, navigation }) => {
                         <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Buscar viaje</Text>
                     </TouchableOpacity>
                 </View>
-
-                {/* Navbar para no perder la navegación */}
                 <BottomNavigationBar navigation={navigation} />
             </SafeAreaView>
         );
@@ -293,8 +390,7 @@ const TripInProgress = ({ route, navigation }) => {
                                     { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }
                                 ]}
                                 strokeColor={theme.accent}
-                                strokeWidth={3}
-                                lineDashPattern={[6, 6]}
+                                strokeWidth={4}
                             />
                         </MapView>
                     ) : (
@@ -364,9 +460,26 @@ const TripInProgress = ({ route, navigation }) => {
 
             </ScrollView>
 
-            {/* BOTTOM NAV BAR FUNCIONAL */}
             <BottomNavigationBar navigation={navigation} />
 
+            <TripStatusModal 
+                visible={statusModalVisible}
+                status={finalStatus}
+                theme={theme}
+                onConfirm={() => {
+                    setStatusModalVisible(false);
+                    if (finalStatus === 'completed') {
+                        navigation.replace('RateDriver', {
+                            rideId: bookingData?.ride_id?._id?.toString() || bookingData?.ride_id?.toString(),
+                            driverId: bookingData?.ride_id?.driver_id?._id?.toString() || bookingData?.ride_id?.driver_id?.toString(),
+                            driverName: bookingData?.ride_id?.driver_id?.name,
+                            driverImage: bookingData?.ride_id?.driver_id?.profileImage,
+                        });
+                    } else {
+                        navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
+                    }
+                }}
+            />
         </SafeAreaView>
     );
 };
@@ -375,6 +488,24 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingBottom: 15,
+        paddingTop: 10,
+    },
+    backButton: {
+        padding: 8,
+        marginLeft: -8,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        flex: 1,
     },
     scrollContent: {
         padding: 20,
@@ -509,6 +640,16 @@ const styles = StyleSheet.create({
         marginLeft: 12,
         marginVertical: 4,
     }
+});
+
+const modalStyles = StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 25 },
+    card: { width: '100%', borderRadius: 30, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 15 },
+    iconCircle: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+    title: { fontSize: 24, fontWeight: '800', marginBottom: 10, textAlign: 'center' },
+    subtitle: { fontSize: 15, textAlign: 'center', marginBottom: 25, lineHeight: 22 },
+    confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', paddingVertical: 16, borderRadius: 16, elevation: 2 },
+    confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
 
 export default TripInProgress;

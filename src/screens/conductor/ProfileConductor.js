@@ -27,38 +27,56 @@ import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndi
 import StarRating from '../../components/StarRating';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 
-const COMPANIES = [
+const COMPANIES = [ //Estas son las empresas 
     'Intel', 'Cargill', 'Deloitte', 'Citi', 'Experian',
     '3M', 'DHL', 'Bill Gosling Outsourcing (BGO)',
     'WeWork Costa Rica', 'Concentrix', 'Nestlé Costa Rica'
 ];
 
-const VEHICLE_BRANDS = [
-    'Toyota', 'Hyundai', 'Suzuki', 'Nissan', 'Kia', 'Mitsubishi',
-    'Honda', 'Mazda', 'Ford', 'Chevrolet', 'Volkswagen', 'BMW', 'Mercedes-Benz'
-];
-
-const MODELS_MAP = {
-    'Toyota': ['Corolla', 'RAV4', 'Hilux', 'Yaris', 'Land Cruiser', 'Fortuner', 'Prado', 'Etios'],
-    'Hyundai': ['Tucson', 'Accent', 'Elantra', 'Santa Fe', 'Creta', 'I10', 'Venue', 'Staria'],
-    'Suzuki': ['Swift', 'Vitara', 'Jimny', 'Grand Vitara', 'S-Presso', 'Ertiga', 'Baleno', 'Dzire'],
-    'Nissan': ['Sentra', 'Versa', 'Frontier', 'Kicks', 'Qashqai', 'X-Trail', 'Navara'],
-    'Kia': ['Rio', 'Sportage', 'Sorento', 'Picanto', 'Seltos', 'Cerato', 'Soluto'],
-    'Mitsubishi': ['L200', 'Montero', 'ASX', 'Outlander', 'Eclipse Cross', 'Xpander'],
-    'Honda': ['Civic', 'CR-V', 'HR-V', 'Accord', 'Fit', 'City'],
-    'Mazda': ['CX-5', 'CX-3', 'Mazda 3', 'Mazda 2', 'BT-50', 'CX-30'],
-    'Ford': ['Ranger', 'Everest', 'Explorer', 'EcoSport', 'F-150'],
-    'Chevrolet': ['Tracker', 'Colorado', 'Spark', 'Aveo', 'Captiva'],
+const CAR_DATA = { //ESTOS SON LOS AUTOS EN GENERAL
+    Acura: ['MDX', 'RDX', 'TLX', 'TSX', 'Integra'],
+    Audi: ['A3', 'A4', 'Q3', 'Q5', 'Q7'],
+    BMW: ['Serie 1', 'Serie 3', 'Serie 5', 'X1', 'X3', 'X5'],
+    BYD: ['S1 Pro', 'Yuan Plus', 'Tang', 'Song Plus', 'F3', 'Dolphin'],
+    Chery: ['Tiggo 2 Pro', 'Tiggo 4 Pro', 'Tiggo 7 Pro', 'Tiggo 8 Pro', 'QQ'],
+    Chevrolet: ['Colorado', 'Tracker', 'Spark', 'Aveo', 'Captiva', 'Groove'],
+    Citroen: ['C3', 'C4 Cactus', 'C5 Aircross', 'Berlingo', 'Jumpy'],
+    Daihatsu: ['Terios', 'Bego', 'Sirion', 'Delta', 'Gran Max'],
+    Dodge: ['RAM 1500', 'RAM 2500', 'Journey', 'Durango', 'Dakota'],
+    Fiat: ['Strada', 'Fiorino', 'Pulse', 'Uno', '500', 'Fastback'],
+    Ford: ['Ranger', 'Everest', 'Explorer', 'EcoSport', 'F-150', 'Focus'],
+    Geely: ['Coolray', 'Azkarra', 'Okavango', 'GX3 Pro', 'Geometry C'],
+    GMC: ['Sierra', 'Acadia', 'Terrain', 'Yukon', 'Canyon'],
+    GreatWall: ['Wingle 5', 'Wingle 7', 'Poer', 'Haval M4', 'Voleex'],
+    Haval: ['H6', 'Jolion', 'H2', 'H9', 'M4'],
+    Honda: ['CR-V', 'Civic', 'HR-V', 'Accord', 'Fit', 'Pilot'],
+    Hyundai: ['Tucson', 'Accent Blue', 'Elantra', 'Creta', 'Grand i10', 'Santa Fe', 'Kona'],
+    Isuzu: ['D-Max', 'MU-X', 'NLR', 'NPR', 'FTR'],
+    JAC: ['T8', 'JS2', 'JS4', 'S2', 'Sunray', 'E10X'],
+    Jeep: ['Grand Cherokee', 'Wrangler', 'Compass', 'Renegade', 'Cherokee'],
+    Jetour: ['Dashing', 'X70 Plus', 'X70', 'X90 Plus'],
+    Kia: ['Sportage', 'Picanto', 'Rio', 'Seltos', 'Sorento', 'Cerato', 'Soluto'],
+    LandRover: ['Defender', 'Discovery', 'Range Rover Evoque', 'Range Rover Sport'],
+    Lexus: ['RX', 'NX', 'UX', 'GX', 'IS'],
+    Mazda: ['CX-5', 'Mazda 3', 'CX-3', 'CX-30', 'BT-50', 'CX-9'],
+    MercedesBenz: ['GLC', 'GLE', 'Clase C', 'Clase A', 'Clase E', 'Vito'],
+    MG: ['ZS', 'HS', 'MG3', 'MG5', 'Marvel R', 'MG4'],
+    Mitsubishi: ['Montero Sport', 'L200', 'Outlander', 'ASX', 'Eclipse Cross', 'Montero'],
+    Nissan: ['Frontier', 'Sentra', 'Qashqai', 'Kicks', 'Versa', 'X-Trail', 'March'],
+    Peugeot: ['2008', '3008', '5008', '208', 'Partner', 'Landtrek'],
+    Renault: ['Kwid', 'Duster', 'Oroch', 'Stepway', 'Koleos', 'Logan'],
+    Subaru: ['XV', 'Forester', 'Outback', 'Impreza', 'Crosstrek'],
+    Suzuki: ['Vitara', 'Swift', 'Jimny', 'S-Presso', 'Ertiga', 'Dzire', 'Baleno'],
+    Tesla: ['Model 3', 'Model Y', 'Model S', 'Model X'],
+    Toyota: ['Hilux', 'Corolla', 'Yaris', 'RAV4', 'Prado', 'Fortuner', 'Rush', 'Agya'],
+    Volkswagen: ['Amarok', 'Tiguan', 'Jetta', 'T-Cross', 'Gol', 'Taos', 'Nivus'],
+    Volvo: ['XC40', 'XC60', 'XC90', 'S60', 'V40', 'C40'],
 };
 
-const DEFAULT_MODELS = ['Sedan', 'SUV', 'Pickup', 'Microbus', 'Hatchback', 'Van', 'Otro'];
+const BRANDS = Object.keys(CAR_DATA);
+const VEHICLE_COLORS = ['Blanco', 'Negro', 'Gris', 'Plateado', 'Rojo', 'Azul', 'Verde', 'Amarillo', 'Naranja', 'Café', 'Beige', 'Vinilado'];
 
-const VEHICLE_COLORS = [
-    'Blanco', 'Negro', 'Plateado', 'Gris', 'Azul', 'Rojo', 'Verde',
-    'Blanco Perla', 'Bronce', 'Champagne', 'Bordeaux', 'Café', 'Oro', 'Crema'
-];
-
-const YEARS = Array.from({ length: 31 }, (_, i) => (new Date().getFullYear() - i).toString());
+const YEARS = Array.from({ length: 30 }, (_, i) => (new Date().getFullYear() - i).toString());
 
 const ProfileConductor = ({ navigation, route }) => {
     const insets = useSafeAreaInsets();
@@ -156,7 +174,7 @@ const ProfileConductor = ({ navigation, route }) => {
                 (editForm.profileImage !== userData.profileImage && editForm.profileImage !== null);
 
             if (!Changes) {
-                showAlert('No hay cambios', 'No has realizado ningún cambio para actualizar.', 'info');
+                showAlert('No hay cambios', 'No has realizado ningún cambio para actualizar.', 'warning');
                 setUpdating(false);
                 return;
             }
@@ -209,7 +227,8 @@ const ProfileConductor = ({ navigation, route }) => {
 
         } catch (error) {
             console.error('Error al actualizar perfil:', error);
-            showAlert('Error', 'No se pudo actualizar el perfil. Revisa tu conexión.', 'error');
+            const msg = error.response?.data?.message || error.message || 'No se pudo actualizar el perfil. Revisa tu conexión.';
+            showAlert('Actualización Fallida', msg, 'error');
         } finally {
             setUpdating(false);
         }
@@ -219,33 +238,48 @@ const ProfileConductor = ({ navigation, route }) => {
         try {
             setUpdating(true);
 
+            if (!vehicleData) {
+                showAlert('Error', 'No hay información de vehículo para actualizar.', 'error');
+                setUpdating(false);
+                return;
+            }
+
             // 1. Validar si hay cambios
             const hasChanges =
                 editVehicleForm.brand !== vehicleData.brand ||
                 editVehicleForm.model !== vehicleData.model ||
                 editVehicleForm.year !== (vehicleData.year ? vehicleData.year.toString() : '') ||
-                editVehicleForm.color !== vehicleData.color;
+                editVehicleForm.color !== vehicleData.color ||
+                editVehicleForm.licensePlate !== vehicleData.license_plate;
 
             if (!hasChanges) {
-                showAlert('No hay cambios', 'No has realizado ningún cambio en los datos del vehículo.', 'info');
+                showAlert('No hay cambios', 'No has realizado ningún cambio en los datos del vehículo.', 'warning');
                 setUpdating(false);
                 return;
             }
 
             // 2. Validar que tengamos datos mínimos
-            if (!editVehicleForm.brand || !editVehicleForm.model || !editVehicleForm.year || !editVehicleForm.color) {
-                showAlert('Datos incompletos', 'Por favor selecciona marca, modelo, año y color.', 'warning');
+            if (!editVehicleForm.brand || !editVehicleForm.model || !editVehicleForm.year || !editVehicleForm.color || !editVehicleForm.licensePlate) {
+                showAlert('Datos incompletos', 'Por favor selecciona marca, modelo, año, color y placa.', 'warning');
+                setUpdating(false);
+                return;
+            }
+
+            // 3. Validar placa (3 letras + 3 números)
+            const plateRegex = /^[A-Z]{3}[0-9]{3}$/;
+            if (!plateRegex.test(editVehicleForm.licensePlate.toUpperCase())) {
+                showAlert('Placa Inválida', 'La placa debe tener 3 letras seguidas de 3 números (ej: ABC123).', 'error');
                 setUpdating(false);
                 return;
             }
 
             // Solicitud al backend
-            // El backend no permite actualizar placa (según updateVehicle controller)
             await api.put(`/vehicles/${vehicleData._id}`, {
                 brand: editVehicleForm.brand,
                 model: editVehicleForm.model,
                 year: parseInt(editVehicleForm.year),
                 color: editVehicleForm.color,
+                license_plate: editVehicleForm.licensePlate.toUpperCase(),
             });
 
             showAlert('¡Listo!', 'Información del vehículo actualizada', 'success');
@@ -253,8 +287,8 @@ const ProfileConductor = ({ navigation, route }) => {
             loadProfile(); // Recargamos para refrescar la vista principal
         } catch (error) {
             console.error('Error al actualizar vehículo:', error);
-            const msg = error.response?.data?.message || 'No se pudo actualizar el vehículo.';
-            showAlert('Error', msg, 'error');
+            const msg = error.response?.data?.message || error.message || 'No se pudo actualizar la información del vehículo.';
+            showAlert('Actualización Fallida', msg, 'error');
         } finally {
             setUpdating(false);
         }
@@ -407,14 +441,14 @@ const ProfileConductor = ({ navigation, route }) => {
                             <Text style={styles.editBtnText}>Editar perfil</Text>
                         </TouchableOpacity>
 
-                        {vehicleData?._id && (
+                        {vehicleData && (
                             <TouchableOpacity
                                 style={[styles.editBtn, { backgroundColor: theme.accent }]}
                                 onPress={() => setVehicleModalVisible(true)}
                                 activeOpacity={0.85}
                             >
                                 <Ionicons name="create-outline" size={20} color="#FFF" />
-                                <Text style={styles.editBtnText}>Editar vehículo</Text>
+                                <Text style={styles.editBtnText}>Actualizar Información del Vehículo</Text>
                             </TouchableOpacity>
                         )}
 
@@ -545,7 +579,7 @@ const ProfileConductor = ({ navigation, route }) => {
                                 label="MARCA"
                                 icon="car-outline"
                                 value={editVehicleForm.brand}
-                                options={VEHICLE_BRANDS}
+                                options={BRANDS}
                                 onValueChange={val => setEditVehicleForm(prev => ({ ...prev, brand: val, model: '' }))}
                                 theme={theme}
                                 placeholder="Selecciona marca"
@@ -556,7 +590,7 @@ const ProfileConductor = ({ navigation, route }) => {
                                 label="MODELO"
                                 icon="car-outline"
                                 value={editVehicleForm.model}
-                                options={MODELS_MAP[editVehicleForm.brand] || DEFAULT_MODELS}
+                                options={CAR_DATA[editVehicleForm.brand] || []}
                                 onValueChange={val => setEditVehicleForm(prev => ({ ...prev, model: val }))}
                                 theme={theme}
                                 placeholder="Selecciona modelo"
@@ -584,16 +618,14 @@ const ProfileConductor = ({ navigation, route }) => {
                                 placeholder="Selecciona color"
                             />
 
-                            {/* MATRÍCULA (Lock) */}
+                            {/* MATRÍCULA */}
                             <ModalInput
                                 label="MATRÍCULA"
                                 icon="document-text-outline"
                                 value={editVehicleForm.licensePlate}
-                                onChangeText={t => setEditVehicleForm(prev => ({ ...prev, licensePlate: t.toUpperCase() }))}
-                                placeholder="ABC-123"
+                                placeholder="ABC123"
                                 theme={theme}
-                                editable={true}
-                                autoCapitalize="characters"
+                                onChangeText={t => setEditVehicleForm(prev => ({ ...prev, licensePlate: t.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 6) }))}
                             />
 
                             <TouchableOpacity
@@ -615,6 +647,7 @@ const ProfileConductor = ({ navigation, route }) => {
                     </View>
                 </View>
             </Modal>
+
 
         </SafeAreaView>
     );
@@ -839,11 +872,11 @@ const styles = StyleSheet.create({
     logoutBtn: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         height: 56, borderRadius: 18, borderWidth: 1.5, gap: 10,
+        marginTop: 8,
     },
     logoutText: { fontSize: 15, fontFamily: 'Poppins-SemiBold' },
 
-
-    // Modals
+    // Modal
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.65)',
@@ -856,8 +889,26 @@ const styles = StyleSheet.create({
         padding: 24,
         paddingTop: 12,
         maxHeight: '92%',
-        borderWidth: 1.5, // Borde para el efecto "rodeado"
-        borderBottomWidth: 0,
+        borderWidth: 1.5,
+    },
+    chipsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginTop: 10,
+    },
+    companyChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        marginBottom: 4,
+    },
+    chipText: {
+        fontSize: 12,
+        fontFamily: 'Poppins-Medium',
     },
 
     handleBar: {

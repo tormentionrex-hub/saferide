@@ -32,8 +32,8 @@ export default function DashboardConductor({ route, navigation }) {
                     const name = await AsyncStorage.getItem('userName');
                     if (name) setUserName(name.split(' ')[0]);
 
-                    // Usa sessionCache para evitar llamadas duplicadas a /auth/me
-                    const hasVehicle = await sessionCache.getVehicleStatus();
+                    // force=true: siempre consultar el API al regresar, nunca usar caché
+                    const hasVehicle = await sessionCache.getVehicleStatus(true);
                     setHasVehicle(hasVehicle);
                 } catch (err) {
                     setHasVehicle(false);
@@ -54,10 +54,6 @@ export default function DashboardConductor({ route, navigation }) {
                         <View style={styles.header}>
                             <View style={styles.headerLeft}>
                                 <Text style={[styles.welcomeText, { color: theme.text }]}>Hola, {userName}</Text>
-                                <TouchableOpacity style={styles.iconButton}>
-                                    <Ionicons name="notifications-outline" size={24} color={theme.text} />
-                                    <View style={[styles.notificationDot, { backgroundColor: theme.accent, borderColor: theme.bg }]} />
-                                </TouchableOpacity>
                             </View>
                             <SettingsGearButton navigation={navigation} color={theme.text} />
                         </View>
@@ -193,18 +189,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
-    },
-    iconButton: {
-        position: 'relative',
-    },
-    notificationDot: {
-        position: 'absolute',
-        top: 2,
-        right: 2,
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        borderWidth: 1.5,
     },
     // Card Grande (Publicar Viaje)
     mainCard: {
