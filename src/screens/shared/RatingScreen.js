@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
 import StarRating from '../../components/StarRating';
+import TripCompletedOverlay from '../../components/TripCompletedOverlay';
 
 const RATING_LABELS = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'];
 
@@ -59,38 +60,7 @@ const RatingScreen = ({
 
     const triggerSuccessModal = (callback) => {
         setShowSuccess(true);
-        checkScale.setValue(0);
-        checkOpacity.setValue(0);
-        textOpacity.setValue(0);
-
-        Animated.sequence([
-            // Check aparece con rebote
-            Animated.parallel([
-                Animated.spring(checkScale, {
-                    toValue: 1,
-                    friction: 4,
-                    tension: 60,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(checkOpacity, {
-                    toValue: 1,
-                    duration: 300,
-                    useNativeDriver: true,
-                }),
-            ]),
-            // Texto aparece suavemente
-            Animated.timing(textOpacity, {
-                toValue: 1,
-                duration: 300,
-                useNativeDriver: true,
-            }),
-        ]).start();
-
-        // Auto-navega después de 1.8s
-        setTimeout(() => {
-            setShowSuccess(false);
-            callback();
-        }, 1800);
+        // El auto-navegado ahora lo maneja el componente TripCompletedOverlay a través de su prop onFinish
     };
 
     const handleRatingChange = (newRating) => {
@@ -140,37 +110,15 @@ const RatingScreen = ({
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
-            {/* Modal de éxito animado */}
-            <Modal transparent visible={showSuccess} animationType="fade">
-                <View style={styles.successOverlay}>
-                    <View style={styles.successCard}>
-                        {/* Círculo con check animado */}
-                        <Animated.View style={[
-                            styles.successCircle,
-                            { backgroundColor: accentColor + '20' },
-                            {
-                                opacity: checkOpacity,
-                                transform: [{ scale: checkScale }],
-                            }
-                        ]}>
-                            <Animated.View style={[
-                                styles.successCircleInner,
-                                { backgroundColor: accentColor },
-                            ]}>
-                                <Ionicons name="checkmark" size={44} color="#FFF" />
-                            </Animated.View>
-                        </Animated.View>
-
-                        {/* Texto */}
-                        <Animated.View style={{ opacity: textOpacity, alignItems: 'center' }}>
-                            <Text style={styles.successTitle}>¡Excelente!</Text>
-                            <Text style={styles.successMessage}>
-                                Has calificado al {personRole.toLowerCase()} correctamente.
-                            </Text>
-                        </Animated.View>
-                    </View>
-                </View>
-            </Modal>
+            {/* Modal de éxito animado y premium */}
+            <TripCompletedOverlay 
+                visible={showSuccess}
+                theme={theme}
+                onFinish={() => {
+                    setShowSuccess(false);
+                    onSuccess();
+                }}
+            />
 
             <ScrollView
                 contentContainerStyle={styles.content}
@@ -271,7 +219,10 @@ const RatingScreen = ({
                     )}
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.skipBtn} onPress={onSkip}>
+                <TouchableOpacity 
+                    style={styles.skipBtn} 
+                    onPress={() => triggerSuccessModal(onSkip)}
+                >
                     <Text style={[styles.skipBtnText, { color: theme.textSecondary }]}>
                         Omitir
                     </Text>
