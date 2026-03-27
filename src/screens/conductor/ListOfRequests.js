@@ -127,6 +127,46 @@ const WithdrawalModal = ({ visible, onClose, theme }) => {
     );
 };
 
+/* ─── Modal de Éxito al Aceptar ──────────────────────────────────── */
+const SuccessModal = ({ visible, onClose, theme }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    return (
+        <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#D1FAE5' }]}>
+                        <Ionicons name="checkmark-circle" size={48} color="#10B981" />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>¡Pasajero Aceptado!</Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        Has aceptado la solicitud exitosamente.
+                    </Text>
+                    <TouchableOpacity 
+                        style={[modalStyles.confirmBtn, { backgroundColor: '#10B981', width: '100%', borderRadius: 16 }]} 
+                        onPress={onClose}
+                    >
+                        <Text style={modalStyles.confirmBtnText}>Genial</Text>
+                    </TouchableOpacity>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
 const ListOfRequests = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const [requests, setRequests] = useState([]);
@@ -136,6 +176,7 @@ const ListOfRequests = ({ route, navigation }) => {
     const [startRideLoading, setStartRideLoading] = useState(false);
     const [confirmedCount, setConfirmedCount] = useState(0);
     const [withdrawalVisible, setWithdrawalVisible] = useState(false);
+    const [successModalVisible, setSuccessModalVisible] = useState(false);
 
     const specificRideId = route.params?.rideId;
 
@@ -206,7 +247,7 @@ const ListOfRequests = ({ route, navigation }) => {
 
             const res = await api.patch(`/bookings/${bookingId}/status`, { status: 'confirmed' });
             if (res.data.success) {
-                Alert.alert('Éxito', 'Has aceptado la solicitud.');
+                setSuccessModalVisible(true);
                 // Invalidar cache de viajes ya que cambiaron los asientos/estado
                 sessionCache.clearActiveRides();
                 // En lugar de filtrar, recargamos para actualizar el conteo de confirmados
@@ -414,6 +455,12 @@ const ListOfRequests = ({ route, navigation }) => {
                 visible={withdrawalVisible}
                 theme={theme}
                 onClose={() => setWithdrawalVisible(false)}
+            />
+
+            <SuccessModal
+                visible={successModalVisible}
+                theme={theme}
+                onClose={() => setSuccessModalVisible(false)}
             />
 
             <BottomNavigationDriver navigation={navigation} activeTab="Rutas" />
