@@ -340,20 +340,36 @@ const TripInProgressDriver = ({ route, navigation }) => {
                                 <Text style={[styles.ratingText, { color: theme.textSecondary }]}>{passenger?.rating || 'Nuevo'}</Text>
                             </View>
                         </View>
-                        <TouchableOpacity style={[styles.chatButton, { backgroundColor: '#25D366' }]} onPress={() => {
-                            const pPhone = passenger?.phone;
-                            if (pPhone) {
-                                const cleanPhone = pPhone.replace(/[^0-9+]/g, '');
-                                // Agrega +506 (Costa Rica) si el número no tiene código de país
-                                const intlPhone = cleanPhone.startsWith('+') ? cleanPhone : '+506' + cleanPhone;
-                                const waUrl = `https://wa.me/${intlPhone}?text=Hola,%20soy%20tu%20conductor.%20Voy%20en%20camino.`;
-                                Linking.openURL(waUrl).catch(() => Linking.openURL(`tel:${pPhone}`));
-                            } else {
-                                Alert.alert('Atención', 'El pasajero no tiene número de contacto.');
-                            }
-                        }}>
-                            <Ionicons name="logo-whatsapp" size={24} color="#FFF" />
-                        </TouchableOpacity>
+                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                            {/* Botón WhatsApp */}
+                            <TouchableOpacity style={[styles.chatButton, { backgroundColor: '#25D366' }]} onPress={() => {
+                                const pPhone = passenger?.phone;
+                                if (pPhone) {
+                                    const cleanPhone = pPhone.replace(/[^0-9+]/g, '');
+                                    const intlPhone = cleanPhone.startsWith('+') ? cleanPhone : '+506' + cleanPhone;
+                                    const waUrl = `https://wa.me/${intlPhone}?text=Hola,%20soy%20tu%20conductor.%20Voy%20en%20camino.`;
+                                    Linking.openURL(waUrl).catch(() => Linking.openURL(`tel:${pPhone}`));
+                                } else {
+                                    Alert.alert('Atención', 'El pasajero no tiene número de contacto.');
+                                }
+                            }}>
+                                <Ionicons name="logo-whatsapp" size={24} color="#FFF" />
+                            </TouchableOpacity>
+
+                            {/* Botón Llamar */}
+                            <TouchableOpacity style={[styles.chatButton, { backgroundColor: theme.accent }]} onPress={() => {
+                                const pPhone = passenger?.phone;
+                                if (pPhone) {
+                                    Linking.openURL(`tel:${pPhone}`).catch(() =>
+                                        Alert.alert('Error', 'No se pudo abrir la aplicación de llamadas.')
+                                    );
+                                } else {
+                                    Alert.alert('Atención', 'El pasajero no tiene número de contacto.');
+                                }
+                            }}>
+                                <Ionicons name="call" size={22} color="#FFF" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     {/* Timeline de la ruta */}
