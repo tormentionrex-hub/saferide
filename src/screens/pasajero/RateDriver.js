@@ -15,8 +15,8 @@ const RateDriver = ({ route, navigation }) => {
             subtitle="Calificar al conductor"
             accentColor="#1976D2"
             badgeColor={{ bg: '#E3F2FD', icon: '#1976D2' }}
-            onSuccess={() => navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' })}
-            onSkip={() => navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' })}
+            onSuccess={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
+            onSkip={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
         />
     );
 };

@@ -15,8 +15,8 @@ const RatePassenger = ({ route, navigation }) => {
             subtitle="Calificar al pasajero"
             accentColor="#1976D2"
             badgeColor={{ bg: '#E3F2FD', icon: '#1976D2' }}
-            onSuccess={() => navigation.navigate('MainTabsDriver')}
-            onSkip={() => navigation.navigate('MainTabsDriver')}
+            onSuccess={() => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })}
+            onSkip={() => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })}
         />
     );
 };
