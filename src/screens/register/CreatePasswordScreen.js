@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     KeyboardAvoidingView,
     Platform,
-    Alert,
     ActivityIndicator,
     ScrollView,
     Animated,
@@ -21,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../services/api';
+import { useCustomAlert } from '../../context/CustomAlertContext';
 
 const { width, height } = Dimensions.get('window');
 const ICON = require('../../images/IconSafeRide.png');
@@ -33,6 +33,7 @@ const COMPANIES = [
 
 export default function CreatePasswordScreen({ route, navigation }) {
     const { email } = route.params || { email: 'test@empresa.com' };
+    const { showAlert } = useCustomAlert();
 
     const [name, setName] = useState('');
     const [company, setCompany] = useState('');
@@ -180,12 +181,12 @@ export default function CreatePasswordScreen({ route, navigation }) {
                     password: password,
                 });
             } else {
-                Alert.alert("Error", response.data.message || "Ocurrió un problema al enviar el código.");
+                showAlert("Error", response.data.message || "Ocurrió un problema al enviar el código.", 'error');
             }
         } catch (err) {
             console.error("Verification error:", err);
             const msg = err.response?.data?.message || "Ocurrió un problema al intentar enviar el correo de verificación.";
-            Alert.alert("Error", msg);
+            showAlert("Error", msg, 'error');
         } finally {
             setLoading(false);
         }
