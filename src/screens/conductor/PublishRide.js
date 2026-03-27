@@ -87,7 +87,7 @@ const PublishRide = ({ navigation }) => {
 
         //negociar el precio por kilometro
         if (!routeInfo) return 0;
-        return Math.round(routeInfo.distance_km * 450);
+        return Math.round(routeInfo.distance_km * 270);
     };
 
     const handlePublish = async () => {
