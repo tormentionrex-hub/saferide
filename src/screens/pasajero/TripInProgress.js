@@ -285,8 +285,6 @@ const TripInProgress = ({ route, navigation }) => {
                         <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Buscar viaje</Text>
                     </TouchableOpacity>
                 </View>
-
-                {/* Navbar para no perder la navegación */}
                 <BottomNavigationBar navigation={navigation} />
             </SafeAreaView>
         );
@@ -315,7 +313,7 @@ const TripInProgress = ({ route, navigation }) => {
                     <Ionicons name="arrow-back" size={26} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Viaje en curso</Text>
-                <View style={{ width: 44 }} /> {/* Espaciador para centrar el título */}
+                <View style={{ width: 44 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -447,10 +445,8 @@ const TripInProgress = ({ route, navigation }) => {
                         </View>
                     </View>
                 </View>
-                
             </ScrollView>
 
-            {/* BOTTOM NAV BAR FUNCIONAL */}
             <BottomNavigationBar navigation={navigation} />
 
             <TripStatusModal 
