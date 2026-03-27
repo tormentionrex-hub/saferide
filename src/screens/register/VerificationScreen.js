@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     KeyboardAvoidingView,
     Platform,
-    Alert,
     StatusBar,
     Image,
     ScrollView,
@@ -21,6 +20,7 @@ import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
+import { useCustomAlert } from '../../context/CustomAlertContext';
 const { width, height } = Dimensions.get('window');
 const ICON = require('../../images/IconSafeRide.png');
 
@@ -30,6 +30,7 @@ export default function VerificationScreen({ route, navigation }) {
     const [code, setCode] = useState(['', '', '', '', '', '']);
     const [verifying, setVerifying] = useState(false);
     const inputs = useRef([]);
+    const { showAlert } = useCustomAlert();
 
     const [fontsLoaded] = useFonts({
         'Poppins-Bold': require('../../fonts/Poppins_700Bold.ttf'),
@@ -81,7 +82,7 @@ export default function VerificationScreen({ route, navigation }) {
         const enteredCode = code.join('');
 
         if (enteredCode.length < 6) {
-            Alert.alert('Error', 'Por favor ingresa los 6 dígitos del código.');
+            showAlert('Error', 'Por favor ingresa los 6 dígitos del código.', 'warning');
             return;
         }
 
@@ -104,7 +105,7 @@ export default function VerificationScreen({ route, navigation }) {
         } catch (err) {
             console.error('Verify error:', err);
             const msg = err.response?.data?.message || 'El código es incorrecto o ha expirado.';
-            Alert.alert('Error', msg);
+            showAlert('Error', msg, 'error');
             setCode(['', '', '', '', '', '']);
             if (inputs.current[0]) inputs.current[0].focus();
         } finally {
@@ -116,10 +117,10 @@ export default function VerificationScreen({ route, navigation }) {
         try {
             const response = await api.post('/auth/send-verification-code', { email });
             if (response.data.success) {
-                Alert.alert('Código Enviado', `Se ha reenviado un nuevo código a ${email}`);
+                showAlert('Código Enviado', `Se ha reenviado un nuevo código a ${email}`, 'success');
             }
         } catch (err) {
-            Alert.alert('Error', 'No se pudo reenviar el código.');
+            showAlert('Error', 'No se pudo reenviar el código.', 'error');
         }
     };
 

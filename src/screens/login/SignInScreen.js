@@ -343,7 +343,7 @@ export default function SignInScreen({ navigation }) {
                             {/* Forgot password */}
                             <View style={styles.forgotRow}>
                                 <Text style={styles.forgotText}>¿Olvidaste tu contraseña? </Text>
-                                <TouchableOpacity>
+                                <TouchableOpacity onPress={() => navigation.navigate('ForgotPasswordEmail')}>
                                     <Text style={styles.forgotLink}>Recuperar</Text>
                                 </TouchableOpacity>
                             </View>

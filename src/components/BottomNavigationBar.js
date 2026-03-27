@@ -6,6 +6,19 @@ import { useRoute } from '@react-navigation/native';
 import { useDriverTheme } from '../context/DriverThemeContext';
 import api from '../services/api';
 
+/**
+ * Cache TTL para la consulta de reservas activas al pulsar "Tu viaje".
+ * Evita el error 429 (rate limit) cuando el usuario toca repetidamente el tab.
+ *
+ * RESTAURAR RATE LIMITING (futuro):
+ *   Cuando el backend tenga un límite más generoso (>100 req/5min) o el
+ *   endpoint /bookings esté excluido del authLimiter, se puede:
+ *   1. Eliminar `bookingCache` y `BOOKING_CACHE_TTL`.
+ *   2. Volver a llamar `api.get('/bookings')` directamente en onPress sin cache.
+ */
+let bookingCache = { data: null, lastCheck: 0 };
+const BOOKING_CACHE_TTL = 30000; // 30 segundos
+
 const { width } = Dimensions.get('window');
 
 // Mapeo de cada item del nav con sus screens relacionados y los iconos que usa
@@ -80,10 +93,25 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
 
                     if (item.target === 'SearchRide') {
                         try {
-                            const res = await api.get('/bookings');
-                            if (res.data && res.data.success && res.data.data) {
-                                const activeBooking = res.data.data.find(b => b.status === 'pending' || b.status === 'confirmed');
+                            const now = Date.now();
+                            let bookings = null;
+
+                            // Usar cache si está fresco (30 s) para evitar 429
+                            if (bookingCache.data && (now - bookingCache.lastCheck < BOOKING_CACHE_TTL)) {
+                                bookings = bookingCache.data;
+                            } else {
+                                const res = await api.get('/bookings');
+                                if (res.data && res.data.success && res.data.data) {
+                                    bookingCache = { data: res.data.data, lastCheck: now };
+                                    bookings = res.data.data;
+                                }
+                            }
+
+                            if (bookings) {
+                                const activeBooking = bookings.find(b => b.status === 'pending' || b.status === 'confirmed');
                                 if (activeBooking) {
+                                    // Invalidar cache al navegar para que la próxima vez refleje estado real
+                                    bookingCache = { data: null, lastCheck: 0 };
                                     if (activeBooking.status === 'pending') {
                                         navigation.navigate('ScreenSaver', { bookingId: activeBooking._id });
                                     } else {
@@ -91,9 +119,10 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                                             const rideId = activeBooking.ride_id._id || activeBooking.ride_id;
                                             const rideRes = await api.get(`/rides/${rideId}`);
                                             const rideStatus = rideRes.data.data.status;
-                                            
                                             if (rideStatus === 'scheduled') {
                                                 navigation.navigate('WaitingForTheStart', { bookingId: activeBooking._id });
+                                            } else if (rideStatus === 'in progress') {
+                                                navigation.navigate('TripInProgress', { bookingId: activeBooking._id });
                                             } else {
                                                 navigation.navigate('TripInProgress', { bookingId: activeBooking._id });
                                             }
@@ -102,7 +131,7 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                                             navigation.navigate('WaitingForTheStart', { bookingId: activeBooking._id });
                                         }
                                     }
-                                    return; // previene el navigation.navigate por defecto
+                                    return;
                                 }
                             }
                         } catch (error) {

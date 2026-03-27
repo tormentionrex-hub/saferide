@@ -26,6 +26,10 @@ import { DateTime } from 'luxon';
 import { Image } from 'expo-image';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
+// Cache en memoria para evitar refetch en cada useFocusEffect (navegación entre tabs)
+let historyCache = { data: null, lastCheck: 0 };
+const HISTORY_CACHE_TTL = 60000; // 60 segundos
+
 const { width } = Dimensions.get('window');
 
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -55,7 +59,7 @@ const HistoryItem = memo(({ item, theme, calculateArrivalTime, handleContact }) 
     const originCoords = ride.origin?.coordinates;
     const destCoords = ride.destination?.coordinates;
 
-    const isCancelled = item.status === 'cancelled';
+    const isCancelled = item.status === 'cancelled' || item.status === 'canceled';
     const statusColor = isCancelled ? '#FF3B30' : '#4CD964';
 
     return (
@@ -183,24 +187,38 @@ const History = ({ navigation }) => {
     const [showDayPicker, setShowDayPicker] = useState(false);
     const [tempDate, setTempDate] = useState(new Date());
 
-    const fetchHistory = useCallback(async (isSilent = false) => {
+    const fetchHistory = useCallback(async (isSilent = false, force = false) => {
+        const now = Date.now();
+
+        // Saltar fetch si el cache está fresco y no es un refresh manual
+        if (!force && historyCache.data && (now - historyCache.lastCheck < HISTORY_CACHE_TTL)) {
+            if (historyCache.data.length > 0 || allHistory.length === 0) {
+                // Hidratar estado desde cache sin tocar la API
+                setAllHistory(historyCache.data);
+            }
+            setLoading(false);
+            setRefreshing(false);
+            return;
+        }
+
         if (!isSilent) setLoading(true);
         try {
-            const meResponse = await api.get('/auth/me');
-            if (!meResponse.data.success) throw new Error('Could not get user data');
-            const userId = meResponse.data.data._id;
+            const meRes = await api.get('/auth/me');
+            if (!meRes.data.success) throw new Error('Could not get user data');
+            const userId = meRes.data.data._id;
 
             const response = await rideService.getBookingsByPassenger(userId);
 
             if (response.success) {
                 const sorted = response.data
-                    .filter(b => b.ride_id && b.ride_id.fecha && (b.status === 'completed' || b.status === 'cancelled'))
+                    .filter(b => b.ride_id && b.ride_id.fecha && (b.status === 'completed' || b.status === 'cancelled' || b.status === 'canceled'))
                     .sort((a, b) => {
                         const dateA = DateTime.fromISO(a.ride_id.fecha + 'T' + a.ride_id.hora);
                         const dateB = DateTime.fromISO(b.ride_id.fecha + 'T' + b.ride_id.hora);
                         return dateB - dateA;
                     });
-                
+
+                historyCache = { data: sorted, lastCheck: Date.now() };
                 setAllHistory(sorted);
 
                 // Extract months
@@ -209,13 +227,11 @@ const History = ({ navigation }) => {
                     if (!acc.includes(ym)) acc.push(ym);
                     return acc;
                 }, []);
-                
+
                 setAvailableMonths(months);
 
                 // Set initial month filter
-                if (months.length > 0 && !selectedMonth) {
-                    setSelectedMonth(months[0]);
-                }
+                setSelectedMonth(prev => (months.length > 0 && !prev) ? months[0] : prev);
             }
         } catch (error) {
             console.error('Error fetching passenger history:', error);
@@ -223,19 +239,14 @@ const History = ({ navigation }) => {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [selectedMonth]);
+    }, []);
 
     useFocusEffect(
         useCallback(() => {
             setDisplayLimit(3);
-            fetchHistory(true);
+            fetchHistory(false, false); // usa cache si está fresco
         }, [fetchHistory])
     );
-
-    // Initial fetch to populate data
-    useEffect(() => {
-        fetchHistory();
-    }, []);
 
     // Filter whenever selectedMonth or allHistory changes
     useEffect(() => {
@@ -259,7 +270,7 @@ const History = ({ navigation }) => {
     const onRefresh = () => {
         setRefreshing(true);
         setDisplayLimit(3);
-        fetchHistory();
+        fetchHistory(true, true); // force=true ignora el cache (pull-to-refresh manual)
     };
 
     const calculateArrivalTime = useCallback((date, departureTime, durationMinutes) => {

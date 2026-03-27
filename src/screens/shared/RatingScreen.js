@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
     View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
     TextInput, Alert, ActivityIndicator, ScrollView, Image,
-    StatusBar, Platform, Animated,
+    StatusBar, Platform, Animated, Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
@@ -47,9 +47,51 @@ const RatingScreen = ({
     const [loading, setLoading] = useState(false);
     const [submitError, setSubmitError] = useState(null);
     const [isFocused, setIsFocused] = useState(false);
-    
+    const [showSuccess, setShowSuccess] = useState(false);
+
     // Animación para el label de rating
     const labelAnim = useRef(new Animated.Value(0)).current;
+
+    // Animaciones del modal de éxito
+    const checkScale = useRef(new Animated.Value(0)).current;
+    const checkOpacity = useRef(new Animated.Value(0)).current;
+    const textOpacity = useRef(new Animated.Value(0)).current;
+
+    const triggerSuccessModal = (callback) => {
+        setShowSuccess(true);
+        checkScale.setValue(0);
+        checkOpacity.setValue(0);
+        textOpacity.setValue(0);
+
+        Animated.sequence([
+            // Check aparece con rebote
+            Animated.parallel([
+                Animated.spring(checkScale, {
+                    toValue: 1,
+                    friction: 4,
+                    tension: 60,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(checkOpacity, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+            ]),
+            // Texto aparece suavemente
+            Animated.timing(textOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+        ]).start();
+
+        // Auto-navega después de 1.8s
+        setTimeout(() => {
+            setShowSuccess(false);
+            callback();
+        }, 1800);
+    };
 
     const handleRatingChange = (newRating) => {
         setRating(newRating);
@@ -84,11 +126,7 @@ const RatingScreen = ({
         try {
             console.log('[DEBUG] Enviando reseña a /reviews/direct-submit con payload:', payload);
             const response = await api.post('/reviews/direct-submit', payload);
-            Alert.alert(
-                '¡Excelente!',
-                `Ya se ha calificado al ${personRole.toLowerCase()} correctamente. Puedes volver al inicio.`,
-                [{ text: 'Volver al Inicio', onPress: onSuccess }]
-            );
+            triggerSuccessModal(onSuccess);
         } catch (error) {
             console.error('Error al enviar reseña:', error.response?.data || error.message);
             const errorMessage = error.response?.data?.message || 'No se pudo enviar la calificación';
@@ -101,6 +139,38 @@ const RatingScreen = ({
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
+
+            {/* Modal de éxito animado */}
+            <Modal transparent visible={showSuccess} animationType="fade">
+                <View style={styles.successOverlay}>
+                    <View style={styles.successCard}>
+                        {/* Círculo con check animado */}
+                        <Animated.View style={[
+                            styles.successCircle,
+                            { backgroundColor: accentColor + '20' },
+                            {
+                                opacity: checkOpacity,
+                                transform: [{ scale: checkScale }],
+                            }
+                        ]}>
+                            <Animated.View style={[
+                                styles.successCircleInner,
+                                { backgroundColor: accentColor },
+                            ]}>
+                                <Ionicons name="checkmark" size={44} color="#FFF" />
+                            </Animated.View>
+                        </Animated.View>
+
+                        {/* Texto */}
+                        <Animated.View style={{ opacity: textOpacity, alignItems: 'center' }}>
+                            <Text style={styles.successTitle}>¡Excelente!</Text>
+                            <Text style={styles.successMessage}>
+                                Has calificado al {personRole.toLowerCase()} correctamente.
+                            </Text>
+                        </Animated.View>
+                    </View>
+                </View>
+            </Modal>
 
             <ScrollView
                 contentContainerStyle={styles.content}
@@ -323,6 +393,52 @@ const styles = StyleSheet.create({
     skipBtnText: {
         fontSize: 15,
         fontWeight: '500',
+    },
+    successOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    successCard: {
+        backgroundColor: '#FFF',
+        borderRadius: 28,
+        paddingVertical: 44,
+        paddingHorizontal: 36,
+        alignItems: 'center',
+        width: '78%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 20,
+        elevation: 12,
+    },
+    successCircle: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 28,
+    },
+    successCircleInner: {
+        width: 88,
+        height: 88,
+        borderRadius: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    successTitle: {
+        fontSize: 26,
+        fontWeight: '800',
+        color: '#1A1A1A',
+        marginBottom: 10,
+    },
+    successMessage: {
+        fontSize: 15,
+        color: '#666',
+        textAlign: 'center',
+        lineHeight: 22,
     },
 });
 
