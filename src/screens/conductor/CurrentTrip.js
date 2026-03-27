@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, ScrollView, ActivityIndicator, Alert, Image, Linking, Modal, Animated } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, ScrollView, ActivityIndicator, Image, Linking } from 'react-native';
+import { useCustomAlert } from '../../context/CustomAlertContext';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
@@ -98,9 +98,10 @@ import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
 const TripInProgressDriver = ({ route, navigation }) => {
-    const { theme } = useDriverTheme(); 
+    const { theme } = useDriverTheme();
+    const { showAlert } = useCustomAlert();
     const si = useScrollIndicator({ alwaysVisible: true });
-    
+
     // ListOfRequests nos pasa rideId (el ID del viaje), no bookingId
     const rideId = route?.params?.rideId;
     const mapRef = useRef(null);
@@ -213,7 +214,55 @@ const TripInProgressDriver = ({ route, navigation }) => {
     };
 
     const handleFinalizeTrip = () => {
-        setFinishModalVisible(true);
+        showAlert(
+            "Finalizar viaje",
+            "¿Estás seguro de que has llegado al destino?",
+            "warning",
+            "Sí, finalizar",
+            null,
+            "Cancelar",
+            async () => {
+                        try {
+                            // 1. Consultamos el estado actual del ride antes de actuar
+                            const rideCheck = await api.get(`/rides/${rideId}`);
+                            const currentStatus = rideCheck.data?.data?.status;
+
+                            if (currentStatus === 'completed') {
+                                navigation.replace('RatePassenger', {
+                                    rideId,
+                                    passengerId: bookingData?.passenger_id?._id?.toString() || bookingData?.passenger_id?.toString(),
+                                    passengerName: bookingData?.passenger_id?.name,
+                                    passengerImage: bookingData?.passenger_id?.profileImage,
+                                });
+                                return;
+                            }
+
+                            if (currentStatus === 'scheduled') {
+                                // Nunca se marcó 'in progress', lo iniciamos primero
+                                await api.patch(`/rides/${rideId}/start`);
+                            }
+
+                            // 2. Ahora lo completamos (garantizado en 'in progress')
+                            const res = await api.patch(`/rides/${rideId}/complete`);
+
+                            if (res.data?.success) {
+                                navigation.replace('RatePassenger', {
+                                    rideId,
+                                    passengerId: bookingData?.passenger_id?._id?.toString() || bookingData?.passenger_id?.toString(),
+                                    passengerName: bookingData?.passenger_id?.name,
+                                    passengerImage: bookingData?.passenger_id?.profileImage,
+                                });
+                            } else {
+                                showAlert('Error', res.data?.message || 'No se pudo finalizar el viaje.', 'error');
+                            }
+                        } catch (error) {
+                            // Mostramos el mensaje real del servidor para facilitar el debug
+                            const serverMsg = error.response?.data?.message || error.message || 'Error desconocido';
+                            console.error('Error finalizing trip:', serverMsg, error.response?.status);
+                            showAlert('Error al finalizar', serverMsg, 'error');
+                        }
+            }
+        );
     };
 
     if (loading && !rideData) {
@@ -223,7 +272,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
             </SafeAreaView>
         );
     }
-    
+
     // Si no hay datos del ride, algo salió mal
     if (!rideData) {
         return (
@@ -243,162 +292,164 @@ const TripInProgressDriver = ({ route, navigation }) => {
 
     const originCoords = ride?.origin?.coordinates;
     const destCoords = ride?.destination?.coordinates;
-    const hasCoords = (originCoords?.lat !== undefined && originCoords?.lng !== undefined) && 
-                      (destCoords?.lat !== undefined && destCoords?.lng !== undefined);
+    const hasCoords = (originCoords?.lat !== undefined && originCoords?.lng !== undefined) &&
+        (destCoords?.lat !== undefined && destCoords?.lng !== undefined);
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
-            
+
             {/* Header */}
             <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border, borderBottomWidth: 1 }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Ionicons name="chevron-back" size={28} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Viaje en curso</Text>
-                <View style={{ width: 28 }} /> 
+                <View style={{ width: 28 }} />
             </View>
 
             <View style={{ flex: 1 }}>
-                <ScrollView 
-                    style={{ flex: 1 }} 
+                <ScrollView
+                    style={{ flex: 1 }}
                     contentContainerStyle={styles.scrollContent}
                     {...si.scrollProps}
                 >
                     {/* Mapa con bordes redondeados y sombra */}
-                <View style={styles.mapContainer}>
-                    {hasCoords ? (
-                        <MapView
-                            ref={mapRef}
-                            style={styles.map}
-                            initialRegion={{
-                                latitude: (Number(originCoords.lat) + Number(destCoords.lat)) / 2,
-                                longitude: (Number(originCoords.lng) + Number(destCoords.lng)) / 2,
-                                latitudeDelta: Math.abs(Number(originCoords.lat) - Number(destCoords.lat)) * 2 || 0.05,
-                                longitudeDelta: Math.abs(Number(originCoords.lng) - Number(destCoords.lng)) * 2 || 0.05,
-                            }}
-                            showsUserLocation={true}
-                            showsMyLocationButton={true}
-                            onMapReady={() => {
-                                if (mapRef.current) {
-                                    mapRef.current.fitToCoordinates(
-                                        [
-                                            { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
-                                            { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }
-                                        ],
-                                        { edgePadding: { top: 40, right: 40, bottom: 40, left: 40 }, animated: true }
-                                    );
-                                }
-                            }}
-                        >
-                            {/* Marcador Origen */}
-                            <Marker 
-                                coordinate={{ latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) }}
-                                title="Recogida"
-                                pinColor="#4A90E2"
-                            />
-                            {/* Marcador Destino */}
-                            <Marker 
-                                coordinate={{ latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }}
-                                title="Destino"
-                                pinColor="#EF5350"
-                            />
-                            {/* Ruta real por carretera (Google Directions) o línea recta como fallback */}
-                            <Polyline
-                                coordinates={routeCoords ?? [
-                                    { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
-                                    { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }
-                                ]}
-                                strokeColor="#4A90E2"
-                                strokeWidth={4}
-                            />
-                        </MapView>
-                    ) : (
-                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                            <Ionicons name="map-outline" size={60} color="#CCC" />
-                            <Text style={{ color: '#999', marginTop: 10 }}>Sin conexión GPS</Text>
-                        </View>
-                    )}
-                </View>
-
-                {/* Card de Detalles del Pasajero */}
-                <View style={[styles.passengerCard, { backgroundColor: theme.surface }]}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Detalles del Pasajero</Text>
-                    
-                    <View style={[styles.passengerInfoRow, { backgroundColor: theme.bg }]}>
-                        {passenger?.profileImage ? (
-                            <Image source={{ uri: passenger.profileImage }} style={styles.avatar} />
+                    <View style={styles.mapContainer}>
+                        {hasCoords ? (
+                            <MapView
+                                ref={mapRef}
+                                style={styles.map}
+                                initialRegion={{
+                                    latitude: (Number(originCoords.lat) + Number(destCoords.lat)) / 2,
+                                    longitude: (Number(originCoords.lng) + Number(destCoords.lng)) / 2,
+                                    latitudeDelta: Math.abs(Number(originCoords.lat) - Number(destCoords.lat)) * 2 || 0.05,
+                                    longitudeDelta: Math.abs(Number(originCoords.lng) - Number(destCoords.lng)) * 2 || 0.05,
+                                }}
+                                showsUserLocation={true}
+                                showsMyLocationButton={true}
+                                onMapReady={() => {
+                                    if (mapRef.current) {
+                                        mapRef.current.fitToCoordinates(
+                                            [
+                                                { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
+                                                { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }
+                                            ],
+                                            { edgePadding: { top: 40, right: 40, bottom: 40, left: 40 }, animated: true }
+                                        );
+                                    }
+                                }}
+                            >
+                                {/* Marcador Origen */}
+                                <Marker
+                                    coordinate={{ latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) }}
+                                    title="Recogida"
+                                    pinColor="#4A90E2"
+                                />
+                                {/* Marcador Destino */}
+                                <Marker
+                                    coordinate={{ latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }}
+                                    title="Destino"
+                                    pinColor="#EF5350"
+                                />
+                                {/* Trayecto virtual */}
+                                <Polyline
+                                    coordinates={[
+                                        { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
+                                        { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }
+                                    ]}
+                                    strokeColor="#4A90E2"
+                                    strokeWidth={3}
+                                    lineDashPattern={[5, 5]}
+                                />
+                            </MapView>
                         ) : (
-                            <View style={[styles.avatar, { backgroundColor: theme.border, justifyContent: 'center', alignItems: 'center' }]}>
-                                <Ionicons name="person" size={24} color={theme.textSecondary} />
+                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                                <Ionicons name="map-outline" size={60} color="#CCC" />
+                                <Text style={{ color: '#999', marginTop: 10 }}>Sin conexión GPS</Text>
                             </View>
                         )}
-                        <View style={styles.passengerTextInfo}>
-                            <Text style={[styles.passengerName, { color: theme.text }]}>{passenger?.name || 'Pasajero no identificado'}</Text>
-                            <View style={styles.ratingRow}>
-                                <Ionicons name="star" size={14} color="#FFC107" />
-                                <Text style={[styles.ratingText, { color: theme.textSecondary }]}>{passenger?.rating || 'Nuevo'}</Text>
-                            </View>
-                        </View>
-                        <TouchableOpacity style={[styles.chatButton, { backgroundColor: '#25D366' }]} onPress={() => {
-                            const pPhone = passenger?.phone;
-                            if (pPhone) {
-                                const cleanPhone = pPhone.replace(/[^0-9+]/g, '');
-                                // Agrega +506 (Costa Rica) si el número no tiene código de país
-                                const intlPhone = cleanPhone.startsWith('+') ? cleanPhone : '+506' + cleanPhone;
-                                const waUrl = `https://wa.me/${intlPhone}?text=Hola,%20soy%20tu%20conductor.%20Voy%20en%20camino.`;
-                                Linking.openURL(waUrl).catch(() => Linking.openURL(`tel:${pPhone}`));
-                            } else {
-                                Alert.alert('Atención', 'El pasajero no tiene número de contacto.');
-                            }
-                        }}>
-                            <Ionicons name="logo-whatsapp" size={24} color="#FFF" />
-                        </TouchableOpacity>
                     </View>
 
-                    {/* Timeline de la ruta */}
-                    <View style={styles.routeDetails}>
-                        <View style={styles.timelineItem}>
-                            <View style={[styles.dot, { backgroundColor: '#A2C2E8' }]} />
-                            <View style={styles.timelineText}>
-                                <Text style={[styles.routeLabel, { color: theme.textSecondary }]}>Recogida</Text>
-                                <Text style={[styles.addressText, { color: theme.text }]} numberOfLines={2}>{ride?.origin?.name || 'Desconocido'}</Text>
+                    {/* Card de Detalles del Pasajero */}
+                    <View style={[styles.passengerCard, { backgroundColor: theme.surface }]}>
+                        <Text style={[styles.sectionTitle, { color: theme.text }]}>Detalles del Pasajero</Text>
+
+                        <View style={[styles.passengerInfoRow, { backgroundColor: theme.bg }]}>
+                            {passenger?.profileImage ? (
+                                <Image source={{ uri: passenger.profileImage }} style={styles.avatar} />
+                            ) : (
+                                <View style={[styles.avatar, { backgroundColor: theme.border, justifyContent: 'center', alignItems: 'center' }]}>
+                                    <Ionicons name="person" size={24} color={theme.textSecondary} />
+                                </View>
+                            )}
+                            <View style={styles.passengerTextInfo}>
+                                <Text style={[styles.passengerName, { color: theme.text }]}>{passenger?.name || 'Pasajero no identificado'}</Text>
+                                <View style={styles.ratingRow}>
+                                    <Ionicons name="star" size={14} color="#FFC107" />
+                                    <Text style={[styles.ratingText, { color: theme.textSecondary }]}>{passenger?.rating || 'Nuevo'}</Text>
+                                </View>
                             </View>
+                            <TouchableOpacity style={[styles.chatButton, { backgroundColor: '#25D366' }]} onPress={() => {
+                                const pPhone = passenger?.phone;
+                                if (pPhone) {
+                                    const cleanPhone = pPhone.replace(/[^0-9+]/g, '');
+                                    const waUrl = `whatsapp://send?phone=${cleanPhone}&text=Hola,%20soy%20tu%20conductor.%20Voy%20en%20camino.`;
+                                    Linking.canOpenURL(waUrl).then(supported => {
+                                        if (supported) return Linking.openURL(waUrl);
+                                        return Linking.openURL(`https://wa.me/${cleanPhone}?text=Hola,%20soy%20tu%20conductor.%20Voy%20en%20camino.`);
+                                    }).catch(() => Linking.openURL(`tel:${pPhone}`));
+                                } else {
+                                    Alert.alert('Atención', 'El pasajero no tiene número de contacto.');
+                                }
+                            }}>
+                                <Ionicons name="logo-whatsapp" size={24} color="#FFF" />
+                            </TouchableOpacity>
                         </View>
 
-                        <View style={[styles.verticalLine, { backgroundColor: theme.border }]} />
-
-                        <View style={styles.timelineItem}>
-                            <View style={[styles.dot, { backgroundColor: '#4A90E2' }]} />
-                            <View style={styles.timelineText}>
-                                <Text style={[styles.routeLabel, { color: theme.textSecondary }]}>Destino</Text>
-                                <Text style={[styles.addressText, { color: theme.text }]}>{ride?.destination?.name || 'Desconocido'}</Text>
+                        {/* Timeline de la ruta */}
+                        <View style={styles.routeDetails}>
+                            <View style={styles.timelineItem}>
+                                <View style={[styles.dot, { backgroundColor: '#A2C2E8' }]} />
+                                <View style={styles.timelineText}>
+                                    <Text style={[styles.routeLabel, { color: theme.textSecondary }]}>Recogida</Text>
+                                    <Text style={[styles.addressText, { color: theme.text }]} numberOfLines={2}>{ride?.origin?.name || 'Desconocido'}</Text>
+                                </View>
                             </View>
-                        </View>
 
-                        <View style={styles.timelineItem}>
-                            <Ionicons name="time-outline" size={18} color={theme.accent} style={{ marginRight: 12 }} />
-                            <View style={styles.timelineText}>
-                                <Text style={[styles.routeLabel, { color: theme.textSecondary }]}>Llegada esperada</Text>
-                                <Text style={[styles.addressText, { color: theme.text }]}>12:30 PM (Est.)</Text>
+                            <View style={[styles.verticalLine, { backgroundColor: theme.border }]} />
+
+                            <View style={styles.timelineItem}>
+                                <View style={[styles.dot, { backgroundColor: '#4A90E2' }]} />
+                                <View style={styles.timelineText}>
+                                    <Text style={[styles.routeLabel, { color: theme.textSecondary }]}>Destino</Text>
+                                    <Text style={[styles.addressText, { color: theme.text }]}>{ride?.destination?.name || 'Desconocido'}</Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.timelineItem}>
+                                <Ionicons name="time-outline" size={18} color={theme.accent} style={{ marginRight: 12 }} />
+                                <View style={styles.timelineText}>
+                                    <Text style={[styles.routeLabel, { color: theme.textSecondary }]}>Llegada esperada</Text>
+                                    <Text style={[styles.addressText, { color: theme.text }]}>12:30 PM (Est.)</Text>
+                                </View>
                             </View>
                         </View>
                     </View>
-                </View>
 
-                {/* Botón Finalizar */}
-                <TouchableOpacity style={styles.finishButton} onPress={handleFinalizeTrip}>
-                    <MaterialCommunityIcons name="logout" size={24} color="#FFF" />
-                    <Text style={styles.finishButtonText}>Finalizar viaje</Text>
-                </TouchableOpacity>
+                    {/* Botón Finalizar */}
+                    <TouchableOpacity style={styles.finishButton} onPress={handleFinalizeTrip}>
+                        <MaterialCommunityIcons name="logout" size={24} color="#FFF" />
+                        <Text style={styles.finishButtonText}>Finalizar viaje</Text>
+                    </TouchableOpacity>
                 </ScrollView>
                 <ScrollIndicator si={si} thumbColor={theme.accent} />
             </View>
 
             {/* BARRA DE NAVEGACIÓN INFERIOR */}
-            <BottomNavigationDriver 
-                navigation={navigation} 
-                activeTab="Rutas" 
+            <BottomNavigationDriver
+                navigation={navigation}
+                activeTab="Rutas"
             />
 
             <FinalizeTripModal 

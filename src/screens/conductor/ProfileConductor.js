@@ -8,7 +8,6 @@ import {
     ScrollView,
     Image,
     ActivityIndicator,
-    Alert,
     Modal,
     TextInput,
     KeyboardAvoidingView,
@@ -99,7 +98,6 @@ const ProfileConductor = ({ navigation, route }) => {
     const [editVehicleForm, setEditVehicleForm] = useState({
         brand: '', model: '', year: '', color: '', licensePlate: ''
     });
-
     const { showAlert } = useCustomAlert();
 
     const loadProfile = async () => {
@@ -247,7 +245,7 @@ const ProfileConductor = ({ navigation, route }) => {
             }
 
             // 1. Validar si hay cambios
-            const hasChanges = 
+            const hasChanges =
                 editVehicleForm.brand !== vehicleData.brand ||
                 editVehicleForm.model !== vehicleData.model ||
                 editVehicleForm.year !== (vehicleData.year ? vehicleData.year.toString() : '') ||
@@ -298,11 +296,12 @@ const ProfileConductor = ({ navigation, route }) => {
 
     const handleLogout = () => {
         showAlert(
-            'Cerrar Sesión', 
-            '¿Estás seguro de que quieres salir?', 
-            'confirm', 
-            'Cerrar Sesión', 
-            'Cancelar', 
+            'Cerrar Sesión',
+            '¿Estás seguro de que quieres salir?',
+            'warning',
+            'Sí, salir',
+            null,
+            'Cancelar',
             async () => {
                 await AsyncStorage.clear();
                 sessionCache.clear();
@@ -519,41 +518,15 @@ const ProfileConductor = ({ navigation, route }) => {
                                 onChangeText={t => setEditForm(prev => ({ ...prev, phone: t.replace(/[^0-9]/g, '') }))}
                                 placeholder="88888888" keyboardType="phone-pad" maxLength={8} theme={theme} />
 
-                            <View style={styles.inputGroup}>
-                                <View style={styles.labelRow}>
-                                    <Ionicons name="business-outline" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
-                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>SELECCIONA TU EMPRESA</Text>
-                                </View>
-                                <View style={styles.chipsContainer}>
-                                    {Array.from(new Set([...COMPANIES, userData?.company])).filter(Boolean).map(comp => (
-                                        <TouchableOpacity 
-                                            key={comp}
-                                            activeOpacity={0.7}
-                                            onPress={() => setEditForm(prev => ({ ...prev, company: comp }))}
-                                            style={[
-                                                styles.companyChip,
-                                                { 
-                                                    borderColor: editForm.company === comp ? theme.accent : theme.divider,
-                                                    backgroundColor: editForm.company === comp ? theme.accent + '15' : 'transparent'
-                                                }
-                                            ]}
-                                        >
-                                            <Ionicons 
-                                                name="business-outline" 
-                                                size={14} 
-                                                color={editForm.company === comp ? theme.accent : theme.textSecondary} 
-                                                style={{ marginRight: 6 }}
-                                            />
-                                            <Text style={[
-                                                styles.chipText, 
-                                                { color: editForm.company === comp ? theme.accent : theme.textSecondary }
-                                            ]}>
-                                                {comp}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                            </View>
+                            <CustomSelect
+                                label="EMPRESA"
+                                icon="business-outline"
+                                value={editForm.company}
+                                options={COMPANIES}
+                                onValueChange={val => setEditForm(prev => ({ ...prev, company: val }))}
+                                theme={theme}
+                                placeholder="Selecciona una empresa"
+                            />
 
                             <TouchableOpacity
                                 style={[styles.saveBtn, { backgroundColor: theme.accent }]}
@@ -602,9 +575,9 @@ const ProfileConductor = ({ navigation, route }) => {
                         <ScrollView showsVerticalScrollIndicator={false}>
 
                             {/* MARCA SELECT */}
-                            <CustomSelect 
-                                label="MARCA" 
-                                icon="car-outline" 
+                            <CustomSelect
+                                label="MARCA"
+                                icon="car-outline"
                                 value={editVehicleForm.brand}
                                 options={BRANDS}
                                 onValueChange={val => setEditVehicleForm(prev => ({ ...prev, brand: val, model: '' }))}
@@ -613,9 +586,9 @@ const ProfileConductor = ({ navigation, route }) => {
                             />
 
                             {/* MODELO SELECT */}
-                            <CustomSelect 
-                                label="MODELO" 
-                                icon="car-outline" 
+                            <CustomSelect
+                                label="MODELO"
+                                icon="car-outline"
                                 value={editVehicleForm.model}
                                 options={CAR_DATA[editVehicleForm.brand] || []}
                                 onValueChange={val => setEditVehicleForm(prev => ({ ...prev, model: val }))}
@@ -624,9 +597,9 @@ const ProfileConductor = ({ navigation, route }) => {
                             />
 
                             {/* AÑO SELECT */}
-                            <CustomSelect 
-                                label="AÑO" 
-                                icon="calendar-outline" 
+                            <CustomSelect
+                                label="AÑO"
+                                icon="calendar-outline"
                                 value={editVehicleForm.year}
                                 options={YEARS}
                                 onValueChange={val => setEditVehicleForm(prev => ({ ...prev, year: val }))}
@@ -635,9 +608,9 @@ const ProfileConductor = ({ navigation, route }) => {
                             />
 
                             {/* COLOR SELECT */}
-                            <CustomSelect 
-                                label="COLOR" 
-                                icon="color-palette-outline" 
+                            <CustomSelect
+                                label="COLOR"
+                                icon="color-palette-outline"
                                 value={editVehicleForm.color}
                                 options={VEHICLE_COLORS}
                                 onValueChange={val => setEditVehicleForm(prev => ({ ...prev, color: val }))}
@@ -691,8 +664,8 @@ const CustomSelect = ({ label, icon, value, options, onValueChange, theme, place
                 <Ionicons name={icon} size={22} color={theme.textSecondary} style={{ marginRight: 6 }} />
                 <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>{label}</Text>
             </View>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => setVisible(true)}
                 style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}
@@ -704,25 +677,25 @@ const CustomSelect = ({ label, icon, value, options, onValueChange, theme, place
             </TouchableOpacity>
 
             <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
-                <TouchableOpacity 
-                    style={styles.selectOverlay} 
-                    activeOpacity={1} 
+                <TouchableOpacity
+                    style={styles.selectOverlay}
+                    activeOpacity={1}
                     onPress={() => setVisible(false)}
                 >
                     <View style={[styles.selectBox, { backgroundColor: theme.surface || '#111128', borderColor: theme.divider }]}>
                         <View style={[styles.handleBar, { backgroundColor: theme.divider, marginBottom: 16 }]} />
                         <Text style={[styles.selectTitle, { color: theme.text }]}>{label}</Text>
-                        
-                        <ScrollView 
-                            showsVerticalScrollIndicator={false} 
+
+                        <ScrollView
+                            showsVerticalScrollIndicator={false}
                             style={{ height: 350 }}
                             contentContainerStyle={{ paddingBottom: 20 }}
                         >
                             {options && options.length > 0 ? options.map((opt, i) => (
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     key={i}
                                     style={[
-                                        styles.selectOption, 
+                                        styles.selectOption,
                                         i < options.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.divider }
                                     ]}
                                     activeOpacity={0.6}
@@ -732,8 +705,8 @@ const CustomSelect = ({ label, icon, value, options, onValueChange, theme, place
                                     }}
                                 >
                                     <Text style={[
-                                        styles.selectOptionText, 
-                                        { color: theme.text || '#FFFFFF' }, 
+                                        styles.selectOptionText,
+                                        { color: theme.text || '#FFFFFF' },
                                         value === opt && { color: theme.accent, fontFamily: 'Poppins-Bold' }
                                     ]}>
                                         {opt}
@@ -905,16 +878,16 @@ const styles = StyleSheet.create({
 
     // Modal
     modalOverlay: {
-        flex: 1, 
-        backgroundColor: 'rgba(0,0,0,0.65)', 
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.65)',
         justifyContent: 'flex-end',
     },
 
     modalContent: {
-        borderTopLeftRadius: 32, 
+        borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
-        padding: 24, 
-        paddingTop: 12, 
+        padding: 24,
+        paddingTop: 12,
         maxHeight: '92%',
         borderWidth: 1.5,
     },
@@ -939,149 +912,149 @@ const styles = StyleSheet.create({
     },
 
     handleBar: {
-        width: 40, 
-        height: 4, 
+        width: 40,
+        height: 4,
         borderRadius: 2,
-        alignSelf: 'center', 
+        alignSelf: 'center',
         marginBottom: 18,
     },
 
     modalHeader: {
-        flexDirection: 'row', 
+        flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center', 
+        alignItems: 'center',
         marginBottom: 22,
     },
 
-    modalTitle: { 
+    modalTitle: {
         fontSize: 20,
-        fontFamily: 'Poppins-Bold' 
+        fontFamily: 'Poppins-Bold'
     },
 
     closeBtn: {
-        width: 40, 
-        height: 40, 
+        width: 40,
+        height: 40,
         borderRadius: 20,
-        justifyContent: 'center', 
+        justifyContent: 'center',
         alignItems: 'center',
     },
 
     modalAvatarContainer: {
-        alignSelf: 'center', 
-        marginBottom: 6, 
+        alignSelf: 'center',
+        marginBottom: 6,
         position: 'relative',
     },
 
     modalAvatar: {
-        width: 100, 
-        height: 100, 
-        borderRadius: 50, 
+        width: 100,
+        height: 100,
+        borderRadius: 50,
         borderWidth: 3,
     },
 
     cameraBadge: {
-        position: 'absolute', 
-        bottom: 2, 
+        position: 'absolute',
+        bottom: 2,
         right: 2,
-        width: 30, 
-        height: 30, 
+        width: 30,
+        height: 30,
         borderRadius: 15,
-        justifyContent: 'center', 
+        justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 2,
     },
-    
+
     photoHint: {
-        textAlign: 'center', 
+        textAlign: 'center',
         fontSize: 12,
-        fontFamily: 'Poppins-Regular', 
+        fontFamily: 'Poppins-Regular',
         marginBottom: 22,
     },
-    
-    inputGroup: { 
-        marginBottom: 18 
+
+    inputGroup: {
+        marginBottom: 18
     },
-    
-    labelRow: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        marginBottom: 8, 
-        marginLeft: 2 
+
+    labelRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+        marginLeft: 2
     },
-    
-    inputLabel: { 
-        fontSize: 11, 
-        fontFamily: 'Poppins-SemiBold', 
-        letterSpacing: 0.8 
+
+    inputLabel: {
+        fontSize: 11,
+        fontFamily: 'Poppins-SemiBold',
+        letterSpacing: 0.8
     },
-    
+
     input: {
-        height: 52, 
-        borderRadius: 15, 
+        height: 52,
+        borderRadius: 15,
         borderWidth: 1.5,
-        paddingHorizontal: 16, 
-        fontSize: 15, 
+        paddingHorizontal: 16,
+        fontSize: 15,
         fontFamily: 'Poppins-Regular',
     },
-    
+
     pickerContainer: {
-        borderRadius: 15, 
+        borderRadius: 15,
         borderWidth: 1.5,
-        height: 52, 
-        justifyContent: 'space-between', 
+        height: 52,
+        justifyContent: 'space-between',
         overflow: 'hidden',
-        flexDirection: 'row', 
-        alignItems: 'center', 
+        flexDirection: 'row',
+        alignItems: 'center',
         paddingHorizontal: 16,
     },
-    
+
     selectOverlay: {
-        flex: 1, 
-        backgroundColor: 'rgba(0,0,0,0.5)', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
         padding: 24
     },
-    
+
     selectBox: {
-        width: '100%', 
-        borderRadius: 24, 
-        padding: 20, 
+        width: '100%',
+        borderRadius: 24,
+        padding: 20,
         borderWidth: 2,
-        elevation: 10, 
-        shadowColor: '#000', 
-        shadowOffset: { width: 0, height: 10 }, 
-        shadowOpacity: 0.3, 
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
         shadowRadius: 15
     },
-    
-    selectTitle: { 
-        fontSize: 16, 
-        fontFamily: 'Poppins-Bold', 
-        marginBottom: 16, 
-        textAlign: 'center' 
+
+    selectTitle: {
+        fontSize: 16,
+        fontFamily: 'Poppins-Bold',
+        marginBottom: 16,
+        textAlign: 'center'
     },
-    
+
     selectOption: {
-        paddingVertical: 15, 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
+        paddingVertical: 15,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 10,
     },
-    
-    selectOptionText: { 
-        fontSize: 15, 
-        fontFamily: 'Poppins-Regular' 
+
+    selectOptionText: {
+        fontSize: 15,
+        fontFamily: 'Poppins-Regular'
     },
-    
+
     saveBtn: {
-        height: 54, 
+        height: 54,
         borderRadius: 16,
-        flexDirection: 'row', 
-        justifyContent: 'center', 
+        flexDirection: 'row',
+        justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 8, 
+        marginTop: 8,
         marginBottom: 24,
         elevation: 4,
         shadowColor: '#748FFF',
@@ -1089,7 +1062,12 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.35,
         shadowRadius: 10,
     },
-    saveBtnText: { color: '#FFF', fontSize: 16, fontFamily: 'Poppins-SemiBold' },
+
+    saveBtnText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontFamily: 'Poppins-SemiBold'
+    },
 });
 
 export default ProfileConductor;

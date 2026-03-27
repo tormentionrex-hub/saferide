@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, Linking, ScrollView, ActivityIndicator, Alert, Modal, Animated } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, Linking, ScrollView, ActivityIndicator } from 'react-native';
+import { useCustomAlert } from '../../context/CustomAlertContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
@@ -93,8 +94,9 @@ const TripStatusModal = ({ visible, status, onConfirm, theme }) => {
 };
 
 const TripInProgress = ({ route, navigation }) => {
-    const { theme } = useDriverTheme(); 
-    
+    const { theme } = useDriverTheme();
+    const { showAlert } = useCustomAlert();
+
     // El ID del booking nos lo envía la navegación previa (BottomNavigationBar o ScreenSaver)
     const bookingId = route?.params?.bookingId;
 
@@ -164,8 +166,25 @@ const TripInProgress = ({ route, navigation }) => {
                     if (data.status === 'cancelled' || data.status === 'completed' || data.status === 'deny') {
                         // Detenemos las repeticiones inmediatamente
                         if (intervalId) clearInterval(intervalId);
-                        setFinalStatus(data.status);
-                        setStatusModalVisible(true);
+
+                        if (data.status === 'completed') {
+                            // Llevar al pasajero a calificar al conductor
+                            navigation.replace('RateDriver', {
+                                rideId: data.ride_id?._id?.toString() || data.ride_id?.toString(),
+                                driverId: data.ride_id?.driver_id?._id?.toString() || data.ride_id?.driver_id?.toString(),
+                                driverName: data.ride_id?.driver_id?.name,
+                                driverImage: data.ride_id?.driver_id?.profileImage,
+                            });
+                        } else {
+                            // Cancelado o rechazado
+                            showAlert(
+                                'Viaje Finalizado',
+                                'El viaje ha sido cancelado o rechazado.',
+                                'warning',
+                                'Buscar otro viaje',
+                                () => navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' })
+                            );
+                        }
                     }
                 }
             } catch (error) {
@@ -178,9 +197,9 @@ const TripInProgress = ({ route, navigation }) => {
 
         // Primera carga inmediata
         fetchTripDetails();
-        
-        // Polling cada 10 segundos
-        intervalId = setInterval(fetchTripDetails, 10000);
+
+        // Polling cada 30 segundos (para evitar error 429 del rate limiter)
+        intervalId = setInterval(fetchTripDetails, 30000);
 
         // Cleanup al desmontar pantalla
         return () => {
@@ -191,7 +210,7 @@ const TripInProgress = ({ route, navigation }) => {
     // Polling secundario rápido para la ubicación del conductor
     useEffect(() => {
         if (!bookingData || !bookingData.ride_id) return;
-        
+
         let locationInterval;
         const rideId = bookingData.ride_id._id || bookingData.ride_id;
 
@@ -245,11 +264,16 @@ const TripInProgress = ({ route, navigation }) => {
             return;
         }
         const cleanPhone = phone.replace(/[^0-9+]/g, '');
-        // Agrega +506 (Costa Rica) si el número no tiene código de país
-        const intlPhone = cleanPhone.startsWith('+') ? cleanPhone : '+506' + cleanPhone;
-        const whatsappUrl = `https://wa.me/${intlPhone}?text=Hola,%20voy%20en%20el%20viaje`;
-        Linking.openURL(whatsappUrl).catch(() => {
-            Alert.alert('Error', 'No se pudo abrir WhatsApp. Asegúrate de tener la app instalada.');
+        const whatsappUrl = `whatsapp://send?phone=${cleanPhone}&text=Hola,%20voy%20en%20el%20viaje`;
+
+        Linking.canOpenURL(whatsappUrl).then(supported => {
+            if (supported) {
+                return Linking.openURL(whatsappUrl);
+            } else {
+                return Linking.openURL(`https://wa.me/${cleanPhone}?text=Hola,%20voy%20en%20el%20viaje`);
+            }
+        }).catch(() => {
+            showAlert('Error', 'No se pudo abrir WhatsApp. Asegúrate de tener la app instalada.', 'error');
         });
     };
 
@@ -267,7 +291,7 @@ const TripInProgress = ({ route, navigation }) => {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
                 <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
-                
+
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
                     <Ionicons name="car-sport-outline" size={80} color={theme.textSecondary} style={{ opacity: 0.5, marginBottom: 20 }} />
                     <Text style={{ fontSize: 22, fontWeight: 'bold', color: theme.text, textAlign: 'center', marginBottom: 10 }}>
@@ -276,9 +300,9 @@ const TripInProgress = ({ route, navigation }) => {
                     <Text style={{ fontSize: 16, color: theme.textSecondary, textAlign: 'center', marginBottom: 40, paddingHorizontal: 20 }}>
                         Actualmente no estás a bordo de ningún viaje ni esperando a ser recogido.
                     </Text>
-                    
-                    <TouchableOpacity 
-                        style={{ backgroundColor: theme.accent, paddingHorizontal: 32, height: 50, borderRadius: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }} 
+
+                    <TouchableOpacity
+                        style={{ backgroundColor: theme.accent, paddingHorizontal: 32, height: 50, borderRadius: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
                         onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' })}
                     >
                         <Ionicons name="search" size={20} color="#FFF" style={{ marginRight: 10 }} />
@@ -292,32 +316,20 @@ const TripInProgress = ({ route, navigation }) => {
 
     const { ride_id } = bookingData;
     const driver = ride_id?.driver_id;
-    
+
     // Extracción segurizada de coordenadas
     const originCoords = ride_id?.origin?.coordinates;
     const destCoords = ride_id?.destination?.coordinates;
     // Nos aseguramos firmemente que traen valores válidos (números) antes de alimentar el MapView
-    const hasCoords = (originCoords?.lat !== undefined && originCoords?.lng !== undefined) && 
-                      (destCoords?.lat !== undefined && destCoords?.lng !== undefined);
+    const hasCoords = (originCoords?.lat !== undefined && originCoords?.lng !== undefined) &&
+        (destCoords?.lat !== undefined && destCoords?.lng !== undefined);
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
-            
-            {/* Header con botón Atrás */}
-            <View style={[styles.header, { borderBottomColor: theme.divider, borderBottomWidth: 1 }]}>
-                <TouchableOpacity 
-                    style={styles.backButton} 
-                    onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
-                >
-                    <Ionicons name="arrow-back" size={26} color={theme.text} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Viaje en curso</Text>
-                <View style={{ width: 44 }} />
-            </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
-                
+
                 {/* MAPA FUNCIONAL CON react-native-maps */}
                 <View style={[styles.mapPlaceholder, { backgroundColor: theme.surfaceVariant }]}>
                     {hasCoords ? (
@@ -337,24 +349,24 @@ const TripInProgress = ({ route, navigation }) => {
                                             { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
                                             { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }
                                         ],
-                                        { 
-                                            edgePadding: { top: 40, right: 40, bottom: 40, left: 40 }, 
-                                            animated: true 
+                                        {
+                                            edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+                                            animated: true
                                         }
                                     );
                                 }
                             }}
                         >
                             {/* Marcador de Recogida */}
-                            <Marker 
+                            <Marker
                                 coordinate={{ latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) }}
                                 title="Lugar de Recogida"
                                 description={ride_id.origin.name}
                                 pinColor={theme.accent}
                             />
-                            
+
                             {/* Marcador de Destino */}
-                            <Marker 
+                            <Marker
                                 coordinate={{ latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }}
                                 title="Destino del viaje"
                                 description={ride_id.destination.name}
@@ -363,7 +375,7 @@ const TripInProgress = ({ route, navigation }) => {
 
                             {/* Marcador en vivo del Conductor */}
                             {driverLocation && (
-                                <Marker 
+                                <Marker
                                     coordinate={driverLocation}
                                     title={driver?.name || 'Tu Conductor'}
                                     description="Ubicación en vivo"
@@ -371,9 +383,9 @@ const TripInProgress = ({ route, navigation }) => {
                                 />
                             )}
 
-                            {/* Ruta real por carretera (Google Directions) o línea recta como fallback */}
+                            {/* Trazado virtual uniendo los dos puntos */}
                             <Polyline
-                                coordinates={routeCoords ?? [
+                                coordinates={[
                                     { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
                                     { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }
                                 ]}
@@ -417,7 +429,7 @@ const TripInProgress = ({ route, navigation }) => {
                 {/* DETALLES DEL VIAJE DINÁMICOS */}
                 <View style={[styles.tripDetailsCard, { backgroundColor: theme.surface, shadowColor: theme.dark ? '#000' : '#d1d1d1' }]}>
                     <Text style={[styles.tripDetailsTitle, { color: theme.text }]}>Detalles del Viaje</Text>
-                    
+
                     <View style={styles.routeContainer}>
                         {/* Origen */}
                         <View style={styles.routeItem}>
@@ -445,6 +457,7 @@ const TripInProgress = ({ route, navigation }) => {
                         </View>
                     </View>
                 </View>
+
             </ScrollView>
 
             <BottomNavigationBar navigation={navigation} />
@@ -472,9 +485,9 @@ const TripInProgress = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { 
-        flex: 1, 
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 
+    container: {
+        flex: 1,
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
     },
     header: {
         flexDirection: 'row',
