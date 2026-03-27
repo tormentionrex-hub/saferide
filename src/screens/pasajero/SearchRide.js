@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
-    Alert, SafeAreaView, StatusBar, Platform, Dimensions, Animated, Modal
+    SafeAreaView, StatusBar, Platform, Dimensions, Animated, Modal
 } from 'react-native';
+import { useCustomAlert } from '../../context/CustomAlertContext';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,9 +42,9 @@ const ActiveBookingModal = ({ visible, onConfirm, theme }) => {
                     <Text style={[modalStyles.modalSubtitle, { color: theme.textSecondary }]}>
                         Tienes una reserva pendiente o confirmada. Revisa tu estado antes de buscar otro viaje.
                     </Text>
-                    
-                    <TouchableOpacity 
-                        style={[modalStyles.modalConfirmBtn, { backgroundColor: theme.accent }]} 
+
+                    <TouchableOpacity
+                        style={[modalStyles.modalConfirmBtn, { backgroundColor: theme.accent }]}
                         onPress={onConfirm}
                     >
                         <Text style={modalStyles.modalConfirmBtnText}>Ir a mi dashboard</Text>
@@ -57,6 +58,7 @@ const ActiveBookingModal = ({ visible, onConfirm, theme }) => {
 
 const SearchRide = ({ navigation }) => {
     const { theme } = useDriverTheme();
+    const { showAlert } = useCustomAlert();
     const [origen, setOrigen] = useState(null);
     const [destino, setDestino] = useState(null);
     const [pickerVisible, setPickerVisible] = useState(false);
@@ -153,11 +155,11 @@ const SearchRide = ({ navigation }) => {
                     searchDestination: { lat: destino.lat, lng: destino.lng, name: destino.name }
                 });
             } else {
-                Alert.alert('Aviso', 'No se encontraron viajes para esta ruta.');
+                showAlert('Aviso', 'No se encontraron viajes para esta ruta.', 'info');
             }
         } catch (error) {
             console.error('Error searching:', error);
-            Alert.alert('Error', 'Hubo un problema al buscar viajes.');
+            showAlert('Error', 'Hubo un problema al buscar viajes.', 'error');
         } finally {
             setLoading(false);
         }
@@ -309,7 +311,7 @@ const SearchRide = ({ navigation }) => {
                 </TouchableOpacity>
             )}
 
-            <ActiveBookingModal 
+            <ActiveBookingModal
                 visible={showActiveBookingModal}
                 theme={theme}
                 onConfirm={() => {

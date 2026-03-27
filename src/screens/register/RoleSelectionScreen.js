@@ -17,6 +17,7 @@ import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { authService } from '../../services/authService';
+import { useCustomAlert } from '../../context/CustomAlertContext';
 
 const { width } = Dimensions.get('window');
 
@@ -24,6 +25,7 @@ export default function RoleSelectionScreen({ route, navigation }) {
     const { email, name, phone, company, password } = route.params || {};
     const [selectedRole, setSelectedRole] = useState(null);
     const [loading, setLoading] = useState(false);
+    const { showAlert } = useCustomAlert();
 
     const [fontsLoaded] = useFonts({
         'Poppins-Bold': require('../../fonts/Poppins_700Bold.ttf'),
@@ -67,10 +69,12 @@ export default function RoleSelectionScreen({ route, navigation }) {
         if (!selectedRole) return;
 
         if (!email || !name || !password || !phone || !company) {
-            Alert.alert(
+            showAlert(
                 'Sesión Expirada',
                 'No pudimos encontrar tus datos de registro. Por favor, inténtalo de nuevo desde el inicio.',
-                [{ text: 'Volver a Registrarme', onPress: () => navigation.navigate('Login') }]
+                'error',
+                'Volver a Registrarme',
+                () => navigation.navigate('Login')
             );
             return;
         }
@@ -93,9 +97,10 @@ export default function RoleSelectionScreen({ route, navigation }) {
             navigation.navigate('AccountVerificationSucess');
         } catch (error) {
             console.error('Registration Error:', error.response?.data || error);
-            Alert.alert(
+            showAlert(
                 'Error en el Registro',
-                error.response?.data?.message || 'Hubo un problema procesando tu registro. Inténtalo más tarde.'
+                error.response?.data?.message || 'Hubo un problema procesando tu registro. Inténtalo más tarde.',
+                'error'
             );
         } finally {
             setLoading(false);
@@ -106,7 +111,7 @@ export default function RoleSelectionScreen({ route, navigation }) {
 
     return (
         <View style={styles.container}>
-        
+
             <LinearGradient
                 colors={['#09314bff', '#0c4469ff', '#073050ff']}
                 style={StyleSheet.absoluteFill}
@@ -126,7 +131,7 @@ export default function RoleSelectionScreen({ route, navigation }) {
 
             <SafeAreaView style={styles.safeArea}>
                 <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-                
+
                 {/* Botón Volver */}
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
@@ -149,7 +154,7 @@ export default function RoleSelectionScreen({ route, navigation }) {
 
                     {/* Role Options */}
                     <View style={styles.rolesContainer}>
-                        
+
                         {/* SafeMate Option */}
                         <TouchableOpacity
                             style={[
@@ -279,7 +284,7 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         padding: 20,
         alignItems: 'center',
-    
+
 
     },
     roleCardSelected: {
