@@ -8,6 +8,7 @@ import api from '../../services/api';
 import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
+import TripCompletedOverlay from '../../components/TripCompletedOverlay';
 
 /* ─── Modal de inicio de viaje ───────────────────────────────────── */
 const StartRideModal = ({ visible, onClose, onConfirm, loading, confirmedCount }) => {
@@ -220,6 +221,7 @@ const ListOfRequests = ({ route, navigation }) => {
     const [successModalVisible, setSuccessModalVisible] = useState(false);
     const [denyModalVisible, setDenyModalVisible] = useState(false);
     const [cancelledIds, setCancelledIds] = useState(new Set());
+    const [tripCompletedVisible, setTripCompletedVisible] = useState(false);
     const intervalRef = useRef(null);
 
     const specificRideId = route.params?.rideId;
@@ -377,45 +379,72 @@ const ListOfRequests = ({ route, navigation }) => {
         try {
             setStartRideLoading(true);
 
-            // Primero consultamos el estado actual del viaje
-            const rideRes = await api.get(`/rides/${specificRideId}`);
+            // 1. Consultamos los datos más recientes del viaje y los pasajeros
+            const [rideRes, bookingsRes] = await Promise.all([
+                api.get(`/rides/${specificRideId}`),
+                api.get(`/bookings/ride/${specificRideId}`)
+            ]);
+
             const currentStatus = rideRes.data?.data?.status;
+            const currentBookings = bookingsRes.data?.data || [];
+            const realConfirmedCount = currentBookings.filter(b => b.status === 'confirmed').length;
 
-            if (currentStatus === 'in progress') {
-                // El ride ya fue iniciado previamente → navegamos directo sin volver a llamar /start
-                setStartRideVisible(false);
-                setTimeout(() => {
-                    navigation.navigate('CurrentTrip', { rideId: specificRideId });
-                }, 100);
-                return;
-            }
-
-            if (currentStatus !== 'scheduled') {
-                // Estado inválido (completed, cancelled, etc.)
-                const mensajes = {
-                    completed: 'Este viaje ya fue completado.',
-                    cancelled: 'Este viaje fue cancelado.',
-                };
-                Alert.alert('No disponible', mensajes[currentStatus] || `Estado del viaje: ${currentStatus}`);
-                setStartRideVisible(false);
-                return;
-            }
-
-            // El ride está en 'scheduled' → lo iniciamos normalmente
-            const res = await api.patch(`/rides/${specificRideId}/start`);
-            if (res.data.success) {
-                // Invalidar cache de viajes ya que cambió a 'in progress'
+            console.log(`[DEBUG] Iniciando validación: Status=${currentStatus}, Pasajeros Confirmados=${realConfirmedCount}`);
+            if (realConfirmedCount === 0) {
+                console.log('[DEBUG] No hay pasajeros. Forzando finalización del viaje.');
+                
+                // Transición segura: El servidor requiere 'start' antes de 'complete'
+                if (currentStatus === 'scheduled') {
+                    console.log('[DEBUG] Paso 1: Iniciando viaje (/start)...');
+                    await api.patch(`/rides/${specificRideId}/start`);
+                }
+                
+                if (currentStatus !== 'completed') {
+                    console.log('[DEBUG] Paso 2: Finalizando viaje (/complete)...');
+                    await api.patch(`/rides/${specificRideId}/complete`);
+                }
+                
                 sessionCache.clearActiveRides();
                 setStartRideVisible(false);
+                
+                // Mostrar overlay de éxito y salir
+                setTimeout(() => {
+                    setTripCompletedVisible(true);
+                }, 300);
+                return;
+            }
+
+            // 3. Caso B: Hay pasajeros -> Validar estado y proceder
+            if (currentStatus === 'in progress') {
+                // Ya estaba iniciado -> Navegamos directo
+                setStartRideVisible(false);
                 setTimeout(() => {
                     navigation.navigate('CurrentTrip', { rideId: specificRideId });
                 }, 100);
-            } else {
-                Alert.alert('Error', res.data?.message || 'No se pudo iniciar el viaje.');
+                return;
             }
+
+            if (currentStatus === 'scheduled') {
+                // Iniciamos normalmente
+                const res = await api.patch(`/rides/${specificRideId}/start`);
+                if (res.data.success) {
+                    sessionCache.clearActiveRides();
+                    setStartRideVisible(false);
+                    setTimeout(() => {
+                        navigation.navigate('CurrentTrip', { rideId: specificRideId });
+                    }, 100);
+                } else {
+                    Alert.alert('Error', res.data?.message || 'No se pudo iniciar el viaje.');
+                }
+            } else {
+                // Otros estados (cancelled, etc)
+                Alert.alert('No disponible', `El viaje no se puede iniciar porque está en estado: ${currentStatus}`);
+                setStartRideVisible(false);
+            }
+
         } catch (e) {
             console.error('Error starting ride:', e.response?.data || e.message);
-            Alert.alert('Error', e.response?.data?.message || 'Problema al conectar con el servidor.');
+            Alert.alert('Error', 'Problema al conectar con el servidor.');
         } finally {
             setStartRideLoading(false);
         }
@@ -559,6 +588,15 @@ const ListOfRequests = ({ route, navigation }) => {
                 theme={theme}
                 visible={denyModalVisible}
                 onClose={() => setDenyModalVisible(false)}
+            />
+
+            <TripCompletedOverlay 
+                visible={tripCompletedVisible}
+                theme={theme}
+                onFinish={() => {
+                    setTripCompletedVisible(false);
+                    navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' });
+                }}
             />
 
             <BottomNavigationDriver navigation={navigation} activeTab="Rutas" />
