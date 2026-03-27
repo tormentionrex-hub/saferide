@@ -121,6 +121,8 @@ export default function RegisterVehicleStep1({ navigation }) {
     const [color, setColor]       = useState('');
     const [year, setYear]         = useState(String(CURRENT_YEAR));
     const [capacity, setCapacity] = useState(4);
+    const [showPlateError, setShowPlateError] = useState(false);
+    const [plateErrorMessage, setPlateErrorMessage] = useState('');
 
     // ── Animated progress (0 → 50) ──
     const progressAnim = useRef(new Animated.Value(0)).current;
@@ -159,7 +161,14 @@ export default function RegisterVehicleStep1({ navigation }) {
     const handleNext = () => {
         if (!brand)            return Alert.alert('Campo requerido', 'Selecciona la marca.');
         if (!model)            return Alert.alert('Campo requerido', 'Selecciona el modelo.');
-        if (plate.length !== 6) return Alert.alert('Placa inválida', 'La placa debe tener 6 caracteres (ej: ABC123).');
+        
+        const plateRegex = /^[A-Z]{3}[0-9]{3}$/;
+        if (!plateRegex.test(plate)) {
+            setPlateErrorMessage('La placa debe tener 3 letras seguidas de 3 números (ej: ABC123).');
+            setShowPlateError(true);
+            return;
+        }
+        
         if (!color)            return Alert.alert('Campo requerido', 'Selecciona el color.');
         navigation.navigate('RegisterVehicleStep2', { brand, model, plate, color, year: parseInt(year), capacity });
     };
@@ -292,6 +301,57 @@ export default function RegisterVehicleStep1({ navigation }) {
                     </ScrollView>
                     <ScrollIndicator si={si} thumbColor={theme.accent} />
                 </View>
+
+                {/* ── MODAL ERROR PLACA ── */}
+                <Modal
+                    visible={showPlateError}
+                    transparent
+                    animationType="fade"
+                    statusBarTranslucent
+                >
+                    <View style={styles.alertBackdrop}>
+                        <View style={[styles.alertCard, {
+                            backgroundColor: theme.dark ? '#111128' : '#FFFFFF',
+                            borderColor: theme.dark ? 'rgba(255,160,0,0.3)' : 'rgba(255,160,0,0.2)',
+                        }]}>
+
+                            {/* Warning Icon with Glow */}
+                            <View style={[styles.alertIconWrapper, {
+                                backgroundColor: theme.dark ? '#2A1C00' : '#FFF8E1',
+                                shadowColor: '#FFA000',
+                            }]}>
+                                <View style={[styles.alertIconInner, {
+                                    backgroundColor: theme.dark ? '#3E2A00' : '#FFECB3',
+                                }]}>
+                                    <Ionicons name="alert-circle" size={42} color="#FFA000" />
+                                </View>
+                            </View>
+
+                            {/* Title and Message */}
+                            <Text style={[styles.alertTitle, { color: theme.dark ? '#EEEEFF' : '#1C1C1E' }]}>
+                                Placa Inválida
+                            </Text>
+                            <Text style={[styles.alertSubtitle, { color: theme.dark ? '#A0A0C0' : '#6B7280' }]}>
+                                {plateErrorMessage}
+                            </Text>
+
+                            {/* Divider */}
+                            <View style={[styles.alertDivider, {
+                                backgroundColor: theme.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'
+                            }]} />
+
+                            {/* Close Button */}
+                            <TouchableOpacity
+                                style={[styles.alertBtn, { backgroundColor: '#FFA000' }]}
+                                activeOpacity={0.85}
+                                onPress={() => setShowPlateError(false)}
+                            >
+                                <Text style={styles.alertBtnText}>Reintentar</Text>
+                            </TouchableOpacity>
+
+                        </View>
+                    </View>
+                </Modal>
             </View>
         </SafeAreaView>
     );
@@ -359,4 +419,79 @@ const styles = StyleSheet.create({
 
     nextBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, borderRadius: 14, elevation: 4, shadowColor: '#748FFF', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8 },
     nextBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+
+    // ── MODAL AESTHETIC ALERT ──
+    alertBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 30,
+    },
+    alertCard: {
+        width: '100%',
+        borderRadius: 25,
+        padding: 30,
+        alignItems: 'center',
+        borderWidth: 1,
+        elevation: 15,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 15,
+    },
+    alertIconWrapper: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+        elevation: 8,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 10,
+    },
+    alertIconInner: {
+        width: 76,
+        height: 76,
+        borderRadius: 38,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    alertTitle: {
+        fontSize: 22,
+        fontWeight: '900',
+        marginBottom: 12,
+        letterSpacing: 0.2,
+    },
+    alertSubtitle: {
+        fontSize: 14,
+        textAlign: 'center',
+        lineHeight: 22,
+        paddingHorizontal: 10,
+    },
+    alertDivider: {
+        width: '100%',
+        height: 1,
+        marginVertical: 24,
+    },
+    alertBtn: {
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 4,
+        shadowColor: '#FFA000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+    },
+    alertBtnText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '800',
+        letterSpacing: 1,
+    },
 });
