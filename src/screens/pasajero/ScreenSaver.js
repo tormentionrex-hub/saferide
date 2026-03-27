@@ -277,10 +277,10 @@ const ScreenSaver = ({ route, navigation }) => {
                         }
                     } else if (newStatus === 'pending') {
                         // AUTO CANCEL OUTDATED PENDING
-                        const createdAt = res.data.data.createdAt || res.data.data.timestamp;
-                        const timeDiff = Date.now() - new Date(createdAt).getTime();
+                        const lastUpdate = res.data.data.updatedAt || res.data.data.createdAt || res.data.data.timestamp;
+                        const timeDiff = Date.now() - new Date(lastUpdate).getTime();
                         
-                        if (createdAt && timeDiff > 2 * 60 * 1000) {
+                        if (lastUpdate && timeDiff > 2 * 60 * 1000) {
                             clearInterval(intervalRef.current);
                             try {
                                 // Borramos el booking para que el usuario pueda intentar de nuevo
