@@ -201,8 +201,8 @@ const ListOfRequests = ({ route, navigation }) => {
                     const now = Date.now();
                     for (const b of allBookings) {
                         if (b.status === 'pending') {
-                            const createdAt = b.createdAt || b.timestamp;
-                            if (createdAt && (now - new Date(createdAt).getTime() > 2 * 60 * 1000)) {
+                            const lastUpdate = b.updatedAt || b.createdAt || b.timestamp;
+                            if (lastUpdate && (now - new Date(lastUpdate).getTime() > 2 * 60 * 1000)) {
                                 try { await api.delete(`/bookings/${b._id}`); } catch(e){}
                                 continue;
                             }
@@ -239,8 +239,8 @@ const ListOfRequests = ({ route, navigation }) => {
                 const now = Date.now();
                 for (const b of flattenedRequests) {
                     if (b.status === 'pending') {
-                        const createdAt = b.createdAt || b.timestamp;
-                        if (createdAt && (now - new Date(createdAt).getTime() > 2 * 60 * 1000)) {
+                        const lastUpdate = b.updatedAt || b.createdAt || b.timestamp;
+                        if (lastUpdate && (now - new Date(lastUpdate).getTime() > 2 * 60 * 1000)) {
                             try { await api.delete(`/bookings/${b._id}`); } catch(e){}
                             continue;
                         }
