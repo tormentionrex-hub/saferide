@@ -32,8 +32,8 @@ export default function DashboardConductor({ route, navigation }) {
                     const name = await AsyncStorage.getItem('userName');
                     if (name) setUserName(name.split(' ')[0]);
 
-                    // Usa sessionCache para evitar llamadas duplicadas a /auth/me
-                    const hasVehicle = await sessionCache.getVehicleStatus();
+                    // force=true: siempre consultar el API al regresar, nunca usar caché
+                    const hasVehicle = await sessionCache.getVehicleStatus(true);
                     setHasVehicle(hasVehicle);
                 } catch (err) {
                     setHasVehicle(false);
