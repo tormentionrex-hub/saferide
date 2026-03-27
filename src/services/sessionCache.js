@@ -148,10 +148,13 @@ const sessionCache = {
     },
 
     /**
-     * Invalida el cache del vehículo para forzar re-consulta en el próximo uso
+     * Invalida el cache del vehículo para forzar re-consulta en el próximo uso.
+     * También elimina el valor persistido en AsyncStorage para que el Dashboard
+     * no cargue el "false" stale al regresar después de registrar un vehículo.
      */
     clearVehicleStatus: () => {
         cache.vehicleStatus = null;
+        AsyncStorage.removeItem(STORAGE_KEY_VEHICLE_STATUS).catch(() => {});
     },
 
     /**
