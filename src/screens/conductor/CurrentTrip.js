@@ -1,11 +1,69 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, ScrollView, ActivityIndicator, Alert, Image, Linking } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, ScrollView, ActivityIndicator, Alert, Image, Linking, Modal, Animated } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBjX1C4jk1I2E5MB2FnABjTZC0uXt0ullA';
+
+const FinalizeTripModal = ({ visible, onConfirm, onCancel, theme, loading }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    return (
+        <Modal transparent visible={visible} animationType="none" onRequestClose={onCancel}>
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#FEE2E2' }]}>
+                        <Ionicons name="flag" size={44} color="#EF4444" />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>Finalizar viaje</Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        ¿Estás seguro de que has llegado al destino? Esta acción concluirá el viaje actual y notificará a los pasajeros.
+                    </Text>
+                    
+                    <View style={{ width: '100%', gap: 12 }}>
+                        <TouchableOpacity 
+                            style={[modalStyles.confirmBtn, { backgroundColor: '#EF4444' }, loading && { opacity: 0.7 }]} 
+                            onPress={onConfirm}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <>
+                                    <Text style={modalStyles.confirmBtnText}>Sí, he llegado al destino</Text>
+                                    <MaterialCommunityIcons name="logout" size={18} color="#fff" />
+                                </>
+                            )}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={[modalStyles.cancelBtn, { borderColor: theme.border }]} 
+                            onPress={onCancel}
+                            disabled={loading}
+                        >
+                            <Text style={[modalStyles.cancelBtnText, { color: theme.textSecondary }]}>Aún no, volver</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
 
 const decodePolyline = (encoded) => {
     const points = [];
@@ -54,6 +112,8 @@ const TripInProgressDriver = ({ route, navigation }) => {
     const [bookingData, setBookingData] = useState(null);
     const [rideData, setRideData] = useState(null);
     const [routeCoords, setRouteCoords] = useState(null);
+    const [finishModalVisible, setFinishModalVisible] = useState(false);
+    const [finishingTrip, setFinishingTrip] = useState(false);
     const routeFetched = useRef(false);
 
     // Cargamos tanto el ride como el primer booking confirmado del viaje
@@ -103,58 +163,57 @@ const TripInProgressDriver = ({ route, navigation }) => {
         };
     }, [rideId]);
 
+    const confirmFinalize = async () => {
+        try {
+            setFinishingTrip(true);
+            // 1. Consultamos el estado actual del ride antes de actuar
+            const rideCheck = await api.get(`/rides/${rideId}`);
+            const currentStatus = rideCheck.data?.data?.status;
+
+            if (currentStatus === 'completed') {
+                setFinishModalVisible(false);
+                navigation.replace('RatePassenger', {
+                    rideId,
+                    passengerId: bookingData?.passenger_id?._id?.toString() || bookingData?.passenger_id?.toString(),
+                    passengerName: bookingData?.passenger_id?.name,
+                    passengerImage: bookingData?.passenger_id?.profileImage,
+                });
+                return;
+            }
+
+            if (currentStatus === 'scheduled') {
+                // Nunca se marcó 'in progress', lo iniciamos primero
+                await api.patch(`/rides/${rideId}/start`);
+            }
+
+            // 2. Ahora lo completamos (garantizado en 'in progress')
+            const res = await api.patch(`/rides/${rideId}/complete`);
+            
+            if (res.data?.success) {
+                setFinishModalVisible(false);
+                navigation.replace('RatePassenger', {
+                    rideId,
+                    passengerId: bookingData?.passenger_id?._id?.toString() || bookingData?.passenger_id?.toString(),
+                    passengerName: bookingData?.passenger_id?.name,
+                    passengerImage: bookingData?.passenger_id?.profileImage,
+                });
+            } else {
+                setFinishModalVisible(false);
+                Alert.alert('Error', res.data?.message || 'No se pudo finalizar el viaje.');
+            }
+        } catch (error) {
+            setFinishModalVisible(false);
+            // Mostramos el mensaje real del servidor para facilitar el debug
+            const serverMsg = error.response?.data?.message || error.message || 'Error desconocido';
+            console.error('Error finalizing trip:', serverMsg, error.response?.status);
+            Alert.alert('Error al finalizar', serverMsg);
+        } finally {
+            setFinishingTrip(false);
+        }
+    };
+
     const handleFinalizeTrip = () => {
-        Alert.alert(
-            "Finalizar viaje",
-            "¿Estás seguro de que has llegado al destino?",
-            [
-                { text: "Cancelar", style: "cancel" },
-                { 
-                    text: "Sí, finalizar", 
-                    onPress: async () => {
-                        try {
-                            // 1. Consultamos el estado actual del ride antes de actuar
-                            const rideCheck = await api.get(`/rides/${rideId}`);
-                            const currentStatus = rideCheck.data?.data?.status;
-
-                            if (currentStatus === 'completed') {
-                                navigation.replace('RatePassenger', {
-                                    rideId,
-                                    passengerId: bookingData?.passenger_id?._id?.toString() || bookingData?.passenger_id?.toString(),
-                                    passengerName: bookingData?.passenger_id?.name,
-                                    passengerImage: bookingData?.passenger_id?.profileImage,
-                                });
-                                return;
-                            }
-
-                            if (currentStatus === 'scheduled') {
-                                // Nunca se marcó 'in progress', lo iniciamos primero
-                                await api.patch(`/rides/${rideId}/start`);
-                            }
-
-                            // 2. Ahora lo completamos (garantizado en 'in progress')
-                            const res = await api.patch(`/rides/${rideId}/complete`);
-                            
-                            if (res.data?.success) {
-                                navigation.replace('RatePassenger', {
-                                    rideId,
-                                    passengerId: bookingData?.passenger_id?._id?.toString() || bookingData?.passenger_id?.toString(),
-                                    passengerName: bookingData?.passenger_id?.name,
-                                    passengerImage: bookingData?.passenger_id?.profileImage,
-                                });
-                            } else {
-                                Alert.alert('Error', res.data?.message || 'No se pudo finalizar el viaje.');
-                            }
-                        } catch (error) {
-                            // Mostramos el mensaje real del servidor para facilitar el debug
-                            const serverMsg = error.response?.data?.message || error.message || 'Error desconocido';
-                            console.error('Error finalizing trip:', serverMsg, error.response?.status);
-                            Alert.alert('Error al finalizar', serverMsg);
-                        }
-                    } 
-                }
-            ]
-        );
+        setFinishModalVisible(true);
     };
 
     if (loading && !rideData) {
@@ -341,6 +400,14 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 navigation={navigation} 
                 activeTab="Rutas" 
             />
+
+            <FinalizeTripModal 
+                visible={finishModalVisible}
+                onConfirm={confirmFinalize}
+                onCancel={() => setFinishModalVisible(false)}
+                theme={theme}
+                loading={finishingTrip}
+            />
         </SafeAreaView>
     );
 };
@@ -416,6 +483,18 @@ const styles = StyleSheet.create({
         marginTop: 10
     },
     finishButtonText: { color: '#FFF', fontSize: 18, fontWeight: '700', marginLeft: 10 }
+});
+
+const modalStyles = StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 25 },
+    card: { width: '100%', borderRadius: 30, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 15 },
+    iconCircle: { width: 90, height: 90, borderRadius: 45, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+    title: { fontSize: 24, fontWeight: '800', marginBottom: 10, textAlign: 'center' },
+    subtitle: { fontSize: 15, textAlign: 'center', marginBottom: 25, lineHeight: 22 },
+    confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', paddingVertical: 16, borderRadius: 16, elevation: 2 },
+    confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    cancelBtn: { width: '100%', paddingVertical: 16, borderRadius: 16, alignItems: 'center', borderWidth: 1, marginTop: 4 },
+    cancelBtnText: { fontSize: 16, fontWeight: '600' },
 });
 
 export default TripInProgressDriver;

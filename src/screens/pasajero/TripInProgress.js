@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, Linking, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, Linking, ScrollView, ActivityIndicator, Alert, Modal, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
@@ -39,6 +39,59 @@ const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
     return null;
 };
 
+/* ─── Modal de Estado Final del Viaje ─────────────────────────────── */
+const TripStatusModal = ({ visible, status, onConfirm, theme }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    const isCompleted = status === 'completed';
+
+    return (
+        <Modal transparent visible={visible} animationType="none">
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: isCompleted ? '#ECFDF5' : '#FEF2F2' }]}>
+                        <Ionicons 
+                            name={isCompleted ? "checkmark-circle" : "alert-circle"} 
+                            size={50} 
+                            color={isCompleted ? "#10B981" : "#EF4444"} 
+                        />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>
+                        {isCompleted ? '¡Viaje Finalizado!' : 'Viaje Interrumpido'}
+                    </Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        {isCompleted 
+                            ? 'Has llegado a tu destino. Esperamos que hayas tenido un excelente viaje.'
+                            : 'Lo sentimos, el viaje ha sido cancelado o rechazado por el conductor.'}
+                    </Text>
+                    <TouchableOpacity 
+                        style={[modalStyles.confirmBtn, { backgroundColor: isCompleted ? '#10B981' : '#EF4444' }]} 
+                        onPress={onConfirm}
+                    >
+                        <Text style={modalStyles.confirmBtnText}>
+                            {isCompleted ? 'Calificar Conductor' : 'Buscar otro viaje'}
+                        </Text>
+                        <Ionicons name={isCompleted ? "star" : "search"} size={18} color="#fff" />
+                    </TouchableOpacity>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
 const TripInProgress = ({ route, navigation }) => {
     const { theme } = useDriverTheme(); 
     
@@ -56,6 +109,8 @@ const TripInProgress = ({ route, navigation }) => {
     const [noActiveTrip, setNoActiveTrip] = useState(false);
     const [driverLocation, setDriverLocation] = useState(null);
     const [routeCoords, setRouteCoords] = useState(null);
+    const [statusModalVisible, setStatusModalVisible] = useState(false);
+    const [finalStatus, setFinalStatus] = useState(null);
 
     // Si no hay bookingId en params, buscamos automáticamente el booking activo del usuario
     useEffect(() => {
@@ -109,24 +164,8 @@ const TripInProgress = ({ route, navigation }) => {
                     if (data.status === 'cancelled' || data.status === 'completed' || data.status === 'deny') {
                         // Detenemos las repeticiones inmediatamente
                         if (intervalId) clearInterval(intervalId);
-                        
-                        if (data.status === 'completed') {
-                            // Llevar al pasajero a calificar al conductor
-                            navigation.replace('RateDriver', {
-                                rideId: data.ride_id?._id?.toString() || data.ride_id?.toString(),
-                                driverId: data.ride_id?.driver_id?._id?.toString() || data.ride_id?.driver_id?.toString(),
-                                driverName: data.ride_id?.driver_id?.name,
-                                driverImage: data.ride_id?.driver_id?.profileImage,
-                            });
-                        } else {
-                            // Cancelado o rechazado
-                            Alert.alert('Viaje Finalizado', 'El viaje ha sido cancelado o rechazado.', [
-                                {
-                                    text: 'Buscar otro viaje',
-                                    onPress: () => navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' })
-                                }
-                            ]);
-                        }
+                        setFinalStatus(data.status);
+                        setStatusModalVisible(true);
                     }
                 }
             } catch (error) {
@@ -267,6 +306,18 @@ const TripInProgress = ({ route, navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             
+            {/* Header con botón Atrás */}
+            <View style={[styles.header, { borderBottomColor: theme.divider, borderBottomWidth: 1 }]}>
+                <TouchableOpacity 
+                    style={styles.backButton} 
+                    onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
+                >
+                    <Ionicons name="arrow-back" size={26} color={theme.text} />
+                </TouchableOpacity>
+                <Text style={[styles.headerTitle, { color: theme.text }]}>Viaje en curso</Text>
+                <View style={{ width: 44 }} /> {/* Espaciador para centrar el título */}
+            </View>
+
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 
                 {/* MAPA FUNCIONAL CON react-native-maps */}
@@ -402,6 +453,24 @@ const TripInProgress = ({ route, navigation }) => {
             {/* BOTTOM NAV BAR FUNCIONAL */}
             <BottomNavigationBar navigation={navigation} />
 
+            <TripStatusModal 
+                visible={statusModalVisible}
+                status={finalStatus}
+                theme={theme}
+                onConfirm={() => {
+                    setStatusModalVisible(false);
+                    if (finalStatus === 'completed') {
+                        navigation.replace('RateDriver', {
+                            rideId: bookingData?.ride_id?._id?.toString() || bookingData?.ride_id?.toString(),
+                            driverId: bookingData?.ride_id?.driver_id?._id?.toString() || bookingData?.ride_id?.driver_id?.toString(),
+                            driverName: bookingData?.ride_id?.driver_id?.name,
+                            driverImage: bookingData?.ride_id?.driver_id?.profileImage,
+                        });
+                    } else {
+                        navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
+                    }
+                }}
+            />
         </SafeAreaView>
     );
 };
@@ -410,6 +479,24 @@ const styles = StyleSheet.create({
     container: { 
         flex: 1, 
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingBottom: 15,
+        paddingTop: 10,
+    },
+    backButton: {
+        padding: 8,
+        marginLeft: -8,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        flex: 1,
     },
     scrollContent: {
         padding: 20,
@@ -544,6 +631,16 @@ const styles = StyleSheet.create({
         marginLeft: 12,
         marginVertical: 4,
     }
+});
+
+const modalStyles = StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 25 },
+    card: { width: '100%', borderRadius: 30, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 15 },
+    iconCircle: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+    title: { fontSize: 24, fontWeight: '800', marginBottom: 10, textAlign: 'center' },
+    subtitle: { fontSize: 15, textAlign: 'center', marginBottom: 25, lineHeight: 22 },
+    confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', paddingVertical: 16, borderRadius: 16, elevation: 2 },
+    confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
 
 export default TripInProgress;
