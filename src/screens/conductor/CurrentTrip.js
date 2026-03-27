@@ -4,6 +4,37 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
 import MapView, { Marker, Polyline } from 'react-native-maps';
+
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBjX1C4jk1I2E5MB2FnABjTZC0uXt0ullA';
+
+const decodePolyline = (encoded) => {
+    const points = [];
+    let index = 0, lat = 0, lng = 0;
+    while (index < encoded.length) {
+        let shift = 0, result = 0, byte;
+        do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+        lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+        shift = 0; result = 0;
+        do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+        lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+        points.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
+    }
+    return points;
+};
+
+const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
+    try {
+        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLng}&destination=${destLat},${destLng}&key=${GOOGLE_MAPS_API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.status === 'OK' && data.routes?.length > 0) {
+            return decodePolyline(data.routes[0].overview_polyline.points);
+        }
+    } catch (e) {
+        console.log('[CurrentTrip] Error obteniendo ruta:', e.message);
+    }
+    return null;
+};
 import { useLocationTracker } from '../../hooks/useLocationTracker';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
@@ -22,6 +53,8 @@ const TripInProgressDriver = ({ route, navigation }) => {
     const [loading, setLoading] = useState(true);
     const [bookingData, setBookingData] = useState(null);
     const [rideData, setRideData] = useState(null);
+    const [routeCoords, setRouteCoords] = useState(null);
+    const routeFetched = useRef(false);
 
     // Cargamos tanto el ride como el primer booking confirmado del viaje
     useEffect(() => {
@@ -35,7 +68,17 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 // 1. Traemos los datos del ride (origen, destino, etc.)
                 const rideRes = await api.get(`/rides/${rideId}`);
                 if (rideRes.data?.success) {
-                    setRideData(rideRes.data.data);
+                    const ride = rideRes.data.data;
+                    setRideData(ride);
+
+                    // Cargamos la ruta real por carretera una sola vez
+                    const oc = ride?.origin?.coordinates;
+                    const dc = ride?.destination?.coordinates;
+                    if (!routeFetched.current && oc?.lat && dc?.lat) {
+                        routeFetched.current = true;
+                        fetchRoutePolyline(Number(oc.lat), Number(oc.lng), Number(dc.lat), Number(dc.lng))
+                            .then(coords => { if (coords) setRouteCoords(coords); });
+                    }
                 }
 
                 // 2. Traemos los bookings confirmados de este ride para mostrar al pasajero
@@ -54,7 +97,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
         };
 
         fetchTripDetails();
-        intervalId = setInterval(fetchTripDetails, 30000); // 30s para no saturar el rate limiter del backend
+        intervalId = setInterval(fetchTripDetails, 30000);
         return () => {
             if (intervalId) clearInterval(intervalId);
         };
@@ -201,15 +244,14 @@ const TripInProgressDriver = ({ route, navigation }) => {
                                 title="Destino"
                                 pinColor="#EF5350"
                             />
-                            {/* Trayecto virtual */}
-                            <Polyline 
-                                coordinates={[
+                            {/* Ruta real por carretera (Google Directions) o línea recta como fallback */}
+                            <Polyline
+                                coordinates={routeCoords ?? [
                                     { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
                                     { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }
                                 ]}
                                 strokeColor="#4A90E2"
-                                strokeWidth={3}
-                                lineDashPattern={[5, 5]}
+                                strokeWidth={4}
                             />
                         </MapView>
                     ) : (

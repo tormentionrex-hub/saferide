@@ -330,16 +330,18 @@ const ScreenSaver = ({ route, navigation }) => {
             </View>
             <View style={styles.buttonContainer}>
                 <TouchableOpacity
-                    style={[styles.cancelButton, { borderColor: '#E74C3C' }]}
-                    onPress={handleCancel}
-                >
-                    <Text style={[styles.cancelButtonText, { color: '#E74C3C' }]}>Cancelar Reservación</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
                     style={[styles.button, { backgroundColor: theme.accent }]}
                     onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
                 >
+                    <Ionicons name="home-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
                     <Text style={styles.buttonText}>Volver al Inicio</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.cancelButton, { borderColor: '#E74C3C' }]}
+                    onPress={handleCancel}
+                >
+                    <Ionicons name="close-circle-outline" size={18} color="#E74C3C" style={{ marginRight: 8 }} />
+                    <Text style={[styles.cancelButtonText, { color: '#E74C3C' }]}>Cancelar Reservación</Text>
                 </TouchableOpacity>
             </View>
 
@@ -422,20 +424,26 @@ const styles = StyleSheet.create({
         lineHeight: 22,
     },
     buttonContainer: {
-        gap: 10,
-        marginBottom: 105, // Aumentado para dejar espacio al BottomNavigationBar
+        gap: 12,
+        marginBottom: 105,
         marginHorizontal: 20,
     },
     button: {
-        paddingVertical: 15,
-        borderRadius: 10,
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 14,
         alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
     },
     cancelButton: {
-        paddingVertical: 15,
-        borderRadius: 10,
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 14,
         alignItems: 'center',
-        borderWidth: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        borderWidth: 1.5,
         backgroundColor: 'transparent',
     },
     buttonText: {

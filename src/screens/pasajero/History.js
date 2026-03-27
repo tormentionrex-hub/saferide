@@ -14,7 +14,6 @@ import {
     Modal,
     ScrollView
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -27,16 +26,7 @@ import { DateTime } from 'luxon';
 import { Image } from 'expo-image';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-/**
- * Cache TTL para el historial del pasajero.
- * Evita el error 429 cuando useFocusEffect se dispara en cada navegación.
- *
- * RESTAURAR RATE LIMITING (futuro):
- *   Cuando el backend permita más peticiones por ventana de tiempo, se puede:
- *   1. Eliminar `historyCache` y `HISTORY_CACHE_TTL`.
- *   2. Quitar el guard `if (now - historyCache.lastCheck < HISTORY_CACHE_TTL)` en fetchHistory.
- *   3. Volver a importar `api` y reemplazar AsyncStorage por `api.get('/auth/me')` para obtener el userId.
- */
+// Cache en memoria para evitar refetch en cada useFocusEffect (navegación entre tabs)
 let historyCache = { data: null, lastCheck: 0 };
 const HISTORY_CACHE_TTL = 60000; // 60 segundos
 
@@ -213,16 +203,9 @@ const History = ({ navigation }) => {
 
         if (!isSilent) setLoading(true);
         try {
-            // Intentar obtener userId desde AsyncStorage para evitar /auth/me (reduce 429)
-            // Fallback a /auth/me si no está en cache (ej. primera vez del pasajero)
-            let userId = await AsyncStorage.getItem('@saferide_driverId');
-            if (!userId) {
-                const meRes = await api.get('/auth/me');
-                if (!meRes.data.success) throw new Error('Could not get user data');
-                userId = meRes.data.data._id;
-                // Persistir para próximas visitas
-                try { await AsyncStorage.setItem('@saferide_driverId', userId); } catch (_) {}
-            }
+            const meRes = await api.get('/auth/me');
+            if (!meRes.data.success) throw new Error('Could not get user data');
+            const userId = meRes.data.data._id;
 
             const response = await rideService.getBookingsByPassenger(userId);
 

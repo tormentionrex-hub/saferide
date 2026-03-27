@@ -507,16 +507,18 @@ const WaitingForTheStart = ({ route, navigation }) => {
 
                     <View style={styles.buttonContainer}>
                         <TouchableOpacity
-                            style={[styles.cancelButton, { borderColor: '#E74C3C' }]}
-                            onPress={handleCancel}
-                        >
-                            <Text style={[styles.cancelButtonText, { color: '#E74C3C' }]}>Cancelar Reservación</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
                             style={[styles.button, { backgroundColor: theme.accent }]}
                             onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
                         >
+                            <Ionicons name="home-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
                             <Text style={styles.buttonText}>Volver al Inicio</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.cancelButton, { borderColor: '#E74C3C' }]}
+                            onPress={handleCancel}
+                        >
+                            <Ionicons name="close-circle-outline" size={18} color="#E74C3C" style={{ marginRight: 8 }} />
+                            <Text style={[styles.cancelButtonText, { color: '#E74C3C' }]}>Cancelar Reservación</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -570,10 +572,11 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         padding: 20,
-        paddingBottom: 110,
+        paddingBottom: 140,
     },
     content: {
         alignItems: 'center',
+        width: '100%',
     },
     title: {
         fontSize: 20,
@@ -633,22 +636,27 @@ const styles = StyleSheet.create({
         flex: 0.33,
     },
     buttonContainer: {
-        flexDirection: 'row',
-        gap: 10,
-        marginTop: 10,
+        flexDirection: 'column',
+        gap: 12,
+        marginTop: 20,
+        width: '100%',
     },
     button: {
-        flex: 1,
-        paddingVertical: 15,
-        borderRadius: 10,
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 14,
         alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
     },
     cancelButton: {
-        flex: 1,
-        paddingVertical: 15,
-        borderRadius: 10,
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 14,
         alignItems: 'center',
-        borderWidth: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        borderWidth: 1.5,
         backgroundColor: 'transparent',
     },
     buttonText: {

@@ -6,6 +6,39 @@ import api from '../../services/api';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBjX1C4jk1I2E5MB2FnABjTZC0uXt0ullA';
+
+// Decodifica el polyline codificado de Google Maps en array de coordenadas
+const decodePolyline = (encoded) => {
+    const points = [];
+    let index = 0, lat = 0, lng = 0;
+    while (index < encoded.length) {
+        let shift = 0, result = 0, byte;
+        do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+        lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+        shift = 0; result = 0;
+        do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+        lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+        points.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
+    }
+    return points;
+};
+
+// Obtiene la ruta real entre dos puntos usando Google Directions API
+const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
+    try {
+        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLng}&destination=${destLat},${destLng}&key=${GOOGLE_MAPS_API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.status === 'OK' && data.routes?.length > 0) {
+            return decodePolyline(data.routes[0].overview_polyline.points);
+        }
+    } catch (e) {
+        console.log('[TripInProgress] Error obteniendo ruta:', e.message);
+    }
+    return null;
+};
+
 const TripInProgress = ({ route, navigation }) => {
     const { theme } = useDriverTheme(); 
     
@@ -22,6 +55,7 @@ const TripInProgress = ({ route, navigation }) => {
     const [resolvedBookingId, setResolvedBookingId] = useState(bookingId || null);
     const [noActiveTrip, setNoActiveTrip] = useState(false);
     const [driverLocation, setDriverLocation] = useState(null);
+    const [routeCoords, setRouteCoords] = useState(null);
 
     // Si no hay bookingId en params, buscamos automáticamente el booking activo del usuario
     useEffect(() => {
@@ -140,6 +174,16 @@ const TripInProgress = ({ route, navigation }) => {
         fetchDriverLocation();
         // Cada 10 segundos actualizamos la ubicación del conductor
         locationInterval = setInterval(fetchDriverLocation, 10000);
+
+        // Cargamos la ruta real por carretera una sola vez cuando llegan las coordenadas
+        const originCoords = bookingData.ride_id?.origin?.coordinates;
+        const destCoords = bookingData.ride_id?.destination?.coordinates;
+        if (!routeCoords && originCoords?.lat && destCoords?.lat) {
+            fetchRoutePolyline(
+                Number(originCoords.lat), Number(originCoords.lng),
+                Number(destCoords.lat), Number(destCoords.lng)
+            ).then(coords => { if (coords) setRouteCoords(coords); });
+        }
 
         return () => {
             if (locationInterval) clearInterval(locationInterval);
@@ -278,15 +322,14 @@ const TripInProgress = ({ route, navigation }) => {
                                 />
                             )}
 
-                            {/* Trazado virtual uniendo los dos puntos */}
-                            <Polyline 
-                                coordinates={[
+                            {/* Ruta real por carretera (Google Directions) o línea recta como fallback */}
+                            <Polyline
+                                coordinates={routeCoords ?? [
                                     { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
                                     { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }
                                 ]}
                                 strokeColor={theme.accent}
-                                strokeWidth={3}
-                                lineDashPattern={[6, 6]}
+                                strokeWidth={4}
                             />
                         </MapView>
                     ) : (
