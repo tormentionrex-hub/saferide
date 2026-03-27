@@ -49,6 +49,7 @@ const PublishRide = ({ navigation }) => {
     const [calculatingRoute, setCalculatingRoute] = useState(false);
     const [errors, setErrors] = useState({});
     const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+    const [isActiveRideModalVisible, setIsActiveRideModalVisible] = useState(false);
     const [newRideId, setNewRideId] = useState(null);
 
     useEffect(() => {
@@ -113,10 +114,7 @@ const PublishRide = ({ navigation }) => {
                         r.status === 'scheduled' || r.status === 'in progress'
                     );
                     if (activeRides.length > 0) {
-                        Alert.alert(
-                            'Viaje activo detectado',
-                            'No puedes publicar un nuevo viaje porque ya tienes uno programado o en curso. Debes finalizar o cancelar el actual primero.'
-                        );
+                        setIsActiveRideModalVisible(true);
                         setLoading(false);
                         return;
                     }
@@ -414,6 +412,48 @@ const PublishRide = ({ navigation }) => {
                                 }}
                             >
                                 <Text style={styles.alertConfirmText}>¡Excelente!</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Modal de Alerta Customizada de Viaje Activo */}
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={isActiveRideModalVisible}
+                onRequestClose={() => setIsActiveRideModalVisible(false)}
+            >
+                <TouchableOpacity 
+                    style={styles.modalOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setIsActiveRideModalVisible(false)}
+                >
+                    <View style={[styles.alertContent, { backgroundColor: theme.surface }]}>
+                        <View style={[styles.alertIconContainer, { backgroundColor: theme.accent + '20' }]}>
+                            <Ionicons name="alert-circle-outline" size={32} color={theme.accent} />
+                        </View>
+                        <Text style={[styles.alertTitle, { color: theme.text }]}>Viaje activo detectado</Text>
+                        <Text style={[styles.alertMessage, { color: theme.textSecondary }]}>
+                            No puedes publicar un nuevo viaje porque ya tienes uno programado o en curso. Debes finalizar o cancelar el actual primero.
+                        </Text>
+                        
+                        <View style={styles.alertActions}>
+                            <TouchableOpacity 
+                                style={[styles.alertConfirmBtn, { backgroundColor: theme.accent, marginBottom: 12 }]}
+                                onPress={() => {
+                                    setIsActiveRideModalVisible(false);
+                                    navigation.navigate('DashboardDriver');
+                                }}
+                            >
+                                <Text style={styles.alertConfirmText}>Ir a mi dashboard</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.alertConfirmBtn, { backgroundColor: theme.surfaceVariant, borderWidth: 1, borderColor: theme.border }]}
+                                onPress={() => setIsActiveRideModalVisible(false)}
+                            >
+                                <Text style={[styles.alertConfirmText, { color: theme.textSecondary }]}>Cerrar</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
