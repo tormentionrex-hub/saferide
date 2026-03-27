@@ -82,8 +82,6 @@ const ProfileConductor = ({ navigation, route }) => {
         brand: '', model: '', year: '', color: '', licensePlate: ''
     });
 
-    const { showAlert } = useCustomAlert();
-
     const loadProfile = async () => {
         try {
             setLoading(true);
@@ -158,28 +156,28 @@ const ProfileConductor = ({ navigation, route }) => {
                 (editForm.profileImage !== userData.profileImage && editForm.profileImage !== null);
 
             if (!Changes) {
-                showAlert('No hay cambios', 'No has realizado ningún cambio para actualizar.', 'info');
+                Alert.alert('No hay cambios', 'No has realizado ningún cambio para actualizar.');
                 setUpdating(false);
                 return;
             }
 
             // 2. Validar campos obligatorios
             if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.company.trim()) {
-                showAlert('Datos incompletos', 'Todos los campos son obligatorios para actualizar tu perfil.', 'warning');
+                Alert.alert('Datos incompletos', 'Todos los campos son obligatorios para actualizar tu perfil.');
                 setUpdating(false);
                 return;
             }
 
             // 3. Validar formato de nombre
             if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$/.test(editForm.name.trim())) {
-                showAlert('Formato Inválido', 'El nombre solo puede contener letras y espacios.', 'error');
+                Alert.alert('Formato Inválido', 'El nombre solo puede contener letras y espacios.');
                 setUpdating(false);
                 return;
             }
 
             // 4. Validar formato de teléfono
             if (!/^\d{8}$/.test(editForm.phone)) {
-                showAlert('Formato Inválido', 'El número de teléfono debe tener exactamente 8 dígitos.', 'error');
+                Alert.alert('Formato Inválido', 'El número de teléfono debe tener exactamente 8 dígitos.');
                 setUpdating(false);
                 return;
             }
@@ -205,13 +203,13 @@ const ProfileConductor = ({ navigation, route }) => {
                 company: editForm.company,
                 profileImage: profileImageUrl,
             });
-            showAlert('¡Listo!', 'Perfil actualizado correctamente', 'success');
+            Alert.alert('¡Listo!', 'Perfil actualizado correctamente');
             setModalVisible(false);
             loadProfile();
 
         } catch (error) {
             console.error('Error al actualizar perfil:', error);
-            showAlert('Error', 'No se pudo actualizar el perfil. Revisa tu conexión.', 'error');
+            Alert.alert('Error', 'No se pudo actualizar el perfil. Revisa tu conexión.');
         } finally {
             setUpdating(false);
         }
@@ -221,59 +219,60 @@ const ProfileConductor = ({ navigation, route }) => {
         try {
             setUpdating(true);
 
+            if (!vehicleData) {
+                showAlert('error', 'Error', 'No hay información de vehículo para actualizar.');
+                setUpdating(false);
+                return;
+            }
+
             // 1. Validar si hay cambios
             const hasChanges = 
                 editVehicleForm.brand !== vehicleData.brand ||
                 editVehicleForm.model !== vehicleData.model ||
                 editVehicleForm.year !== (vehicleData.year ? vehicleData.year.toString() : '') ||
-                editVehicleForm.color !== vehicleData.color;
+                editVehicleForm.color !== vehicleData.color ||
+                editVehicleForm.licensePlate !== vehicleData.license_plate;
 
             if (!hasChanges) {
-                showAlert('No hay cambios', 'No has realizado ningún cambio en los datos del vehículo.', 'info');
+                Alert.alert('No hay cambios', 'No has realizado ningún cambio en los datos del vehículo.');
                 setUpdating(false);
                 return;
             }
 
             // 2. Validar que tengamos datos mínimos
             if (!editVehicleForm.brand || !editVehicleForm.model || !editVehicleForm.year || !editVehicleForm.color) {
-                showAlert('Datos incompletos', 'Por favor selecciona marca, modelo, año y color.', 'warning');
+                Alert.alert('Datos incompletos', 'Por favor selecciona marca, modelo, año y color.');
                 setUpdating(false);
                 return;
             }
 
             // Solicitud al backend
-            // El backend no permite actualizar placa (según updateVehicle controller)
             await api.put(`/vehicles/${vehicleData._id}`, {
                 brand: editVehicleForm.brand,
                 model: editVehicleForm.model,
                 year: parseInt(editVehicleForm.year),
                 color: editVehicleForm.color,
+                license_plate: editVehicleForm.licensePlate.toUpperCase(),
             });
 
-            showAlert('¡Listo!', 'Información del vehículo actualizada', 'success');
+            Alert.alert('¡Listo!', 'Información del vehículo actualizada');
             setVehicleModalVisible(false);
             loadProfile(); // Recargamos para refrescar la vista principal
         } catch (error) {
             console.error('Error al actualizar vehículo:', error);
             const msg = error.response?.data?.message || 'No se pudo actualizar el vehículo.';
-            showAlert('Error', msg, 'error');
+            Alert.alert('Error', msg);
         } finally {
             setUpdating(false);
         }
     };
 
     const handleLogout = () => {
-        Alert.alert('Cerrar Sesión', '¿Estás seguro de que quieres salir?', [
-            { text: 'Cancelar', style: 'cancel' },
-            {
-                text: 'Sí, salir', style: 'destructive',
-                onPress: async () => {
-                    await AsyncStorage.clear();
-                    sessionCache.clear();
-                    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-                }
-            }
-        ]);
+        showAlert('confirm', 'Cerrar Sesión', '¿Estás seguro de que quieres salir?', async () => {
+            await AsyncStorage.clear();
+            sessionCache.clear();
+            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+        });
     };
 
     if (loading) {
@@ -407,16 +406,14 @@ const ProfileConductor = ({ navigation, route }) => {
                             <Text style={styles.editBtnText}>Editar perfil</Text>
                         </TouchableOpacity>
 
-                        {vehicleData?._id && (
-                            <TouchableOpacity
-                                style={[styles.editBtn, { backgroundColor: theme.accent }]}
-                                onPress={() => setVehicleModalVisible(true)}
-                                activeOpacity={0.85}
-                            >
-                                <Ionicons name="create-outline" size={20} color="#FFF" />
-                                <Text style={styles.editBtnText}>Editar vehículo</Text>
-                            </TouchableOpacity>
-                        )}
+                        <TouchableOpacity
+                            style={[styles.editBtn, { backgroundColor: theme.accent }]}
+                            onPress={() => setVehicleModalVisible(true)}
+                            activeOpacity={0.85}
+                        >
+                            <Ionicons name="create-outline" size={20} color="#FFF" />
+                            <Text style={styles.editBtnText}>Actualizar Información del Vehículo</Text>
+                        </TouchableOpacity>
 
 
 
@@ -484,15 +481,23 @@ const ProfileConductor = ({ navigation, route }) => {
                                 onChangeText={t => setEditForm(prev => ({ ...prev, phone: t.replace(/[^0-9]/g, '') }))}
                                 placeholder="88888888" keyboardType="phone-pad" maxLength={8} theme={theme} />
 
-                            <CustomSelect 
-                                label="EMPRESA" 
-                                icon="business-outline" 
-                                value={editForm.company}
-                                options={COMPANIES}
-                                onValueChange={val => setEditForm(prev => ({ ...prev, company: val }))}
-                                theme={theme}
-                                placeholder="Selecciona una empresa"
-                            />
+                            <View style={styles.inputGroup}>
+                                <View style={styles.labelRow}>
+                                    <Ionicons name="business-outline" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
+                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>EMPRESA</Text>
+                                </View>
+                                <View style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}>
+                                    <Picker
+                                        selectedValue={editForm.company}
+                                        onValueChange={val => setEditForm(prev => ({ ...prev, company: val }))}
+                                        style={{ color: theme.text }}
+                                        dropdownIconColor={theme.accent}
+                                    >
+                                        <Picker.Item label="Selecciona una empresa" value="" />
+                                        {COMPANIES.map(c => <Picker.Item key={c} label={c} value={c} />)}
+                                    </Picker>
+                                </View>
+                            </View>
 
                             <TouchableOpacity
                                 style={[styles.saveBtn, { backgroundColor: theme.accent }]}
@@ -584,16 +589,14 @@ const ProfileConductor = ({ navigation, route }) => {
                                 placeholder="Selecciona color"
                             />
 
-                            {/* MATRÍCULA (Lock) */}
+                            {/* MATRÍCULA */}
                             <ModalInput
                                 label="MATRÍCULA"
                                 icon="document-text-outline"
                                 value={editVehicleForm.licensePlate}
-                                onChangeText={t => setEditVehicleForm(prev => ({ ...prev, licensePlate: t.toUpperCase() }))}
                                 placeholder="ABC-123"
                                 theme={theme}
-                                editable={true}
-                                autoCapitalize="characters"
+                                editable={false} // No se puede editar placa según backend user request
                             />
 
                             <TouchableOpacity
@@ -612,6 +615,115 @@ const ProfileConductor = ({ navigation, route }) => {
                                 )}
                             </TouchableOpacity>
                         </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ── MODAL DE ALERTA PERSONALIZADA (AESTHETIC) ── */}
+            <Modal
+                visible={alertConfig.visible}
+                transparent
+                animationType="fade"
+                statusBarTranslucent
+            >
+                <View style={styles.alertBackdrop}>
+                    <View style={[styles.alertCard, {
+                        backgroundColor: theme.dark ? '#111128' : '#FFFFFF',
+                        borderColor: theme.dark ? 'rgba(116,143,255,0.2)' : 'rgba(75,104,255,0.1)',
+                    }]}>
+
+                        {/* Icono con Glow */}
+                        <View style={[styles.alertIconWrapper, {
+                            backgroundColor:
+                                alertConfig.type === 'success' ? (theme.dark ? '#0A2A1A' : '#E8F5E9') :
+                                alertConfig.type === 'error'   ? (theme.dark ? '#2A0A0A' : '#FFEBEE') :
+                                alertConfig.type === 'warning' ? (theme.dark ? '#2A1C00' : '#FFF8E1') :
+                                (theme.dark ? '#1C1C40' : '#EEF2FF'),
+                            shadowColor:
+                                alertConfig.type === 'success' ? '#27AE60' :
+                                alertConfig.type === 'error'   ? '#FF5252' :
+                                alertConfig.type === 'warning' ? '#FFA000' :
+                                theme.accent,
+                        }]}>
+                            <View style={[styles.alertIconInner, {
+                                backgroundColor:
+                                    alertConfig.type === 'success' ? (theme.dark ? '#0E3E26' : '#C8E6C9') :
+                                    alertConfig.type === 'error'   ? (theme.dark ? '#3E0E0E' : '#FFCDD2') :
+                                    alertConfig.type === 'warning' ? (theme.dark ? '#3E2A00' : '#FFECB3') :
+                                    (theme.dark ? '#252560' : '#E0E7FF'),
+                            }]}>
+                                <Ionicons
+                                    name={
+                                        alertConfig.type === 'success' ? 'checkmark-circle' :
+                                        alertConfig.type === 'error'   ? 'alert-circle' :
+                                        alertConfig.type === 'warning' ? 'warning' :
+                                        'help-circle'
+                                    }
+                                    size={42}
+                                    color={
+                                        alertConfig.type === 'success' ? '#27AE60' :
+                                        alertConfig.type === 'error'   ? '#FF5252' :
+                                        alertConfig.type === 'warning' ? '#FFA000' :
+                                        theme.accent
+                                    }
+                                />
+                            </View>
+                        </View>
+
+                        {/* Texto */}
+                        <Text style={[styles.alertTitle, { color: theme.dark ? '#EEEEFF' : '#1C1C1E' }]}>
+                            {alertConfig.title}
+                        </Text>
+                        <Text style={[styles.alertSubtitle, { color: theme.dark ? '#A0A0C0' : '#6B7280' }]}>
+                            {alertConfig.message}
+                        </Text>
+
+                        {/* Separador */}
+                        <View style={[styles.alertDivider, {
+                            backgroundColor: theme.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'
+                        }]} />
+
+                        {/* Botones */}
+                        <View style={styles.alertBtnRow}>
+                            {alertConfig.type === 'confirm' ? (
+                                <>
+                                    <TouchableOpacity
+                                        style={[styles.alertBtnSecondary, { borderColor: theme.divider }]}
+                                        onPress={() => {
+                                            setAlertConfig(prev => ({ ...prev, visible: false }));
+                                            if (alertConfig.onCancel) alertConfig.onCancel();
+                                        }}
+                                    >
+                                        <Text style={[styles.alertBtnTextSecondary, { color: theme.textSecondary }]}>Cancelar</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.alertBtnPrimary, { backgroundColor: theme.danger || '#FF5252' }]}
+                                        onPress={() => {
+                                            setAlertConfig(prev => ({ ...prev, visible: false }));
+                                            if (alertConfig.onConfirm) alertConfig.onConfirm();
+                                        }}
+                                    >
+                                        <Text style={styles.alertBtnTextPrimary}>Salir</Text>
+                                    </TouchableOpacity>
+                                </>
+                            ) : (
+                                <TouchableOpacity
+                                    style={[styles.alertBtnPrimary, {
+                                        backgroundColor:
+                                            alertConfig.type === 'success' ? '#27AE60' :
+                                            alertConfig.type === 'error'   ? '#FF5252' :
+                                            alertConfig.type === 'warning' ? '#FFA000' :
+                                            theme.accent
+                                    }]}
+                                    onPress={() => {
+                                        setAlertConfig(prev => ({ ...prev, visible: false }));
+                                        if (alertConfig.onConfirm) alertConfig.onConfirm();
+                                    }}
+                                >
+                                    <Text style={styles.alertBtnTextPrimary}>Aceptar</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -839,11 +951,11 @@ const styles = StyleSheet.create({
     logoutBtn: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         height: 56, borderRadius: 18, borderWidth: 1.5, gap: 10,
+        marginTop: 8,
     },
     logoutText: { fontSize: 15, fontFamily: 'Poppins-SemiBold' },
 
-
-    // Modals
+    // Modal
     modalOverlay: {
         flex: 1, 
         backgroundColor: 'rgba(0,0,0,0.65)', 
@@ -1011,12 +1123,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.35,
         shadowRadius: 10,
     },
-    
-    saveBtnText: { 
-        color: '#FFF', 
-        fontSize: 16, 
-        fontFamily: 'Poppins-SemiBold' 
-    },
+    saveBtnText: { color: '#FFF', fontSize: 16, fontFamily: 'Poppins-SemiBold' },
 });
 
 export default ProfileConductor;
