@@ -34,32 +34,50 @@ const COMPANIES = [
     'WeWork Costa Rica', 'Concentrix', 'Nestlé Costa Rica'
 ];
 
-const VEHICLE_BRANDS = [
-    'Toyota', 'Hyundai', 'Suzuki', 'Nissan', 'Kia', 'Mitsubishi',
-    'Honda', 'Mazda', 'Ford', 'Chevrolet', 'Volkswagen', 'BMW', 'Mercedes-Benz'
-];
-
-const MODELS_MAP = {
-    'Toyota': ['Corolla', 'RAV4', 'Hilux', 'Yaris', 'Land Cruiser', 'Fortuner', 'Prado', 'Etios'],
-    'Hyundai': ['Tucson', 'Accent', 'Elantra', 'Santa Fe', 'Creta', 'I10', 'Venue', 'Staria'],
-    'Suzuki': ['Swift', 'Vitara', 'Jimny', 'Grand Vitara', 'S-Presso', 'Ertiga', 'Baleno', 'Dzire'],
-    'Nissan': ['Sentra', 'Versa', 'Frontier', 'Kicks', 'Qashqai', 'X-Trail', 'Navara'],
-    'Kia': ['Rio', 'Sportage', 'Sorento', 'Picanto', 'Seltos', 'Cerato', 'Soluto'],
-    'Mitsubishi': ['L200', 'Montero', 'ASX', 'Outlander', 'Eclipse Cross', 'Xpander'],
-    'Honda': ['Civic', 'CR-V', 'HR-V', 'Accord', 'Fit', 'City'],
-    'Mazda': ['CX-5', 'CX-3', 'Mazda 3', 'Mazda 2', 'BT-50', 'CX-30'],
-    'Ford': ['Ranger', 'Everest', 'Explorer', 'EcoSport', 'F-150'],
-    'Chevrolet': ['Tracker', 'Colorado', 'Spark', 'Aveo', 'Captiva'],
+const CAR_DATA = {
+    Acura: ['MDX', 'RDX', 'TLX', 'TSX', 'Integra'],
+    Audi: ['A3', 'A4', 'Q3', 'Q5', 'Q7'],
+    BMW: ['Serie 1', 'Serie 3', 'Serie 5', 'X1', 'X3', 'X5'],
+    BYD: ['S1 Pro', 'Yuan Plus', 'Tang', 'Song Plus', 'F3', 'Dolphin'],
+    Chery: ['Tiggo 2 Pro', 'Tiggo 4 Pro', 'Tiggo 7 Pro', 'Tiggo 8 Pro', 'QQ'],
+    Chevrolet: ['Colorado', 'Tracker', 'Spark', 'Aveo', 'Captiva', 'Groove'],
+    Citroen: ['C3', 'C4 Cactus', 'C5 Aircross', 'Berlingo', 'Jumpy'],
+    Daihatsu: ['Terios', 'Bego', 'Sirion', 'Delta', 'Gran Max'],
+    Dodge: ['RAM 1500', 'RAM 2500', 'Journey', 'Durango', 'Dakota'],
+    Fiat: ['Strada', 'Fiorino', 'Pulse', 'Uno', '500', 'Fastback'],
+    Ford: ['Ranger', 'Everest', 'Explorer', 'EcoSport', 'F-150', 'Focus'],
+    Geely: ['Coolray', 'Azkarra', 'Okavango', 'GX3 Pro', 'Geometry C'],
+    GMC: ['Sierra', 'Acadia', 'Terrain', 'Yukon', 'Canyon'],
+    GreatWall: ['Wingle 5', 'Wingle 7', 'Poer', 'Haval M4', 'Voleex'],
+    Haval: ['H6', 'Jolion', 'H2', 'H9', 'M4'],
+    Honda: ['CR-V', 'Civic', 'HR-V', 'Accord', 'Fit', 'Pilot'],
+    Hyundai: ['Tucson', 'Accent Blue', 'Elantra', 'Creta', 'Grand i10', 'Santa Fe', 'Kona'],
+    Isuzu: ['D-Max', 'MU-X', 'NLR', 'NPR', 'FTR'],
+    JAC: ['T8', 'JS2', 'JS4', 'S2', 'Sunray', 'E10X'],
+    Jeep: ['Grand Cherokee', 'Wrangler', 'Compass', 'Renegade', 'Cherokee'],
+    Jetour: ['Dashing', 'X70 Plus', 'X70', 'X90 Plus'],
+    Kia: ['Sportage', 'Picanto', 'Rio', 'Seltos', 'Sorento', 'Cerato', 'Soluto'],
+    LandRover: ['Defender', 'Discovery', 'Range Rover Evoque', 'Range Rover Sport'],
+    Lexus: ['RX', 'NX', 'UX', 'GX', 'IS'],
+    Mazda: ['CX-5', 'Mazda 3', 'CX-3', 'CX-30', 'BT-50', 'CX-9'],
+    MercedesBenz: ['GLC', 'GLE', 'Clase C', 'Clase A', 'Clase E', 'Vito'],
+    MG: ['ZS', 'HS', 'MG3', 'MG5', 'Marvel R', 'MG4'],
+    Mitsubishi: ['Montero Sport', 'L200', 'Outlander', 'ASX', 'Eclipse Cross', 'Montero'],
+    Nissan: ['Frontier', 'Sentra', 'Qashqai', 'Kicks', 'Versa', 'X-Trail', 'March'],
+    Peugeot: ['2008', '3008', '5008', '208', 'Partner', 'Landtrek'],
+    Renault: ['Kwid', 'Duster', 'Oroch', 'Stepway', 'Koleos', 'Logan'],
+    Subaru: ['XV', 'Forester', 'Outback', 'Impreza', 'Crosstrek'],
+    Suzuki: ['Vitara', 'Swift', 'Jimny', 'S-Presso', 'Ertiga', 'Dzire', 'Baleno'],
+    Tesla: ['Model 3', 'Model Y', 'Model S', 'Model X'],
+    Toyota: ['Hilux', 'Corolla', 'Yaris', 'RAV4', 'Prado', 'Fortuner', 'Rush', 'Agya'],
+    Volkswagen: ['Amarok', 'Tiguan', 'Jetta', 'T-Cross', 'Gol', 'Taos', 'Nivus'],
+    Volvo: ['XC40', 'XC60', 'XC90', 'S60', 'V40', 'C40'],
 };
 
-const DEFAULT_MODELS = ['Sedan', 'SUV', 'Pickup', 'Microbus', 'Hatchback', 'Van', 'Otro'];
+const BRANDS = Object.keys(CAR_DATA);
+const VEHICLE_COLORS = ['Blanco', 'Negro', 'Gris', 'Plateado', 'Rojo', 'Azul', 'Verde', 'Amarillo', 'Naranja', 'Café', 'Beige', 'Vinilado'];
 
-const VEHICLE_COLORS = [
-    'Blanco', 'Negro', 'Plateado', 'Gris', 'Azul', 'Rojo', 'Verde',
-    'Blanco Perla', 'Bronce', 'Champagne', 'Bordeaux', 'Café', 'Oro', 'Crema'
-];
-
-const YEARS = Array.from({ length: 31 }, (_, i) => (new Date().getFullYear() - i).toString());
+const YEARS = Array.from({ length: 30 }, (_, i) => (new Date().getFullYear() - i).toString());
 
 const ProfileConductor = ({ navigation, route }) => {
     const insets = useSafeAreaInsets();
@@ -81,6 +99,8 @@ const ProfileConductor = ({ navigation, route }) => {
     const [editVehicleForm, setEditVehicleForm] = useState({
         brand: '', model: '', year: '', color: '', licensePlate: ''
     });
+
+    const { showAlert } = useCustomAlert();
 
     const loadProfile = async () => {
         try {
@@ -156,28 +176,28 @@ const ProfileConductor = ({ navigation, route }) => {
                 (editForm.profileImage !== userData.profileImage && editForm.profileImage !== null);
 
             if (!Changes) {
-                Alert.alert('No hay cambios', 'No has realizado ningún cambio para actualizar.');
+                showAlert('No hay cambios', 'No has realizado ningún cambio para actualizar.', 'warning');
                 setUpdating(false);
                 return;
             }
 
             // 2. Validar campos obligatorios
             if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.company.trim()) {
-                Alert.alert('Datos incompletos', 'Todos los campos son obligatorios para actualizar tu perfil.');
+                showAlert('Datos incompletos', 'Todos los campos son obligatorios para actualizar tu perfil.', 'warning');
                 setUpdating(false);
                 return;
             }
 
             // 3. Validar formato de nombre
             if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$/.test(editForm.name.trim())) {
-                Alert.alert('Formato Inválido', 'El nombre solo puede contener letras y espacios.');
+                showAlert('Formato Inválido', 'El nombre solo puede contener letras y espacios.', 'error');
                 setUpdating(false);
                 return;
             }
 
             // 4. Validar formato de teléfono
             if (!/^\d{8}$/.test(editForm.phone)) {
-                Alert.alert('Formato Inválido', 'El número de teléfono debe tener exactamente 8 dígitos.');
+                showAlert('Formato Inválido', 'El número de teléfono debe tener exactamente 8 dígitos.', 'error');
                 setUpdating(false);
                 return;
             }
@@ -203,13 +223,14 @@ const ProfileConductor = ({ navigation, route }) => {
                 company: editForm.company,
                 profileImage: profileImageUrl,
             });
-            Alert.alert('¡Listo!', 'Perfil actualizado correctamente');
+            showAlert('¡Listo!', 'Perfil actualizado correctamente', 'success');
             setModalVisible(false);
             loadProfile();
 
         } catch (error) {
             console.error('Error al actualizar perfil:', error);
-            Alert.alert('Error', 'No se pudo actualizar el perfil. Revisa tu conexión.');
+            const msg = error.response?.data?.message || error.message || 'No se pudo actualizar el perfil. Revisa tu conexión.';
+            showAlert('Actualización Fallida', msg, 'error');
         } finally {
             setUpdating(false);
         }
@@ -220,7 +241,7 @@ const ProfileConductor = ({ navigation, route }) => {
             setUpdating(true);
 
             if (!vehicleData) {
-                showAlert('error', 'Error', 'No hay información de vehículo para actualizar.');
+                showAlert('Error', 'No hay información de vehículo para actualizar.', 'error');
                 setUpdating(false);
                 return;
             }
@@ -234,14 +255,22 @@ const ProfileConductor = ({ navigation, route }) => {
                 editVehicleForm.licensePlate !== vehicleData.license_plate;
 
             if (!hasChanges) {
-                Alert.alert('No hay cambios', 'No has realizado ningún cambio en los datos del vehículo.');
+                showAlert('No hay cambios', 'No has realizado ningún cambio en los datos del vehículo.', 'warning');
                 setUpdating(false);
                 return;
             }
 
             // 2. Validar que tengamos datos mínimos
-            if (!editVehicleForm.brand || !editVehicleForm.model || !editVehicleForm.year || !editVehicleForm.color) {
-                Alert.alert('Datos incompletos', 'Por favor selecciona marca, modelo, año y color.');
+            if (!editVehicleForm.brand || !editVehicleForm.model || !editVehicleForm.year || !editVehicleForm.color || !editVehicleForm.licensePlate) {
+                showAlert('Datos incompletos', 'Por favor selecciona marca, modelo, año, color y placa.', 'warning');
+                setUpdating(false);
+                return;
+            }
+
+            // 3. Validar placa (3 letras + 3 números)
+            const plateRegex = /^[A-Z]{3}[0-9]{3}$/;
+            if (!plateRegex.test(editVehicleForm.licensePlate.toUpperCase())) {
+                showAlert('Placa Inválida', 'La placa debe tener 3 letras seguidas de 3 números (ej: ABC123).', 'error');
                 setUpdating(false);
                 return;
             }
@@ -255,24 +284,31 @@ const ProfileConductor = ({ navigation, route }) => {
                 license_plate: editVehicleForm.licensePlate.toUpperCase(),
             });
 
-            Alert.alert('¡Listo!', 'Información del vehículo actualizada');
+            showAlert('¡Listo!', 'Información del vehículo actualizada', 'success');
             setVehicleModalVisible(false);
             loadProfile(); // Recargamos para refrescar la vista principal
         } catch (error) {
             console.error('Error al actualizar vehículo:', error);
-            const msg = error.response?.data?.message || 'No se pudo actualizar el vehículo.';
-            Alert.alert('Error', msg);
+            const msg = error.response?.data?.message || error.message || 'No se pudo actualizar la información del vehículo.';
+            showAlert('Actualización Fallida', msg, 'error');
         } finally {
             setUpdating(false);
         }
     };
 
     const handleLogout = () => {
-        showAlert('confirm', 'Cerrar Sesión', '¿Estás seguro de que quieres salir?', async () => {
-            await AsyncStorage.clear();
-            sessionCache.clear();
-            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-        });
+        showAlert(
+            'Cerrar Sesión', 
+            '¿Estás seguro de que quieres salir?', 
+            'confirm', 
+            'Cerrar Sesión', 
+            'Cancelar', 
+            async () => {
+                await AsyncStorage.clear();
+                sessionCache.clear();
+                navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+            }
+        );
     };
 
     if (loading) {
@@ -483,19 +519,37 @@ const ProfileConductor = ({ navigation, route }) => {
 
                             <View style={styles.inputGroup}>
                                 <View style={styles.labelRow}>
-                                    <Ionicons name="business-outline" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
-                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>EMPRESA</Text>
+                                    <Ionicons name="business-outline" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
+                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>SELECCIONA TU EMPRESA</Text>
                                 </View>
-                                <View style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}>
-                                    <Picker
-                                        selectedValue={editForm.company}
-                                        onValueChange={val => setEditForm(prev => ({ ...prev, company: val }))}
-                                        style={{ color: theme.text }}
-                                        dropdownIconColor={theme.accent}
-                                    >
-                                        <Picker.Item label="Selecciona una empresa" value="" />
-                                        {COMPANIES.map(c => <Picker.Item key={c} label={c} value={c} />)}
-                                    </Picker>
+                                <View style={styles.chipsContainer}>
+                                    {Array.from(new Set([...COMPANIES, userData?.company])).filter(Boolean).map(comp => (
+                                        <TouchableOpacity 
+                                            key={comp}
+                                            activeOpacity={0.7}
+                                            onPress={() => setEditForm(prev => ({ ...prev, company: comp }))}
+                                            style={[
+                                                styles.companyChip,
+                                                { 
+                                                    borderColor: editForm.company === comp ? theme.accent : theme.divider,
+                                                    backgroundColor: editForm.company === comp ? theme.accent + '15' : 'transparent'
+                                                }
+                                            ]}
+                                        >
+                                            <Ionicons 
+                                                name="business-outline" 
+                                                size={14} 
+                                                color={editForm.company === comp ? theme.accent : theme.textSecondary} 
+                                                style={{ marginRight: 6 }}
+                                            />
+                                            <Text style={[
+                                                styles.chipText, 
+                                                { color: editForm.company === comp ? theme.accent : theme.textSecondary }
+                                            ]}>
+                                                {comp}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
                                 </View>
                             </View>
 
@@ -550,7 +604,7 @@ const ProfileConductor = ({ navigation, route }) => {
                                 label="MARCA" 
                                 icon="car-outline" 
                                 value={editVehicleForm.brand}
-                                options={VEHICLE_BRANDS}
+                                options={BRANDS}
                                 onValueChange={val => setEditVehicleForm(prev => ({ ...prev, brand: val, model: '' }))}
                                 theme={theme}
                                 placeholder="Selecciona marca"
@@ -561,7 +615,7 @@ const ProfileConductor = ({ navigation, route }) => {
                                 label="MODELO" 
                                 icon="car-outline" 
                                 value={editVehicleForm.model}
-                                options={MODELS_MAP[editVehicleForm.brand] || DEFAULT_MODELS}
+                                options={CAR_DATA[editVehicleForm.brand] || []}
                                 onValueChange={val => setEditVehicleForm(prev => ({ ...prev, model: val }))}
                                 theme={theme}
                                 placeholder="Selecciona modelo"
@@ -594,9 +648,9 @@ const ProfileConductor = ({ navigation, route }) => {
                                 label="MATRÍCULA"
                                 icon="document-text-outline"
                                 value={editVehicleForm.licensePlate}
-                                placeholder="ABC-123"
+                                placeholder="ABC123"
                                 theme={theme}
-                                editable={false} // No se puede editar placa según backend user request
+                                onChangeText={t => setEditVehicleForm(prev => ({ ...prev, licensePlate: t.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 6) }))}
                             />
 
                             <TouchableOpacity
@@ -619,114 +673,6 @@ const ProfileConductor = ({ navigation, route }) => {
                 </View>
             </Modal>
 
-            {/* ── MODAL DE ALERTA PERSONALIZADA (AESTHETIC) ── */}
-            <Modal
-                visible={alertConfig.visible}
-                transparent
-                animationType="fade"
-                statusBarTranslucent
-            >
-                <View style={styles.alertBackdrop}>
-                    <View style={[styles.alertCard, {
-                        backgroundColor: theme.dark ? '#111128' : '#FFFFFF',
-                        borderColor: theme.dark ? 'rgba(116,143,255,0.2)' : 'rgba(75,104,255,0.1)',
-                    }]}>
-
-                        {/* Icono con Glow */}
-                        <View style={[styles.alertIconWrapper, {
-                            backgroundColor:
-                                alertConfig.type === 'success' ? (theme.dark ? '#0A2A1A' : '#E8F5E9') :
-                                alertConfig.type === 'error'   ? (theme.dark ? '#2A0A0A' : '#FFEBEE') :
-                                alertConfig.type === 'warning' ? (theme.dark ? '#2A1C00' : '#FFF8E1') :
-                                (theme.dark ? '#1C1C40' : '#EEF2FF'),
-                            shadowColor:
-                                alertConfig.type === 'success' ? '#27AE60' :
-                                alertConfig.type === 'error'   ? '#FF5252' :
-                                alertConfig.type === 'warning' ? '#FFA000' :
-                                theme.accent,
-                        }]}>
-                            <View style={[styles.alertIconInner, {
-                                backgroundColor:
-                                    alertConfig.type === 'success' ? (theme.dark ? '#0E3E26' : '#C8E6C9') :
-                                    alertConfig.type === 'error'   ? (theme.dark ? '#3E0E0E' : '#FFCDD2') :
-                                    alertConfig.type === 'warning' ? (theme.dark ? '#3E2A00' : '#FFECB3') :
-                                    (theme.dark ? '#252560' : '#E0E7FF'),
-                            }]}>
-                                <Ionicons
-                                    name={
-                                        alertConfig.type === 'success' ? 'checkmark-circle' :
-                                        alertConfig.type === 'error'   ? 'alert-circle' :
-                                        alertConfig.type === 'warning' ? 'warning' :
-                                        'help-circle'
-                                    }
-                                    size={42}
-                                    color={
-                                        alertConfig.type === 'success' ? '#27AE60' :
-                                        alertConfig.type === 'error'   ? '#FF5252' :
-                                        alertConfig.type === 'warning' ? '#FFA000' :
-                                        theme.accent
-                                    }
-                                />
-                            </View>
-                        </View>
-
-                        {/* Texto */}
-                        <Text style={[styles.alertTitle, { color: theme.dark ? '#EEEEFF' : '#1C1C1E' }]}>
-                            {alertConfig.title}
-                        </Text>
-                        <Text style={[styles.alertSubtitle, { color: theme.dark ? '#A0A0C0' : '#6B7280' }]}>
-                            {alertConfig.message}
-                        </Text>
-
-                        {/* Separador */}
-                        <View style={[styles.alertDivider, {
-                            backgroundColor: theme.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'
-                        }]} />
-
-                        {/* Botones */}
-                        <View style={styles.alertBtnRow}>
-                            {alertConfig.type === 'confirm' ? (
-                                <>
-                                    <TouchableOpacity
-                                        style={[styles.alertBtnSecondary, { borderColor: theme.divider }]}
-                                        onPress={() => {
-                                            setAlertConfig(prev => ({ ...prev, visible: false }));
-                                            if (alertConfig.onCancel) alertConfig.onCancel();
-                                        }}
-                                    >
-                                        <Text style={[styles.alertBtnTextSecondary, { color: theme.textSecondary }]}>Cancelar</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={[styles.alertBtnPrimary, { backgroundColor: theme.danger || '#FF5252' }]}
-                                        onPress={() => {
-                                            setAlertConfig(prev => ({ ...prev, visible: false }));
-                                            if (alertConfig.onConfirm) alertConfig.onConfirm();
-                                        }}
-                                    >
-                                        <Text style={styles.alertBtnTextPrimary}>Salir</Text>
-                                    </TouchableOpacity>
-                                </>
-                            ) : (
-                                <TouchableOpacity
-                                    style={[styles.alertBtnPrimary, {
-                                        backgroundColor:
-                                            alertConfig.type === 'success' ? '#27AE60' :
-                                            alertConfig.type === 'error'   ? '#FF5252' :
-                                            alertConfig.type === 'warning' ? '#FFA000' :
-                                            theme.accent
-                                    }]}
-                                    onPress={() => {
-                                        setAlertConfig(prev => ({ ...prev, visible: false }));
-                                        if (alertConfig.onConfirm) alertConfig.onConfirm();
-                                    }}
-                                >
-                                    <Text style={styles.alertBtnTextPrimary}>Aceptar</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    </View>
-                </View>
-            </Modal>
 
         </SafeAreaView>
     );
@@ -968,8 +914,26 @@ const styles = StyleSheet.create({
         padding: 24, 
         paddingTop: 12, 
         maxHeight: '92%',
-        borderWidth: 1.5, // Borde para el efecto "rodeado"
-        borderBottomWidth: 0,
+        borderWidth: 1.5,
+    },
+    chipsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginTop: 10,
+    },
+    companyChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        marginBottom: 4,
+    },
+    chipText: {
+        fontSize: 12,
+        fontFamily: 'Poppins-Medium',
     },
 
     handleBar: {
