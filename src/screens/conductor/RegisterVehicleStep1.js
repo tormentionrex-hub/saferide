@@ -10,47 +10,47 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
 const CAR_DATA = { //ESTOS SON LOS QUE VAN A IR EN EL ProfileConductor, para cuando este esa Feature.
-    Acura:      ['MDX', 'RDX', 'TLX', 'TSX', 'Integra'],
-    Audi:       ['A3', 'A4', 'Q3', 'Q5', 'Q7'],
-    BMW:        ['Serie 1', 'Serie 3', 'Serie 5', 'X1', 'X3', 'X5'],
-    BYD:        ['S1 Pro', 'Yuan Plus', 'Tang', 'Song Plus', 'F3', 'Dolphin'],
-    Chery:      ['Tiggo 2 Pro', 'Tiggo 4 Pro', 'Tiggo 7 Pro', 'Tiggo 8 Pro', 'QQ'],
-    Chevrolet:  ['Colorado', 'Tracker', 'Spark', 'Aveo', 'Captiva', 'Groove'],
-    Citroen:    ['C3', 'C4 Cactus', 'C5 Aircross', 'Berlingo', 'Jumpy'],
-    Daihatsu:   ['Terios', 'Bego', 'Sirion', 'Delta', 'Gran Max'],
-    Dodge:      ['RAM 1500', 'RAM 2500', 'Journey', 'Durango', 'Dakota'],
-    Fiat:       ['Strada', 'Fiorino', 'Pulse', 'Uno', '500', 'Fastback'],
-    Ford:       ['Ranger', 'Everest', 'Explorer', 'EcoSport', 'F-150', 'Focus'],
-    Geely:      ['Coolray', 'Azkarra', 'Okavango', 'GX3 Pro', 'Geometry C'],
-    GMC:        ['Sierra', 'Acadia', 'Terrain', 'Yukon', 'Canyon'],
-    GreatWall:  ['Wingle 5', 'Wingle 7', 'Poer', 'Haval M4', 'Voleex'],
-    Haval:      ['H6', 'Jolion', 'H2', 'H9', 'M4'],
-    Honda:      ['CR-V', 'Civic', 'HR-V', 'Accord', 'Fit', 'Pilot'],
-    Hyundai:    ['Tucson', 'Accent Blue', 'Elantra', 'Creta', 'Grand i10', 'Santa Fe', 'Kona'],
-    Isuzu:      ['D-Max', 'MU-X', 'NLR', 'NPR', 'FTR'],
-    JAC:        ['T8', 'JS2', 'JS4', 'S2', 'Sunray', 'E10X'],
-    Jeep:       ['Grand Cherokee', 'Wrangler', 'Compass', 'Renegade', 'Cherokee'],
-    Jetour:     ['Dashing', 'X70 Plus', 'X70', 'X90 Plus'],
-    Kia:        ['Sportage', 'Picanto', 'Rio', 'Seltos', 'Sorento', 'Cerato', 'Soluto'],
-    LandRover:  ['Defender', 'Discovery', 'Range Rover Evoque', 'Range Rover Sport'],
-    Lexus:      ['RX', 'NX', 'UX', 'GX', 'IS'],
-    Mazda:      ['CX-5', 'Mazda 3', 'CX-3', 'CX-30', 'BT-50', 'CX-9'],
+    Acura: ['MDX', 'RDX', 'TLX', 'TSX', 'Integra'],
+    Audi: ['A3', 'A4', 'Q3', 'Q5', 'Q7'],
+    BMW: ['Serie 1', 'Serie 3', 'Serie 5', 'X1', 'X3', 'X5'],
+    BYD: ['S1 Pro', 'Yuan Plus', 'Tang', 'Song Plus', 'F3', 'Dolphin'],
+    Chery: ['Tiggo 2 Pro', 'Tiggo 4 Pro', 'Tiggo 7 Pro', 'Tiggo 8 Pro', 'QQ'],
+    Chevrolet: ['Colorado', 'Tracker', 'Spark', 'Aveo', 'Captiva', 'Groove'],
+    Citroen: ['C3', 'C4 Cactus', 'C5 Aircross', 'Berlingo', 'Jumpy'],
+    Daihatsu: ['Terios', 'Bego', 'Sirion', 'Delta', 'Gran Max'],
+    Dodge: ['RAM 1500', 'RAM 2500', 'Journey', 'Durango', 'Dakota'],
+    Fiat: ['Strada', 'Fiorino', 'Pulse', 'Uno', '500', 'Fastback'],
+    Ford: ['Ranger', 'Everest', 'Explorer', 'EcoSport', 'F-150', 'Focus'],
+    Geely: ['Coolray', 'Azkarra', 'Okavango', 'GX3 Pro', 'Geometry C'],
+    GMC: ['Sierra', 'Acadia', 'Terrain', 'Yukon', 'Canyon'],
+    GreatWall: ['Wingle 5', 'Wingle 7', 'Poer', 'Haval M4', 'Voleex'],
+    Haval: ['H6', 'Jolion', 'H2', 'H9', 'M4'],
+    Honda: ['CR-V', 'Civic', 'HR-V', 'Accord', 'Fit', 'Pilot'],
+    Hyundai: ['Tucson', 'Accent Blue', 'Elantra', 'Creta', 'Grand i10', 'Santa Fe', 'Kona'],
+    Isuzu: ['D-Max', 'MU-X', 'NLR', 'NPR', 'FTR'],
+    JAC: ['T8', 'JS2', 'JS4', 'S2', 'Sunray', 'E10X'],
+    Jeep: ['Grand Cherokee', 'Wrangler', 'Compass', 'Renegade', 'Cherokee'],
+    Jetour: ['Dashing', 'X70 Plus', 'X70', 'X90 Plus'],
+    Kia: ['Sportage', 'Picanto', 'Rio', 'Seltos', 'Sorento', 'Cerato', 'Soluto'],
+    LandRover: ['Defender', 'Discovery', 'Range Rover Evoque', 'Range Rover Sport'],
+    Lexus: ['RX', 'NX', 'UX', 'GX', 'IS'],
+    Mazda: ['CX-5', 'Mazda 3', 'CX-3', 'CX-30', 'BT-50', 'CX-9'],
     MercedesBenz: ['GLC', 'GLE', 'Clase C', 'Clase A', 'Clase E', 'Vito'],
-    MG:         ['ZS', 'HS', 'MG3', 'MG5', 'Marvel R', 'MG4'],
+    MG: ['ZS', 'HS', 'MG3', 'MG5', 'Marvel R', 'MG4'],
     Mitsubishi: ['Montero Sport', 'L200', 'Outlander', 'ASX', 'Eclipse Cross', 'Montero'],
-    Nissan:     ['Frontier', 'Sentra', 'Qashqai', 'Kicks', 'Versa', 'X-Trail', 'March'],
-    Peugeot:    ['2008', '3008', '5008', '208', 'Partner', 'Landtrek'],
-    Renault:    ['Kwid', 'Duster', 'Oroch', 'Stepway', 'Koleos', 'Logan'],
-    Subaru:     ['XV', 'Forester', 'Outback', 'Impreza', 'Crosstrek'],
-    Suzuki:     ['Vitara', 'Swift', 'Jimny', 'S-Presso', 'Ertiga', 'Dzire', 'Baleno'],
-    Tesla:      ['Model 3', 'Model Y', 'Model S', 'Model X'],
-    Toyota:     ['Hilux', 'Corolla', 'Yaris', 'RAV4', 'Prado', 'Fortuner', 'Rush', 'Agya'],
+    Nissan: ['Frontier', 'Sentra', 'Qashqai', 'Kicks', 'Versa', 'X-Trail', 'March'],
+    Peugeot: ['2008', '3008', '5008', '208', 'Partner', 'Landtrek'],
+    Renault: ['Kwid', 'Duster', 'Oroch', 'Stepway', 'Koleos', 'Logan'],
+    Subaru: ['XV', 'Forester', 'Outback', 'Impreza', 'Crosstrek'],
+    Suzuki: ['Vitara', 'Swift', 'Jimny', 'S-Presso', 'Ertiga', 'Dzire', 'Baleno'],
+    Tesla: ['Model 3', 'Model Y', 'Model S', 'Model X'],
+    Toyota: ['Hilux', 'Corolla', 'Yaris', 'RAV4', 'Prado', 'Fortuner', 'Rush', 'Agya'],
     Volkswagen: ['Amarok', 'Tiguan', 'Jetta', 'T-Cross', 'Gol', 'Taos', 'Nivus'],
-    Volvo:      ['XC40', 'XC60', 'XC90', 'S60', 'V40', 'C40'],
+    Volvo: ['XC40', 'XC60', 'XC90', 'S60', 'V40', 'C40'],
 };
 
 const BRANDS = Object.keys(CAR_DATA);
-const COLORS  = ['Blanco', 'Negro', 'Gris', 'Plateado', 'Rojo', 'Azul', 'Verde', 'Amarillo', 'Naranja', 'Café', 'Beige','Vinilado'];
+const COLORS = ['Blanco', 'Negro', 'Gris', 'Plateado', 'Rojo', 'Azul', 'Verde', 'Amarillo', 'Naranja', 'Café', 'Beige', 'Vinilado'];
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 30 }, (_, i) => String(CURRENT_YEAR - i));
 
@@ -115,11 +115,11 @@ export default function RegisterVehicleStep1({ navigation }) {
     const { theme } = useDriverTheme();
     const si = useScrollIndicator();
 
-    const [brand, setBrand]       = useState('');
-    const [model, setModel]       = useState('');
-    const [plate, setPlate]       = useState('');
-    const [color, setColor]       = useState('');
-    const [year, setYear]         = useState(String(CURRENT_YEAR));
+    const [brand, setBrand] = useState('');
+    const [model, setModel] = useState('');
+    const [plate, setPlate] = useState('');
+    const [color, setColor] = useState('');
+    const [year, setYear] = useState(String(CURRENT_YEAR));
     const [capacity, setCapacity] = useState(4);
     const [showPlateError, setShowPlateError] = useState(false);
     const [plateErrorMessage, setPlateErrorMessage] = useState('');
@@ -159,23 +159,28 @@ export default function RegisterVehicleStep1({ navigation }) {
         setPlate(text.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 6));
 
     const handleNext = () => {
-        if (!brand)            return Alert.alert('Campo requerido', 'Selecciona la marca.');
-        if (!model)            return Alert.alert('Campo requerido', 'Selecciona el modelo.');
-        
-        const plateRegex = /^[A-Z]{3}[0-9]{3}$/;
-        if (!plateRegex.test(plate)) {
-            setPlateErrorMessage('La placa debe tener 3 letras seguidas de 3 números (ej: ABC123).');
+        if (!brand) return Alert.alert('Campo requerido', 'Selecciona la marca.');
+        if (!model) return Alert.alert('Campo requerido', 'Selecciona el modelo.');
+
+        if (plate.length !== 6) {
+            setPlateErrorMessage('La placa debe tener exactamente 6 caracteres (ej: ABC123).');
             setShowPlateError(true);
             return;
         }
-        
-        if (!color)            return Alert.alert('Campo requerido', 'Selecciona el color.');
+
+        if (/^[A-Z]+$/.test(plate)) {
+            setPlateErrorMessage('La placa no puede contener solo letras. Agregue al menos un número (ej: ABC123).');
+            setShowPlateError(true);
+            return;
+        }
+
+        if (!color) return Alert.alert('Campo requerido', 'Selecciona el color.');
         navigation.navigate('RegisterVehicleStep2', { brand, model, plate, color, year: parseInt(year), capacity });
     };
 
-    const surfBg  = theme.surface;
-    const cardBg  = theme.surfaceVariant;
-    const border  = theme.dark ? theme.border : 'rgba(75,104,255,0.15)';
+    const surfBg = theme.surface;
+    const cardBg = theme.surfaceVariant;
+    const border = theme.dark ? theme.border : 'rgba(75,104,255,0.15)';
 
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: surfBg }]}>
@@ -358,28 +363,28 @@ export default function RegisterVehicleStep1({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    safeArea:      { flex: 1 },
+    safeArea: { flex: 1 },
     mainContainer: { flex: 1 },
     header: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         paddingVertical: 20, borderBottomWidth: 1,
     },
-    backBtn:    { position: 'absolute', left: 20 },
+    backBtn: { position: 'absolute', left: 20 },
     innerTitle: { fontSize: 18, fontWeight: 'bold' },
     scrollBody: { padding: 20, paddingBottom: 100 },
 
-    progressRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-    stepLabel:    { fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
-    pct:          { fontSize: 13, fontWeight: '800' },
-    progressTrack:{ height: 5, borderRadius: 3, marginBottom: 20, overflow: 'hidden' },
+    progressRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+    stepLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
+    pct: { fontSize: 13, fontWeight: '800' },
+    progressTrack: { height: 5, borderRadius: 3, marginBottom: 20, overflow: 'hidden' },
     progressFill: { height: '100%', borderRadius: 3 },
 
     sectionTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 6 },
-    sectionSub:   { fontSize: 12, lineHeight: 18, marginBottom: 20 },
+    sectionSub: { fontSize: 12, lineHeight: 18, marginBottom: 20 },
 
-    label:     { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 5 },
-    input:     { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, fontSize: 14, marginBottom: 16 },
-    row:       { flexDirection: 'row', marginBottom: 16 },
+    label: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 5 },
+    input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, fontSize: 14, marginBottom: 16 },
+    row: { flexDirection: 'row', marginBottom: 16 },
 
     // Custom select
     selectTrigger: {
@@ -410,14 +415,14 @@ const styles = StyleSheet.create({
     },
     optionText: { fontSize: 14 },
 
-    seatsCard:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderRadius: 15, padding: 14, marginBottom: 24 },
+    seatsCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderRadius: 15, padding: 14, marginBottom: 24 },
     seatsTitle: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
-    seatsHint:  { fontSize: 10, marginTop: 2 },
-    counter:    { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    seatsHint: { fontSize: 10, marginTop: 2 },
+    counter: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     counterBtn: { width: 34, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
     counterVal: { fontSize: 18, fontWeight: '800', minWidth: 24, textAlign: 'center' },
 
-    nextBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, borderRadius: 14, elevation: 4, shadowColor: '#748FFF', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8 },
+    nextBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, borderRadius: 14, elevation: 4, shadowColor: '#748FFF', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8 },
     nextBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
     // ── MODAL AESTHETIC ALERT ──

@@ -13,11 +13,13 @@ export const CustomAlertProvider = ({ children }) => {
         message: '',
         type: 'success',
         confirmText: 'Entendido',
+        cancelText: 'Cancelar',
+        onConfirm: null,
         onClose: null
     });
 
-    const showAlert = (title, message, type = 'success', confirmText = 'Entendido', onClose = null) => {
-        setConfig({ title, message, type, confirmText, onClose });
+    const showAlert = (title, message, type = 'success', confirmText = 'Entendido', cancelText = 'Cancelar', onConfirm = null, onClose = null) => {
+        setConfig({ title, message, type, confirmText, cancelText, onConfirm, onClose });
         setVisible(true);
     };
 
@@ -35,6 +37,8 @@ export const CustomAlertProvider = ({ children }) => {
                 message={config.message}
                 type={config.type}
                 confirmText={config.confirmText}
+                cancelText={config.cancelText}
+                onConfirm={config.onConfirm}
                 onClose={hideAlert}
             />
         </CustomAlertContext.Provider>

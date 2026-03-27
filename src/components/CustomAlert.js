@@ -29,7 +29,9 @@ const CustomAlert = ({
     message, 
     type = 'success', 
     onClose, 
-    confirmText = 'Entendido' 
+    confirmText = 'Entendido',
+    cancelText = 'Cancelar',
+    onConfirm
 }) => {
     const { theme } = useDriverTheme();
     const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -71,6 +73,7 @@ const CustomAlert = ({
             case 'success': return { name: 'checkmark-circle', color: '#00C851' };
             case 'error': return { name: 'alert-circle', color: theme.danger || '#ff4444' };
             case 'warning': return { name: 'warning', color: '#FFBB33' };
+            case 'confirm': return { name: 'help-circle', color: theme.accent || '#33b5e5' };
             case 'info': return { name: 'information-circle', color: theme.accent || '#33b5e5' };
             default: return { name: 'help-circle', color: theme.accent };
         }
@@ -105,14 +108,38 @@ const CustomAlert = ({
                         <Text style={[styles.message, { color: theme.textSecondary }]}>{message}</Text>
                     </View>
 
-                    {/* Action Button */}
-                    <TouchableOpacity 
-                        style={[styles.button, { backgroundColor: iconData.color }]} 
-                        onPress={onClose}
-                        activeOpacity={0.8}
-                    >
-                        <Text style={styles.buttonText}>{confirmText}</Text>
-                    </TouchableOpacity>
+                    {/* Action Buttons */}
+                    <View style={styles.buttonRow}>
+                        {type === 'confirm' ? (
+                            <>
+                                <TouchableOpacity 
+                                    style={[styles.secondaryButton, { borderColor: theme.divider }]} 
+                                    onPress={onClose}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={[styles.secondaryButtonText, { color: theme.textSecondary }]}>{cancelText}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[styles.button, { backgroundColor: iconData.color, flex: 1.5 }]} 
+                                    onPress={() => {
+                                        if (onConfirm) onConfirm();
+                                        onClose();
+                                    }}
+                                    activeOpacity={0.8}
+                                >
+                                    <Text style={styles.buttonText}>{confirmText}</Text>
+                                </TouchableOpacity>
+                            </>
+                        ) : (
+                            <TouchableOpacity 
+                                style={[styles.button, { backgroundColor: iconData.color }]} 
+                                onPress={onClose}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.buttonText}>{confirmText}</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </Animated.View>
             </View>
         </Modal>
@@ -166,8 +193,13 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 22,
     },
-    button: {
+    buttonRow: {
+        flexDirection: 'row',
         width: '100%',
+        gap: 12,
+    },
+    button: {
+        flex: 1,
         height: 54,
         borderRadius: 16,
         justifyContent: 'center',
@@ -178,8 +210,21 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 3,
     },
+    secondaryButton: {
+        flex: 1,
+        height: 54,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+    },
     buttonText: {
         color: '#FFF',
+        fontSize: 16,
+        fontFamily: 'Poppins-SemiBold',
+        fontWeight: '600',
+    },
+    secondaryButtonText: {
         fontSize: 16,
         fontFamily: 'Poppins-SemiBold',
         fontWeight: '600',
