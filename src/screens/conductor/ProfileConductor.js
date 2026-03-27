@@ -28,7 +28,7 @@ import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndi
 import StarRating from '../../components/StarRating';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 
-const COMPANIES = [
+const COMPANIES = [ //Estas son las empresas 
     'Intel', 'Cargill', 'Deloitte', 'Citi', 'Experian',
     '3M', 'DHL', 'Bill Gosling Outsourcing (BGO)',
     'WeWork Costa Rica', 'Concentrix', 'Nestlé Costa Rica'
