@@ -185,6 +185,48 @@ const ScheduledModal = ({ visible, onConfirm, theme, type }) => {
         </Modal>
     );
 };
+
+const TimeoutModal = ({ visible, onConfirm, theme }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    return (
+        <Modal transparent visible={visible} animationType="none">
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#FFF7ED' }]}>
+                        <Ionicons name="hourglass-outline" size={50} color="#F97316" />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>Tiempo Agotado</Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        El conductor no respondió a tiempo y la solicitud fue cancelada automáticamente para liberar tu cupo.
+                    </Text>
+                    <TouchableOpacity 
+                        style={[modalStyles.confirmBtn, { backgroundColor: '#F97316' }]} 
+                        onPress={onConfirm}
+                    >
+                        <Text style={modalStyles.confirmBtnText}>Entendido</Text>
+                        <Ionicons name="search" size={18} color="#fff" />
+                    </TouchableOpacity>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
+/* ─── Pantalla ScreenSaver ────────────────────────────────────────── */
 const ScreenSaver = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const bookingId = route.params?.bookingId;
@@ -193,6 +235,7 @@ const ScreenSaver = ({ route, navigation }) => {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [showScheduledModal, setShowScheduledModal] = useState(false);
+    const [showTimeoutModal, setShowTimeoutModal] = useState(false);
     const [modalType, setModalType] = useState('scheduled'); // 'scheduled' or 'in-progress'
     const [isCancellingLocally, setIsCancellingLocally] = useState(false);
     const intervalRef = useRef(null);
@@ -235,17 +278,23 @@ const ScreenSaver = ({ route, navigation }) => {
                     } else if (newStatus === 'pending') {
                         // AUTO CANCEL OUTDATED PENDING
                         const createdAt = res.data.data.createdAt || res.data.data.timestamp;
-                        if (createdAt && (Date.now() - new Date(createdAt).getTime() > 2 * 60 * 1000)) {
+                        const timeDiff = Date.now() - new Date(createdAt).getTime();
+                        
+                        if (createdAt && timeDiff > 2 * 60 * 1000) {
                             clearInterval(intervalRef.current);
-                            await api.delete(`/bookings/${bookingId}`).catch(()=>null);
+                            try {
+                                // Borramos el booking para que el usuario pueda intentar de nuevo
+                                await api.delete(`/bookings/${bookingId}`);
+                            } catch (err) {
+                                console.error('Error deleting timed out booking:', err);
+                            }
                             setStatus('timeout');
-                            Alert.alert('Tiempo Agotado', 'El conductor no respondió a tiempo y la solicitud fue cancelada automáticamente.', [
-                                { text: 'OK', onPress: () => navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' }) }
-                            ]);
-                            return;
+                            setShowTimeoutModal(true);
                         }
                     } else if (newStatus === 'confirmed' || newStatus === 'deny' || newStatus === 'cancelled') {
                         clearInterval(intervalRef.current);
+                        setStatus(newStatus);
+                        if (newStatus === 'deny') setShowRejectionModal(true);
                     } else {
                         setStatus(newStatus);
                     }
@@ -396,6 +445,15 @@ const ScreenSaver = ({ route, navigation }) => {
                     } else {
                         navigation.navigate('TripInProgress', { bookingId });
                     }
+                }}
+            />
+
+            <TimeoutModal 
+                visible={showTimeoutModal}
+                theme={theme}
+                onConfirm={() => {
+                    setShowTimeoutModal(false);
+                    navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
                 }}
             />
 
