@@ -243,11 +243,10 @@ const TripInProgressDriver = ({ route, navigation }) => {
                             const pPhone = passenger?.phone;
                             if (pPhone) {
                                 const cleanPhone = pPhone.replace(/[^0-9+]/g, '');
-                                const waUrl = `whatsapp://send?phone=${cleanPhone}&text=Hola,%20soy%20tu%20conductor.%20Voy%20en%20camino.`;
-                                Linking.canOpenURL(waUrl).then(supported => {
-                                    if (supported) return Linking.openURL(waUrl);
-                                    return Linking.openURL(`https://wa.me/${cleanPhone}?text=Hola,%20soy%20tu%20conductor.%20Voy%20en%20camino.`);
-                                }).catch(() => Linking.openURL(`tel:${pPhone}`));
+                                // Agrega +506 (Costa Rica) si el número no tiene código de país
+                                const intlPhone = cleanPhone.startsWith('+') ? cleanPhone : '+506' + cleanPhone;
+                                const waUrl = `https://wa.me/${intlPhone}?text=Hola,%20soy%20tu%20conductor.%20Voy%20en%20camino.`;
+                                Linking.openURL(waUrl).catch(() => Linking.openURL(`tel:${pPhone}`));
                             } else {
                                 Alert.alert('Atención', 'El pasajero no tiene número de contacto.');
                             }

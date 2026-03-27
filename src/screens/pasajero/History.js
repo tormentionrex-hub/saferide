@@ -14,6 +14,7 @@ import {
     Modal,
     ScrollView
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -25,6 +26,19 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { DateTime } from 'luxon';
 import { Image } from 'expo-image';
 import DateTimePicker from '@react-native-community/datetimepicker';
+
+/**
+ * Cache TTL para el historial del pasajero.
+ * Evita el error 429 cuando useFocusEffect se dispara en cada navegación.
+ *
+ * RESTAURAR RATE LIMITING (futuro):
+ *   Cuando el backend permita más peticiones por ventana de tiempo, se puede:
+ *   1. Eliminar `historyCache` y `HISTORY_CACHE_TTL`.
+ *   2. Quitar el guard `if (now - historyCache.lastCheck < HISTORY_CACHE_TTL)` en fetchHistory.
+ *   3. Volver a importar `api` y reemplazar AsyncStorage por `api.get('/auth/me')` para obtener el userId.
+ */
+let historyCache = { data: null, lastCheck: 0 };
+const HISTORY_CACHE_TTL = 60000; // 60 segundos
 
 const { width } = Dimensions.get('window');
 
@@ -183,12 +197,32 @@ const History = ({ navigation }) => {
     const [showDayPicker, setShowDayPicker] = useState(false);
     const [tempDate, setTempDate] = useState(new Date());
 
-    const fetchHistory = useCallback(async (isSilent = false) => {
+    const fetchHistory = useCallback(async (isSilent = false, force = false) => {
+        const now = Date.now();
+
+        // Saltar fetch si el cache está fresco y no es un refresh manual
+        if (!force && historyCache.data && (now - historyCache.lastCheck < HISTORY_CACHE_TTL)) {
+            if (historyCache.data.length > 0 || allHistory.length === 0) {
+                // Hidratar estado desde cache sin tocar la API
+                setAllHistory(historyCache.data);
+            }
+            setLoading(false);
+            setRefreshing(false);
+            return;
+        }
+
         if (!isSilent) setLoading(true);
         try {
-            const meResponse = await api.get('/auth/me');
-            if (!meResponse.data.success) throw new Error('Could not get user data');
-            const userId = meResponse.data.data._id;
+            // Intentar obtener userId desde AsyncStorage para evitar /auth/me (reduce 429)
+            // Fallback a /auth/me si no está en cache (ej. primera vez del pasajero)
+            let userId = await AsyncStorage.getItem('@saferide_driverId');
+            if (!userId) {
+                const meRes = await api.get('/auth/me');
+                if (!meRes.data.success) throw new Error('Could not get user data');
+                userId = meRes.data.data._id;
+                // Persistir para próximas visitas
+                try { await AsyncStorage.setItem('@saferide_driverId', userId); } catch (_) {}
+            }
 
             const response = await rideService.getBookingsByPassenger(userId);
 
@@ -201,6 +235,7 @@ const History = ({ navigation }) => {
                         return dateB - dateA;
                     });
 
+                historyCache = { data: sorted, lastCheck: Date.now() };
                 setAllHistory(sorted);
 
                 // Extract months
@@ -226,7 +261,7 @@ const History = ({ navigation }) => {
     useFocusEffect(
         useCallback(() => {
             setDisplayLimit(3);
-            fetchHistory();
+            fetchHistory(false, false); // usa cache si está fresco
         }, [fetchHistory])
     );
 
@@ -252,7 +287,7 @@ const History = ({ navigation }) => {
     const onRefresh = () => {
         setRefreshing(true);
         setDisplayLimit(3);
-        fetchHistory();
+        fetchHistory(true, true); // force=true ignora el cache (pull-to-refresh manual)
     };
 
     const calculateArrivalTime = useCallback((date, departureTime, durationMinutes) => {

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Platform, Dimensions, Alert
+    View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Platform, Dimensions, Alert, ScrollView
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -144,51 +144,56 @@ const RideDetail = ({ route, navigation }) => {
             {/* CARD DE DETALLES (ESTILO PREMIUM) */}
             <View style={[styles.detailCard, { backgroundColor: theme.surface }]}>
                 <View style={[styles.dragBar, { backgroundColor: theme.divider }]} />
-                
-                <View style={styles.headerRow}>
-                    <View>
-                        <Text style={[styles.driverLabel, { color: theme.textSecondary }]}>CONDUCTOR</Text>
-                        <Text style={[styles.driverName, { color: theme.text }]}>{ride.driver_id?.name || 'Desconocido'}</Text>
-                    </View>
-                    <View style={styles.priceTag}>
-                        <Text style={styles.priceValue}>₡{ride.price}</Text>
-                    </View>
-                </View>
-
-                <View style={[styles.divider, { backgroundColor: theme.divider }]} />
-
-                {/* Ruta Detallada */}
-                <View style={styles.routeBox}>
-                    <View style={styles.iconColumn}>
-                        <Ionicons name="radio-button-on" size={16} color={theme.accent} />
-                        <View style={[styles.dotLine, { backgroundColor: theme.divider }]} />
-                        <Ionicons name="location" size={16} color="#FF5A5F" />
-                    </View>
-                    <View style={styles.textColumn}>
-                        <Text style={[styles.locationText, { color: theme.text }]} numberOfLines={1}>{origin.name}</Text>
-                        <Text style={[styles.locationText, { color: theme.text, marginTop: 15 }]} numberOfLines={1}>{dest.name}</Text>
-                    </View>
-                </View>
-
-                {/* Métricas del Viaje */}
-                <View style={styles.statsRow}>
-                    <View style={[styles.statItem, { backgroundColor: theme.surfaceVariant }]}>
-                        <Ionicons name="people-outline" size={18} color={theme.accent} />
-                        <Text style={[styles.statText, { color: theme.text }]}>{ride.available_seats} asientos</Text>
-                    </View>
-                    <View style={[styles.statItem, { backgroundColor: theme.surfaceVariant }]}>
-                        <Ionicons name="time-outline" size={18} color={theme.accent} />
-                        <Text style={[styles.statText, { color: theme.text }]}>{ride.duration_minutes} min</Text>
-                    </View>
-                </View>
-
-                {/* Botón de Acción Principal */}
-                <TouchableOpacity 
-                    style={[styles.bookBtn, { backgroundColor: theme.accent }]}
-                    onPress={handleConfirmBooking}
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    bounces={false}
+                    keyboardShouldPersistTaps="handled"
                 >
-                    <Text style={styles.bookBtnText}>Solicitar unirse</Text>
-                </TouchableOpacity>
+                    <View style={styles.headerRow}>
+                        <View>
+                            <Text style={[styles.driverLabel, { color: theme.textSecondary }]}>CONDUCTOR</Text>
+                            <Text style={[styles.driverName, { color: theme.text }]}>{ride.driver_id?.name || 'Desconocido'}</Text>
+                        </View>
+                        <View style={styles.priceTag}>
+                            <Text style={styles.priceValue}>₡{ride.price}</Text>
+                        </View>
+                    </View>
+
+                    <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+
+                    {/* Ruta Detallada */}
+                    <View style={styles.routeBox}>
+                        <View style={styles.iconColumn}>
+                            <Ionicons name="radio-button-on" size={16} color={theme.accent} />
+                            <View style={[styles.dotLine, { backgroundColor: theme.divider }]} />
+                            <Ionicons name="location" size={16} color="#FF5A5F" />
+                        </View>
+                        <View style={styles.textColumn}>
+                            <Text style={[styles.locationText, { color: theme.text }]} numberOfLines={1}>{origin.name}</Text>
+                            <Text style={[styles.locationText, { color: theme.text, marginTop: 15 }]} numberOfLines={1}>{dest.name}</Text>
+                        </View>
+                    </View>
+
+                    {/* Métricas del Viaje */}
+                    <View style={styles.statsRow}>
+                        <View style={[styles.statItem, { backgroundColor: theme.surfaceVariant }]}>
+                            <Ionicons name="people-outline" size={18} color={theme.accent} />
+                            <Text style={[styles.statText, { color: theme.text }]}>{ride.available_seats} asientos</Text>
+                        </View>
+                        <View style={[styles.statItem, { backgroundColor: theme.surfaceVariant }]}>
+                            <Ionicons name="time-outline" size={18} color={theme.accent} />
+                            <Text style={[styles.statText, { color: theme.text }]}>{ride.duration_minutes} min</Text>
+                        </View>
+                    </View>
+
+                    {/* Botón de Acción Principal */}
+                    <TouchableOpacity
+                        style={[styles.bookBtn, { backgroundColor: theme.accent }]}
+                        onPress={handleConfirmBooking}
+                    >
+                        <Text style={styles.bookBtnText}>Solicitar unirse</Text>
+                    </TouchableOpacity>
+                </ScrollView>
             </View>
         </View>
     );
@@ -227,6 +232,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 0,
         width: '100%',
+        maxHeight: height * 0.6,
         paddingHorizontal: 25,
         paddingTop: 12,
         paddingBottom: Platform.OS === 'ios' ? 45 : 30,

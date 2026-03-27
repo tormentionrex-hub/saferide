@@ -162,15 +162,10 @@ const TripInProgress = ({ route, navigation }) => {
             return;
         }
         const cleanPhone = phone.replace(/[^0-9+]/g, '');
-        const whatsappUrl = `whatsapp://send?phone=${cleanPhone}&text=Hola,%20voy%20en%20el%20viaje`;
-        
-        Linking.canOpenURL(whatsappUrl).then(supported => {
-            if (supported) {
-                return Linking.openURL(whatsappUrl);
-            } else {
-                return Linking.openURL(`https://wa.me/${cleanPhone}?text=Hola,%20voy%20en%20el%20viaje`);
-            }
-        }).catch(() => {
+        // Agrega +506 (Costa Rica) si el número no tiene código de país
+        const intlPhone = cleanPhone.startsWith('+') ? cleanPhone : '+506' + cleanPhone;
+        const whatsappUrl = `https://wa.me/${intlPhone}?text=Hola,%20voy%20en%20el%20viaje`;
+        Linking.openURL(whatsappUrl).catch(() => {
             Alert.alert('Error', 'No se pudo abrir WhatsApp. Asegúrate de tener la app instalada.');
         });
     };
