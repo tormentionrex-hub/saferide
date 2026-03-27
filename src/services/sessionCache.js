@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  */
 
 const STORAGE_KEY_DRIVER_ID = '@saferide_driverId';
+const STORAGE_KEY_VEHICLE_STATUS = '@saferide_vehicleStatus';
 
 let cache = {
     driverId: null,
@@ -82,17 +83,28 @@ const sessionCache = {
         if (inflightVehicleStatus) return inflightVehicleStatus;
 
         inflightVehicleStatus = api.get(`/vehicles/driver/${driverId}`)
-            .then(res => {
+            .then(async res => {
                 const hasVehicle = res.data.success && res.data.data &&
                     (Array.isArray(res.data.data) ? res.data.data.length > 0 : true);
                 cache.vehicleStatus = { hasVehicle, lastCheck: Date.now() };
+                try {
+                    await AsyncStorage.setItem(STORAGE_KEY_VEHICLE_STATUS, JSON.stringify(hasVehicle));
+                } catch (_) {}
                 return hasVehicle;
             })
-            .catch(error => {
+            .catch(async error => {
                 if (error.response?.status === 404) {
                     cache.vehicleStatus = { hasVehicle: false, lastCheck: Date.now() };
+                    try {
+                        await AsyncStorage.setItem(STORAGE_KEY_VEHICLE_STATUS, JSON.stringify(false));
+                    } catch (_) {}
                     return false;
                 }
+                // Fallback: leer del AsyncStorage persistido
+                try {
+                    const stored = await AsyncStorage.getItem(STORAGE_KEY_VEHICLE_STATUS);
+                    if (stored !== null) return JSON.parse(stored);
+                } catch (_) {}
                 return cache.vehicleStatus?.hasVehicle || false;
             })
             .finally(() => {
@@ -154,6 +166,7 @@ const sessionCache = {
         inflightDriverId = null;
         inflightVehicleStatus = null;
         AsyncStorage.removeItem(STORAGE_KEY_DRIVER_ID).catch(() => {});
+        AsyncStorage.removeItem(STORAGE_KEY_VEHICLE_STATUS).catch(() => {});
     }
 };
 
