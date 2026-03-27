@@ -108,18 +108,19 @@ const WithdrawalModal = ({ visible, onClose, theme }) => {
         <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
             <View style={modalStyles.overlay}>
                 <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
-                    <View style={[modalStyles.iconCircle, { backgroundColor: '#FEE2E2' }]}>
-                        <Ionicons name="person-remove" size={44} color="#EF4444" />
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#FEF2F2' }]}>
+                        <Ionicons name="person-remove" size={50} color="#EF4444" />
                     </View>
-                    <Text style={[modalStyles.title, { color: theme.text }]}>Solicitud Retirada</Text>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>Solicitud Cancelada</Text>
                     <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
-                        Lo sentimos, el pasajero ha retirado su solicitud de reserva. No puedes confirmar a este pasajero.
+                        Un pasajero ha cancelado su reservación para este viaje. Los asientos correspondientes se han liberado automáticamente.
                     </Text>
                     <TouchableOpacity 
-                        style={[modalStyles.confirmBtn, { backgroundColor: theme.accent }]} 
+                        style={[modalStyles.confirmBtn, { backgroundColor: '#EF4444', width: '100%' }]} 
                         onPress={onClose}
                     >
                         <Text style={modalStyles.confirmBtnText}>Entendido</Text>
+                        <Ionicons name="checkmark-circle" size={18} color="#fff" />
                     </TouchableOpacity>
                 </Animated.View>
             </View>
@@ -177,6 +178,8 @@ const ListOfRequests = ({ route, navigation }) => {
     const [confirmedCount, setConfirmedCount] = useState(0);
     const [withdrawalVisible, setWithdrawalVisible] = useState(false);
     const [successModalVisible, setSuccessModalVisible] = useState(false);
+    const [cancelledIds, setCancelledIds] = useState(new Set());
+    const intervalRef = useRef(null);
 
     const specificRideId = route.params?.rideId;
 
@@ -246,6 +249,20 @@ const ListOfRequests = ({ route, navigation }) => {
                 }
 
                 setRequests(activeBookings);
+
+                // --- DETECTAR NUEVAS CANCELACIONES PARA MOSTRAR MODAL ---
+                const newCancelled = activeBookings.filter(b => b.status === 'cancelled');
+                if (newCancelled.length > 0) {
+                    const alreadyKnown = cancelledIds;
+                    const newlyFound = newCancelled.filter(b => !alreadyKnown.has(b._id.toString()));
+                    if (newlyFound.length > 0) {
+                        setWithdrawalVisible(true);
+                        // Marcamos como conocidas para no repetir el modal
+                        const updated = new Set(alreadyKnown);
+                        newlyFound.forEach(b => updated.add(b._id.toString()));
+                        setCancelledIds(updated);
+                    }
+                }
             }
         } catch (error) {
             console.error('Error fetching requests:', error);
@@ -261,6 +278,12 @@ const ListOfRequests = ({ route, navigation }) => {
 
     useEffect(() => {
         fetchRequests();
+        // Iniciar polling automático cada 15 segundos
+        intervalRef.current = setInterval(() => fetchRequests(true), 15000);
+
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
     }, [specificRideId]);
 
     const handleAccept = async (bookingId) => {
