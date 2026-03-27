@@ -156,8 +156,9 @@ const RideDetail = ({ route, navigation }) => {
                     <View style={styles.priceTag}>
                         <Text style={styles.priceValue}>₡{ride.price}</Text>
                     </View>
+                </View>
 
-                    <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+                <View style={[styles.divider, { backgroundColor: theme.divider }]} />
 
                     {/* Ruta Detallada */}
                     <View style={styles.routeBox}>
