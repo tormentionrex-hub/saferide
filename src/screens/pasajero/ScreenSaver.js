@@ -232,6 +232,18 @@ const ScreenSaver = ({ route, navigation }) => {
                                 navigation.navigate('WaitingForTheStart', { bookingId });
                             }
                         }
+                    } else if (newStatus === 'pending') {
+                        // AUTO CANCEL OUTDATED PENDING
+                        const createdAt = res.data.data.createdAt || res.data.data.timestamp;
+                        if (createdAt && (Date.now() - new Date(createdAt).getTime() > 2 * 60 * 1000)) {
+                            clearInterval(intervalRef.current);
+                            await api.delete(`/bookings/${bookingId}`).catch(()=>null);
+                            setStatus('timeout');
+                            Alert.alert('Tiempo Agotado', 'El conductor no respondió a tiempo y la solicitud fue cancelada automáticamente.', [
+                                { text: 'OK', onPress: () => navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' }) }
+                            ]);
+                            return;
+                        }
                     } else if (newStatus === 'confirmed' || newStatus === 'deny' || newStatus === 'cancelled') {
                         clearInterval(intervalRef.current);
                     } else {

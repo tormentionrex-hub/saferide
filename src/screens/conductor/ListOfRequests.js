@@ -192,9 +192,23 @@ const ListOfRequests = ({ route, navigation }) => {
                 const bookingsRes = await api.get(`/bookings/ride/${specificRideId}`);
                 if (bookingsRes.data.success) {
                     const allBookings = bookingsRes.data.data || [];
-                    setRequests(allBookings);
-                    // Contar cuantos ya están confirmados
-                    const confirmed = allBookings.filter(b => b.status === 'confirmed').length;
+                    
+                    // --- ELIMINAR O VENCER PENDIENTES ANTIGUOS ---
+                    const activeBookings = [];
+                    const now = Date.now();
+                    for (const b of allBookings) {
+                        if (b.status === 'pending') {
+                            const createdAt = b.createdAt || b.timestamp;
+                            if (createdAt && (now - new Date(createdAt).getTime() > 2 * 60 * 1000)) {
+                                try { await api.delete(`/bookings/${b._id}`); } catch(e){}
+                                continue;
+                            }
+                        }
+                        activeBookings.push(b);
+                    }
+
+                    setRequests(activeBookings);
+                    const confirmed = activeBookings.filter(b => b.status === 'confirmed').length;
                     setConfirmedCount(confirmed);
                 }
             } else {
@@ -217,7 +231,21 @@ const ListOfRequests = ({ route, navigation }) => {
                     return acc;
                 }, []);
 
-                setRequests(flattenedRequests);
+                // --- ELIMINAR O VENCER PENDIENTES ANTIGUOS ---
+                const activeBookings = [];
+                const now = Date.now();
+                for (const b of flattenedRequests) {
+                    if (b.status === 'pending') {
+                        const createdAt = b.createdAt || b.timestamp;
+                        if (createdAt && (now - new Date(createdAt).getTime() > 2 * 60 * 1000)) {
+                            try { await api.delete(`/bookings/${b._id}`); } catch(e){}
+                            continue;
+                        }
+                    }
+                    activeBookings.push(b);
+                }
+
+                setRequests(activeBookings);
             }
         } catch (error) {
             console.error('Error fetching requests:', error);
