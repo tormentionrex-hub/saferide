@@ -75,7 +75,7 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                 borderTopColor: theme.navBorder,
             }
         ]}>
-            {NAV_ITEMS.map((item) => {
+            {NAV_ITEMS.filter(item => item.label !== 'Métricas').map((item) => {
                 // Verificación de si el item actual de la barra coincide con el screen activo
                 const isActive = item.screens.includes(currentRouteName);
                 const iconName = isActive ? item.activeIcon : item.inactiveIcon;
