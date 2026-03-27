@@ -140,6 +140,51 @@ const SuccessActionModal = ({ visible, onConfirm, theme, title, message }) => {
     );
 };
 
+const ScheduledModal = ({ visible, onConfirm, theme, type }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    const isScheduled = type === 'scheduled';
+
+    return (
+        <Modal transparent visible={visible} animationType="none">
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: isScheduled ? '#EFF6FF' : '#ECFDF5' }]}>
+                        <Ionicons name={isScheduled ? "calendar" : "car-sport"} size={44} color={isScheduled ? "#2563EB" : "#10B981"} />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>
+                        {isScheduled ? '¡Viaje Programado!' : '¡Bienvenido a bordo!'}
+                    </Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        {isScheduled 
+                            ? 'Tu solicitud fue aceptada. Espera a que el conductor inicie el viaje para comenzar la ruta.'
+                            : 'El viaje ha comenzado. Prepárate para el trayecto.'}
+                    </Text>
+                    <TouchableOpacity 
+                        style={[modalStyles.confirmBtn, { backgroundColor: isScheduled ? "#2563EB" : "#10B981" }]} 
+                        onPress={onConfirm}
+                    >
+                        <Text style={modalStyles.confirmBtnText}>Entendido</Text>
+                        <Ionicons name="arrow-forward" size={18} color="#fff" />
+                    </TouchableOpacity>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
 const ScreenSaver = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const bookingId = route.params?.bookingId;
@@ -147,6 +192,8 @@ const ScreenSaver = ({ route, navigation }) => {
     const [showRejectionModal, setShowRejectionModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
+    const [showScheduledModal, setShowScheduledModal] = useState(false);
+    const [modalType, setModalType] = useState('scheduled'); // 'scheduled' or 'in-progress'
     const [isCancellingLocally, setIsCancellingLocally] = useState(false);
     const intervalRef = useRef(null);
 
@@ -174,13 +221,11 @@ const ScreenSaver = ({ route, navigation }) => {
                                 const rideStatus = rideRes.data.data.status;
                                 
                                 if (rideStatus === 'scheduled') {
-                                    Alert.alert('Viaje Programado', 'Tu solicitud fue aceptada. Espera a que el conductor inicie el viaje.', [
-                                        { text: 'OK', onPress: () => navigation.navigate('WaitingForTheStart', { bookingId }) }
-                                    ]);
+                                    setModalType('scheduled');
+                                    setShowScheduledModal(true);
                                 } else {
-                                    Alert.alert('Bienvenido', 'Bienvenido a bordo', [
-                                        { text: 'OK', onPress: () => navigation.navigate('TripInProgress', { bookingId }) }
-                                    ]);
+                                    setModalType('in-progress');
+                                    setShowScheduledModal(true);
                                 }
                             } catch (error) {
                                 console.error('Error getting ride status:', error);
@@ -285,16 +330,18 @@ const ScreenSaver = ({ route, navigation }) => {
             </View>
             <View style={styles.buttonContainer}>
                 <TouchableOpacity
-                    style={[styles.cancelButton, { borderColor: '#E74C3C' }]}
-                    onPress={handleCancel}
-                >
-                    <Text style={[styles.cancelButtonText, { color: '#E74C3C' }]}>Cancelar Reservación</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
                     style={[styles.button, { backgroundColor: theme.accent }]}
                     onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
                 >
+                    <Ionicons name="home-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
                     <Text style={styles.buttonText}>Volver al Inicio</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.cancelButton, { borderColor: '#E74C3C' }]}
+                    onPress={handleCancel}
+                >
+                    <Ionicons name="close-circle-outline" size={18} color="#E74C3C" style={{ marginRight: 8 }} />
+                    <Text style={[styles.cancelButtonText, { color: '#E74C3C' }]}>Cancelar Reservación</Text>
                 </TouchableOpacity>
             </View>
 
@@ -323,6 +370,20 @@ const ScreenSaver = ({ route, navigation }) => {
                 onConfirm={() => {
                     setShowSuccessModal(false);
                     navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
+                }}
+            />
+
+            <ScheduledModal
+                visible={showScheduledModal}
+                theme={theme}
+                type={modalType}
+                onConfirm={() => {
+                    setShowScheduledModal(false);
+                    if (modalType === 'scheduled') {
+                        navigation.navigate('WaitingForTheStart', { bookingId });
+                    } else {
+                        navigation.navigate('TripInProgress', { bookingId });
+                    }
                 }}
             />
 
@@ -363,20 +424,26 @@ const styles = StyleSheet.create({
         lineHeight: 22,
     },
     buttonContainer: {
-        gap: 10,
-        marginBottom: 105, // Aumentado para dejar espacio al BottomNavigationBar
+        gap: 12,
+        marginBottom: 105,
         marginHorizontal: 20,
     },
     button: {
-        paddingVertical: 15,
-        borderRadius: 10,
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 14,
         alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
     },
     cancelButton: {
-        paddingVertical: 15,
-        borderRadius: 10,
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 14,
         alignItems: 'center',
-        borderWidth: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        borderWidth: 1.5,
         backgroundColor: 'transparent',
     },
     buttonText: {

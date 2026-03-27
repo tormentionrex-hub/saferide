@@ -26,6 +26,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import { uploadToCloudinary } from '../../Cloudinary/Cloudinary';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import StarRating from '../../components/StarRating';
+import { useCustomAlert } from '../../context/CustomAlertContext';
 
 const COMPANIES = [
     'Intel', 'Cargill', 'Deloitte', 'Citi', 'Experian',
@@ -80,6 +81,8 @@ const ProfileConductor = ({ navigation, route }) => {
     const [editVehicleForm, setEditVehicleForm] = useState({
         brand: '', model: '', year: '', color: '', licensePlate: ''
     });
+
+    const { showAlert } = useCustomAlert();
 
     const loadProfile = async () => {
         try {
@@ -155,28 +158,28 @@ const ProfileConductor = ({ navigation, route }) => {
                 (editForm.profileImage !== userData.profileImage && editForm.profileImage !== null);
 
             if (!Changes) {
-                Alert.alert('No hay cambios', 'No has realizado ningún cambio para actualizar.');
+                showAlert('No hay cambios', 'No has realizado ningún cambio para actualizar.', 'info');
                 setUpdating(false);
                 return;
             }
 
             // 2. Validar campos obligatorios
             if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.company.trim()) {
-                Alert.alert('Datos incompletos', 'Todos los campos son obligatorios para actualizar tu perfil.');
+                showAlert('Datos incompletos', 'Todos los campos son obligatorios para actualizar tu perfil.', 'warning');
                 setUpdating(false);
                 return;
             }
 
             // 3. Validar formato de nombre
             if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$/.test(editForm.name.trim())) {
-                Alert.alert('Formato Inválido', 'El nombre solo puede contener letras y espacios.');
+                showAlert('Formato Inválido', 'El nombre solo puede contener letras y espacios.', 'error');
                 setUpdating(false);
                 return;
             }
 
             // 4. Validar formato de teléfono
             if (!/^\d{8}$/.test(editForm.phone)) {
-                Alert.alert('Formato Inválido', 'El número de teléfono debe tener exactamente 8 dígitos.');
+                showAlert('Formato Inválido', 'El número de teléfono debe tener exactamente 8 dígitos.', 'error');
                 setUpdating(false);
                 return;
             }
@@ -202,13 +205,13 @@ const ProfileConductor = ({ navigation, route }) => {
                 company: editForm.company,
                 profileImage: profileImageUrl,
             });
-            Alert.alert('¡Listo!', 'Perfil actualizado correctamente');
+            showAlert('¡Listo!', 'Perfil actualizado correctamente', 'success');
             setModalVisible(false);
             loadProfile();
 
         } catch (error) {
             console.error('Error al actualizar perfil:', error);
-            Alert.alert('Error', 'No se pudo actualizar el perfil. Revisa tu conexión.');
+            showAlert('Error', 'No se pudo actualizar el perfil. Revisa tu conexión.', 'error');
         } finally {
             setUpdating(false);
         }
@@ -226,14 +229,14 @@ const ProfileConductor = ({ navigation, route }) => {
                 editVehicleForm.color !== vehicleData.color;
 
             if (!hasChanges) {
-                Alert.alert('No hay cambios', 'No has realizado ningún cambio en los datos del vehículo.');
+                showAlert('No hay cambios', 'No has realizado ningún cambio en los datos del vehículo.', 'info');
                 setUpdating(false);
                 return;
             }
 
             // 2. Validar que tengamos datos mínimos
             if (!editVehicleForm.brand || !editVehicleForm.model || !editVehicleForm.year || !editVehicleForm.color) {
-                Alert.alert('Datos incompletos', 'Por favor selecciona marca, modelo, año y color.');
+                showAlert('Datos incompletos', 'Por favor selecciona marca, modelo, año y color.', 'warning');
                 setUpdating(false);
                 return;
             }
@@ -247,13 +250,13 @@ const ProfileConductor = ({ navigation, route }) => {
                 color: editVehicleForm.color,
             });
 
-            Alert.alert('¡Listo!', 'Información del vehículo actualizada');
+            showAlert('¡Listo!', 'Información del vehículo actualizada', 'success');
             setVehicleModalVisible(false);
             loadProfile(); // Recargamos para refrescar la vista principal
         } catch (error) {
             console.error('Error al actualizar vehículo:', error);
             const msg = error.response?.data?.message || 'No se pudo actualizar el vehículo.';
-            Alert.alert('Error', msg);
+            showAlert('Error', msg, 'error');
         } finally {
             setUpdating(false);
         }
@@ -401,17 +404,19 @@ const ProfileConductor = ({ navigation, route }) => {
                             activeOpacity={0.85}
                         >
                             <Ionicons name="create-outline" size={20} color="#FFF" />
-                            <Text style={styles.editBtnText}>Actualizar Información Personal</Text>
+                            <Text style={styles.editBtnText}>Editar perfil</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={[styles.editBtn, { backgroundColor: theme.accent }]}
-                            onPress={() => setVehicleModalVisible(true)}
-                            activeOpacity={0.85}
-                        >
-                            <Ionicons name="create-outline" size={20} color="#FFF" />
-                            <Text style={styles.editBtnText}>Actualizar Información del Vehículo</Text>
-                        </TouchableOpacity>
+                        {vehicleData?._id && (
+                            <TouchableOpacity
+                                style={[styles.editBtn, { backgroundColor: theme.accent }]}
+                                onPress={() => setVehicleModalVisible(true)}
+                                activeOpacity={0.85}
+                            >
+                                <Ionicons name="create-outline" size={20} color="#FFF" />
+                                <Text style={styles.editBtnText}>Editar vehículo</Text>
+                            </TouchableOpacity>
+                        )}
 
 
 
@@ -440,7 +445,7 @@ const ProfileConductor = ({ navigation, route }) => {
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={styles.modalOverlay}
                 >
-                    <View style={[styles.modalContent, { backgroundColor: theme.surface || '#111128' }]}>
+                    <View style={[styles.modalContent, { backgroundColor: theme.surface || '#111128', borderColor: theme.divider }]}>
                         <View style={[styles.handleBar, { backgroundColor: theme.divider }]} />
 
                         <View style={styles.modalHeader}>
@@ -449,7 +454,7 @@ const ProfileConductor = ({ navigation, route }) => {
                                 onPress={() => setModalVisible(false)}
                                 style={[styles.closeBtn, { backgroundColor: theme.iconCircleBg || '#1C1C40' }]}
                             >
-                                <Ionicons name="close" size={18} color={theme.textSecondary} />
+                                <Ionicons name="close" size={30} color={theme.textSecondary} />
                             </TouchableOpacity>
                         </View>
 
@@ -479,23 +484,15 @@ const ProfileConductor = ({ navigation, route }) => {
                                 onChangeText={t => setEditForm(prev => ({ ...prev, phone: t.replace(/[^0-9]/g, '') }))}
                                 placeholder="88888888" keyboardType="phone-pad" maxLength={8} theme={theme} />
 
-                            <View style={styles.inputGroup}>
-                                <View style={styles.labelRow}>
-                                    <Ionicons name="business-outline" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
-                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>EMPRESA</Text>
-                                </View>
-                                <View style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}>
-                                    <Picker
-                                        selectedValue={editForm.company}
-                                        onValueChange={val => setEditForm(prev => ({ ...prev, company: val }))}
-                                        style={{ color: theme.text }}
-                                        dropdownIconColor={theme.accent}
-                                    >
-                                        <Picker.Item label="Selecciona una empresa" value="" />
-                                        {COMPANIES.map(c => <Picker.Item key={c} label={c} value={c} />)}
-                                    </Picker>
-                                </View>
-                            </View>
+                            <CustomSelect 
+                                label="EMPRESA" 
+                                icon="business-outline" 
+                                value={editForm.company}
+                                options={COMPANIES}
+                                onValueChange={val => setEditForm(prev => ({ ...prev, company: val }))}
+                                theme={theme}
+                                placeholder="Selecciona una empresa"
+                            />
 
                             <TouchableOpacity
                                 style={[styles.saveBtn, { backgroundColor: theme.accent }]}
@@ -526,106 +523,77 @@ const ProfileConductor = ({ navigation, route }) => {
                 onRequestClose={() => setVehicleModalVisible(false)}
             >
                 <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+                    <View style={[styles.modalContent, { backgroundColor: theme.surface || '#111128', borderColor: theme.divider }]}>
                         <View style={[styles.handleBar, { backgroundColor: theme.divider }]} />
 
                         <View style={styles.modalHeader}>
-                            <Text style={[styles.modalTitle, { color: theme.text }]}>Editar información del vehículo</Text>
+
+                            <Text style={[styles.modalTitle, { color: theme.text }]}>Editar información del {'\n'} vehículo</Text>
+
                             <TouchableOpacity
                                 onPress={() => setVehicleModalVisible(false)}
                                 style={[styles.closeBtn, { backgroundColor: theme.iconCircleBg || '#1C1C40' }]}
                             >
-                                <Ionicons name="close" size={18} color={theme.textSecondary} />
+                                <Ionicons name="close" size={30} color={theme.textSecondary} />
                             </TouchableOpacity>
                         </View>
 
                         <ScrollView showsVerticalScrollIndicator={false}>
+
                             {/* MARCA SELECT */}
-                            <View style={styles.inputGroup}>
-                                <View style={styles.labelRow}>
-                                    <Ionicons name="car-outline" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
-                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>MARCA</Text>
-                                </View>
-                                <View style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}>
-                                    <Picker
-                                        selectedValue={editVehicleForm.brand}
-                                        onValueChange={val => setEditVehicleForm(prev => ({ ...prev, brand: val, model: '' }))}
-                                        style={{ color: theme.text }}
-                                        dropdownIconColor={theme.accent}
-                                    >
-                                        <Picker.Item label="Selecciona marca" value="" />
-                                        {VEHICLE_BRANDS.map(b => <Picker.Item key={b} label={b} value={b} />)}
-                                    </Picker>
-                                </View>
-                            </View>
+                            <CustomSelect 
+                                label="MARCA" 
+                                icon="car-outline" 
+                                value={editVehicleForm.brand}
+                                options={VEHICLE_BRANDS}
+                                onValueChange={val => setEditVehicleForm(prev => ({ ...prev, brand: val, model: '' }))}
+                                theme={theme}
+                                placeholder="Selecciona marca"
+                            />
 
                             {/* MODELO SELECT */}
-                            <View style={styles.inputGroup}>
-                                <View style={styles.labelRow}>
-                                    <Ionicons name="car-outline" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
-                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>MODELO</Text>
-                                </View>
-                                <View style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}>
-                                    <Picker
-                                        selectedValue={editVehicleForm.model}
-                                        onValueChange={val => setEditVehicleForm(prev => ({ ...prev, model: val }))}
-                                        style={{ color: theme.text }}
-                                        dropdownIconColor={theme.accent}
-                                    >
-                                        <Picker.Item label="Selecciona modelo" value="" />
-                                        {(MODELS_MAP[editVehicleForm.brand] || DEFAULT_MODELS).map(m => (
-                                            <Picker.Item key={m} label={m} value={m} />
-                                        ))}
-                                    </Picker>
-                                </View>
-                            </View>
+                            <CustomSelect 
+                                label="MODELO" 
+                                icon="car-outline" 
+                                value={editVehicleForm.model}
+                                options={MODELS_MAP[editVehicleForm.brand] || DEFAULT_MODELS}
+                                onValueChange={val => setEditVehicleForm(prev => ({ ...prev, model: val }))}
+                                theme={theme}
+                                placeholder="Selecciona modelo"
+                            />
 
                             {/* AÑO SELECT */}
-                            <View style={styles.inputGroup}>
-                                <View style={styles.labelRow}>
-                                    <Ionicons name="calendar-outline" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
-                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>AÑO</Text>
-                                </View>
-                                <View style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}>
-                                    <Picker
-                                        selectedValue={editVehicleForm.year}
-                                        onValueChange={val => setEditVehicleForm(prev => ({ ...prev, year: val }))}
-                                        style={{ color: theme.text }}
-                                        dropdownIconColor={theme.accent}
-                                    >
-                                        <Picker.Item label="Selecciona año" value="" />
-                                        {YEARS.map(y => <Picker.Item key={y} label={y} value={y} />)}
-                                    </Picker>
-                                </View>
-                            </View>
+                            <CustomSelect 
+                                label="AÑO" 
+                                icon="calendar-outline" 
+                                value={editVehicleForm.year}
+                                options={YEARS}
+                                onValueChange={val => setEditVehicleForm(prev => ({ ...prev, year: val }))}
+                                theme={theme}
+                                placeholder="Selecciona año"
+                            />
 
                             {/* COLOR SELECT */}
-                            <View style={styles.inputGroup}>
-                                <View style={styles.labelRow}>
-                                    <Ionicons name="color-palette-outline" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
-                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>COLOR</Text>
-                                </View>
-                                <View style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}>
-                                    <Picker
-                                        selectedValue={editVehicleForm.color}
-                                        onValueChange={val => setEditVehicleForm(prev => ({ ...prev, color: val }))}
-                                        style={{ color: theme.text }}
-                                        dropdownIconColor={theme.accent}
-                                    >
-                                        <Picker.Item label="Selecciona color" value="" />
-                                        {VEHICLE_COLORS.map(c => <Picker.Item key={c} label={c} value={c} />)}
-                                    </Picker>
-                                </View>
-                            </View>
+                            <CustomSelect 
+                                label="COLOR" 
+                                icon="color-palette-outline" 
+                                value={editVehicleForm.color}
+                                options={VEHICLE_COLORS}
+                                onValueChange={val => setEditVehicleForm(prev => ({ ...prev, color: val }))}
+                                theme={theme}
+                                placeholder="Selecciona color"
+                            />
 
                             {/* MATRÍCULA (Lock) */}
                             <ModalInput
                                 label="MATRÍCULA"
                                 icon="document-text-outline"
                                 value={editVehicleForm.licensePlate}
+                                onChangeText={t => setEditVehicleForm(prev => ({ ...prev, licensePlate: t.toUpperCase() }))}
                                 placeholder="ABC-123"
                                 theme={theme}
-                                editable={false} // No se puede editar placa según backend user request
+                                editable={true}
+                                autoCapitalize="characters"
                             />
 
                             <TouchableOpacity
@@ -654,6 +622,75 @@ const ProfileConductor = ({ navigation, route }) => {
 
 /* ── Sub-componentes ── */
 
+const CustomSelect = ({ label, icon, value, options, onValueChange, theme, placeholder = "Selecciona..." }) => {
+    const [visible, setVisible] = useState(false);
+
+    return (
+        <View style={styles.inputGroup}>
+            <View style={styles.labelRow}>
+                <Ionicons name={icon} size={22} color={theme.textSecondary} style={{ marginRight: 6 }} />
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>{label}</Text>
+            </View>
+            
+            <TouchableOpacity 
+                activeOpacity={0.7}
+                onPress={() => setVisible(true)}
+                style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}
+            >
+                <Text style={{ color: value ? theme.text : theme.textSecondary, fontSize: 15, fontFamily: 'Poppins-Regular' }}>
+                    {value || placeholder}
+                </Text>
+                <Ionicons name="chevron-down" size={18} color={theme.accent} />
+            </TouchableOpacity>
+
+            <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
+                <TouchableOpacity 
+                    style={styles.selectOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setVisible(false)}
+                >
+                    <View style={[styles.selectBox, { backgroundColor: theme.surface || '#111128', borderColor: theme.divider }]}>
+                        <View style={[styles.handleBar, { backgroundColor: theme.divider, marginBottom: 16 }]} />
+                        <Text style={[styles.selectTitle, { color: theme.text }]}>{label}</Text>
+                        
+                        <ScrollView 
+                            showsVerticalScrollIndicator={false} 
+                            style={{ height: 350 }}
+                            contentContainerStyle={{ paddingBottom: 20 }}
+                        >
+                            {options && options.length > 0 ? options.map((opt, i) => (
+                                <TouchableOpacity 
+                                    key={i}
+                                    style={[
+                                        styles.selectOption, 
+                                        i < options.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.divider }
+                                    ]}
+                                    activeOpacity={0.6}
+                                    onPress={() => {
+                                        onValueChange(opt);
+                                        setVisible(false);
+                                    }}
+                                >
+                                    <Text style={[
+                                        styles.selectOptionText, 
+                                        { color: theme.text || '#FFFFFF' }, 
+                                        value === opt && { color: theme.accent, fontFamily: 'Poppins-Bold' }
+                                    ]}>
+                                        {opt}
+                                    </Text>
+                                    {value === opt && <Ionicons name="checkmark-circle" size={20} color={theme.accent} />}
+                                </TouchableOpacity>
+                            )) : (
+                                <Text style={{ color: theme.textSecondary, textAlign: 'center', marginTop: 20 }}>No hay opciones disponibles</Text>
+                            )}
+                        </ScrollView>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+        </View>
+    );
+};
+
 const SectionHeader = ({ title, theme }) => (
     <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{title}</Text>
 );
@@ -673,7 +710,7 @@ const InfoCard = ({ icon, label, value, theme }) => (
 const ModalInput = ({ label, icon, theme, ...props }) => (
     <View style={styles.inputGroup}>
         <View style={styles.labelRow}>
-            <Ionicons name={icon} size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
+            <Ionicons name={icon} size={22} color={theme.textSecondary} style={{ marginRight: 6 }} />
             <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>{label}</Text>
         </View>
         <TextInput
@@ -805,65 +842,181 @@ const styles = StyleSheet.create({
     },
     logoutText: { fontSize: 15, fontFamily: 'Poppins-SemiBold' },
 
-    // Modal
+
+    // Modals
     modalOverlay: {
-        flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end',
+        flex: 1, 
+        backgroundColor: 'rgba(0,0,0,0.65)', 
+        justifyContent: 'flex-end',
     },
+
     modalContent: {
-        borderTopLeftRadius: 32, borderTopRightRadius: 32,
-        padding: 24, paddingTop: 12, maxHeight: '92%',
+        borderTopLeftRadius: 32, 
+        borderTopRightRadius: 32,
+        padding: 24, 
+        paddingTop: 12, 
+        maxHeight: '92%',
+        borderWidth: 1.5, // Borde para el efecto "rodeado"
+        borderBottomWidth: 0,
     },
+
     handleBar: {
-        width: 40, height: 4, borderRadius: 2,
-        alignSelf: 'center', marginBottom: 18,
+        width: 40, 
+        height: 4, 
+        borderRadius: 2,
+        alignSelf: 'center', 
+        marginBottom: 18,
     },
+
     modalHeader: {
-        flexDirection: 'row', justifyContent: 'space-between',
-        alignItems: 'center', marginBottom: 22,
+        flexDirection: 'row', 
+        justifyContent: 'space-between',
+        alignItems: 'center', 
+        marginBottom: 22,
     },
-    modalTitle: { fontSize: 20, fontFamily: 'Poppins-Bold' },
+
+    modalTitle: { 
+        fontSize: 20,
+        fontFamily: 'Poppins-Bold' 
+    },
+
     closeBtn: {
-        width: 34, height: 34, borderRadius: 17,
-        justifyContent: 'center', alignItems: 'center',
+        width: 40, 
+        height: 40, 
+        borderRadius: 20,
+        justifyContent: 'center', 
+        alignItems: 'center',
     },
+
     modalAvatarContainer: {
-        alignSelf: 'center', marginBottom: 6, position: 'relative',
+        alignSelf: 'center', 
+        marginBottom: 6, 
+        position: 'relative',
     },
+
     modalAvatar: {
-        width: 100, height: 100, borderRadius: 50, borderWidth: 3,
+        width: 100, 
+        height: 100, 
+        borderRadius: 50, 
+        borderWidth: 3,
     },
+
     cameraBadge: {
-        position: 'absolute', bottom: 2, right: 2,
-        width: 30, height: 30, borderRadius: 15,
-        justifyContent: 'center', alignItems: 'center',
+        position: 'absolute', 
+        bottom: 2, 
+        right: 2,
+        width: 30, 
+        height: 30, 
+        borderRadius: 15,
+        justifyContent: 'center', 
+        alignItems: 'center',
         borderWidth: 2,
     },
+    
     photoHint: {
-        textAlign: 'center', fontSize: 12,
-        fontFamily: 'Poppins-Regular', marginBottom: 22,
+        textAlign: 'center', 
+        fontSize: 12,
+        fontFamily: 'Poppins-Regular', 
+        marginBottom: 22,
     },
-    inputGroup: { marginBottom: 18 },
-    labelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, marginLeft: 2 },
-    inputLabel: { fontSize: 11, fontFamily: 'Poppins-SemiBold', letterSpacing: 0.8 },
+    
+    inputGroup: { 
+        marginBottom: 18 
+    },
+    
+    labelRow: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        marginBottom: 8, 
+        marginLeft: 2 
+    },
+    
+    inputLabel: { 
+        fontSize: 11, 
+        fontFamily: 'Poppins-SemiBold', 
+        letterSpacing: 0.8 
+    },
+    
     input: {
-        height: 50, borderRadius: 13, borderWidth: 1,
-        paddingHorizontal: 16, fontSize: 15, fontFamily: 'Poppins-Regular',
+        height: 52, 
+        borderRadius: 15, 
+        borderWidth: 1.5,
+        paddingHorizontal: 16, 
+        fontSize: 15, 
+        fontFamily: 'Poppins-Regular',
     },
+    
     pickerContainer: {
-        borderRadius: 13, borderWidth: 1,
-        height: 50, justifyContent: 'center', overflow: 'hidden',
+        borderRadius: 15, 
+        borderWidth: 1.5,
+        height: 52, 
+        justifyContent: 'space-between', 
+        overflow: 'hidden',
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        paddingHorizontal: 16,
     },
+    
+    selectOverlay: {
+        flex: 1, 
+        backgroundColor: 'rgba(0,0,0,0.5)', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        padding: 24
+    },
+    
+    selectBox: {
+        width: '100%', 
+        borderRadius: 24, 
+        padding: 20, 
+        borderWidth: 2,
+        elevation: 10, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 10 }, 
+        shadowOpacity: 0.3, 
+        shadowRadius: 15
+    },
+    
+    selectTitle: { 
+        fontSize: 16, 
+        fontFamily: 'Poppins-Bold', 
+        marginBottom: 16, 
+        textAlign: 'center' 
+    },
+    
+    selectOption: {
+        paddingVertical: 15, 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        paddingHorizontal: 10,
+    },
+    
+    selectOptionText: { 
+        fontSize: 15, 
+        fontFamily: 'Poppins-Regular' 
+    },
+    
     saveBtn: {
-        height: 54, borderRadius: 16,
-        flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-        marginTop: 8, marginBottom: 24,
+        height: 54, 
+        borderRadius: 16,
+        flexDirection: 'row', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        marginTop: 8, 
+        marginBottom: 24,
         elevation: 4,
         shadowColor: '#748FFF',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.35,
         shadowRadius: 10,
     },
-    saveBtnText: { color: '#FFF', fontSize: 16, fontFamily: 'Poppins-SemiBold' },
+    
+    saveBtnText: { 
+        color: '#FFF', 
+        fontSize: 16, 
+        fontFamily: 'Poppins-SemiBold' 
+    },
 });
 
 export default ProfileConductor;

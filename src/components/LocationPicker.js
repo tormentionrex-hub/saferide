@@ -34,11 +34,13 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
         longitudeDelta: 0.05,
     });
     const [markerCoords, setMarkerCoords] = useState(null);
+    const [selectedPlace, setSelectedPlace] = useState(null);
 
     useEffect(() => {
         if (visible) {
             setTab('search');
             setMarkerCoords(null);
+            setSelectedPlace(null);
         }
     }, [visible]);
 
@@ -121,16 +123,23 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
                             textInputProps={{ placeholderTextColor: placeholderColor }}
                             debounce={300} // Espera 300ms al teclear para evitar llamadas excesivas y parpadeos
                             onPress={(data, details = null) => {
-                                const lat = details?.geometry?.location?.lat || data.geometry?.location?.lat;
-                                const lng = details?.geometry?.location?.lng || data.geometry?.location?.lng;
-                                
+                                const lat = details?.geometry?.location?.lat;
+                                const lng = details?.geometry?.location?.lng;
+                                const name = details?.name || data?.structured_formatting?.main_text || data.description;
+                                const address = details?.formatted_address || data.description;
+
+                                if (!lat || !lng) return;
+
                                 setRegion({
                                     latitude: lat,
                                     longitude: lng,
                                     latitudeDelta: 0.005,
-                                    longitudeDelta: 0.005
+                                    longitudeDelta: 0.005,
                                 });
+                                setMarkerCoords({ latitude: lat, longitude: lng });
                                 setTab('map');
+                                // Guardar la info del lugar seleccionado para confirmar
+                                setSelectedPlace({ lat, lng, name, address });
                             }}
                             query={{
                                 key: GOOGLE_MAPS_API_KEY,
@@ -194,6 +203,7 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
                                 onRegionChangeComplete={(r) => {
                                     setRegion(r);
                                     setMarkerCoords({ latitude: r.latitude, longitude: r.longitude });
+                                    setSelectedPlace(null); // El usuario movió el mapa, ya no usar el lugar del autocomplete
                                 }}
                                 showsUserLocation={true}
                                 userInterfaceStyle={theme.dark ? 'dark' : 'light'}
@@ -206,10 +216,16 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
 
                             <View style={styles.mapOverlay}>
                                 <Text style={styles.mapHelper}>Arrastra el mapa para ajustar con precisión</Text>
-                                {markerCoords && (
+                                {(markerCoords || selectedPlace) && (
                                     <TouchableOpacity
                                         style={[styles.confirmMapBtn, { backgroundColor: theme.accent }]}
-                                        onPress={() => handleConfirmSelection(markerCoords.latitude, markerCoords.longitude)}
+                                        onPress={() => {
+                                            if (selectedPlace) {
+                                                handleConfirmSelection(selectedPlace.lat, selectedPlace.lng, selectedPlace.name, selectedPlace.address);
+                                            } else {
+                                                handleConfirmSelection(markerCoords.latitude, markerCoords.longitude);
+                                            }
+                                        }}
                                     >
                                         <Text style={styles.confirmMapBtnText}>Confirmar este punto</Text>
                                     </TouchableOpacity>

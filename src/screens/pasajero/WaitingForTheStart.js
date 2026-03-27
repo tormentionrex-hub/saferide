@@ -1,8 +1,262 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert, Platform, ScrollView, Image, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert, Platform, ScrollView, Image, Linking, Modal, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
+import BottomNavigationBar from '../../components/BottomNavigationBar';
+
+const CancelConfirmationModal = ({ visible, onConfirm, onCancel, theme }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    return (
+        <Modal transparent visible={visible} animationType="none">
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#FEE2E2' }]}>
+                        <Ionicons name="alert-circle" size={44} color="#EF4444" />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>Confirmar cancelación</Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        ¿Estás seguro de que deseas cancelar tu reservación? Esta acción no se puede deshacer.
+                    </Text>
+                    
+                    <View style={{ width: '100%', gap: 12 }}>
+                        <TouchableOpacity 
+                            style={[modalStyles.confirmBtn, { backgroundColor: '#EF4444' }]} 
+                            onPress={onConfirm}
+                        >
+                            <Text style={modalStyles.confirmBtnText}>Sí, cancelar reservación</Text>
+                            <Ionicons name="trash-outline" size={18} color="#fff" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={[modalStyles.cancelBtn, { borderColor: theme.border }]} 
+                            onPress={onCancel}
+                        >
+                            <Text style={[modalStyles.cancelBtnText, { color: theme.textSecondary }]}>Mantener reservación</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
+const SuccessActionModal = ({ visible, onConfirm, theme, title, message }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    return (
+        <Modal transparent visible={visible} animationType="none">
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
+                        <Ionicons name="checkmark-circle" size={44} color="#10B981" />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>{title || '¡Éxito!'}</Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        {message || 'La operación se realizó correctamente.'}
+                    </Text>
+                    <TouchableOpacity 
+                        style={[modalStyles.confirmBtn, { backgroundColor: '#10B981' }]} 
+                        onPress={onConfirm}
+                    >
+                        <Text style={modalStyles.confirmBtnText}>Entendido</Text>
+                    </TouchableOpacity>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
+/* ─── Modal: ¡El viaje ha iniciado! ─────────────────────────────── */
+const RideStartedModal = ({ visible }) => {
+    // Card
+    const cardScale   = useRef(new Animated.Value(0)).current;
+    const cardOpacity = useRef(new Animated.Value(0)).current;
+    // Check
+    const checkScale  = useRef(new Animated.Value(0)).current;
+    // Burbujas (3 anillos)
+    const ring1Scale  = useRef(new Animated.Value(0.3)).current;
+    const ring1Op     = useRef(new Animated.Value(0.9)).current;
+    const ring2Scale  = useRef(new Animated.Value(0.3)).current;
+    const ring2Op     = useRef(new Animated.Value(0.7)).current;
+    const ring3Scale  = useRef(new Animated.Value(0.3)).current;
+    const ring3Op     = useRef(new Animated.Value(0.5)).current;
+
+    useEffect(() => {
+        if (!visible) return;
+
+        // Reset
+        cardScale.setValue(0);
+        cardOpacity.setValue(0);
+        checkScale.setValue(0);
+        ring1Scale.setValue(0.3); ring1Op.setValue(0.9);
+        ring2Scale.setValue(0.3); ring2Op.setValue(0.7);
+        ring3Scale.setValue(0.3); ring3Op.setValue(0.5);
+
+        // 1. Card aparece con spring (burbuja que explota)
+        Animated.parallel([
+            Animated.spring(cardScale, {
+                toValue: 1,
+                tension: 180,
+                friction: 6,
+                useNativeDriver: true,
+            }),
+            Animated.timing(cardOpacity, {
+                toValue: 1,
+                duration: 180,
+                useNativeDriver: true,
+            }),
+        ]).start();
+
+        // 2. Check hace pop a los 150ms
+        setTimeout(() => {
+            Animated.spring(checkScale, {
+                toValue: 1,
+                tension: 260,
+                friction: 5,
+                useNativeDriver: true,
+            }).start();
+        }, 150);
+
+        // 3. Anillos explotan en cascada desde el círculo
+        setTimeout(() => {
+            Animated.parallel([
+                Animated.timing(ring1Scale, { toValue: 2.4, duration: 600, useNativeDriver: true }),
+                Animated.timing(ring1Op,    { toValue: 0,   duration: 600, useNativeDriver: true }),
+            ]).start();
+        }, 200);
+        setTimeout(() => {
+            Animated.parallel([
+                Animated.timing(ring2Scale, { toValue: 2.8, duration: 650, useNativeDriver: true }),
+                Animated.timing(ring2Op,    { toValue: 0,   duration: 650, useNativeDriver: true }),
+            ]).start();
+        }, 320);
+        setTimeout(() => {
+            Animated.parallel([
+                Animated.timing(ring3Scale, { toValue: 3.2, duration: 700, useNativeDriver: true }),
+                Animated.timing(ring3Op,    { toValue: 0,   duration: 700, useNativeDriver: true }),
+            ]).start();
+        }, 440);
+    }, [visible]);
+
+    if (!visible) return null;
+
+    return (
+        <Modal transparent visible={visible} animationType="none">
+            <View style={rideStartedStyles.overlay}>
+                <Animated.View style={[
+                    rideStartedStyles.card,
+                    { opacity: cardOpacity, transform: [{ scale: cardScale }] }
+                ]}>
+                    {/* Anillos de burbuja */}
+                    <View style={rideStartedStyles.ringWrapper} pointerEvents="none">
+                        {[{ s: ring1Scale, o: ring1Op }, { s: ring2Scale, o: ring2Op }, { s: ring3Scale, o: ring3Op }].map((r, i) => (
+                            <Animated.View key={i} style={[rideStartedStyles.ring, { transform: [{ scale: r.s }], opacity: r.o }]} />
+                        ))}
+                        {/* Círculo con check */}
+                        <Animated.View style={[rideStartedStyles.checkCircle, { transform: [{ scale: checkScale }] }]}>
+                            <Ionicons name="checkmark" size={38} color="#fff" />
+                        </Animated.View>
+                    </View>
+
+                    <Text style={rideStartedStyles.title}>¡El viaje ha iniciado!</Text>
+                    <Text style={rideStartedStyles.subtitle}>Tu conductor está en camino. Prepárate para el trayecto.</Text>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
+const rideStartedStyles = StyleSheet.create({
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 30,
+    },
+    card: {
+        width: '100%',
+        backgroundColor: '#fff',
+        borderRadius: 28,
+        paddingVertical: 40,
+        paddingHorizontal: 30,
+        alignItems: 'center',
+        elevation: 24,
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+    },
+    ringWrapper: {
+        width: 90,
+        height: 90,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    ring: {
+        position: 'absolute',
+        width: 90,
+        height: 90,
+        borderRadius: 45,
+        borderWidth: 3,
+        borderColor: '#10B981',
+    },
+    checkCircle: {
+        width: 90,
+        height: 90,
+        borderRadius: 45,
+        backgroundColor: '#10B981',
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 8,
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+    },
+    title: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#111827',
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    subtitle: {
+        fontSize: 14,
+        color: '#6B7280',
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+});
 
 const WaitingForTheStart = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
@@ -12,6 +266,10 @@ const WaitingForTheStart = ({ route, navigation }) => {
     const [rideData, setRideData] = useState(null);
     const [vehicleData, setVehicleData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showRideStartedModal, setShowRideStartedModal] = useState(false);
+    const rideStartedBookingId = useRef(null);
 
     useEffect(() => {
         if (!bookingId) return;
@@ -56,9 +314,12 @@ const WaitingForTheStart = ({ route, navigation }) => {
                         
                         if (rideStatus === 'in progress') {
                             clearInterval(intervalRef.current);
-                            Alert.alert('¡El viaje ha iniciado!', 'Tu conductor ha comenzado el viaje.', [
-                                { text: 'Ver Viaje', onPress: () => navigation.replace('TripInProgress', { bookingId }) }
-                            ]);
+                            rideStartedBookingId.current = bookingId;
+                            setShowRideStartedModal(true);
+                            setTimeout(() => {
+                                setShowRideStartedModal(false);
+                                navigation.replace('TripInProgress', { bookingId });
+                            }, 1500);
                         } else if (rideStatus === 'cancelled' || rideStatus === 'completed') {
                             clearInterval(intervalRef.current);
                             Alert.alert('Viaje Finalizado', 'El viaje ha finalizado o ha sido cancelado.', [
@@ -73,34 +334,25 @@ const WaitingForTheStart = ({ route, navigation }) => {
         };
 
         checkStatus();
-        intervalRef.current = setInterval(checkStatus, 5000);
+        intervalRef.current = setInterval(checkStatus, 15000); // Aumentado a 15s para evitar error 429
 
         return () => clearInterval(intervalRef.current);
     }, [bookingId]);
 
     const handleCancel = () => {
-        Alert.alert(
-            'Confirmar cancelación',
-            '¿Estás seguro de que deseas cancelar tu reservación?',
-            [
-                { text: 'No, mantener', style: 'cancel' },
-                { 
-                    text: 'Sí, cancelar', 
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const res = await api.delete(`/bookings/${bookingId}`);
-                            if (res.data.success) {
-                                Alert.alert('Éxito', 'Tu reservación ha sido cancelada.');
-                                navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' });
-                            }
-                        } catch (e) {
-                            Alert.alert('Error', 'No se pudo cancelar la reservación.');
-                        }
-                    } 
-                }
-            ]
-        );
+        setShowCancelModal(true);
+    };
+
+    const confirmCancel = async () => {
+        try {
+            setShowCancelModal(false);
+            const res = await api.delete(`/bookings/${bookingId}`);
+            if (res.data.success) {
+                setShowSuccessModal(true);
+            }
+        } catch (e) {
+            Alert.alert('Error', 'No se pudo cancelar la reservación.');
+        }
     };
 
     const formatTime = (timeStr) => {
@@ -252,23 +504,47 @@ const WaitingForTheStart = ({ route, navigation }) => {
                             </View>
                         </View>
                     )}
+
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity
+                            style={[styles.button, { backgroundColor: theme.accent }]}
+                            onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
+                        >
+                            <Ionicons name="home-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={styles.buttonText}>Volver al Inicio</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.cancelButton, { borderColor: '#E74C3C' }]}
+                            onPress={handleCancel}
+                        >
+                            <Ionicons name="close-circle-outline" size={18} color="#E74C3C" style={{ marginRight: 8 }} />
+                            <Text style={[styles.cancelButtonText, { color: '#E74C3C' }]}>Cancelar Reservación</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </ScrollView>
 
-            <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                    style={[styles.cancelButton, { borderColor: '#E74C3C' }]}
-                    onPress={handleCancel}
-                >
-                    <Text style={[styles.cancelButtonText, { color: '#E74C3C' }]}>Cancelar Reservación</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.button, { backgroundColor: theme.accent }]}
-                    onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
-                >
-                    <Text style={styles.buttonText}>Volver al Inicio</Text>
-                </TouchableOpacity>
-            </View>
+            <RideStartedModal visible={showRideStartedModal} />
+
+            <CancelConfirmationModal
+                visible={showCancelModal}
+                theme={theme}
+                onConfirm={confirmCancel}
+                onCancel={() => setShowCancelModal(false)}
+            />
+
+            <SuccessActionModal
+                visible={showSuccessModal}
+                theme={theme}
+                title="Cancelación Exitosa"
+                message="Tu reservación ha sido cancelada correctamente."
+                onConfirm={() => {
+                    setShowSuccessModal(false);
+                    navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' });
+                }}
+            />
+
+            <BottomNavigationBar navigation={navigation} />
         </SafeAreaView>
     );
 };
@@ -296,10 +572,11 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         padding: 20,
-        paddingBottom: 40,
+        paddingBottom: 140,
     },
     content: {
         alignItems: 'center',
+        width: '100%',
     },
     title: {
         fontSize: 20,
@@ -359,20 +636,27 @@ const styles = StyleSheet.create({
         flex: 0.33,
     },
     buttonContainer: {
-        gap: 10,
-        paddingHorizontal: 20,
-        paddingBottom: Platform.OS === 'ios' ? 20 : 15,
+        flexDirection: 'column',
+        gap: 12,
+        marginTop: 20,
+        width: '100%',
     },
     button: {
-        paddingVertical: 15,
-        borderRadius: 10,
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 14,
         alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
     },
     cancelButton: {
-        paddingVertical: 15,
-        borderRadius: 10,
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 14,
         alignItems: 'center',
-        borderWidth: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        borderWidth: 1.5,
         backgroundColor: 'transparent',
     },
     buttonText: {
@@ -424,6 +708,18 @@ const styles = StyleSheet.create({
         marginLeft: 8,
         fontSize: 14,
     }
+});
+
+const modalStyles = StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 25 },
+    card: { width: '100%', borderRadius: 30, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 15 },
+    iconCircle: { width: 90, height: 90, borderRadius: 45, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+    title: { fontSize: 24, fontWeight: '800', marginBottom: 10, textAlign: 'center' },
+    subtitle: { fontSize: 15, textAlign: 'center', marginBottom: 25, lineHeight: 22 },
+    confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', paddingVertical: 16, borderRadius: 16, elevation: 2 },
+    confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    cancelBtn: { width: '100%', paddingVertical: 16, borderRadius: 16, alignItems: 'center', borderWidth: 1, marginTop: 4 },
+    cancelBtnText: { fontSize: 16, fontWeight: '600' },
 });
 
 export default WaitingForTheStart;
