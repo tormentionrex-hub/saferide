@@ -94,6 +94,46 @@ const SuccessActionModal = ({ visible, onConfirm, theme, title, message }) => {
     );
 };
 
+const CancelledByDriverModal = ({ visible, onConfirm, theme }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    return (
+        <Modal transparent visible={visible} animationType="none">
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#FEE2E2' }]}>
+                        <Ionicons name="warning-outline" size={44} color="#EF4444" />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>Viaje Cancelado</Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        La reserva o el viaje han sido cancelados por el conductor.
+                    </Text>
+                    <TouchableOpacity 
+                        style={[modalStyles.confirmBtn, { backgroundColor: '#EF4444' }]} 
+                        onPress={onConfirm}
+                    >
+                        <Text style={modalStyles.confirmBtnText}>Regresar a Inicio</Text>
+                        <Ionicons name="home-outline" size={18} color="#fff" />
+                    </TouchableOpacity>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
 /* ─── Modal: ¡El viaje ha iniciado! ─────────────────────────────── */
 const RideStartedModal = ({ visible }) => {
     // Card
@@ -269,6 +309,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showRideStartedModal, setShowRideStartedModal] = useState(false);
+    const [showRideCancelledModal, setShowRideCancelledModal] = useState(false);
     const rideStartedBookingId = useRef(null);
 
     useEffect(() => {
@@ -282,9 +323,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                     
                     if (bookingStatus === 'cancelled' || bookingStatus === 'deny') {
                         clearInterval(intervalRef.current);
-                        Alert.alert('Viaje Cancelado', 'La reserva o el viaje han sido cancelados por el conductor.', [
-                            { text: 'OK', onPress: () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' }) }
-                        ]);
+                        setShowRideCancelledModal(true);
                         return;
                     }
 
@@ -525,6 +564,15 @@ const WaitingForTheStart = ({ route, navigation }) => {
             </ScrollView>
 
             <RideStartedModal visible={showRideStartedModal} />
+
+            <CancelledByDriverModal
+                visible={showRideCancelledModal}
+                theme={theme}
+                onConfirm={() => {
+                    setShowRideCancelledModal(false);
+                    navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' });
+                }}
+            />
 
             <CancelConfirmationModal
                 visible={showCancelModal}
