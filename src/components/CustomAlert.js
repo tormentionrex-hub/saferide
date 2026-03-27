@@ -73,7 +73,7 @@ const CustomAlert = ({
             case 'success': return { name: 'checkmark-circle', color: '#00C851' };
             case 'error': return { name: 'alert-circle', color: theme.danger || '#ff4444' };
             case 'warning': return { name: 'warning', color: '#FFBB33' };
-            case 'confirm': return { name: 'help-circle', color: theme.accent || '#33b5e5' };
+            case 'confirm': return { name: 'help-circle', color: theme.danger || '#ff4444' };
             case 'info': return { name: 'information-circle', color: theme.accent || '#33b5e5' };
             default: return { name: 'help-circle', color: theme.accent };
         }
