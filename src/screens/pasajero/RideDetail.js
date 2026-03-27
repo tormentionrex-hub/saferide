@@ -1,7 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Platform, Dimensions, Alert
+    View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Platform, Dimensions
 } from 'react-native';
+import { useCustomAlert } from '../../context/CustomAlertContext';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
@@ -11,8 +12,9 @@ const { width, height } = Dimensions.get('window');
 
 const RideDetail = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
+    const { showAlert } = useCustomAlert();
     // Recibimos el objeto completo del viaje
-    const { ride } = route.params; 
+    const { ride } = route.params;
 
     const mapRef = useRef(null);
 
@@ -43,7 +45,7 @@ const RideDetail = ({ route, navigation }) => {
                     const passengerId = meRes.data.data._id;
                     const bookingsRes = await api.get(`/bookings/passenger/${passengerId}`);
                     if (bookingsRes.data.success) {
-                        const activeBooking = bookingsRes.data.data.find(b => 
+                        const activeBooking = bookingsRes.data.data.find(b =>
                             b.status === 'pending' || b.status === 'confirmed'
                         );
                         if (activeBooking) {
@@ -70,13 +72,14 @@ const RideDetail = ({ route, navigation }) => {
                 const passengerId = meRes.data.data._id;
                 const bookingsRes = await api.get(`/bookings/passenger/${passengerId}`);
                 if (bookingsRes.data.success) {
-                    const activeBooking = bookingsRes.data.data.find(b => 
+                    const activeBooking = bookingsRes.data.data.find(b =>
                         b.status === 'pending' || b.status === 'confirmed'
                     );
                     if (activeBooking) {
-                        Alert.alert(
+                        showAlert(
                             'Solicitud en curso',
-                            'No puedes solicitar unirte a un nuevo viaje porque ya tienes una reservación pendiente o confirmada.'
+                            'No puedes solicitar unirte a un nuevo viaje porque ya tienes una reservación pendiente o confirmada.',
+                            'warning'
                         );
                         return;
                     }
@@ -88,7 +91,7 @@ const RideDetail = ({ route, navigation }) => {
                 navigation.navigate('ScreenSaver', { bookingId: response.data.data._id });
             }
         } catch (error) {
-            Alert.alert('Error', error.response?.data?.message || 'Error al solicitar unirse al viaje.');
+            showAlert('Error', error.response?.data?.message || 'Error al solicitar unirse al viaje.', 'error');
         }
     };
 
@@ -103,7 +106,7 @@ const RideDetail = ({ route, navigation }) => {
     return (
         <View style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor="transparent" translucent />
-            
+
             {/* MAPA A PANTALLA COMPLETA */}
             <MapView
                 ref={mapRef}
@@ -134,7 +137,7 @@ const RideDetail = ({ route, navigation }) => {
             </MapView>
 
             {/* BOTÓN CERRAR (FLOTANTE) */}
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={[styles.closeBtn, { backgroundColor: theme.surface }]}
                 onPress={() => navigation.goBack()}
             >
@@ -144,7 +147,7 @@ const RideDetail = ({ route, navigation }) => {
             {/* CARD DE DETALLES (ESTILO PREMIUM) */}
             <View style={[styles.detailCard, { backgroundColor: theme.surface }]}>
                 <View style={[styles.dragBar, { backgroundColor: theme.divider }]} />
-                
+
                 <View style={styles.headerRow}>
                     <View>
                         <Text style={[styles.driverLabel, { color: theme.textSecondary }]}>CONDUCTOR</Text>
@@ -183,7 +186,7 @@ const RideDetail = ({ route, navigation }) => {
                 </View>
 
                 {/* Botón de Acción Principal */}
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[styles.bookBtn, { backgroundColor: theme.accent }]}
                     onPress={handleConfirmBooking}
                 >

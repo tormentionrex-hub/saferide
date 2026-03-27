@@ -2,8 +2,8 @@ import React, { createContext, useContext, useState } from 'react';
 import CustomAlert from '../components/CustomAlert';
 
 const CustomAlertContext = createContext({
-    showAlert: () => {},
-    hideAlert: () => {},
+    showAlert: () => { },
+    hideAlert: () => { },
 });
 
 export const CustomAlertProvider = ({ children }) => {
@@ -13,17 +13,39 @@ export const CustomAlertProvider = ({ children }) => {
         message: '',
         type: 'success',
         confirmText: 'Entendido',
-        onClose: null
+        cancelText: null,       // null = no mostrar botón cancelar
+        onConfirm: null,
+        onClose: null,
     });
 
-    const showAlert = (title, message, type = 'success', confirmText = 'Entendido', onClose = null) => {
-        setConfig({ title, message, type, confirmText, onClose });
+    /**
+     * showAlert(title, message, type, confirmText, onClose)
+     *   — Alerta simple de 1 botón (retrocompatible)
+     *
+     * showAlert(title, message, type, confirmText, onClose, cancelText, onConfirm)
+     *   — Alerta de 2 botones (confirmar / cancelar)
+     */
+    const showAlert = (
+        title,
+        message,
+        type = 'success',
+        confirmText = 'Entendido',
+        onClose = null,
+        cancelText = null,
+        onConfirm = null
+    ) => {
+        setConfig({ title, message, type, confirmText, cancelText, onConfirm, onClose });
         setVisible(true);
     };
 
     const hideAlert = () => {
         setVisible(false);
         if (config.onClose) config.onClose();
+    };
+
+    const handleConfirm = () => {
+        setVisible(false);
+        if (config.onConfirm) config.onConfirm();
     };
 
     return (
@@ -35,7 +57,9 @@ export const CustomAlertProvider = ({ children }) => {
                 message={config.message}
                 type={config.type}
                 confirmText={config.confirmText}
+                cancelText={config.cancelText}
                 onClose={hideAlert}
+                onConfirm={config.onConfirm ? handleConfirm : null}
             />
         </CustomAlertContext.Provider>
     );

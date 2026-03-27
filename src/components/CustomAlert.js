@@ -20,16 +20,18 @@ const { width } = Dimensions.get('window');
  * @param {string} title - Título de la alerta
  * @param {string} message - Mensaje del cuerpo
  * @param {string} type - 'success' | 'error' | 'warning' | 'info'
- * @param {function} onClose - Función al cerrar
- * @param {string} confirmText - Texto del botón (opcional)
+ * @param {string} cancelText - Texto botón secundario; null = sin botón cancelar
+ * @param {function} onConfirm - Se llama al pulsar confirmar (2-botones); si es null se usa onClose
  */
-const CustomAlert = ({ 
-    visible, 
-    title, 
-    message, 
-    type = 'success', 
-    onClose, 
-    confirmText = 'Entendido' 
+const CustomAlert = ({
+    visible,
+    title,
+    message,
+    type = 'success',
+    onClose,
+    onConfirm,
+    confirmText = 'Entendido',
+    cancelText = null,
 }) => {
     const { theme } = useDriverTheme();
     const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -77,16 +79,17 @@ const CustomAlert = ({
     };
 
     const iconData = getIcon();
+    const hasTwoButtons = !!cancelText;
 
     if (!visible && opacityAnim._value === 0) return null;
 
     return (
         <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
             <View style={styles.overlay}>
-                <Animated.View 
+                <Animated.View
                     style={[
-                        styles.container, 
-                        { 
+                        styles.container,
+                        {
                             backgroundColor: theme.surface || '#FFFFFF',
                             borderColor: theme.divider,
                             opacity: opacityAnim,
@@ -105,14 +108,45 @@ const CustomAlert = ({
                         <Text style={[styles.message, { color: theme.textSecondary }]}>{message}</Text>
                     </View>
 
-                    {/* Action Button */}
-                    <TouchableOpacity 
-                        style={[styles.button, { backgroundColor: iconData.color }]} 
-                        onPress={onClose}
-                        activeOpacity={0.8}
-                    >
-                        <Text style={styles.buttonText}>{confirmText}</Text>
-                    </TouchableOpacity>
+                    {/* Botones */}
+                    {hasTwoButtons ? (
+                        <View style={styles.buttonRow}>
+                            {/* Cancelar */}
+                            <TouchableOpacity
+                                style={[
+                                    styles.buttonHalf,
+                                    {
+                                        backgroundColor: '#f0f0f0ff',
+                                        borderWidth: 1.4,
+                                        borderColor: theme.divider || '#ccc',
+                                    },
+                                ]}
+                                onPress={onClose}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={[styles.buttonText, { color: theme.textSecondary || '#888' }]}>
+                                    {cancelText}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {/* Confirmar */}
+                            <TouchableOpacity
+                                style={[styles.buttonHalf, { backgroundColor: iconData.color }]}
+                                onPress={onConfirm || onClose}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.buttonText}>{confirmText}</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        <TouchableOpacity
+                            style={[styles.button, { backgroundColor: iconData.color }]}
+                            onPress={onClose}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.buttonText}>{confirmText}</Text>
+                        </TouchableOpacity>
+                    )}
                 </Animated.View>
             </View>
         </Modal>
@@ -178,9 +212,27 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 3,
     },
+    /* Fila de 2 botones */
+    buttonRow: {
+        flexDirection: 'row',
+        gap: 10,
+        width: '100%',
+    },
+    buttonHalf: {
+        flex: 1,
+        height: 54,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+        elevation: 2,
+    },
     buttonText: {
         color: '#FFF',
-        fontSize: 16,
+        fontSize: 15,
         fontFamily: 'Poppins-SemiBold',
         fontWeight: '600',
     },

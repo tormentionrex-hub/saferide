@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert, Platform, ScrollView, Image, Linking, Modal, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Platform, ScrollView, Image, Linking, Modal, Animated } from 'react-native';
+import { useCustomAlert } from '../../context/CustomAlertContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
@@ -32,18 +32,18 @@ const CancelConfirmationModal = ({ visible, onConfirm, onCancel, theme }) => {
                     <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
                         ¿Estás seguro de que deseas cancelar tu reservación? Esta acción no se puede deshacer.
                     </Text>
-                    
+
                     <View style={{ width: '100%', gap: 12 }}>
-                        <TouchableOpacity 
-                            style={[modalStyles.confirmBtn, { backgroundColor: '#EF4444' }]} 
+                        <TouchableOpacity
+                            style={[modalStyles.confirmBtn, { backgroundColor: '#EF4444' }]}
                             onPress={onConfirm}
                         >
                             <Text style={modalStyles.confirmBtnText}>Sí, cancelar reservación</Text>
                             <Ionicons name="trash-outline" size={18} color="#fff" />
                         </TouchableOpacity>
 
-                        <TouchableOpacity 
-                            style={[modalStyles.cancelBtn, { borderColor: theme.border }]} 
+                        <TouchableOpacity
+                            style={[modalStyles.cancelBtn, { borderColor: theme.border }]}
                             onPress={onCancel}
                         >
                             <Text style={[modalStyles.cancelBtnText, { color: theme.textSecondary }]}>Mantener reservación</Text>
@@ -82,8 +82,8 @@ const SuccessActionModal = ({ visible, onConfirm, theme, title, message }) => {
                     <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
                         {message || 'La operación se realizó correctamente.'}
                     </Text>
-                    <TouchableOpacity 
-                        style={[modalStyles.confirmBtn, { backgroundColor: '#10B981' }]} 
+                    <TouchableOpacity
+                        style={[modalStyles.confirmBtn, { backgroundColor: '#10B981' }]}
                         onPress={onConfirm}
                     >
                         <Text style={modalStyles.confirmBtnText}>Entendido</Text>
@@ -96,6 +96,7 @@ const SuccessActionModal = ({ visible, onConfirm, theme, title, message }) => {
 
 const WaitingForTheStart = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
+    const { showAlert } = useCustomAlert();
     const bookingId = route.params?.bookingId;
     const intervalRef = useRef(null);
 
@@ -113,23 +114,27 @@ const WaitingForTheStart = ({ route, navigation }) => {
                 const bookingRes = await api.get(`/bookings/${bookingId}`);
                 if (bookingRes.data.success) {
                     const bookingStatus = bookingRes.data.data.status;
-                    
+
                     if (bookingStatus === 'cancelled' || bookingStatus === 'deny') {
                         clearInterval(intervalRef.current);
-                        Alert.alert('Viaje Cancelado', 'La reserva o el viaje han sido cancelados por el conductor.', [
-                            { text: 'OK', onPress: () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' }) }
-                        ]);
+                        showAlert(
+                            'Viaje Cancelado',
+                            'La reserva o el viaje han sido cancelados por el conductor.',
+                            'warning',
+                            'OK',
+                            () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })
+                        );
                         return;
                     }
 
                     const rideId = bookingRes.data.data.ride_id._id || bookingRes.data.data.ride_id;
                     const rideRes = await api.get(`/rides/${rideId}`);
-                    
+
                     if (rideRes.data.success) {
                         const rideObj = rideRes.data.data;
                         const rideStatus = rideObj.status;
                         setRideData(rideObj);
-                        
+
                         setLoading(false);
 
                         if (!vehicleData && rideObj.driver_id) {
@@ -145,17 +150,25 @@ const WaitingForTheStart = ({ route, navigation }) => {
                                 setVehicleData({}); // Para que no intente buscar repetidamente
                             }
                         }
-                        
+
                         if (rideStatus === 'in progress') {
                             clearInterval(intervalRef.current);
-                            Alert.alert('¡El viaje ha iniciado!', 'Tu conductor ha comenzado el viaje.', [
-                                { text: 'Ver Viaje', onPress: () => navigation.replace('TripInProgress', { bookingId }) }
-                            ]);
+                            showAlert(
+                                '¡El viaje ha iniciado!',
+                                'Tu conductor ha comenzado el viaje.',
+                                'info',
+                                'Ver Viaje',
+                                () => navigation.replace('TripInProgress', { bookingId })
+                            );
                         } else if (rideStatus === 'cancelled' || rideStatus === 'completed') {
                             clearInterval(intervalRef.current);
-                            Alert.alert('Viaje Finalizado', 'El viaje ha finalizado o ha sido cancelado.', [
-                                { text: 'OK', onPress: () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' }) }
-                            ]);
+                            showAlert(
+                                'Viaje Finalizado',
+                                'El viaje ha finalizado o ha sido cancelado.',
+                                'warning',
+                                'OK',
+                                () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })
+                            );
                         }
                     }
                 }
@@ -182,7 +195,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                 setShowSuccessModal(true);
             }
         } catch (e) {
-            Alert.alert('Error', 'No se pudo cancelar la reservación.');
+            showAlert('Error', 'No se pudo cancelar la reservación.', 'error');
         }
     };
 
@@ -206,7 +219,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
 
     const handleWhatsApp = (phone) => {
         if (!phone) {
-            Alert.alert('Error', 'El conductor no tiene un número de teléfono registrado.');
+            showAlert('Error', 'El conductor no tiene un número de teléfono registrado.', 'info');
             return;
         }
         const cleanPhone = phone.replace(/\D/g, '');
@@ -217,10 +230,10 @@ const WaitingForTheStart = ({ route, navigation }) => {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.surface }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
-            
+
             <View style={styles.header}>
-                <TouchableOpacity 
-                    style={styles.backButton} 
+                <TouchableOpacity
+                    style={styles.backButton}
                     onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
                 >
                     <Ionicons name="arrow-back" size={26} color={theme.text} />
@@ -235,7 +248,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                     <Text style={[styles.title, { color: theme.text }]}>
                         Por favor esperar a que el conductor inicie el viaje
                     </Text>
-                    
+
                     {loading ? (
                         <ActivityIndicator style={{ marginTop: 30 }} size="large" color={theme.accent} />
                     ) : (
@@ -243,7 +256,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                             {/* Información de Ruta */}
                             <View style={[styles.card, { backgroundColor: theme.bg, borderColor: theme.border }]}>
                                 <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Ruta del Conductor</Text>
-                                
+
                                 <View style={styles.infoRow}>
                                     <Ionicons name="location" size={20} color={theme.accent} />
                                     <View style={styles.textContainer}>
@@ -251,7 +264,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                                         <Text style={[styles.value, { color: theme.text }]}>{rideData?.origin?.name || '---'}</Text>
                                     </View>
                                 </View>
-                                
+
                                 <View style={styles.infoRow}>
                                     <Ionicons name="flag" size={20} color="#E74C3C" />
                                     <View style={styles.textContainer}>
@@ -282,9 +295,9 @@ const WaitingForTheStart = ({ route, navigation }) => {
                                 <View style={styles.driverContainer}>
                                     <View style={styles.driverHeader}>
                                         {rideData?.driver_id?.profileImage ? (
-                                            <Image 
-                                                source={{ uri: rideData.driver_id.profileImage }} 
-                                                style={styles.driverPhoto} 
+                                            <Image
+                                                source={{ uri: rideData.driver_id.profileImage }}
+                                                style={styles.driverPhoto}
                                             />
                                         ) : (
                                             <View style={[styles.driverPhoto, { backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center' }]}>
@@ -300,9 +313,9 @@ const WaitingForTheStart = ({ route, navigation }) => {
                                             </Text>
                                         </View>
                                     </View>
-                                    
+
                                     {rideData?.driver_id?.phone && (
-                                        <TouchableOpacity 
+                                        <TouchableOpacity
                                             style={[styles.whatsappButton, { backgroundColor: '#25D366' }]}
                                             onPress={() => handleWhatsApp(rideData.driver_id.phone)}
                                         >
