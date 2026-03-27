@@ -168,6 +168,46 @@ const SuccessModal = ({ visible, onClose, theme }) => {
     );
 };
 
+/* ─── Modal de Éxito al Rechazar ─────────────────────────────────── */
+const DenySuccessModal = ({ visible, onClose, theme }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    return (
+        <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#FEF2F2' }]}>
+                        <Ionicons name="close-circle" size={48} color="#EF4444" />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>¡Solicitud Rechazada!</Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
+                        Has rechazado la solicitud exitosamente. Se ha enviado una notificación al pasajero informándole de tu decisión.
+                    </Text>
+                    <TouchableOpacity 
+                        style={[modalStyles.confirmBtn, { backgroundColor: '#EF4444', width: '100%', borderRadius: 16 }]} 
+                        onPress={onClose}
+                    >
+                        <Text style={modalStyles.confirmBtnText}>Entendido</Text>
+                    </TouchableOpacity>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
 const ListOfRequests = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const [requests, setRequests] = useState([]);
@@ -178,6 +218,7 @@ const ListOfRequests = ({ route, navigation }) => {
     const [confirmedCount, setConfirmedCount] = useState(0);
     const [withdrawalVisible, setWithdrawalVisible] = useState(false);
     const [successModalVisible, setSuccessModalVisible] = useState(false);
+    const [denyModalVisible, setDenyModalVisible] = useState(false);
     const [cancelledIds, setCancelledIds] = useState(new Set());
     const intervalRef = useRef(null);
 
@@ -321,7 +362,7 @@ const ListOfRequests = ({ route, navigation }) => {
 
             const res = await api.patch(`/bookings/${bookingId}/status`, { status: 'deny' });
             if (res.data.success) {
-                Alert.alert('Solicitud rechazada', 'Se notificó al pasajero.');
+                setDenyModalVisible(true);
                 // Invalidar cache de viajes ya que cambiaron los asientos/estado
                 sessionCache.clearActiveRides();
                 fetchRequests();
@@ -509,9 +550,15 @@ const ListOfRequests = ({ route, navigation }) => {
             />
 
             <SuccessModal
-                visible={successModalVisible}
                 theme={theme}
+                visible={successModalVisible}
                 onClose={() => setSuccessModalVisible(false)}
+            />
+
+            <DenySuccessModal
+                theme={theme}
+                visible={denyModalVisible}
+                onClose={() => setDenyModalVisible(false)}
             />
 
             <BottomNavigationDriver navigation={navigation} activeTab="Rutas" />
