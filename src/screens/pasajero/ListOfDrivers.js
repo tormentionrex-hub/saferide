@@ -11,7 +11,7 @@ import api from '../../services/api';
 
 // ── Utilidad de Distancia Haversine ──────────────────────────────────────────
 const getHaversineDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Radio de la Tierra en km
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a =
@@ -20,6 +20,29 @@ const getHaversineDistance = (lat1, lon1, lat2, lon2) => {
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
+};
+
+// ── Distancia de un punto al segmento de ruta del conductor ──────────────────
+// Devuelve la distancia mínima en km desde el punto (px,py) hasta el segmento
+// formado por los puntos A(ax,ay) y B(bx,by).
+const pointToSegmentDistance = (px, py, ax, ay, bx, by) => {
+    const dx = bx - ax;
+    const dy = by - ay;
+    if (dx === 0 && dy === 0) return getHaversineDistance(px, py, ax, ay);
+    const t = Math.max(0, Math.min(1,
+        ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)
+    ));
+    return getHaversineDistance(px, py, ax + t * dx, ay + t * dy);
+};
+
+// ── Parámetro t de proyección del punto sobre el segmento (0=inicio, 1=fin) ──
+const projectionT = (px, py, ax, ay, bx, by) => {
+    const dx = bx - ax;
+    const dy = by - ay;
+    if (dx === 0 && dy === 0) return 0;
+    return Math.max(0, Math.min(1,
+        ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)
+    ));
 };
 
 // ── Tarjeta de conductor ──────────────────────────────────────────────────────

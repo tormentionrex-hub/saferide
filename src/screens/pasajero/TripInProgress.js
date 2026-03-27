@@ -106,8 +106,8 @@ const TripInProgress = ({ route, navigation }) => {
         // Primera carga inmediata
         fetchTripDetails();
         
-        // Polling cada 30 segundos (para evitar error 429 del rate limiter)
-        intervalId = setInterval(fetchTripDetails, 30000);
+        // Polling cada 10 segundos
+        intervalId = setInterval(fetchTripDetails, 10000);
 
         // Cleanup al desmontar pantalla
         return () => {
