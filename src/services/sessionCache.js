@@ -1,10 +1,14 @@
 import api from './api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * sessionCache.js
  * Centraliza datos de usuario y viajes para evitar el error 429
  * causado por peticiones repetitivas desde múltiples componentes.
  */
+
+const STORAGE_KEY_DRIVER_ID = '@saferide_driverId';
+const STORAGE_KEY_VEHICLE_STATUS = '@saferide_vehicleStatus';
 
 let cache = {
     driverId: null,
@@ -18,18 +22,36 @@ let inflightVehicleStatus = null;
 
 const sessionCache = {
     /**
-     * Obtiene el ID del driver actual (usando cache si está disponible).
-     * Si hay una petición en vuelo, los llamadores simultáneos esperan
-     * la misma promesa en lugar de lanzar peticiones duplicadas.
+     * Obtiene el ID del driver actual.
+     * Orden de prioridad: memoria → AsyncStorage → API.
+     * El driverId nunca cambia en una sesión, así que se persiste
+     * en AsyncStorage para sobrevivir reinicios del bundle y evitar
+     * llamadas repetidas a /auth/me que causan el error 429.
      */
     getDriverId: async () => {
+        // 1. Memoria (más rápido)
         if (cache.driverId) return cache.driverId;
+
+        // 2. Si ya hay una petición en vuelo, reutilizarla
         if (inflightDriverId) return inflightDriverId;
 
+        // 3. AsyncStorage (evita llamada al API si ya lo tenemos persistido)
+        try {
+            const stored = await AsyncStorage.getItem(STORAGE_KEY_DRIVER_ID);
+            if (stored) {
+                cache.driverId = stored;
+                return stored;
+            }
+        } catch (_) {}
+
+        // 4. API como último recurso
         inflightDriverId = api.get('/auth/me')
-            .then(res => {
+            .then(async res => {
                 if (res.data.success) {
                     cache.driverId = res.data.data._id;
+                    try {
+                        await AsyncStorage.setItem(STORAGE_KEY_DRIVER_ID, cache.driverId);
+                    } catch (_) {}
                     return cache.driverId;
                 }
                 return null;
@@ -61,17 +83,28 @@ const sessionCache = {
         if (inflightVehicleStatus) return inflightVehicleStatus;
 
         inflightVehicleStatus = api.get(`/vehicles/driver/${driverId}`)
-            .then(res => {
+            .then(async res => {
                 const hasVehicle = res.data.success && res.data.data &&
                     (Array.isArray(res.data.data) ? res.data.data.length > 0 : true);
                 cache.vehicleStatus = { hasVehicle, lastCheck: Date.now() };
+                try {
+                    await AsyncStorage.setItem(STORAGE_KEY_VEHICLE_STATUS, JSON.stringify(hasVehicle));
+                } catch (_) {}
                 return hasVehicle;
             })
-            .catch(error => {
+            .catch(async error => {
                 if (error.response?.status === 404) {
                     cache.vehicleStatus = { hasVehicle: false, lastCheck: Date.now() };
+                    try {
+                        await AsyncStorage.setItem(STORAGE_KEY_VEHICLE_STATUS, JSON.stringify(false));
+                    } catch (_) {}
                     return false;
                 }
+                // Fallback: leer del AsyncStorage persistido
+                try {
+                    const stored = await AsyncStorage.getItem(STORAGE_KEY_VEHICLE_STATUS);
+                    if (stored !== null) return JSON.parse(stored);
+                } catch (_) {}
                 return cache.vehicleStatus?.hasVehicle || false;
             })
             .finally(() => {
@@ -132,6 +165,8 @@ const sessionCache = {
         };
         inflightDriverId = null;
         inflightVehicleStatus = null;
+        AsyncStorage.removeItem(STORAGE_KEY_DRIVER_ID).catch(() => {});
+        AsyncStorage.removeItem(STORAGE_KEY_VEHICLE_STATUS).catch(() => {});
     }
 };
 

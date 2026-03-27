@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
     TextInput, StatusBar, Alert, ActivityIndicator,
-    Platform, ScrollView, Animated
+    Platform, ScrollView, Animated, Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +25,7 @@ export default function RegisterVehicleStep2({ route, navigation }) {
     const [expDate, setExpDate]           = useState(null);
     const [showPicker, setShowPicker]     = useState(false);
     const [loading, setLoading]           = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     // ── Animated progress (50 → 100) ──
     const progressAnim = useRef(new Animated.Value(50)).current;
@@ -111,17 +112,7 @@ export default function RegisterVehicleStep2({ route, navigation }) {
             });
             if (res.data.success) {
                 sessionCache.clearVehicleStatus();
-                Alert.alert('¡Registro exitoso!', 'Tu vehículo ha sido registrado.', [
-                    {
-                        text: 'Aceptar', onPress: () => navigation.reset({
-                            index: 1,
-                            routes: [
-                                { name: 'MainTabsDriver' },
-                                { name: 'ProfileConductor', params: { scrollToVehicle: true } },
-                            ],
-                        })
-                    }
-                ]);
+                setShowSuccessModal(true);
             } else {
                 Alert.alert('Error', res.data.message || 'No se pudo registrar el vehículo.');
             }
@@ -271,6 +262,69 @@ export default function RegisterVehicleStep2({ route, navigation }) {
                     </ScrollView>
                     <ScrollIndicator si={si} thumbColor={theme.accent} />
                 </View>
+
+                {/* ── MODAL ÉXITO REGISTRO ── */}
+                <Modal
+                    visible={showSuccessModal}
+                    transparent
+                    animationType="fade"
+                    statusBarTranslucent
+                >
+                    <View style={styles.backdrop}>
+                        <View style={[styles.card, {
+                            backgroundColor: theme.dark ? '#111128' : '#FFFFFF',
+                            borderColor: theme.dark ? 'rgba(116,143,255,0.25)' : 'rgba(75,104,255,0.15)',
+                        }]}>
+
+                            {/* Glow ring + icon */}
+                            <View style={[styles.iconWrapper, {
+                                backgroundColor: theme.dark ? '#1C1C40' : '#EEF2FF',
+                                shadowColor: theme.accent,
+                            }]}>
+                                <View style={[styles.iconInner, {
+                                    backgroundColor: theme.dark ? '#252560' : '#E0E7FF',
+                                }]}>
+                                    <Ionicons name="car-sport" size={42} color={theme.accent} />
+                                    <View style={[styles.checkBadge, { backgroundColor: theme.dark ? '#0A0A18' : '#fff' }]}>
+                                        <Ionicons name="checkmark-circle" size={18} color="#27AE60" />
+                                    </View>
+                                </View>
+                            </View>
+
+                            {/* Texto */}
+                            <Text style={[styles.modalTitle, { color: theme.dark ? '#EEEEFF' : '#1C1C1E' }]}>
+                                ¡Registro Exitoso!
+                            </Text>
+                            <Text style={[styles.modalSubtitle, { color: theme.dark ? '#7A7A9D' : '#6B7280' }]}>
+                                Tu vehículo ha sido registrado correctamente y ya puedes empezar a compartir viajes.
+                            </Text>
+
+                            {/* Separador */}
+                            <View style={[styles.modalDivider, {
+                                backgroundColor: theme.dark ? 'rgba(116,143,255,0.15)' : 'rgba(75,104,255,0.1)'
+                            }]} />
+
+                            {/* Botón principal */}
+                            <TouchableOpacity
+                                style={[styles.modalPrimaryBtn, { backgroundColor: theme.accent }]}
+                                activeOpacity={0.85}
+                                onPress={() => {
+                                    setShowSuccessModal(false);
+                                    navigation.reset({
+                                        index: 0,
+                                        routes: [
+                                            { name: 'MainTabsDriver' },
+                                        ],
+                                    });
+                                }}
+                            >
+                                <Text style={styles.modalPrimaryBtnText}>Finalizar</Text>
+                                <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
+                            </TouchableOpacity>
+
+                        </View>
+                    </View>
+                </Modal>
             </View>
         </SafeAreaView>
     );
@@ -317,4 +371,91 @@ const styles = StyleSheet.create({
 
     finishBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, borderRadius: 14, elevation: 4, shadowColor: '#748FFF', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8 },
     finishBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+
+    // ── MODAL SUCCESS ──
+    backdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.72)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 28,
+    },
+    card: {
+        width: '100%',
+        borderRadius: 28,
+        padding: 32,
+        alignItems: 'center',
+        borderWidth: 1,
+        elevation: 20,
+        shadowColor: '#748FFF',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+    },
+    iconWrapper: {
+        width: 110,
+        height: 110,
+        borderRadius: 55,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
+        elevation: 10,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 20,
+    },
+    iconInner: {
+        width: 84,
+        height: 84,
+        borderRadius: 42,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    checkBadge: {
+        position: 'absolute',
+        bottom: 2,
+        right: 2,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 4,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: '800',
+        marginBottom: 10,
+        letterSpacing: 0.3,
+    },
+    modalSubtitle: {
+        fontSize: 14,
+        textAlign: 'center',
+        lineHeight: 21,
+        paddingHorizontal: 8,
+    },
+    modalDivider: {
+        width: '100%',
+        height: 1,
+        marginVertical: 24,
+    },
+    modalPrimaryBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 16,
+        elevation: 6,
+        shadowColor: '#748FFF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 10,
+    },
+    modalPrimaryBtnText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+        letterSpacing: 0.3,
+    },
 });

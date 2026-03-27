@@ -20,6 +20,7 @@ import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import SettingsGearButton from '../../components/SettingsGearButton';
+import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -318,7 +319,7 @@ const DriverMetrics = ({ navigation }) => {
                 )}
             </View>
 
-
+            <BottomNavigationDriver navigation={navigation} activeTab="none" />
         </SafeAreaView>
     );
 };

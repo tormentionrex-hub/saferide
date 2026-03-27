@@ -94,6 +94,170 @@ const SuccessActionModal = ({ visible, onConfirm, theme, title, message }) => {
     );
 };
 
+/* ─── Modal: ¡El viaje ha iniciado! ─────────────────────────────── */
+const RideStartedModal = ({ visible }) => {
+    // Card
+    const cardScale   = useRef(new Animated.Value(0)).current;
+    const cardOpacity = useRef(new Animated.Value(0)).current;
+    // Check
+    const checkScale  = useRef(new Animated.Value(0)).current;
+    // Burbujas (3 anillos)
+    const ring1Scale  = useRef(new Animated.Value(0.3)).current;
+    const ring1Op     = useRef(new Animated.Value(0.9)).current;
+    const ring2Scale  = useRef(new Animated.Value(0.3)).current;
+    const ring2Op     = useRef(new Animated.Value(0.7)).current;
+    const ring3Scale  = useRef(new Animated.Value(0.3)).current;
+    const ring3Op     = useRef(new Animated.Value(0.5)).current;
+
+    useEffect(() => {
+        if (!visible) return;
+
+        // Reset
+        cardScale.setValue(0);
+        cardOpacity.setValue(0);
+        checkScale.setValue(0);
+        ring1Scale.setValue(0.3); ring1Op.setValue(0.9);
+        ring2Scale.setValue(0.3); ring2Op.setValue(0.7);
+        ring3Scale.setValue(0.3); ring3Op.setValue(0.5);
+
+        // 1. Card aparece con spring (burbuja que explota)
+        Animated.parallel([
+            Animated.spring(cardScale, {
+                toValue: 1,
+                tension: 180,
+                friction: 6,
+                useNativeDriver: true,
+            }),
+            Animated.timing(cardOpacity, {
+                toValue: 1,
+                duration: 180,
+                useNativeDriver: true,
+            }),
+        ]).start();
+
+        // 2. Check hace pop a los 150ms
+        setTimeout(() => {
+            Animated.spring(checkScale, {
+                toValue: 1,
+                tension: 260,
+                friction: 5,
+                useNativeDriver: true,
+            }).start();
+        }, 150);
+
+        // 3. Anillos explotan en cascada desde el círculo
+        setTimeout(() => {
+            Animated.parallel([
+                Animated.timing(ring1Scale, { toValue: 2.4, duration: 600, useNativeDriver: true }),
+                Animated.timing(ring1Op,    { toValue: 0,   duration: 600, useNativeDriver: true }),
+            ]).start();
+        }, 200);
+        setTimeout(() => {
+            Animated.parallel([
+                Animated.timing(ring2Scale, { toValue: 2.8, duration: 650, useNativeDriver: true }),
+                Animated.timing(ring2Op,    { toValue: 0,   duration: 650, useNativeDriver: true }),
+            ]).start();
+        }, 320);
+        setTimeout(() => {
+            Animated.parallel([
+                Animated.timing(ring3Scale, { toValue: 3.2, duration: 700, useNativeDriver: true }),
+                Animated.timing(ring3Op,    { toValue: 0,   duration: 700, useNativeDriver: true }),
+            ]).start();
+        }, 440);
+    }, [visible]);
+
+    if (!visible) return null;
+
+    return (
+        <Modal transparent visible={visible} animationType="none">
+            <View style={rideStartedStyles.overlay}>
+                <Animated.View style={[
+                    rideStartedStyles.card,
+                    { opacity: cardOpacity, transform: [{ scale: cardScale }] }
+                ]}>
+                    {/* Anillos de burbuja */}
+                    <View style={rideStartedStyles.ringWrapper} pointerEvents="none">
+                        {[{ s: ring1Scale, o: ring1Op }, { s: ring2Scale, o: ring2Op }, { s: ring3Scale, o: ring3Op }].map((r, i) => (
+                            <Animated.View key={i} style={[rideStartedStyles.ring, { transform: [{ scale: r.s }], opacity: r.o }]} />
+                        ))}
+                        {/* Círculo con check */}
+                        <Animated.View style={[rideStartedStyles.checkCircle, { transform: [{ scale: checkScale }] }]}>
+                            <Ionicons name="checkmark" size={38} color="#fff" />
+                        </Animated.View>
+                    </View>
+
+                    <Text style={rideStartedStyles.title}>¡El viaje ha iniciado!</Text>
+                    <Text style={rideStartedStyles.subtitle}>Tu conductor está en camino. Prepárate para el trayecto.</Text>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
+const rideStartedStyles = StyleSheet.create({
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 30,
+    },
+    card: {
+        width: '100%',
+        backgroundColor: '#fff',
+        borderRadius: 28,
+        paddingVertical: 40,
+        paddingHorizontal: 30,
+        alignItems: 'center',
+        elevation: 24,
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+    },
+    ringWrapper: {
+        width: 90,
+        height: 90,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    ring: {
+        position: 'absolute',
+        width: 90,
+        height: 90,
+        borderRadius: 45,
+        borderWidth: 3,
+        borderColor: '#10B981',
+    },
+    checkCircle: {
+        width: 90,
+        height: 90,
+        borderRadius: 45,
+        backgroundColor: '#10B981',
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 8,
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+    },
+    title: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#111827',
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    subtitle: {
+        fontSize: 14,
+        color: '#6B7280',
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+});
+
 const WaitingForTheStart = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const bookingId = route.params?.bookingId;
@@ -104,6 +268,8 @@ const WaitingForTheStart = ({ route, navigation }) => {
     const [loading, setLoading] = useState(true);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showRideStartedModal, setShowRideStartedModal] = useState(false);
+    const rideStartedBookingId = useRef(null);
 
     useEffect(() => {
         if (!bookingId) return;
@@ -148,9 +314,12 @@ const WaitingForTheStart = ({ route, navigation }) => {
                         
                         if (rideStatus === 'in progress') {
                             clearInterval(intervalRef.current);
-                            Alert.alert('¡El viaje ha iniciado!', 'Tu conductor ha comenzado el viaje.', [
-                                { text: 'Ver Viaje', onPress: () => navigation.replace('TripInProgress', { bookingId }) }
-                            ]);
+                            rideStartedBookingId.current = bookingId;
+                            setShowRideStartedModal(true);
+                            setTimeout(() => {
+                                setShowRideStartedModal(false);
+                                navigation.replace('TripInProgress', { bookingId });
+                            }, 1500);
                         } else if (rideStatus === 'cancelled' || rideStatus === 'completed') {
                             clearInterval(intervalRef.current);
                             Alert.alert('Viaje Finalizado', 'El viaje ha finalizado o ha sido cancelado.', [
@@ -335,23 +504,27 @@ const WaitingForTheStart = ({ route, navigation }) => {
                             </View>
                         </View>
                     )}
+
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity
+                            style={[styles.button, { backgroundColor: theme.accent }]}
+                            onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
+                        >
+                            <Ionicons name="home-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={styles.buttonText}>Volver al Inicio</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.cancelButton, { borderColor: '#E74C3C' }]}
+                            onPress={handleCancel}
+                        >
+                            <Ionicons name="close-circle-outline" size={18} color="#E74C3C" style={{ marginRight: 8 }} />
+                            <Text style={[styles.cancelButtonText, { color: '#E74C3C' }]}>Cancelar Reservación</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </ScrollView>
 
-            <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                    style={[styles.cancelButton, { borderColor: '#E74C3C' }]}
-                    onPress={handleCancel}
-                >
-                    <Text style={[styles.cancelButtonText, { color: '#E74C3C' }]}>Cancelar Reservación</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.button, { backgroundColor: theme.accent }]}
-                    onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
-                >
-                    <Text style={styles.buttonText}>Volver al Inicio</Text>
-                </TouchableOpacity>
-            </View>
+            <RideStartedModal visible={showRideStartedModal} />
 
             <CancelConfirmationModal
                 visible={showCancelModal}
@@ -399,10 +572,11 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         padding: 20,
-        paddingBottom: 40,
+        paddingBottom: 140,
     },
     content: {
         alignItems: 'center',
+        width: '100%',
     },
     title: {
         fontSize: 20,
@@ -462,20 +636,27 @@ const styles = StyleSheet.create({
         flex: 0.33,
     },
     buttonContainer: {
-        gap: 10,
-        paddingHorizontal: 20,
-        paddingBottom: 110, // Aumentado para dejar espacio al BottomNavigationBar
+        flexDirection: 'column',
+        gap: 12,
+        marginTop: 20,
+        width: '100%',
     },
     button: {
-        paddingVertical: 15,
-        borderRadius: 10,
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 14,
         alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
     },
     cancelButton: {
-        paddingVertical: 15,
-        borderRadius: 10,
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 14,
         alignItems: 'center',
-        borderWidth: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        borderWidth: 1.5,
         backgroundColor: 'transparent',
     },
     buttonText: {

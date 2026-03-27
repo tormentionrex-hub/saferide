@@ -26,6 +26,10 @@ import { DateTime } from 'luxon';
 import { Image } from 'expo-image';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
+// Cache en memoria para evitar refetch en cada useFocusEffect (navegación entre tabs)
+let historyCache = { data: null, lastCheck: 0 };
+const HISTORY_CACHE_TTL = 60000; // 60 segundos
+
 const { width } = Dimensions.get('window');
 
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -183,12 +187,25 @@ const History = ({ navigation }) => {
     const [showDayPicker, setShowDayPicker] = useState(false);
     const [tempDate, setTempDate] = useState(new Date());
 
-    const fetchHistory = useCallback(async (isSilent = false) => {
+    const fetchHistory = useCallback(async (isSilent = false, force = false) => {
+        const now = Date.now();
+
+        // Saltar fetch si el cache está fresco y no es un refresh manual
+        if (!force && historyCache.data && (now - historyCache.lastCheck < HISTORY_CACHE_TTL)) {
+            if (historyCache.data.length > 0 || allHistory.length === 0) {
+                // Hidratar estado desde cache sin tocar la API
+                setAllHistory(historyCache.data);
+            }
+            setLoading(false);
+            setRefreshing(false);
+            return;
+        }
+
         if (!isSilent) setLoading(true);
         try {
-            const meResponse = await api.get('/auth/me');
-            if (!meResponse.data.success) throw new Error('Could not get user data');
-            const userId = meResponse.data.data._id;
+            const meRes = await api.get('/auth/me');
+            if (!meRes.data.success) throw new Error('Could not get user data');
+            const userId = meRes.data.data._id;
 
             const response = await rideService.getBookingsByPassenger(userId);
 
@@ -201,6 +218,7 @@ const History = ({ navigation }) => {
                         return dateB - dateA;
                     });
 
+                historyCache = { data: sorted, lastCheck: Date.now() };
                 setAllHistory(sorted);
 
                 // Extract months
@@ -226,7 +244,7 @@ const History = ({ navigation }) => {
     useFocusEffect(
         useCallback(() => {
             setDisplayLimit(3);
-            fetchHistory();
+            fetchHistory(false, false); // usa cache si está fresco
         }, [fetchHistory])
     );
 
@@ -252,7 +270,7 @@ const History = ({ navigation }) => {
     const onRefresh = () => {
         setRefreshing(true);
         setDisplayLimit(3);
-        fetchHistory();
+        fetchHistory(true, true); // force=true ignora el cache (pull-to-refresh manual)
     };
 
     const calculateArrivalTime = useCallback((date, departureTime, durationMinutes) => {
