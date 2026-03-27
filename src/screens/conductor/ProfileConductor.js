@@ -34,7 +34,7 @@ const COMPANIES = [
     'WeWork Costa Rica', 'Concentrix', 'Nestlé Costa Rica'
 ];
 
-const CAR_DATA = {
+const CAR_DATA = { //ESTOS SON LOS AUTOS EN GENERAL
     Acura: ['MDX', 'RDX', 'TLX', 'TSX', 'Integra'],
     Audi: ['A3', 'A4', 'Q3', 'Q5', 'Q7'],
     BMW: ['Serie 1', 'Serie 3', 'Serie 5', 'X1', 'X3', 'X5'],
