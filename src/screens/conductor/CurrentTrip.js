@@ -139,7 +139,17 @@ const TripInProgressDriver = ({ route, navigation }) => {
                     if (!routeFetched.current && oc?.lat && dc?.lat) {
                         routeFetched.current = true;
                         fetchRoutePolyline(Number(oc.lat), Number(oc.lng), Number(dc.lat), Number(dc.lng))
-                            .then(coords => { if (coords) setRouteCoords(coords); });
+                            .then(coords => {
+                                if (coords) {
+                                    setRouteCoords(coords);
+                                    if (mapRef.current) {
+                                        mapRef.current.fitToCoordinates(coords, {
+                                            edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+                                            animated: true,
+                                        });
+                                    }
+                                }
+                            });
                     }
                 }
 
@@ -353,16 +363,26 @@ const TripInProgressDriver = ({ route, navigation }) => {
                                     title="Destino"
                                     pinColor="#EF5350"
                                 />
-                                {/* Trayecto virtual */}
-                                <Polyline
-                                    coordinates={[
-                                        { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
-                                        { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }
-                                    ]}
-                                    strokeColor="#4A90E2"
-                                    strokeWidth={3}
-                                    lineDashPattern={[5, 5]}
-                                />
+                                {/* Ruta real por carretera (Google Directions) */}
+                                {routeCoords && routeCoords.length > 0 ? (
+                                    <Polyline
+                                        coordinates={routeCoords}
+                                        strokeColor="#4A90E2"
+                                        strokeWidth={5}
+                                        lineJoin="round"
+                                        lineCap="round"
+                                    />
+                                ) : (
+                                    <Polyline
+                                        coordinates={[
+                                            { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
+                                            { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }
+                                        ]}
+                                        strokeColor="#4A90E2"
+                                        strokeWidth={3}
+                                        lineDashPattern={[8, 5]}
+                                    />
+                                )}
                             </MapView>
                         ) : (
                             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

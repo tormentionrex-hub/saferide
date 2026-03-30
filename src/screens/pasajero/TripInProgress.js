@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, Linking, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, Linking, ScrollView, ActivityIndicator, Animated, Modal } from 'react-native';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
@@ -240,7 +240,18 @@ const TripInProgress = ({ route, navigation }) => {
             fetchRoutePolyline(
                 Number(originCoords.lat), Number(originCoords.lng),
                 Number(destCoords.lat), Number(destCoords.lng)
-            ).then(coords => { if (coords) setRouteCoords(coords); });
+            ).then(coords => {
+                if (coords) {
+                    setRouteCoords(coords);
+                    // Ajustar el mapa para mostrar toda la ruta
+                    if (mapRef.current) {
+                        mapRef.current.fitToCoordinates(coords, {
+                            edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+                            animated: true,
+                        });
+                    }
+                }
+            });
         }
 
         return () => {
@@ -383,15 +394,27 @@ const TripInProgress = ({ route, navigation }) => {
                                 />
                             )}
 
-                            {/* Trazado virtual uniendo los dos puntos */}
-                            <Polyline
-                                coordinates={[
-                                    { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
-                                    { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }
-                                ]}
-                                strokeColor={theme.accent}
-                                strokeWidth={4}
-                            />
+                            {/* Ruta real por carretera (Google Directions) */}
+                            {routeCoords && routeCoords.length > 0 ? (
+                                <Polyline
+                                    coordinates={routeCoords}
+                                    strokeColor={theme.accent}
+                                    strokeWidth={5}
+                                    lineJoin="round"
+                                    lineCap="round"
+                                />
+                            ) : (
+                                // Fallback: línea recta punteada mientras carga la ruta
+                                <Polyline
+                                    coordinates={[
+                                        { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
+                                        { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }
+                                    ]}
+                                    strokeColor={theme.accent}
+                                    strokeWidth={3}
+                                    lineDashPattern={[8, 5]}
+                                />
+                            )}
                         </MapView>
                     ) : (
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

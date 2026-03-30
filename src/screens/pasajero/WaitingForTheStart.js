@@ -136,7 +136,7 @@ const CancelledByDriverModal = ({ visible, onConfirm, theme }) => {
 };
 
 /* ─── Modal: ¡El viaje ha iniciado! ─────────────────────────────── */
-const RideStartedModal = ({ visible }) => {
+const RideStartedModal = ({ visible, onConfirm }) => {
     // Card
     const cardScale   = useRef(new Animated.Value(0)).current;
     const cardOpacity = useRef(new Animated.Value(0)).current;
@@ -229,6 +229,10 @@ const RideStartedModal = ({ visible }) => {
 
                     <Text style={rideStartedStyles.title}>¡El viaje ha iniciado!</Text>
                     <Text style={rideStartedStyles.subtitle}>Tu conductor está en camino. Prepárate para el trayecto.</Text>
+                    <TouchableOpacity style={rideStartedStyles.btn} onPress={onConfirm}>
+                        <Ionicons name="car" size={18} color="#fff" />
+                        <Text style={rideStartedStyles.btnText}>Ver mi viaje</Text>
+                    </TouchableOpacity>
                 </Animated.View>
             </View>
         </Modal>
@@ -296,6 +300,23 @@ const rideStartedStyles = StyleSheet.create({
         color: '#6B7280',
         textAlign: 'center',
         lineHeight: 20,
+        marginBottom: 24,
+    },
+    btn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: '#10B981',
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 16,
+        elevation: 2,
+    },
+    btnText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 });
 
@@ -361,13 +382,8 @@ const WaitingForTheStart = ({ route, navigation }) => {
 
                         if (rideStatus === 'in progress') {
                             clearInterval(intervalRef.current);
-                            showAlert(
-                                '¡El viaje ha iniciado!',
-                                'Tu conductor ha comenzado el viaje.',
-                                'info',
-                                'Ver Viaje',
-                                () => navigation.replace('TripInProgress', { bookingId })
-                            );
+                            rideStartedBookingId.current = bookingId;
+                            setShowRideStartedModal(true);
                         } else if (rideStatus === 'cancelled' || rideStatus === 'completed') {
                             clearInterval(intervalRef.current);
                             showAlert(
@@ -576,7 +592,13 @@ const WaitingForTheStart = ({ route, navigation }) => {
                 </View>
             </ScrollView>
 
-            <RideStartedModal visible={showRideStartedModal} />
+            <RideStartedModal
+                visible={showRideStartedModal}
+                onConfirm={() => {
+                    setShowRideStartedModal(false);
+                    navigation.replace('TripInProgress', { bookingId: rideStartedBookingId.current });
+                }}
+            />
 
             <CancelledByDriverModal
                 visible={showRideCancelledModal}

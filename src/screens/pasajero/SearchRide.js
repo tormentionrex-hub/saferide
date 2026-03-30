@@ -134,9 +134,22 @@ const SearchRide = ({ navigation }) => {
             if (bookingsRes.data && bookingsRes.data.success && bookingsRes.data.data) {
                 const activeBooking = bookingsRes.data.data.find(b => b.status === 'pending' || b.status === 'confirmed');
                 if (activeBooking) {
-                    setLoading(false);
-                    setShowActiveBookingModal(true);
-                    return;
+                    if (activeBooking.status === 'confirmed') {
+                        setLoading(false);
+                        setShowActiveBookingModal(true);
+                        return;
+                    }
+                    // Si el pending lleva más de 3 minutos sin respuesta, cancelarlo automáticamente
+                    const lastUpdate = activeBooking.updatedAt || activeBooking.createdAt;
+                    const timeDiff = Date.now() - new Date(lastUpdate).getTime();
+                    if (lastUpdate && timeDiff > 3 * 60 * 1000) {
+                        try { await api.delete(`/bookings/${activeBooking._id}`); } catch (e) {}
+                        // Booking vencido cancelado, continuar con la búsqueda
+                    } else {
+                        setLoading(false);
+                        setShowActiveBookingModal(true);
+                        return;
+                    }
                 }
             }
 

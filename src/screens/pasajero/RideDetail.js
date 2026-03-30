@@ -36,7 +36,7 @@ const RideDetail = ({ route, navigation }) => {
         }
     }, [origin, dest]);
 
-    // Redirigir si ya tiene un booking pendiente o confirmado
+    // Redirigir si ya tiene un booking pendiente o confirmado (que no esté vencido)
     useEffect(() => {
         const checkActiveBooking = async () => {
             try {
@@ -49,10 +49,18 @@ const RideDetail = ({ route, navigation }) => {
                             b.status === 'pending' || b.status === 'confirmed'
                         );
                         if (activeBooking) {
-                            if (activeBooking.status === 'pending') {
-                                navigation.replace('ScreenSaver', { bookingId: activeBooking._id });
-                            } else {
+                            if (activeBooking.status === 'confirmed') {
                                 navigation.replace('TripInProgress', { bookingId: activeBooking._id });
+                            } else if (activeBooking.status === 'pending') {
+                                // Si el booking pendiente tiene más de 3 minutos, está vencido → cancelarlo
+                                const lastUpdate = activeBooking.updatedAt || activeBooking.createdAt;
+                                const timeDiff = Date.now() - new Date(lastUpdate).getTime();
+                                if (lastUpdate && timeDiff > 3 * 60 * 1000) {
+                                    try { await api.delete(`/bookings/${activeBooking._id}`); } catch (e) {}
+                                    // No redirigimos: dejamos al usuario ver el detalle y reservar
+                                } else {
+                                    navigation.replace('ScreenSaver', { bookingId: activeBooking._id });
+                                }
                             }
                         }
                     }
@@ -76,12 +84,28 @@ const RideDetail = ({ route, navigation }) => {
                         b.status === 'pending' || b.status === 'confirmed'
                     );
                     if (activeBooking) {
-                        showAlert(
-                            'Solicitud en curso',
-                            'No puedes solicitar unirte a un nuevo viaje porque ya tienes una reservación pendiente o confirmada.',
-                            'warning'
-                        );
-                        return;
+                        if (activeBooking.status === 'confirmed') {
+                            showAlert(
+                                'Solicitud en curso',
+                                'No puedes solicitar unirte a un nuevo viaje porque ya tienes una reservación confirmada.',
+                                'warning'
+                            );
+                            return;
+                        }
+                        // Si el pending lleva más de 3 minutos sin respuesta, cancelarlo automáticamente
+                        const lastUpdate = activeBooking.updatedAt || activeBooking.createdAt;
+                        const timeDiff = Date.now() - new Date(lastUpdate).getTime();
+                        if (lastUpdate && timeDiff > 3 * 60 * 1000) {
+                            try { await api.delete(`/bookings/${activeBooking._id}`); } catch (e) {}
+                            // Booking vencido cancelado, continuar con la nueva reserva
+                        } else {
+                            showAlert(
+                                'Solicitud en curso',
+                                'Ya enviaste una solicitud reciente. Espera la respuesta del conductor.',
+                                'warning'
+                            );
+                            return;
+                        }
                     }
                 }
             }
