@@ -1,10 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
 import { useDriverTheme } from '../context/DriverThemeContext';
-import api from '../services/api';
 
 /**
  * Cache TTL para la consulta de reservas activas al pulsar "Tu viaje".
@@ -18,8 +17,6 @@ import api from '../services/api';
  */
 let bookingCache = { data: null, lastCheck: 0 };
 const BOOKING_CACHE_TTL = 30000; // 30 segundos
-
-const { width } = Dimensions.get('window');
 
 // Mapeo de cada item del nav con sus screens relacionados y los iconos que usa
 const NAV_ITEMS = [
@@ -54,16 +51,16 @@ const NAV_ITEMS = [
     },
 ];
 
-// Componente de la Barra de Navegación Inferior para el flujo de Pasajeros
 const BottomNavigationBar = ({ state, descriptors, navigation }) => {
     const { theme } = useDriverTheme();
     const activeColor   = theme.navActive;
     const inactiveColor = theme.navInactive;
     const insets = useSafeAreaInsets();
 
-    // Lógica para determinar el nombre de la ruta actual
     const route = useRoute();
     const currentRouteName = state ? state.routes[state.index].name : route.name;
+
+    const visibleItems = NAV_ITEMS.filter(item => item.label !== 'Métricas');
 
     return (
         <View style={[
@@ -75,14 +72,12 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                 borderTopColor: theme.navBorder,
             }
         ]}>
-            {NAV_ITEMS.filter(item => item.label !== 'Métricas').map((item) => {
-                // Verificación de si el item actual de la barra coincide con el screen activo
+            {visibleItems.map((item, idx) => {
                 const isActive = item.screens.includes(currentRouteName);
-                const iconName = isActive ? item.activeIcon : item.inactiveIcon;
                 const color = isActive ? activeColor : inactiveColor;
 
-                // Función que maneja la navegación al tocar un icono
-                const onPress = async () => {
+                // Función que maneja la navegación al tocar un icono.
+                const onPress = () => {
                     const event = state ? navigation.emit({
                         type: 'tabPress',
                         target: item.target,
@@ -91,55 +86,23 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
 
                     if (isActive || event.defaultPrevented) return;
 
+                    // Para "Tu viaje": revisar solo el cache en memoria
                     if (item.target === 'SearchRide') {
-                        try {
-                            const now = Date.now();
-                            let bookings = null;
-
-                            // Usar cache si está fresco (30 s) para evitar 429
-                            if (bookingCache.data && (now - bookingCache.lastCheck < BOOKING_CACHE_TTL)) {
-                                bookings = bookingCache.data;
-                            } else {
-                                const res = await api.get('/bookings');
-                                if (res.data && res.data.success && res.data.data) {
-                                    bookingCache = { data: res.data.data, lastCheck: now };
-                                    bookings = res.data.data;
-                                }
+                        const now = Date.now();
+                        if (bookingCache.data && (now - bookingCache.lastCheck < BOOKING_CACHE_TTL)) {
+                            const activeBooking = bookingCache.data.find(
+                                b => b.status === 'pending' || b.status === 'confirmed'
+                            );
+                            if (activeBooking) {
+                                bookingCache = { data: null, lastCheck: 0 };
+                                const dest = activeBooking.status === 'pending' ? 'ScreenSaver' : 'TripInProgress';
+                                navigation.navigate(dest, { bookingId: activeBooking._id });
+                                return;
                             }
-
-                            if (bookings) {
-                                const activeBooking = bookings.find(b => b.status === 'pending' || b.status === 'confirmed');
-                                if (activeBooking) {
-                                    // Invalidar cache al navegar para que la próxima vez refleje estado real
-                                    bookingCache = { data: null, lastCheck: 0 };
-                                    if (activeBooking.status === 'pending') {
-                                        navigation.navigate('ScreenSaver', { bookingId: activeBooking._id });
-                                    } else {
-                                        try {
-                                            const rideId = activeBooking.ride_id._id || activeBooking.ride_id;
-                                            const rideRes = await api.get(`/rides/${rideId}`);
-                                            const rideStatus = rideRes.data.data.status;
-                                            if (rideStatus === 'scheduled') {
-                                                navigation.navigate('WaitingForTheStart', { bookingId: activeBooking._id });
-                                            } else if (rideStatus === 'in progress') {
-                                                navigation.navigate('TripInProgress', { bookingId: activeBooking._id });
-                                            } else {
-                                                navigation.navigate('TripInProgress', { bookingId: activeBooking._id });
-                                            }
-                                        } catch (e) {
-                                            console.error('Error fetching ride status in navbar:', e);
-                                            navigation.navigate('WaitingForTheStart', { bookingId: activeBooking._id });
-                                        }
-                                    }
-                                    return;
-                                }
-                            }
-                        } catch (error) {
-                            console.error('Error fetching bookings:', error);
                         }
                     }
 
-                    // Navegación por defecto
+                    // Navegación inmediata
                     if (!state) {
                         navigation.navigate('MainTabsPasajero', { screen: item.target });
                     } else {
@@ -147,6 +110,35 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                     }
                 };
 
+                // ── Tab Activo (Elevado) ──────────────────────────────────────
+                if (isActive) {
+                    return (
+                        <TouchableOpacity
+                            key={item.label}
+                            style={styles.centerWrapper}
+                            activeOpacity={0.85}
+                            onPress={onPress}
+                        >
+                            <View style={[
+                                styles.centerButton,
+                                { backgroundColor: activeColor },
+                                styles.centerButtonActive,
+                            ]}>
+                                <Ionicons name={item.activeIcon} size={28} color="#fff" />
+                            </View>
+                            <Text
+                                style={[styles.centerLabel, { color: activeColor }]}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                allowFontScaling={false}
+                            >
+                                {item.label}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                }
+
+                // ── Tab Inactivo (Plano) ──────────────────────────────────────
                 return (
                     <TouchableOpacity
                         key={item.label}
@@ -154,18 +146,15 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                         activeOpacity={0.6}
                         onPress={onPress}
                     >
-                        {/* Ícono de Ionicons con tamaño dinámico según estado */}
                         <Ionicons
-                            name={iconName}
-                            size={isActive ? 26 : 24}
-                            color={color}
+                            name={item.inactiveIcon}
+                            size={24}
+                            color={inactiveColor}
                         />
-                        {/* Etiqueta del tab con color dinámico */}
-                        <Text 
+                        <Text
                             style={[
                                 styles.navText,
-                                { color },
-                                isActive && styles.navTextActive
+                                { color: inactiveColor },
                             ]}
                             numberOfLines={1}
                             adjustsFontSizeToFit
@@ -173,8 +162,6 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                         >
                             {item.label}
                         </Text>
-                        {/* Indicador visual (punto) para el tab activo */}
-                        {isActive && <View style={[styles.activeDot, { backgroundColor: theme.navActive }]} />}
                     </TouchableOpacity>
                 );
             })}
@@ -191,9 +178,9 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        paddingHorizontal: 8,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
+        paddingHorizontal: 20,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
         borderTopWidth: 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -3 },
@@ -201,12 +188,12 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 10,
     },
+    // ── Tabs laterales ──────────────────────────────────────────────────────
     navItem: {
         alignItems: 'center',
         justifyContent: 'center',
         flex: 1,
         paddingTop: 10,
-        position: 'relative',
     },
     navText: {
         fontSize: 11,
@@ -224,7 +211,37 @@ const styles = StyleSheet.create({
         borderRadius: 2,
         marginTop: 3,
     },
+    // ── Tab central elevado ─────────────────────────────────────────────────
+    centerWrapper: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        marginTop: -26,
+    },
+    centerButton: {
+        width: 58,
+        height: 58,
+        borderRadius: 29,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 8,
+        shadowColor: '#2563EB',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+    },
+    centerButtonActive: {
+        elevation: 12,
+        shadowOpacity: 0.5,
+    },
+    centerLabel: {
+        fontSize: 11,
+        marginTop: 4,
+        textAlign: 'center',
+        width: '100%',
+        includeFontPadding: false,
+        fontFamily: 'Poppins-SemiBold',
+    },
 });
 
 export default BottomNavigationBar;
-

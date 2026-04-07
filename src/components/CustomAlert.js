@@ -32,6 +32,8 @@ const CustomAlert = ({
     onConfirm,
     confirmText = 'Entendido',
     cancelText = null,
+    dismissText = null,
+    onDismiss = null,
 }) => {
     const { theme } = useDriverTheme();
     const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -75,6 +77,7 @@ const CustomAlert = ({
             case 'warning': return { name: 'warning', color: '#FFBB33' };
             case 'confirm': return { name: 'help-circle', color: theme.danger || '#ff4444' };
             case 'info': return { name: 'information-circle', color: theme.accent || '#33b5e5' };
+            case 'map':  return { name: 'map', color: '#2563EB' };
             default: return { name: 'help-circle', color: theme.accent };
         }
     };
@@ -146,6 +149,17 @@ const CustomAlert = ({
                             activeOpacity={0.8}
                         >
                             <Text style={styles.buttonText}>{confirmText}</Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Botón Cancelar (tercer botón rojo, opcional) */}
+                    {dismissText && (
+                        <TouchableOpacity
+                            style={[styles.dismissButton]}
+                            onPress={onDismiss || onClose}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.dismissButtonText}>{dismissText}</Text>
                         </TouchableOpacity>
                     )}
                 </Animated.View>
@@ -244,6 +258,23 @@ const styles = StyleSheet.create({
     },
     secondaryButtonText: {
         fontSize: 16,
+        fontFamily: 'Poppins-SemiBold',
+        fontWeight: '600',
+    },
+    dismissButton: {
+        marginTop: 10,
+        width: '100%',
+        height: 48,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#ff444420',
+        borderWidth: 1.4,
+        borderColor: '#ff4444',
+    },
+    dismissButtonText: {
+        color: '#ff4444',
+        fontSize: 15,
         fontFamily: 'Poppins-SemiBold',
         fontWeight: '600',
     },

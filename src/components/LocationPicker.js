@@ -196,6 +196,11 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
 
                     {/* ── MAPA ── */}
                     {tab === 'map' && (
+                        <View style={[styles.mapCard, { backgroundColor: theme.surface, borderColor: theme.cardBorder }]}>
+                            <View style={styles.mapCardHeader}>
+                                <Ionicons name="navigate-outline" size={15} color={theme.accent} />
+                                <Text style={[styles.mapCardLabel, { color: theme.text }]}>Seleccionar en el mapa</Text>
+                            </View>
                         <View style={styles.mapContainer}>
                             <MapView
                                 style={styles.map}
@@ -231,6 +236,7 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
                                     </TouchableOpacity>
                                 )}
                             </View>
+                        </View>
                         </View>
                     )}
 
@@ -301,9 +307,31 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 15,
     },
-    mapContainer: {
+    mapCard: {
         flex: 1,
         borderRadius: 15,
+        borderWidth: 1,
+        overflow: 'hidden',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+    },
+    mapCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+    },
+    mapCardLabel: {
+        fontSize: 13,
+        fontWeight: '700',
+        letterSpacing: 0.3,
+    },
+    mapContainer: {
+        flex: 1,
         overflow: 'hidden',
     },
     map: {

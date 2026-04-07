@@ -110,7 +110,7 @@ const DashboardPasajero = ({ navigation, route }) => {
                     style={[styles.searchCard, { backgroundColor: theme.accent || '#2563EB' }]}
                     onPress={() => {
                         // Navega hacia la pantalla de búsqueda de viajes 'SearchRide'
-                        navigation.navigate('SearchRide');
+                        navigation.navigate('BuscarViaje');
                     }}
                     activeOpacity={0.9}
                 >

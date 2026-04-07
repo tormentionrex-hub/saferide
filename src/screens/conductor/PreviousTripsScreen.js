@@ -58,31 +58,37 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact }) => 
 
             {/* Mapa con la ruta */}
             {(originCoords && destCoords) ? (
-                <View style={styles.mapContainer}>
-                    <MapView
-                        provider={PROVIDER_GOOGLE}
-                        style={styles.map}
-                        initialRegion={{
-                            latitude: (originCoords.lat + destCoords.lat) / 2,
-                            longitude: (originCoords.lng + destCoords.lng) / 2,
-                            latitudeDelta: Math.abs(originCoords.lat - destCoords.lat) * 2,
-                            longitudeDelta: Math.abs(originCoords.lng - destCoords.lng) * 2,
-                        }}
-                        scrollEnabled={false}
-                        zoomEnabled={false}
-                        pitchEnabled={false}
-                        rotateEnabled={false}
-                        cacheEnabled={true} // Performance optimization for MapView
-                    >
-                        <Marker coordinate={{ latitude: originCoords.lat, longitude: originCoords.lng }}>
-                            <View style={[styles.markerIcon, { backgroundColor: theme.accent }]}>
-                                <View style={styles.markerInner} />
-                            </View>
-                        </Marker>
-                        <Marker coordinate={{ latitude: destCoords.lat, longitude: destCoords.lng }}>
-                            <Ionicons name="location" size={24} color="#FF3B30" />
-                        </Marker>
-                    </MapView>
+                <View style={[styles.mapSection, { borderColor: theme.cardBorder }]}>
+                    <View style={styles.mapSectionHeader}>
+                        <Ionicons name="navigate-outline" size={13} color={theme.accent} />
+                        <Text style={[styles.mapSectionLabel, { color: theme.textSecondary }]}>Ruta del Viaje</Text>
+                    </View>
+                    <View style={styles.mapContainer}>
+                        <MapView
+                            provider={PROVIDER_GOOGLE}
+                            style={styles.map}
+                            initialRegion={{
+                                latitude: (originCoords.lat + destCoords.lat) / 2,
+                                longitude: (originCoords.lng + destCoords.lng) / 2,
+                                latitudeDelta: Math.abs(originCoords.lat - destCoords.lat) * 2,
+                                longitudeDelta: Math.abs(originCoords.lng - destCoords.lng) * 2,
+                            }}
+                            scrollEnabled={false}
+                            zoomEnabled={false}
+                            pitchEnabled={false}
+                            rotateEnabled={false}
+                            cacheEnabled={true} // Performance optimization for MapView
+                        >
+                            <Marker coordinate={{ latitude: originCoords.lat, longitude: originCoords.lng }}>
+                                <View style={[styles.markerIcon, { backgroundColor: theme.accent }]}>
+                                    <View style={styles.markerInner} />
+                                </View>
+                            </Marker>
+                            <Marker coordinate={{ latitude: destCoords.lat, longitude: destCoords.lng }}>
+                                <Ionicons name="location" size={24} color="#FF3B30" />
+                            </Marker>
+                        </MapView>
+                    </View>
                 </View>
             ) : null}
 
@@ -613,11 +619,28 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         textTransform: 'uppercase',
     },
-    mapContainer: {
-        height: 120,
+    mapSection: {
         borderRadius: 16,
+        borderWidth: 1,
         overflow: 'hidden',
         marginBottom: 16,
+    },
+    mapSectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
+    mapSectionLabel: {
+        fontSize: 11,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    mapContainer: {
+        height: 120,
+        overflow: 'hidden',
     },
     map: {
         ...StyleSheet.absoluteFillObject,

@@ -131,34 +131,40 @@ const RideDetail = ({ route, navigation }) => {
         <View style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor="transparent" translucent />
 
-            {/* MAPA A PANTALLA COMPLETA */}
-            <MapView
-                ref={mapRef}
-                style={styles.map}
-                provider={PROVIDER_GOOGLE}
-                customMapStyle={theme.dark ? darkMapStyle : []}
-            >
-                {/* Marcador de Origen */}
-                <Marker
-                    coordinate={{ latitude: origin.coordinates.lat, longitude: origin.coordinates.lng }}
-                    title="Origen"
-                    description={origin.name}
+            {/* MAPA CON CARD HEADER */}
+            <View style={styles.mapWrapper}>
+                <View style={[styles.mapCardHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+                    <Ionicons name="navigate-outline" size={15} color={theme.accent} />
+                    <Text style={[styles.mapCardLabel, { color: theme.text }]}>Tu Viaje</Text>
+                </View>
+                <MapView
+                    ref={mapRef}
+                    style={styles.map}
+                    provider={PROVIDER_GOOGLE}
+                    customMapStyle={theme.dark ? darkMapStyle : []}
                 >
-                    <View style={[styles.markerRound, { backgroundColor: theme.accent }]}>
-                        <Ionicons name="radio-button-on" size={16} color="#fff" />
-                    </View>
-                </Marker>
-                {/* Marcador de Destino */}
-                <Marker
-                    coordinate={{ latitude: dest.coordinates.lat, longitude: dest.coordinates.lng }}
-                    title="Destino"
-                    description={dest.name}
-                >
-                    <View style={[styles.markerRound, { backgroundColor: '#FF5A5F' }]}>
-                        <Ionicons name="location" size={16} color="#fff" />
-                    </View>
-                </Marker>
-            </MapView>
+                    {/* Marcador de Origen */}
+                    <Marker
+                        coordinate={{ latitude: origin.coordinates.lat, longitude: origin.coordinates.lng }}
+                        title="Origen"
+                        description={origin.name}
+                    >
+                        <View style={[styles.markerRound, { backgroundColor: theme.accent }]}>
+                            <Ionicons name="radio-button-on" size={16} color="#fff" />
+                        </View>
+                    </Marker>
+                    {/* Marcador de Destino */}
+                    <Marker
+                        coordinate={{ latitude: dest.coordinates.lat, longitude: dest.coordinates.lng }}
+                        title="Destino"
+                        description={dest.name}
+                    >
+                        <View style={[styles.markerRound, { backgroundColor: '#FF5A5F' }]}>
+                            <Ionicons name="location" size={16} color="#fff" />
+                        </View>
+                    </Marker>
+                </MapView>
+            </View>
 
             {/* BOTÓN CERRAR (FLOTANTE) */}
             <TouchableOpacity
@@ -223,10 +229,33 @@ const RideDetail = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    map: { width: '100%', height: height * 0.7 },
+    mapWrapper: {
+        width: '100%',
+        height: height * 0.7,
+        overflow: 'hidden',
+    },
+    mapCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 2 },
+    },
+    mapCardLabel: {
+        fontSize: 14,
+        fontWeight: '700',
+        letterSpacing: 0.3,
+    },
+    map: { width: '100%', height: height * 0.7 - 44 },
     closeBtn: {
         position: 'absolute',
-        top: 50,
+        top: 54,
         right: 20,
         width: 44,
         height: 44,
