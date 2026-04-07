@@ -20,6 +20,7 @@ import { useFonts } from 'expo-font';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../../config.js';
+import { registerForPushNotifications } from '../../services/pushNotificationService';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const ICON = require('../../images/IconSafeRide.png');
@@ -208,6 +209,9 @@ export default function SignInScreen({ navigation }) {
                 await AsyncStorage.setItem('userEmail', userData.email || '');
                 await AsyncStorage.setItem('userPhone', userData.phone || '');
                 await AsyncStorage.setItem('userPhoto', userData.photo || '');
+
+                // Registrar push token en background (no bloquea el flujo de login)
+                registerForPushNotifications().catch(() => {});
 
                 showSuccessAnimation();
 

@@ -1,13 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import {
     View, Text, TouchableOpacity, StyleSheet, Image,
-    SafeAreaView, StatusBar, Platform, Dimensions, ScrollView
+    SafeAreaView, StatusBar, Platform, Dimensions, ScrollView, ActivityIndicator
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import api from '../../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -16,9 +17,12 @@ const SearchRide = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const [userPhoto, setUserPhoto] = useState(null);
     const [userName, setUserName] = useState('');
+    const [isChecking, setIsChecking] = useState(true);
 
     useFocusEffect(
         useCallback(() => {
+            let intervalId;
+
             const loadUserData = async () => {
                 const photo = await AsyncStorage.getItem('userPhoto');
                 const name = await AsyncStorage.getItem('userName');
@@ -30,8 +34,54 @@ const SearchRide = ({ navigation }) => {
                 }
                 if (name) setUserName(name);
             };
+
+            const checkActiveTrip = async () => {
+                try {
+                    // Consultamos reservas confirmadas del usuario
+                    const resConfirmed = await api.get('/bookings?status=confirmed&limit=5');
+                    const resPending = await api.get('/bookings?status=pending&limit=5');
+
+                    let activeBooking = null;
+
+                    if (resConfirmed.data?.success) {
+                        const bookings = resConfirmed.data.data || [];
+                        activeBooking = bookings.find(b => {
+                            const rideStatus = b.ride_id?.status;
+                            return rideStatus === 'in progress' || rideStatus === 'scheduled';
+                        });
+                        
+                        if (activeBooking) {
+                            navigation.replace('TripInProgress', { bookingId: activeBooking._id });
+                            return;
+                        }
+                    }
+
+                    if (!activeBooking && resPending.data?.success) {
+                        const bookings = resPending.data.data || [];
+                        const pendingBooking = bookings.find(b => b.status === 'pending');
+                        if (pendingBooking) {
+                            navigation.replace('ScreenSaver', { bookingId: pendingBooking._id });
+                            return;
+                        }
+                    }
+
+                    // Si no hay viajes activos confirmados ni en proceso y termina, quitamos el loader
+                    setIsChecking(false);
+                } catch (error) {
+                    console.log('Error silenciado verificando viajes activos en SearchRide:', error?.message);
+                    setIsChecking(false);
+                }
+            };
+
             loadUserData();
-        }, [])
+            checkActiveTrip();
+            // Poll cada 15 segundos (balance entre rapidez y ahorro de batería/datos)
+            intervalId = setInterval(checkActiveTrip, 15000); 
+
+            return () => {
+                if (intervalId) clearInterval(intervalId);
+            };
+        }, [navigation])
     );
 
     const getInitials = (name) => {
@@ -79,16 +129,22 @@ const SearchRide = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* CONTENIDO SCROLLABLE */}
-            <ScrollView 
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-                style={{ backgroundColor: '#F1F5F9' }}
-            >
-                <View style={[styles.content]}>
-                    <Text style={[styles.mainTitle, { color: theme.text }]}>
-                        No estás en ningún viaje actualmente
-                    </Text>
+            {/* CONTENIDO SCROLLABLE O LOADER */}
+            {isChecking ? (
+                <View style={[styles.content, { backgroundColor: '#F1F5F9', flex: 1 }]}>
+                    <ActivityIndicator size="large" color={theme.navActive} />
+                    <Text style={{ marginTop: 15, color: theme.textSecondary }}>Cargando información...</Text>
+                </View>
+            ) : (
+                <ScrollView 
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    style={{ backgroundColor: '#F1F5F9' }}
+                >
+                    <View style={[styles.content]}>
+                        <Text style={[styles.mainTitle, { color: theme.text }]}>
+                            No estás en ningún viaje actualmente
+                        </Text>
                     
                     <Text style={[styles.subTitle, { color: theme.textSecondary }]}>
                         Por favor busca un viaje para comenzar
@@ -110,6 +166,7 @@ const SearchRide = ({ navigation }) => {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+            )}
         </SafeAreaView>
     );
 };

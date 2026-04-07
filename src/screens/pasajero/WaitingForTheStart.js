@@ -402,7 +402,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
         };
 
         checkStatus();
-        intervalRef.current = setInterval(checkStatus, 15000); // Aumentado a 15s para evitar error 429
+        intervalRef.current = setInterval(checkStatus, 5000);
 
         return () => clearInterval(intervalRef.current);
     }, [bookingId]);

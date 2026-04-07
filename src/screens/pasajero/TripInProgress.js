@@ -116,22 +116,26 @@ const TripInProgress = ({ route, navigation }) => {
 
     // Si no hay bookingId en params, buscamos automáticamente el booking activo del usuario
     useEffect(() => {
+        let findInterval;
         if (!bookingId) {
             const findActiveBooking = async () => {
                 try {
                     // GET /bookings?status=confirmed devuelve SOLO los bookings del usuario logueado
+                    // Confirmado implica que el conductor lo aceptó (status=confirmed en booking)
+                    // Y puede que el ride ya sea 'in progress' o 'scheduled'
                     const res = await api.get('/bookings?status=confirmed&limit=5');
                     if (res.data?.success) {
                         const bookings = res.data.data || [];
-                        // Buscamos uno cuyo viaje esté 'in progress' (viaje activo ahora)
                         const active = bookings.find(b => {
                             const rideStatus = b.ride_id?.status;
                             return rideStatus === 'in progress' || rideStatus === 'scheduled';
                         });
+                        
                         if (active) {
                             setResolvedBookingId(active._id);
+                            setNoActiveTrip(false);
+                            if (findInterval) clearInterval(findInterval); // Dejamos de buscar porque ya encontramos uno
                         } else {
-                            // No hay viaje activo
                             setNoActiveTrip(true);
                             setLoading(false);
                         }
@@ -145,9 +149,17 @@ const TripInProgress = ({ route, navigation }) => {
                     setLoading(false);
                 }
             };
+            
+            // Primera ejecución
             findActiveBooking();
+            // Continuar revisando cada 10 segundos por si el conductor inicia el viaje mientras el pasajero mira la pantalla
+            findInterval = setInterval(findActiveBooking, 10000);
         }
-    }, []); // Solo al montar
+        
+        return () => {
+            if (findInterval) clearInterval(findInterval);
+        };
+    }, []); // Al montar
 
     // Polling principal usando el ID resuelto
     useEffect(() => {
@@ -181,8 +193,12 @@ const TripInProgress = ({ route, navigation }) => {
                                 'Viaje Finalizado',
                                 'El viaje ha sido cancelado o rechazado.',
                                 'warning',
-                                'Buscar otro viaje',
-                                () => navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' })
+                                'Aceptar',
+                                () => {
+                                    setResolvedBookingId(null);
+                                    setBookingData(null);
+                                    setNoActiveTrip(true);
+                                }
                             );
                         }
                     }
