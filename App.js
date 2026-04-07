@@ -45,6 +45,7 @@ import CurrentTrip from './src/screens/conductor/CurrentTrip';
 import RatePassenger from './src/screens/conductor/RatePassenger';
 import RateDriver from './src/screens/pasajero/RateDriver';
 import BuscarViaje from './src/screens/pasajero/BuscarViaje';
+import PaymentVerification from './src/screens/conductor/PaymentVerification';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BottomNavigationBar from './src/components/BottomNavigationBar';
@@ -265,6 +266,15 @@ export default function App() {
               options={{
                 headerShown: false,
                 animation: 'slide_from_right'
+              }}
+            />
+            <Stack.Screen
+              name="PaymentVerification"
+              component={PaymentVerification}
+              options={{
+                headerShown: false,
+                animation: 'slide_from_bottom',
+                gestureEnabled: false,
               }}
             />
             <Stack.Screen

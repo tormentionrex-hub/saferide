@@ -184,12 +184,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
 
             if (currentStatus === 'completed') {
                 setFinishModalVisible(false);
-                navigation.replace('RatePassenger', {
-                    rideId,
-                    passengerId: bookingData?.passenger_id?._id?.toString() || bookingData?.passenger_id?.toString(),
-                    passengerName: bookingData?.passenger_id?.name,
-                    passengerImage: bookingData?.passenger_id?.profileImage,
-                });
+                navigation.replace('PaymentVerification', { rideId });
                 return;
             }
 
@@ -203,12 +198,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
             
             if (res.data?.success) {
                 setFinishModalVisible(false);
-                navigation.replace('RatePassenger', {
-                    rideId,
-                    passengerId: bookingData?.passenger_id?._id?.toString() || bookingData?.passenger_id?.toString(),
-                    passengerName: bookingData?.passenger_id?.name,
-                    passengerImage: bookingData?.passenger_id?.profileImage,
-                });
+                navigation.replace('PaymentVerification', { rideId });
             } else {
                 setFinishModalVisible(false);
                 Alert.alert('Error', res.data?.message || 'No se pudo finalizar el viaje.');
@@ -239,12 +229,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
                             const currentStatus = rideCheck.data?.data?.status;
 
                             if (currentStatus === 'completed') {
-                                navigation.replace('RatePassenger', {
-                                    rideId,
-                                    passengerId: bookingData?.passenger_id?._id?.toString() || bookingData?.passenger_id?.toString(),
-                                    passengerName: bookingData?.passenger_id?.name,
-                                    passengerImage: bookingData?.passenger_id?.profileImage,
-                                });
+                                navigation.replace('PaymentVerification', { rideId });
                                 return;
                             }
 
@@ -257,12 +242,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
                             const res = await api.patch(`/rides/${rideId}/complete`);
 
                             if (res.data?.success) {
-                                navigation.replace('RatePassenger', {
-                                    rideId,
-                                    passengerId: bookingData?.passenger_id?._id?.toString() || bookingData?.passenger_id?.toString(),
-                                    passengerName: bookingData?.passenger_id?.name,
-                                    passengerImage: bookingData?.passenger_id?.profileImage,
-                                });
+                                navigation.replace('PaymentVerification', { rideId });
                             } else {
                                 showAlert('Error', res.data?.message || 'No se pudo finalizar el viaje.', 'error');
                             }

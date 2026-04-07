@@ -12,7 +12,8 @@ import {
     Dimensions,
     Linking,
     Modal,
-    ScrollView
+    ScrollView,
+    Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +22,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { rideService } from '../../services/rideService';
 import api from '../../services/api';
+import sessionCache from '../../services/sessionCache';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DateTime } from 'luxon';
 import { Image } from 'expo-image';
@@ -209,9 +211,8 @@ const History = ({ navigation }) => {
 
         if (!isSilent) setLoading(true);
         try {
-            const meRes = await api.get('/auth/me');
-            if (!meRes.data.success) throw new Error('Could not get user data');
-            const userId = meRes.data.data._id;
+            const userId = await sessionCache.getDriverId();
+            if (!userId) throw new Error('Could not get user data');
 
             const response = await rideService.getBookingsByPassenger(userId);
 
@@ -295,9 +296,7 @@ const History = ({ navigation }) => {
         const cleanPhone = phone.replace(/[^\d+]/g, '');
         if (type === 'whatsapp') {
             const url = `https://wa.me/${cleanPhone.startsWith('+') ? cleanPhone : '+506' + cleanPhone}`;
-            Linking.canOpenURL(url).then(supported => {
-                if (supported) Linking.openURL(url);
-            });
+            Linking.openURL(url).catch(() => Alert.alert('Error', 'No se pudo abrir WhatsApp.'));
         } else if (type === 'call') {
             Linking.openURL(`tel:${cleanPhone}`);
         }

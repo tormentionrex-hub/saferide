@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
-import { 
-    View, 
-    Text, 
-    StyleSheet, 
-    StatusBar, 
-    FlatList, 
-    TouchableOpacity, 
-    ActivityIndicator, 
+import {
+    View,
+    Text,
+    StyleSheet,
+    StatusBar,
+    FlatList,
+    TouchableOpacity,
+    ActivityIndicator,
     RefreshControl,
     Dimensions,
     ScrollView,
     Modal,
     Platform,
-    Linking
+    Linking,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -298,9 +299,7 @@ export default function PreviousTripsScreen() {
         const cleanPhone = phone.replace(/[^\d+]/g, '');
         if (type === 'whatsapp') {
             const url = `https://wa.me/${cleanPhone.startsWith('+') ? cleanPhone : '+506' + cleanPhone}`;
-            Linking.canOpenURL(url).then(supported => {
-                if (supported) Linking.openURL(url);
-            });
+            Linking.openURL(url).catch(() => Alert.alert('Error', 'No se pudo abrir WhatsApp.'));
         } else if (type === 'call') {
             Linking.openURL(`tel:${cleanPhone}`);
         }
