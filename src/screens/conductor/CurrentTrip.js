@@ -326,7 +326,12 @@ const TripInProgressDriver = ({ route, navigation }) => {
                     {...si.scrollProps}
                 >
                     {/* Mapa con bordes redondeados y sombra */}
-                    <View style={styles.mapContainer}>
+                    <View style={[styles.mapCard, { backgroundColor: theme.surface, borderColor: theme.cardBorder }]}>
+                        <View style={styles.mapCardHeader}>
+                            <Ionicons name="navigate-outline" size={15} color={theme.accent} />
+                            <Text style={[styles.mapCardLabel, { color: theme.text }]}>Tu Viaje</Text>
+                        </View>
+                        <View style={styles.mapContainer}>
                         {hasCoords ? (
                             <MapView
                                 ref={mapRef}
@@ -390,6 +395,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
                                 <Text style={{ color: '#999', marginTop: 10 }}>Sin conexión GPS</Text>
                             </View>
                         )}
+                        </View>
                     </View>
 
                     {/* Card de Detalles del Pasajero */}
@@ -496,15 +502,32 @@ const styles = StyleSheet.create({
     },
     headerTitle: { fontSize: 18, fontWeight: '700' },
     scrollContent: { padding: 20, paddingBottom: 150 },
-    mapContainer: {
-        height: 200,
+    mapCard: {
         borderRadius: 20,
+        borderWidth: 1,
         overflow: 'hidden',
         marginBottom: 20,
         elevation: 4,
         shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+    },
+    mapCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+    },
+    mapCardLabel: {
+        fontSize: 13,
+        fontWeight: '700',
+        letterSpacing: 0.3,
+    },
+    mapContainer: {
+        height: 200,
+        overflow: 'hidden',
     },
     map: { flex: 1, width: '100%', height: '100%' },
     passengerCard: {

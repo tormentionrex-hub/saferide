@@ -14,8 +14,10 @@ export const CustomAlertProvider = ({ children }) => {
         type: 'success',
         confirmText: 'Entendido',
         cancelText: null,       // null = no mostrar botón cancelar
+        dismissText: null,      // null = no mostrar tercer botón rojo
         onConfirm: null,
         onClose: null,
+        onDismiss: null,
     });
 
     /**
@@ -32,9 +34,11 @@ export const CustomAlertProvider = ({ children }) => {
         confirmText = 'Entendido',
         onClose = null,
         cancelText = null,
-        onConfirm = null
+        onConfirm = null,
+        dismissText = null,
+        onDismiss = null
     ) => {
-        setConfig({ title, message, type, confirmText, cancelText, onConfirm, onClose });
+        setConfig({ title, message, type, confirmText, cancelText, dismissText, onConfirm, onClose, onDismiss });
         setVisible(true);
     };
 
@@ -48,6 +52,11 @@ export const CustomAlertProvider = ({ children }) => {
         if (config.onConfirm) config.onConfirm();
     };
 
+    const handleDismiss = () => {
+        setVisible(false);
+        if (config.onDismiss) config.onDismiss();
+    };
+
     return (
         <CustomAlertContext.Provider value={{ showAlert, hideAlert }}>
             {children}
@@ -58,8 +67,10 @@ export const CustomAlertProvider = ({ children }) => {
                 type={config.type}
                 confirmText={config.confirmText}
                 cancelText={config.cancelText}
+                dismissText={config.dismissText}
                 onClose={hideAlert}
                 onConfirm={config.onConfirm ? handleConfirm : null}
+                onDismiss={config.onDismiss ? handleDismiss : null}
             />
         </CustomAlertContext.Provider>
     );

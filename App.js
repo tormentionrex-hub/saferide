@@ -44,6 +44,7 @@ import TripInProgress from './src/screens/pasajero/TripInProgress';
 import CurrentTrip from './src/screens/conductor/CurrentTrip';
 import RatePassenger from './src/screens/conductor/RatePassenger';
 import RateDriver from './src/screens/pasajero/RateDriver';
+import BuscarViaje from './src/screens/pasajero/BuscarViaje';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BottomNavigationBar from './src/components/BottomNavigationBar';
@@ -283,6 +284,11 @@ export default function App() {
                 animation: 'slide_from_bottom',
                 gestureEnabled: false,
               }}
+            />
+            <Stack.Screen
+              name="BuscarViaje"
+              component={BuscarViaje}
+              options={{ headerShown: false, animation: 'slide_from_right' }}
             />
             <Stack.Screen name="ForgotPasswordEmail" component={ForgotPasswordEmail} options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="ForgotPasswordCode" component={ForgotPasswordCode} options={{ animation: 'slide_from_right' }} />
