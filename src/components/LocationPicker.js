@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Modal,
     View,
@@ -35,12 +35,15 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
     });
     const [markerCoords, setMarkerCoords] = useState(null);
     const [selectedPlace, setSelectedPlace] = useState(null);
+    // Ref para distinguir movimientos programáticos (desde búsqueda) de los del usuario
+    const isProgrammaticMove = useRef(false);
 
     useEffect(() => {
         if (visible) {
             setTab('search');
             setMarkerCoords(null);
             setSelectedPlace(null);
+            isProgrammaticMove.current = false;
         }
     }, [visible]);
 
@@ -130,6 +133,10 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
 
                                 if (!lat || !lng) return;
 
+                                // Marcar que este movimiento del mapa es programático
+                                // para que onRegionChangeComplete no borre las coordenadas exactas
+                                isProgrammaticMove.current = true;
+
                                 setRegion({
                                     latitude: lat,
                                     longitude: lng,
@@ -137,9 +144,9 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
                                     longitudeDelta: 0.005,
                                 });
                                 setMarkerCoords({ latitude: lat, longitude: lng });
-                                setTab('map');
-                                // Guardar la info del lugar seleccionado para confirmar
+                                // Guardar coordenadas exactas del Places API antes de cambiar tab
                                 setSelectedPlace({ lat, lng, name, address });
+                                setTab('map');
                             }}
                             query={{
                                 key: GOOGLE_MAPS_API_KEY,
@@ -147,6 +154,9 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
                                 components: 'country:cr',
                             }}
                             fetchDetails={true}
+                            GooglePlacesDetailsQuery={{
+                                fields: 'geometry,name,formatted_address',
+                            }}
                             styles={{
                                 textInputContainer: {
                                     backgroundColor: 'transparent',
@@ -206,9 +216,16 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
                                 style={styles.map}
                                 initialRegion={region}
                                 onRegionChangeComplete={(r) => {
+                                    if (isProgrammaticMove.current) {
+                                        // Movimiento desde búsqueda: ignorar para no pisar las
+                                        // coordenadas exactas del Places API
+                                        isProgrammaticMove.current = false;
+                                        return;
+                                    }
+                                    // Movimiento real del usuario: actualizar coordenadas
                                     setRegion(r);
                                     setMarkerCoords({ latitude: r.latitude, longitude: r.longitude });
-                                    setSelectedPlace(null); // El usuario movió el mapa, ya no usar el lugar del autocomplete
+                                    setSelectedPlace(null);
                                 }}
                                 showsUserLocation={true}
                                 userInterfaceStyle={theme.dark ? 'dark' : 'light'}
