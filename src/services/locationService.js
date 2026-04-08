@@ -3,74 +3,87 @@ import * as Location from 'expo-location';
 import { GOOGLE_MAPS_API_KEY } from '../config.js';
 
 /**
- * Obtiene la ubicación GPS actual del dispositivo.
- * Solicita permisos si es necesario.
+ * Obtiene la ubicación GPS actual del dispositivo con alta precisión.
  */
 export const getCurrentLocation = async () => {
-    try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-            throw new Error('Permiso de ubicación denegado. Habilítalo en la configuración.');
-        }
-
-        const location = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-        });
-
-        return {
-            lat: location.coords.latitude,
-            lng: location.coords.longitude,
-        };
-    } catch (error) {
-        throw error;
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+        throw new Error('Permiso de ubicación denegado. Habilítalo en la configuración.');
     }
+
+    const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+    });
+
+    return {
+        lat: location.coords.latitude,
+        lng: location.coords.longitude,
+    };
 };
 
 /**
- * Convierte coordenadas (lat, lng) en una dirección legible (Geocodificación Inversa).
- * Retorna { name, address } o null en caso de error.
+ * Convierte coordenadas exactas en un nombre y dirección legible para mostrar.
+ * Las coordenadas pasadas NO se modifican — solo se obtiene el texto descriptivo.
  */
 export const reverseGeocode = async (lat, lng) => {
     try {
         const response = await axios.get(
-            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_MAPS_API_KEY}&language=es`
+            'https://maps.googleapis.com/maps/api/geocode/json',
+            {
+                params: {
+                    latlng: `${lat},${lng}`,
+                    key: GOOGLE_MAPS_API_KEY,
+                    language: 'es',
+                },
+            }
         );
 
-        if (response.data.status === 'OK' && response.data.results.length > 0) {
-            const result = response.data.results[0];
-            const name = result.address_components[0].long_name;
-            return {
-                name: name || 'Ubicación seleccionada',
-                address: result.formatted_address,
-            };
+        if (response.data.status !== 'OK' || !response.data.results.length) {
+            return { name: 'Ubicación seleccionada', address: '' };
         }
-        return { name: 'Desconocido', address: 'Dirección no encontrada' };
+
+        // Usar el primer resultado (el más preciso que retorna Google)
+        const best = response.data.results[0];
+        const fullAddress = best.formatted_address || '';
+
+        // El nombre es la primera parte de la dirección antes del primer coma
+        // Ej: "Calle 5, San José, Costa Rica" → "Calle 5"
+        const name = fullAddress.split(',')[0].trim() || 'Ubicación seleccionada';
+
+        return { name, address: fullAddress };
     } catch (error) {
-        console.error('Error en reverseGeocode:', error);
-        throw error;
+        console.error('[reverseGeocode] Error:', error.message);
+        return { name: 'Ubicación seleccionada', address: '' };
     }
 };
 
 /**
- * Calcula la distancia y el tiempo estimado entre dos puntos usando Directions API.
- * Retorna { distance_km, duration_minutes } o null en caso de error.
+ * Calcula distancia y tiempo estimado entre dos puntos usando Directions API.
  */
 export const getRouteDetails = async (origin, destination) => {
     try {
         const response = await axios.get(
-            `https://maps.googleapis.com/maps/api/directions/json?origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}&key=${GOOGLE_MAPS_API_KEY}`
+            'https://maps.googleapis.com/maps/api/directions/json',
+            {
+                params: {
+                    origin: `${origin.lat},${origin.lng}`,
+                    destination: `${destination.lat},${destination.lng}`,
+                    key: GOOGLE_MAPS_API_KEY,
+                },
+            }
         );
 
         if (response.data.status === 'OK') {
-            const route = response.data.routes[0].legs[0];
+            const leg = response.data.routes[0].legs[0];
             return {
-                distance_km: parseFloat((route.distance.value / 1000).toFixed(1)),
-                duration_minutes: Math.ceil(route.duration.value / 60),
+                distance_km: parseFloat((leg.distance.value / 1000).toFixed(1)),
+                duration_minutes: Math.ceil(leg.duration.value / 60),
             };
         }
+
         throw new Error('No se pudo encontrar una ruta viable entre estos puntos.');
     } catch (error) {
-        console.error('Error en getRouteDetails:', error);
+        console.error('[getRouteDetails] Error:', error.message);
         throw error;
     }
 };

@@ -1,24 +1,28 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import Constants from 'expo-constants';
+import { isRunningInExpoGo } from 'expo';
 import api from './api';
 
-Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-    }),
-});
+// Si estamos en Expo Go, no importar el módulo en absoluto.
+// El simple import estático ya dispara el warning interno del SDK 53+ en Android.
+const Notifications = isRunningInExpoGo() ? null : require('expo-notifications');
+
+if (Notifications) {
+    Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: true,
+        }),
+    });
+}
 
 /**
  * Solicita permisos, obtiene el Expo Push Token y lo registra en el backend.
  * Llama a esta función justo después del login exitoso.
  */
 export const registerForPushNotifications = async () => {
-    // Evitar error en Expo Go con SDK 53+ en Android
-    if (Constants.appOwnership === 'expo') {
-        console.log('[Push] Push notifications no soportadas en Expo Go (SDK 53+). Saltando registro.');
+    if (!Notifications) {
+        console.log('[Push] Expo Go detectado — push notifications omitidas.');
         return null;
     }
 
@@ -31,20 +35,20 @@ export const registerForPushNotifications = async () => {
             finalStatus = status;
         }
 
-    if (finalStatus !== 'granted') {
-        console.log('[Push] Permiso denegado — no se registrará token.');
-        return null;
-    }
+        if (finalStatus !== 'granted') {
+            console.log('[Push] Permiso denegado — no se registrará token.');
+            return null;
+        }
 
-    const tokenData = await Notifications.getExpoPushTokenAsync();
-    const pushToken = tokenData.data;
+        const tokenData = await Notifications.getExpoPushTokenAsync();
+        const pushToken = tokenData.data;
 
-    try {
-        await api.post('/auth/push-token', { pushToken });
-        console.log('[Push] Token registrado en backend:', pushToken);
-    } catch (e) {
-        console.error('[Push] Error guardando token en backend:', e.message);
-    }
+        try {
+            await api.post('/auth/push-token', { pushToken });
+            console.log('[Push] Token registrado en backend:', pushToken);
+        } catch (e) {
+            console.error('[Push] Error guardando token en backend:', e.message);
+        }
 
         if (Platform.OS === 'android') {
             await Notifications.setNotificationChannelAsync('default', {

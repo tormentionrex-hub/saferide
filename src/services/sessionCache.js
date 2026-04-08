@@ -37,6 +37,13 @@ const sessionCache = {
 
         // 3. AsyncStorage (evita llamada al API si ya lo tenemos persistido)
         try {
+            // Primero intentar con la clave de userId guardada en login
+            const userId = await AsyncStorage.getItem('userId');
+            if (userId) {
+                cache.driverId = userId;
+                return userId;
+            }
+            // Fallback: clave legacy del cache
             const stored = await AsyncStorage.getItem(STORAGE_KEY_DRIVER_ID);
             if (stored) {
                 cache.driverId = stored;

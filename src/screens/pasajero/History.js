@@ -22,7 +22,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { rideService } from '../../services/rideService';
 import api from '../../services/api';
-import sessionCache from '../../services/sessionCache';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DateTime } from 'luxon';
 import { Image } from 'expo-image';
@@ -211,8 +211,15 @@ const History = ({ navigation }) => {
 
         if (!isSilent) setLoading(true);
         try {
-            const userId = await sessionCache.getDriverId();
-            if (!userId) throw new Error('Could not get user data');
+            // Leer userId directo de AsyncStorage (guardado en login) para evitar
+            // el cache stale de sessionCache que causaba el 403
+            let userId = await AsyncStorage.getItem('userId');
+            if (!userId) {
+                // Fallback: consultar /auth/me si el userId no está aún en AsyncStorage
+                const meRes = await api.get('/auth/me');
+                userId = meRes.data?.data?._id;
+            }
+            if (!userId) return; // sin userId no tiene sentido continuar
 
             const response = await rideService.getBookingsByPassenger(userId);
 
@@ -241,7 +248,10 @@ const History = ({ navigation }) => {
                 setSelectedMonth(prev => (months.length > 0 && !prev) ? months[0] : prev);
             }
         } catch (error) {
-            console.error('Error fetching passenger history:', error);
+            // En 403 marcar cache con lista vacía para evitar retry infinito en cada focus
+            if (error?.response?.status === 403) {
+                historyCache = { data: [], lastCheck: Date.now() };
+            }
         } finally {
             setLoading(false);
             setRefreshing(false);

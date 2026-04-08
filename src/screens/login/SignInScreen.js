@@ -21,6 +21,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../../config.js';
 import { registerForPushNotifications } from '../../services/pushNotificationService';
+import sessionCache from '../../services/sessionCache';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const ICON = require('../../images/IconSafeRide.png');
@@ -203,9 +204,13 @@ export default function SignInScreen({ navigation }) {
 
                 // Persistir sesión para que el Splash redirija correctamente al reabrir la app
                 const accessToken = response.data.data.accessToken;
+                // Limpiar cache de sesión anterior antes de guardar la nueva
+                sessionCache.clear();
+
                 await AsyncStorage.setItem('userToken', accessToken);
                 await AsyncStorage.setItem('userRole', userRole);
                 await AsyncStorage.setItem('userName', userName);
+                await AsyncStorage.setItem('userId', userData._id || '');
                 await AsyncStorage.setItem('userEmail', userData.email || '');
                 await AsyncStorage.setItem('userPhone', userData.phone || '');
                 await AsyncStorage.setItem('userPhoto', userData.photo || '');
