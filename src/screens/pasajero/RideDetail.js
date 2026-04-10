@@ -113,8 +113,8 @@ const RideDetail = ({ route, navigation }) => {
             const response = await api.post('/bookings', {
                 ride_id: ride._id,
                 seats_booked: 1,
-                passenger_origin: searchOrigin ?? null,
-                passenger_destination: searchDestination ?? null,
+                passenger_origin: searchOrigin?.name ?? null,
+                passenger_destination: searchDestination?.name ?? null,
             });
             if (response.data.success) {
                 navigation.navigate('ScreenSaver', { bookingId: response.data.data._id });

@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
     View,
     Text,
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
-    Alert,
     StatusBar,
     Platform,
     ScrollView,
-    Modal
+    Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -27,7 +26,6 @@ import SettingsGearButton from '../../components/SettingsGearButton';
  */
 const PublishRide = ({ navigation }) => {
     const { theme } = useDriverTheme();
-    const placeholderColor = theme.dark ? '#B0B0D8' : '#AAAAAA';
     const si = useScrollIndicator();
 
     // --- ESTADOS DE UBICACIÓN ---
@@ -52,6 +50,11 @@ const PublishRide = ({ navigation }) => {
     const [isActiveRideModalVisible, setIsActiveRideModalVisible] = useState(false);
     const [newRideId, setNewRideId] = useState(null);
 
+    // --- SWEET ALERT ---
+    const [sweetAlert, setSweetAlert] = useState({ visible: false, type: 'error', title: '', message: '' });
+    const showSweetAlert = (type, title, message) => setSweetAlert({ visible: true, type, title, message });
+    const hideSweetAlert = () => setSweetAlert(prev => ({ ...prev, visible: false }));
+
     useEffect(() => {
         const fetchRoute = async () => {
             if (origin && destination) {
@@ -61,7 +64,7 @@ const PublishRide = ({ navigation }) => {
                     setRouteInfo(details);
                 } catch (error) {
                     console.error('Error calculando ruta:', error);
-                    Alert.alert('Error', 'No se pudo calcular la distancia de la ruta.');
+                    showSweetAlert('error', 'Error de ruta', 'No se pudo calcular la distancia de la ruta.');
                 } finally {
                     setCalculatingRoute(false);
                 }
@@ -84,7 +87,6 @@ const PublishRide = ({ navigation }) => {
     };
 
     const calculatePrice = () => {
-
         //negociar el precio por kilometro
         if (!routeInfo) return 0;
         return Math.round(routeInfo.distance_km * 270);
@@ -98,7 +100,7 @@ const PublishRide = ({ navigation }) => {
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
-            Alert.alert('Campos incompletos', 'Por favor selecciona los puntos de origen, destino y la fecha/hora.');
+            showSweetAlert('warning', 'Campos incompletos', 'Por favor selecciona el origen, destino y la hora de salida.');
             return;
         }
 
@@ -110,7 +112,7 @@ const PublishRide = ({ navigation }) => {
                 const driverId = meRes.data.data._id;
                 const activeRidesRes = await api.get(`/rides/driver/${driverId}`);
                 if (activeRidesRes.data.success) {
-                    const activeRides = activeRidesRes.data.data.filter(r => 
+                    const activeRides = activeRidesRes.data.data.filter(r =>
                         r.status === 'scheduled' || r.status === 'in progress'
                     );
                     if (activeRides.length > 0) {
@@ -124,27 +126,27 @@ const PublishRide = ({ navigation }) => {
             const fullDateTime = new Date(fechaSeleccionada);
             fullDateTime.setHours(horaSeleccionada.getHours(), horaSeleccionada.getMinutes(), 0, 0);
 
-            // Validar que el viaje sea del día de hoy y hora futura
             const now = new Date();
+
+            // Validar que sea el día de hoy
             const inputDateString = new Date(fullDateTime.getTime() - fullDateTime.getTimezoneOffset() * 60000).toISOString().split('T')[0];
             const nowDateString = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
             if (inputDateString !== nowDateString) {
-                Alert.alert('Fecha inválida', 'Solo puedes publicar viajes para el día de hoy.');
+                showSweetAlert('warning', 'Fecha inválida', 'Solo puedes publicar viajes para el día de hoy.');
                 setLoading(false);
                 return;
             }
 
-            const minAllowedTime = new Date(now);
-            minAllowedTime.setMinutes(now.getMinutes() + 4);
+            // Mínimo 3 minutos de anticipación (usando ms para evitar bug de rollover)
+            const minAllowedTime = now.getTime() + 3 * 60 * 1000;
 
-            if (fullDateTime <= minAllowedTime) {
-                Alert.alert('Hora inválida', 'Debes programar el viaje con al menos 5 minutos de anticipación.');
+            if (fullDateTime.getTime() <= minAllowedTime) {
+                showSweetAlert('warning', 'Hora muy próxima', 'Selecciona una hora con al menos 3 minutos de anticipación para que los pasajeros puedan unirse.');
                 setLoading(false);
                 return;
             }
 
-            // Construir strings planos para la base de datos (evita problemas de Z/milisegundos)
             const fechaString = new Date(fechaSeleccionada.getTime() - fechaSeleccionada.getTimezoneOffset() * 60000).toISOString().split('T')[0];
             const horaString = `${horaSeleccionada.getHours().toString().padStart(2, '0')}:${horaSeleccionada.getMinutes().toString().padStart(2, '0')}`;
 
@@ -164,7 +166,7 @@ const PublishRide = ({ navigation }) => {
                 available_seats: asientos,
                 distance_km: routeInfo?.distance_km || 0,
                 duration_minutes: routeInfo?.duration_minutes || 0,
-                price: calculatePrice()
+                price: calculatePrice(),
             };
 
             const response = await api.post('/rides', payload);
@@ -177,155 +179,194 @@ const PublishRide = ({ navigation }) => {
             console.error('Error post detail:', JSON.stringify(error.response?.data, null, 2));
             const data = error.response?.data;
             let errorMsg = 'Error publicando el viaje.';
-            
+
             if (data?.errors && Array.isArray(data.errors)) {
                 errorMsg = data.errors.map(e => e.message).join('\n');
             } else if (data?.message) {
                 errorMsg = data.message;
             }
-            
-            Alert.alert('Error', errorMsg);
+
+            showSweetAlert('error', 'Error al publicar', errorMsg);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.surface }]}>
-            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
+        <SafeAreaView style={styles.safe}>
+            <StatusBar barStyle="dark-content" backgroundColor="#f7f9fb" />
+
+            {/* ── GLASS HEADER ─────────────────────────────────── */}
+            <View style={styles.header}>
+                <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
+                    <Ionicons name="chevron-back" size={22} color="#727785" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Itinerario de Viaje</Text>
+                <SettingsGearButton navigation={navigation} color="#727785" style={styles.headerBtn} />
+            </View>
 
             <View style={{ flex: 1 }}>
                 <ScrollView contentContainerStyle={styles.content} {...si.scrollProps}>
-                    {/* ── CARD ITINERARIO ─────────────────────────────────── */}
-                    <View style={[styles.card, { backgroundColor: theme.surface }]}>
 
-                        {/* Cabecera */}
-                        <View style={styles.cardHeader}>
-                            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                                <Ionicons name="chevron-back" size={24} color={theme.text} />
-                            </TouchableOpacity>
-                            <Text style={[styles.cardTitle, { color: theme.text }]}>Itinerario de Viaje</Text>
-                            <SettingsGearButton navigation={navigation} color={theme.text} style={styles.gearBtn} />
+                    {/* ── SECCIÓN RUTA ─────────────────────────────────── */}
+                    <View style={styles.routeCard}>
+                        <View style={styles.routeRow}>
+
+                            {/* Timeline gráfico */}
+                            <View style={styles.timeline}>
+                                <View style={styles.timelineDotEmpty} />
+                                <View style={styles.timelineLine} />
+                                <View style={styles.timelineDotFilled} />
+                            </View>
+
+                            {/* Inputs de ubicación */}
+                            <View style={styles.routeInputs}>
+                                {/* Origen */}
+                                <View>
+                                    <Text style={styles.inputLabel}>SALIDA DE</Text>
+                                    <TouchableOpacity
+                                        style={[styles.locationCard, errors.origen && styles.cardError]}
+                                        onPress={() => handleOpenPicker('origin')}
+                                        activeOpacity={0.75}
+                                    >
+                                        <Text style={styles.locationCardPrimary}>
+                                            {origin ? origin.name : 'Presiona para elegir el punto de Origen'}
+                                        </Text>
+                                        <Text style={styles.locationCardSecondary}>
+                                            {origin ? origin.address : '¿Desde dónde inicias?'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                {/* Destino */}
+                                <View>
+                                    <Text style={styles.inputLabel}>DESTINO FINAL</Text>
+                                    <TouchableOpacity
+                                        style={[styles.locationCard, errors.destino && styles.cardError]}
+                                        onPress={() => handleOpenPicker('destination')}
+                                        activeOpacity={0.75}
+                                    >
+                                        <Text style={styles.locationCardPrimary}>
+                                            {destination ? destination.name : 'Presiona para elegir el Destino'}
+                                        </Text>
+                                        <Text style={styles.locationCardSecondary}>
+                                            {destination ? destination.address : '¿A dónde te diriges hoy?'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
                         </View>
+                    </View>
 
-                        <View style={[styles.divider, { backgroundColor: theme.divider }]} />
-
-                        {/* Origen */}
+                    {/* ── FECHA + HORA ─────────────────────────────────── */}
+                    <View style={styles.dateTimeRow}>
+                        {/* Fecha */}
                         <TouchableOpacity
-                            style={[styles.locationBtn, { backgroundColor: theme.surfaceVariant, borderColor: errors.origen ? theme.danger : theme.border }]}
-                            onPress={() => handleOpenPicker('origin')}
-                        >
-                            <Ionicons name="radio-button-off" size={20} color={origin ? theme.accent : placeholderColor} />
-                            <View style={styles.locationBtnTextContainer}>
-                                <Text style={[styles.locationLabel, { color: placeholderColor }]}>Punto de origen</Text>
-                                <Text style={[styles.locationValue, { color: origin ? theme.text : placeholderColor }]} numberOfLines={1}>
-                                    {origin ? origin.name : 'Selecciona donde empiezas'}
-                                </Text>
-                            </View>
-                        </TouchableOpacity>
-
-                        {/* Destino */}
-                        <TouchableOpacity
-                            style={[styles.locationBtn, { backgroundColor: theme.surfaceVariant, borderColor: errors.destino ? theme.danger : theme.border }]}
-                            onPress={() => handleOpenPicker('destination')}
-                        >
-                            <Ionicons name="location-outline" size={20} color={destination ? theme.accent : placeholderColor} />
-                            <View style={styles.locationBtnTextContainer}>
-                                <Text style={[styles.locationLabel, { color: placeholderColor }]}>Punto de destino</Text>
-                                <Text style={[styles.locationValue, { color: destination ? theme.text : placeholderColor }]} numberOfLines={1}>
-                                    {destination ? destination.name : 'Selecciona a donde vas'}
-                                </Text>
-                            </View>
-                        </TouchableOpacity>
-
-                        <View style={[styles.verticalDivider, { backgroundColor: theme.divider }]} />
-
-                        {/* Fecha y Hora */}
-                        <TouchableOpacity
-                            style={[styles.locationBtn, { backgroundColor: theme.surfaceVariant, borderColor: errors.fechaHora ? theme.danger : theme.border }]}
+                            style={styles.dateCard}
                             onPress={() => setMostrarCalendario(true)}
+                            activeOpacity={0.8}
                         >
-                            <Ionicons name="calendar-outline" size={20} color={placeholderColor} />
-                            <View style={styles.locationBtnTextContainer}>
-                                <Text style={[styles.locationLabel, { color: placeholderColor }]}>¿Cuándo sales?</Text>
-                                <Text style={[styles.locationValue, { color: fechaSeleccionada ? theme.text : placeholderColor }]}>
+                            <View>
+                                <Text style={styles.inputLabel}>FECHA</Text>
+                                <Text style={styles.dateValue}>
                                     {fechaSeleccionada
-                                        ? `${fechaSeleccionada.toLocaleDateString()} ${horaSeleccionada ? '- ' + horaSeleccionada.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}`
-                                        : 'Seleccionar fecha y hora'}
+                                        ? fechaSeleccionada.toLocaleDateString('es-CR', { day: 'numeric', month: 'short' })
+                                        : 'Hoy'}
                                 </Text>
+                            </View>
+                            <View style={styles.calendarIconCircle}>
+                                <Ionicons name="calendar-outline" size={22} color="#005bbf" />
                             </View>
                         </TouchableOpacity>
 
-                        {/* Asientos — selector custom */}
-                        <View style={[styles.seatsWrapper, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }]}>
-                            <View style={styles.seatsLabelRow}>
-                                <Ionicons name="people-outline" size={20} color={placeholderColor} />
-                                <Text style={[styles.seatsLabel, { color: placeholderColor }]}>Asientos disponibles</Text>
-                            </View>
-                            <View style={styles.seatsControls}>
-                                <TouchableOpacity
-                                    style={[styles.seatsBtn, { backgroundColor: theme.surface, borderColor: theme.border },
-                                    asientos <= 1 && { opacity: 0.35 }]}
-                                    onPress={() => setAsientos(v => Math.max(1, v - 1))}
-                                    disabled={asientos <= 1}
-                                >
-                                    <Ionicons name="remove" size={20} color={theme.accent} />
-                                </TouchableOpacity>
-
-                                <View style={[styles.seatsValueBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                                    <Text style={[styles.seatsValue, { color: theme.text }]}>{asientos}</Text>
-                                </View>
-
-                                <TouchableOpacity
-                                    style={[styles.seatsBtn, { backgroundColor: theme.surface, borderColor: theme.border },
-                                    asientos >= 6 && { opacity: 0.35 }]}
-                                    onPress={() => setAsientos(v => Math.min(6, v + 1))}
-                                    disabled={asientos >= 6}
-                                >
-                                    <Ionicons name="add" size={20} color={theme.accent} />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        {/* Resumen de ruta */}
-                        {calculatingRoute ? (
-                            <ActivityIndicator color={theme.accent} style={{ marginVertical: 20 }} />
-                        ) : routeInfo && (
-                            <View style={[styles.summaryCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder }]}>
-                                <View style={styles.summaryRow}>
-                                    <View style={styles.summaryItem}>
-                                        <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Distancia</Text>
-                                        <Text style={[styles.summaryValue, { color: theme.text }]}>{routeInfo.distance_km} km</Text>
-                                    </View>
-                                    <View style={styles.summaryItem}>
-                                        <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Duración</Text>
-                                        <Text style={[styles.summaryValue, { color: theme.text }]}>{routeInfo.duration_minutes} min</Text>
-                                    </View>
-                                    <View style={styles.summaryItem}>
-                                        <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Precio Sug.</Text>
-                                        <Text style={[styles.summaryPrice, { color: '#25C460' }]}>₡{calculatePrice()}</Text>
-                                    </View>
-                                </View>
-                            </View>
-                        )}
-
-                        {/* Botón publicar */}
+                        {/* Hora */}
                         <TouchableOpacity
-                            style={[styles.publishBtn, { backgroundColor: theme.accent }, loading && { opacity: 0.7 }]}
-                            onPress={handlePublish}
-                            disabled={loading || calculatingRoute}
+                            style={[styles.timeCard, errors.fechaHora && styles.cardError]}
+                            onPress={() => setMostrarHora(true)}
+                            activeOpacity={0.8}
                         >
-                            {loading
-                                ? <ActivityIndicator color="#fff" />
-                                : <Text style={styles.publishBtnText}>Publicar Viaje</Text>
-                            }
+                            <Text style={styles.inputLabel}>HORA DE PARTIDA</Text>
+                            <Text style={styles.timeValue}>
+                                {horaSeleccionada
+                                    ? horaSeleccionada.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                    : '--:--'}
+                            </Text>
                         </TouchableOpacity>
                     </View>
+
+                    {/* ── ASIENTOS ─────────────────────────────────── */}
+                    <View style={styles.seatsCard}>
+                        <Text style={[styles.inputLabel, { textAlign: 'center', marginBottom: 20 }]}>
+                            ASIENTOS DISPONIBLES
+                        </Text>
+                        <View style={styles.seatsRow}>
+                            <TouchableOpacity
+                                style={[styles.seatsMinusBtn, asientos <= 1 && { opacity: 0.3 }]}
+                                onPress={() => setAsientos(v => Math.max(1, v - 1))}
+                                disabled={asientos <= 1}
+                                activeOpacity={0.75}
+                            >
+                                <Ionicons name="remove" size={28} color="#005bbf" />
+                            </TouchableOpacity>
+
+                            <Text style={styles.seatsNumber}>{asientos}</Text>
+
+                            <TouchableOpacity
+                                style={[styles.seatsPlusBtn, asientos >= 6 && { opacity: 0.3 }]}
+                                onPress={() => setAsientos(v => Math.min(6, v + 1))}
+                                disabled={asientos >= 6}
+                                activeOpacity={0.85}
+                            >
+                                <Ionicons name="add" size={28} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* ── RESUMEN DE RUTA ─────────────────────────────── */}
+                    {calculatingRoute ? (
+                        <ActivityIndicator color="#1a73e8" style={{ marginVertical: 20 }} />
+                    ) : routeInfo && (
+                        <View style={styles.summaryCard}>
+                            <View style={styles.summaryRow}>
+                                <View style={styles.summaryItem}>
+                                    <Text style={styles.summaryLabel}>Distancia</Text>
+                                    <Text style={styles.summaryValue}>{routeInfo.distance_km} km</Text>
+                                </View>
+                                <View style={styles.summaryDivider} />
+                                <View style={styles.summaryItem}>
+                                    <Text style={styles.summaryLabel}>Duración</Text>
+                                    <Text style={styles.summaryValue}>{routeInfo.duration_minutes} min</Text>
+                                </View>
+                                <View style={styles.summaryDivider} />
+                                <View style={styles.summaryItem}>
+                                    <Text style={styles.summaryLabel}>Precio Sug.</Text>
+                                    <Text style={[styles.summaryValue, { color: '#25C460' }]}>₡{calculatePrice()}</Text>
+                                </View>
+                            </View>
+                        </View>
+                    )}
+
+                    {/* ── BOTÓN PUBLICAR ─────────────────────────────── */}
+                    <TouchableOpacity
+                        style={[styles.publishBtn, (loading || calculatingRoute) && { opacity: 0.65 }]}
+                        onPress={handlePublish}
+                        disabled={loading || calculatingRoute}
+                        activeOpacity={0.9}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <>
+                                <Text style={styles.publishBtnText}>PUBLICAR VIAJE AHORA</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+
                 </ScrollView>
-                <ScrollIndicator si={si} thumbColor={theme.accent} />
+                <ScrollIndicator si={si} thumbColor="#1a73e8" />
             </View>
 
-            {/* Date Pickers */}
+            {/* ── DATE / TIME PICKERS ──────────────────────────── */}
             {(mostrarCalendario || mostrarHora) && (
                 <DateTimePicker
                     value={(mostrarHora ? horaSeleccionada : fechaSeleccionada) || new Date()}
@@ -333,7 +374,7 @@ const PublishRide = ({ navigation }) => {
                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                     minimumDate={new Date()}
                     maximumDate={mostrarCalendario ? new Date(new Date().setHours(23, 59, 59, 999)) : undefined}
-                    onChange={(event, date) => {
+                    onChange={(_event, date) => {
                         if (Platform.OS === 'android') {
                             setMostrarCalendario(false);
                             setMostrarHora(false);
@@ -350,10 +391,9 @@ const PublishRide = ({ navigation }) => {
                 />
             )}
 
-            {/* iOS Confirmación para DatePicker */}
             {Platform.OS === 'ios' && (mostrarCalendario || mostrarHora) && (
                 <TouchableOpacity
-                    style={[styles.iosConfirm, { backgroundColor: theme.accent }]}
+                    style={styles.iosConfirm}
                     onPress={() => {
                         if (mostrarCalendario) {
                             setMostrarCalendario(false);
@@ -376,7 +416,7 @@ const PublishRide = ({ navigation }) => {
                 onSelect={handleLocationSelect}
             />
 
-            {/* Modal de Alerta Customizada de Éxito */}
+            {/* ── MODAL ÉXITO ──────────────────────────────────── */}
             <Modal
                 animationType="fade"
                 transparent={true}
@@ -386,9 +426,9 @@ const PublishRide = ({ navigation }) => {
                     navigation.navigate('ListOfRequests', { rideId: newRideId });
                 }}
             >
-                <TouchableOpacity 
-                    style={styles.modalOverlay} 
-                    activeOpacity={1} 
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
                     onPress={() => {
                         setIsSuccessModalVisible(false);
                         navigation.navigate('ListOfRequests', { rideId: newRideId });
@@ -402,9 +442,8 @@ const PublishRide = ({ navigation }) => {
                         <Text style={[styles.alertMessage, { color: theme.textSecondary }]}>
                             Tu viaje ha sido publicado.
                         </Text>
-                        
                         <View style={styles.alertActions}>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={[styles.alertConfirmBtn, { backgroundColor: '#27AE60' }]}
                                 onPress={() => {
                                     setIsSuccessModalVisible(false);
@@ -418,16 +457,16 @@ const PublishRide = ({ navigation }) => {
                 </TouchableOpacity>
             </Modal>
 
-            {/* Modal de Alerta Customizada de Viaje Activo */}
+            {/* ── MODAL VIAJE ACTIVO ───────────────────────────── */}
             <Modal
                 animationType="fade"
                 transparent={true}
                 visible={isActiveRideModalVisible}
                 onRequestClose={() => setIsActiveRideModalVisible(false)}
             >
-                <TouchableOpacity 
-                    style={styles.modalOverlay} 
-                    activeOpacity={1} 
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
                     onPress={() => setIsActiveRideModalVisible(false)}
                 >
                     <View style={[styles.alertContent, { backgroundColor: theme.surface }]}>
@@ -438,9 +477,8 @@ const PublishRide = ({ navigation }) => {
                         <Text style={[styles.alertMessage, { color: theme.textSecondary }]}>
                             No puedes publicar un nuevo viaje porque ya tienes uno programado o en curso. Debes finalizar o cancelar el actual primero.
                         </Text>
-                        
                         <View style={styles.alertActions}>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={[styles.alertConfirmBtn, { backgroundColor: theme.accent, marginBottom: 12 }]}
                                 onPress={() => {
                                     setIsActiveRideModalVisible(false);
@@ -449,7 +487,7 @@ const PublishRide = ({ navigation }) => {
                             >
                                 <Text style={styles.alertConfirmText}>Ir a mi dashboard</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={[styles.alertConfirmBtn, { backgroundColor: theme.surfaceVariant, borderWidth: 1, borderColor: theme.border }]}
                                 onPress={() => setIsActiveRideModalVisible(false)}
                             >
@@ -460,169 +498,371 @@ const PublishRide = ({ navigation }) => {
                 </TouchableOpacity>
             </Modal>
 
+            {/* ── SWEET ALERT ──────────────────────────────────── */}
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={sweetAlert.visible}
+                onRequestClose={hideSweetAlert}
+            >
+                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={hideSweetAlert}>
+                    <View style={styles.sweetAlertCard}>
+                        {/* Icono */}
+                        <View style={[
+                            styles.sweetAlertIconCircle,
+                            sweetAlert.type === 'error'   && { backgroundColor: 'rgba(186,26,26,0.1)' },
+                            sweetAlert.type === 'warning' && { backgroundColor: 'rgba(255,152,0,0.1)' },
+                            sweetAlert.type === 'success' && { backgroundColor: 'rgba(37,196,96,0.1)' },
+                        ]}>
+                            <Ionicons
+                                name={
+                                    sweetAlert.type === 'error'   ? 'close-circle'  :
+                                    sweetAlert.type === 'warning' ? 'warning'        :
+                                    'checkmark-circle'
+                                }
+                                size={44}
+                                color={
+                                    sweetAlert.type === 'error'   ? '#ba1a1a' :
+                                    sweetAlert.type === 'warning' ? '#FF9800' :
+                                    '#25C460'
+                                }
+                            />
+                        </View>
+
+                        {/* Textos */}
+                        <Text style={styles.sweetAlertTitle}>{sweetAlert.title}</Text>
+                        <Text style={styles.sweetAlertMessage}>{sweetAlert.message}</Text>
+
+                        {/* Botón */}
+                        <TouchableOpacity
+                            style={[
+                                styles.sweetAlertBtn,
+                                sweetAlert.type === 'error'   && { backgroundColor: '#ba1a1a' },
+                                sweetAlert.type === 'warning' && { backgroundColor: '#FF9800' },
+                                sweetAlert.type === 'success' && { backgroundColor: '#25C460' },
+                            ]}
+                            onPress={hideSweetAlert}
+                            activeOpacity={0.85}
+                        >
+                            <Text style={styles.sweetAlertBtnText}>Entendido</Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    safeArea: {
+    safe: {
         flex: 1,
+        backgroundColor: '#f7f9fb',
     },
-    // ScrollView ocupa todo el espacio, sin padding extra
-    content: {
-        flexGrow: 1,
-        paddingBottom: 100,
-    },
-    // La tarjeta ocupa todo el ancho y alto sin bordes ni sombras externas
-    card: {
-        flex: 1,
-        padding: 24,
-        minHeight: '100%',
-    },
-    cardHeader: {
+
+    // ── Header ────────────────────────────────────────────────
+    header: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 24,
+        height: 64,
+        backgroundColor: 'rgba(247,249,251,0.92)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.04,
+        shadowRadius: 24,
+        elevation: 3,
+    },
+    headerBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         justifyContent: 'center',
-        marginBottom: 16,
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.04)',
     },
-    backButton: {
-        position: 'absolute',
-        left: 0,
-        padding: 4,
-    },
-    gearBtn: {
-        position: 'absolute',
-        right: 0,
-    },
-    cardTitle: {
+    headerTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: '700',
+        color: '#005bbf',
+        letterSpacing: -0.3,
     },
-    divider: {
-        height: 1,
-        marginBottom: 20,
+
+    // ── ScrollView ────────────────────────────────────────────
+    content: {
+        padding: 20,
+        paddingBottom: 120,
     },
-    verticalDivider: {
-        height: 1,
-        marginVertical: 12,
+
+    // ── Route Card ────────────────────────────────────────────
+    routeCard: {
+        backgroundColor: '#ffffff',
+        borderRadius: 32,
+        padding: 28,
+        marginBottom: 14,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 20 },
+        shadowOpacity: 0.03,
+        shadowRadius: 40,
+        elevation: 2,
     },
-    locationBtn: {
+    routeRow: {
+        flexDirection: 'row',
+        gap: 20,
+    },
+
+    // Timeline
+    timeline: {
+        alignItems: 'center',
+        paddingTop: 22,
+        paddingBottom: 6,
+    },
+    timelineDotEmpty: {
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        borderWidth: 2,
+        borderColor: '#1a73e8',
+        backgroundColor: '#ffffff',
+    },
+    timelineLine: {
+        flex: 1,
+        width: 2,
+        marginVertical: 4,
+        borderWidth: 1,
+        borderColor: '#1a73e8',
+        borderStyle: 'dashed',
+        borderRadius: 1,
+    },
+    timelineDotFilled: {
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        backgroundColor: '#1a73e8',
+    },
+
+    // Location inputs
+    routeInputs: {
+        flex: 1,
+        gap: 24,
+    },
+    inputLabel: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#9ca3af',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+        marginBottom: 6,
+    },
+    locationCard: {
+        backgroundColor: '#f2f4f6',
+        borderRadius: 16,
+        padding: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 4, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 1,
+    },
+    locationCardPrimary: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#005bbf',
+        letterSpacing: 0.2,
+        marginBottom: 4,
+    },
+    locationCardSecondary: {
+        fontSize: 13,
+        color: '#9ca3af',
+    },
+    cardError: {
+        borderWidth: 1.5,
+        borderColor: '#ba1a1a',
+    },
+
+    // ── Date + Time Row ───────────────────────────────────────
+    dateTimeRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 14,
+    },
+    dateCard: {
+        flex: 1,
+        backgroundColor: '#f2f4f6',
+        borderRadius: 24,
+        padding: 20,
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 15,
-        borderRadius: 14,
-        marginBottom: 12,
-        borderWidth: 1,
-        gap: 15,
+        justifyContent: 'space-between',
     },
-    locationBtnTextContainer: {
+    dateValue: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#191c1e',
+        marginTop: 2,
+    },
+    calendarIconCircle: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#ffffff',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    timeCard: {
         flex: 1,
+        backgroundColor: '#f2f4f6',
+        borderRadius: 24,
+        padding: 20,
+        justifyContent: 'center',
     },
-    locationLabel: {
-        fontSize: 11,
-        marginBottom: 2,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+    timeValue: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#191c1e',
+        marginTop: 2,
     },
-    locationValue: {
-        fontSize: 15,
+
+    // ── Seats Card ────────────────────────────────────────────
+    seatsCard: {
+        backgroundColor: '#ffffff',
+        borderRadius: 32,
+        paddingVertical: 28,
+        paddingHorizontal: 24,
+        alignItems: 'center',
+        marginBottom: 14,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.03,
+        shadowRadius: 30,
+        elevation: 2,
+    },
+    seatsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '80%',
+        maxWidth: 260,
+        marginBottom: 14,
+    },
+    seatsMinusBtn: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: '#f2f4f6',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 4, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
+    },
+    seatsNumber: {
+        fontSize: 64,
+        fontWeight: '800',
+        color: '#191c1e',
+        lineHeight: 72,
+        textAlign: 'center',
+        minWidth: 70,
+    },
+    seatsPlusBtn: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: '#1a73e8',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#1a73e8',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.35,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    seatsNote: {
+        fontSize: 12,
+        color: '#727785',
+        fontStyle: 'italic',
         fontWeight: '500',
     },
-    seatsWrapper: {
-        borderRadius: 14,
-        paddingHorizontal: 15,
-        paddingVertical: 12,
-        marginBottom: 20,
-        borderWidth: 1,
-    },
-    seatsLabelRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 12,
-    },
-    seatsLabel: {
-        fontSize: 12,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    seatsControls: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 16,
-    },
-    seatsBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        borderWidth: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    seatsValueBox: {
-        width: 64,
-        height: 44,
-        borderRadius: 12,
-        borderWidth: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    seatsValue: {
-        fontSize: 22,
-        fontWeight: 'bold',
-    },
+
+    // ── Summary Card ──────────────────────────────────────────
     summaryCard: {
-        borderRadius: 15,
-        padding: 16,
-        marginBottom: 20,
-        borderWidth: 1,
+        backgroundColor: '#f2f4f6',
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 14,
     },
     summaryRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'center',
     },
     summaryItem: {
         alignItems: 'center',
         flex: 1,
     },
+    summaryDivider: {
+        width: 1,
+        height: 36,
+        backgroundColor: '#d1d5db',
+    },
     summaryLabel: {
         fontSize: 11,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
+        color: '#727785',
         marginBottom: 4,
     },
     summaryValue: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '700',
+        color: '#191c1e',
     },
-    summaryPrice: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
+
+    // ── Publish Button ────────────────────────────────────────
     publishBtn: {
-        paddingVertical: 16,
-        borderRadius: 14,
+        height: 64,
+        backgroundColor: '#005bbf',
+        borderRadius: 9999,
+        flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 4,
+        justifyContent: 'center',
+        marginTop: 8,
+        shadowColor: '#005bbf',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.32,
+        shadowRadius: 24,
+        elevation: 8,
     },
     publishBtnText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: 'bold',
-        letterSpacing: 0.5,
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: '700',
+        letterSpacing: 0.8,
     },
+
+    // ── iOS Confirm ───────────────────────────────────────────
     iosConfirm: {
         padding: 15,
-        borderRadius: 10,
+        borderRadius: 14,
         marginHorizontal: 20,
         marginBottom: 20,
+        backgroundColor: '#005bbf',
     },
     iosConfirmText: {
         color: '#FFF',
         textAlign: 'center',
         fontWeight: 'bold',
     },
+
+    // ── Modals ────────────────────────────────────────────────
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
@@ -650,13 +890,12 @@ const styles = StyleSheet.create({
     },
     alertTitle: {
         fontSize: 20,
-        fontFamily: 'Poppins-Bold',
+        fontWeight: '700',
         marginBottom: 8,
         textAlign: 'center',
     },
     alertMessage: {
         fontSize: 14,
-        fontFamily: 'Poppins-Regular',
         textAlign: 'center',
         marginBottom: 24,
         lineHeight: 20,
@@ -673,8 +912,58 @@ const styles = StyleSheet.create({
     alertConfirmText: {
         color: '#fff',
         fontSize: 15,
-        fontFamily: 'Poppins-SemiBold',
-    }
+        fontWeight: '600',
+    },
+
+    // ── Sweet Alert ───────────────────────────────────────────
+    sweetAlertCard: {
+        width: '82%',
+        backgroundColor: '#ffffff',
+        borderRadius: 28,
+        paddingVertical: 32,
+        paddingHorizontal: 28,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.18,
+        shadowRadius: 24,
+        elevation: 16,
+    },
+    sweetAlertIconCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    sweetAlertTitle: {
+        fontSize: 20,
+        fontWeight: '800',
+        color: '#191c1e',
+        textAlign: 'center',
+        marginBottom: 10,
+        letterSpacing: -0.3,
+    },
+    sweetAlertMessage: {
+        fontSize: 14,
+        color: '#727785',
+        textAlign: 'center',
+        lineHeight: 21,
+        marginBottom: 28,
+    },
+    sweetAlertBtn: {
+        width: '100%',
+        paddingVertical: 15,
+        borderRadius: 99,
+        alignItems: 'center',
+    },
+    sweetAlertBtnText: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: '700',
+        letterSpacing: 0.3,
+    },
 });
 
 export default PublishRide;
