@@ -185,12 +185,12 @@ const ManageRides = ({ navigation }) => {
         try {
             setLoading(true);
             const activeRides = await sessionCache.getActiveRides();
-            
+
             // Filtrar los viajes que queremos mostrar (scheduled e in progress)
-            const filtered = (activeRides || []).filter(r => 
+            const filtered = (activeRides || []).filter(r =>
                 r.status === 'scheduled' || r.status === 'in progress'
             );
-            
+
             setRides(filtered);
         } catch (error) {
             console.error('Error fetching rides in ManageRides:', error);
@@ -215,10 +215,10 @@ const ManageRides = ({ navigation }) => {
         try {
             setCancellingId(selectedRide._id);
             await api.patch(`/rides/${selectedRide._id}/cancel`);
-            
+
             // 1. Actualizar estado localmente sin re-fetch
             setRides(prev => prev.filter(r => r._id !== selectedRide._id));
-            
+
             // 2. Invalidar cache global para que otros screens se actualicen
             sessionCache.clearActiveRides();
 
@@ -328,8 +328,8 @@ const ManageRides = ({ navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.surface }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
             <View style={[styles.header, { borderBottomColor: theme.divider }]}>
-                <TouchableOpacity 
-                    onPress={() => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })} 
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })}
                     style={styles.backBtn}
                 >
                     <Ionicons name="chevron-back" size={24} color={theme.text} />
@@ -363,7 +363,7 @@ const ManageRides = ({ navigation }) => {
                 cancelling={!!cancellingId}
             />
 
-            <SuccessCancelModal 
+            <SuccessCancelModal
                 visible={successModalVisible}
                 onClose={() => setSuccessModalVisible(false)}
             />

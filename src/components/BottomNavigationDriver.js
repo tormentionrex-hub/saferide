@@ -151,69 +151,61 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
             <View style={[
                 styles.container,
                 {
-                    paddingBottom: insets.bottom > 0 ? insets.bottom : 20,
-                    height: 70 + (insets.bottom > 0 ? insets.bottom : 20),
+                    paddingBottom: insets.bottom > 0 ? insets.bottom : 14,
+                    height: 70 + (insets.bottom > 0 ? insets.bottom : 14),
                     backgroundColor: theme.navBg,
                     borderTopColor: theme.navBorder,
                 }
             ]}>
-
-                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('DashboardDriver')}>
-                    <Ionicons name={currentTab === 'Inicio' ? "home" : "home-outline"} size={24} color={getColor('Inicio')} />
-                    <Text style={[styles.navText, { color: getColor('Inicio') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Inicio</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => handleRestrictedPress('PublishRide')}>
-                    <View>
-                        <Ionicons name={currentTab === 'Viajes' ? "map" : "map-outline"} size={24} color={!hasVehicleRegistered ? theme.textSecondary : getColor('Viajes')} />
-                        {!hasVehicleRegistered && !loadingVehicle && (
-                            <View style={styles.smallLock}>
-                                <Ionicons name="lock-closed" size={10} color="#FFF" />
-                            </View>
-                        )}
-                    </View>
-                    <Text style={[styles.navText, { color: !hasVehicleRegistered ? theme.textSecondary : getColor('Viajes') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Viajes</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.navItem}
-                    activeOpacity={0.6}
-                    onPress={async () => {
+                {[
+                    { label: 'Inicio', activeIcon: 'home', inactiveIcon: 'home-outline', tab: 'Inicio', onPress: () => navigateTo('DashboardDriver') },
+                    { label: 'Viajes', activeIcon: 'map', inactiveIcon: 'map-outline', tab: 'Viajes', locked: !hasVehicleRegistered, onPress: () => handleRestrictedPress('PublishRide') },
+                    { label: 'Rutas', activeIcon: 'navigate', inactiveIcon: 'navigate-outline', tab: 'Rutas', locked: !hasVehicleRegistered, onPress: async () => {
                         if (!hasVehicleRegistered) { setShowModal(true); return; }
                         try {
                             const activeRides = await sessionCache.getActiveRides();
                             if (activeRides && activeRides.length > 0) {
                                 const inProgressRide = activeRides.find(r => r.status === 'in progress');
-                                if (inProgressRide) {
-                                    navigation.navigate('CurrentTrip', { rideId: inProgressRide._id });
-                                } else {
-                                    navigateTo('ManageRides');
-                                }
-                                return;
+                                if (inProgressRide) { navigation.navigate('CurrentTrip', { rideId: inProgressRide._id }); return; }
+                                navigateTo('ManageRides'); return;
                             }
                             navigateTo('ManageRides');
-                        } catch (error) {
-                            console.error('Error navigating Rutas:', error);
-                            navigateTo('ManageRides');
-                        }
-                    }}
-                >
-                    <View>
-                        <Ionicons name={currentTab === 'Rutas' ? "map" : "map-outline"} size={24} color={!hasVehicleRegistered ? theme.textSecondary : getColor('Rutas')} />
-                        {!hasVehicleRegistered && !loadingVehicle && (
-                            <View style={styles.smallLock}>
-                                <Ionicons name="lock-closed" size={10} color="#FFF" />
+                        } catch (error) { navigateTo('ManageRides'); }
+                    }},
+                    { label: 'Historial', activeIcon: 'time', inactiveIcon: 'time-outline', tab: 'History', onPress: () => navigateTo('PreviousTrips') },
+                ].map((item) => {
+                    const isActive = currentTab === item.tab;
+                    const color = item.locked ? theme.navInactive : (isActive ? theme.navActive : theme.navInactive);
+
+                    if (isActive) {
+                        return (
+                            <TouchableOpacity key={item.label} style={styles.centerWrapper} activeOpacity={0.85} onPress={item.onPress}>
+                                <View style={[styles.centerButton, { backgroundColor: theme.navActive }]}>
+                                    <Ionicons name={item.activeIcon} size={26} color="#fff" />
+                                </View>
+                                <Text style={[styles.centerLabel, { color: theme.navActive }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>
+                                    {item.label}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    }
+
+                    return (
+                        <TouchableOpacity key={item.label} style={styles.navItem} activeOpacity={0.6} onPress={item.onPress}>
+                            <View>
+                                <Ionicons name={item.inactiveIcon} size={24} color={color} />
+                                {item.locked && !loadingVehicle && (
+                                    <View style={styles.smallLock}>
+                                        <Ionicons name="lock-closed" size={10} color="#FFF" />
+                                    </View>
+                                )}
                             </View>
-                        )}
-                    </View>
-                    <Text style={[styles.navText, { color: !hasVehicleRegistered ? theme.textSecondary : getColor('Rutas') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Rutas</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.navItem} activeOpacity={0.6} onPress={() => navigateTo('PreviousTrips')}>
-                    <Ionicons name={currentTab === 'History' ? "time" : "time-outline"} size={24} color={getColor('History')} />
-                    <Text style={[styles.navText, { color: getColor('History') }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>Historial</Text>
-                </TouchableOpacity>
-
+                            <Text style={[styles.navText, { color }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>
+                                {item.label}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
             </View>
         </>
     );
@@ -226,32 +218,36 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         position: 'absolute',
         bottom: 0,
-        paddingHorizontal: 8,
-        borderTopLeftRadius: 25,
-        borderTopRightRadius: 25,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 5,
+        left: 0,
+        right: 0,
+        paddingHorizontal: 20,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
         borderTopWidth: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -3 },
+        shadowOpacity: 0.07,
+        shadowRadius: 6,
+        elevation: 10,
     },
     navItem: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        flex: 1,
-        paddingTop: 10,
+        alignItems: 'center', justifyContent: 'center', flex: 1, paddingTop: 10,
     },
     navText: {
-        fontSize: 11,
-        marginTop: 4,
-        fontFamily: 'Poppins-SemiBold',
-        textAlign: 'center',
-        includeFontPadding: false,
-        width: '100%',
+        fontSize: 11, marginTop: 3, textAlign: 'center', width: '100%',
+        includeFontPadding: false, fontFamily: 'Poppins-SemiBold',
     },
-    navTextActive: {
-        fontFamily: 'Poppins-SemiBold',
+    centerWrapper: {
+        flex: 1, alignItems: 'center', justifyContent: 'flex-start', marginTop: -26,
+    },
+    centerButton: {
+        width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center',
+        elevation: 8, shadowColor: '#2563EB', shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35, shadowRadius: 10,
+    },
+    centerLabel: {
+        fontSize: 11, marginTop: 4, textAlign: 'center', width: '100%',
+        includeFontPadding: false, fontFamily: 'Poppins-SemiBold',
     },
     smallLock: {
         position: 'absolute',

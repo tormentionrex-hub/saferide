@@ -11,6 +11,8 @@ import {
     StatusBar,
     ActivityIndicator,
     Modal,
+    Platform,
+    Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,13 +20,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
-import SettingsGearButton from '../../components/SettingsGearButton';
 
 export default function DashboardConductor({ route, navigation }) {
     const { theme } = useDriverTheme();
     const [userName, setUserName] = useState('Conductor');
     const [hasVehicle, setHasVehicle] = useState(null); // null = cargando
     const [showModal, setShowModal] = useState(false);
+    const [userPhoto, setUserPhoto] = useState(null);
     const si = useScrollIndicator();
 
     useFocusEffect(
@@ -33,6 +35,11 @@ export default function DashboardConductor({ route, navigation }) {
                 try {
                     const name = await AsyncStorage.getItem('userName');
                     if (name) setUserName(name.split(' ')[0]);
+
+                    const photo = await AsyncStorage.getItem('userPhoto');
+                    if (photo && (photo.startsWith('http') || photo.startsWith('file'))) {
+                        setUserPhoto(photo);
+                    }
 
                     // force=true: siempre consultar el API al regresar, nunca usar caché
                     const hasVehicle = await sessionCache.getVehicleStatus(true);
@@ -49,7 +56,7 @@ export default function DashboardConductor({ route, navigation }) {
         <Animated.View style={{ flex: 1, backgroundColor: theme.bg }}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
-                
+
                 {/* ── MODAL ACCESO BLOQUEADO ── */}
                 <Modal visible={showModal} transparent animationType="fade" statusBarTranslucent>
                     <View style={styles.backdrop}>
@@ -93,16 +100,27 @@ export default function DashboardConductor({ route, navigation }) {
                     </View>
                 </Modal>
 
+                {/* Header */}
+                <View style={[styles.header, { backgroundColor: theme.bg, borderBottomColor: theme.divider || '#CBD5E1', borderBottomWidth: 1 }]}>
+                    <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('AjustesConductor')}>
+                        <Ionicons name="settings-sharp" size={24} color={theme.text} />
+                    </TouchableOpacity>
+                    <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Conductor</Text>
+                    <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('ProfileConductor')}>
+                        {userPhoto ? (
+                            <Image source={{ uri: userPhoto }} style={styles.profileImg} />
+                        ) : (
+                            <View style={[styles.profileFallback, { backgroundColor: theme.surfaceVariant || '#EDF2F7' }]}>
+                                <Text style={[styles.initialsText, { color: theme.navActive || '#005BBF' }]}>
+                                    {userName ? userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '?'}
+                                </Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                </View>
+
                 <View style={{ flex: 1 }}>
                     <ScrollView contentContainerStyle={styles.scrollContent} {...si.scrollProps}>
-
-                        {/* Header */}
-                        <View style={styles.header}>
-                            <View style={styles.headerLeft}>
-                                <Text style={[styles.welcomeText, { color: theme.text }]}>Hola, {userName}</Text>
-                            </View>
-                            <SettingsGearButton navigation={navigation} color={theme.text} />
-                        </View>
 
                         {/* Banner de bloqueo: sin vehículo */}
                         {hasVehicle === false && (
@@ -215,142 +233,69 @@ export default function DashboardConductor({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#ffffff',
-    },
-    scrollContent: {
-        paddingHorizontal: 24,
-        paddingTop: 40,
-        paddingBottom: 120,
-    },
+    container: { flex: 1 },
+    scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 120 },
     header: {
         flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 30,
+        paddingHorizontal: 20,
+        paddingBottom: 14,
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 44,
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
     },
-    welcomeText: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#111827',
-    },
-    headerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-    },
-    // Card Grande (Publicar Viaje)
+    headerIconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
+    profileButton: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 1.5, borderColor: '#E2E8F0' },
+    profileImg: { width: '100%', height: '100%' },
+    profileFallback: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
+    initialsText: { fontSize: 16, fontFamily: 'Poppins-Bold' },
+    welcomeText: { fontSize: 24, fontFamily: 'Poppins-Bold' },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     mainCard: {
-        backgroundColor: '#F3F7FF', // Azul muy tenue
-        borderRadius: 24,
-        padding: 32,
-        alignItems: 'center',
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(37, 99, 235, 0.1)',
-        elevation: 2, // Sombra suave en Android
-    },
-    mainIconCircle: {
-        width: 70,
-        height: 70,
-        borderRadius: 35,
-        backgroundColor: '#ffffff',
-        justifyContent: 'center',
+        borderRadius: 20,
+        padding: 28,
         alignItems: 'center',
         marginBottom: 16,
-        elevation: 3,
-    },
-    mainCardTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#111827',
-        marginBottom: 8,
-    },
-    mainCardDescription: {
-        fontSize: 14,
-        color: '#6b7280',
-        textAlign: 'center',
-        lineHeight: 20,
-    },
-    // Fila y Cards Pequeñas
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    smallCard: {
-        backgroundColor: '#F3F7FF',
-        borderRadius: 24,
-        padding: 20,
-        width: '48%',
-        alignItems: 'center',
-        elevation: 2,
         borderWidth: 1,
-        borderColor: 'rgba(37, 99, 235, 0.1)',
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+    },
+    mainIconCircle: {
+        width: 70, height: 70, borderRadius: 35,
+        justifyContent: 'center', alignItems: 'center',
+        marginBottom: 14, elevation: 3,
+    },
+    mainCardTitle: { fontSize: 20, fontFamily: 'Poppins-Bold', marginBottom: 6, textAlign: 'center' },
+    mainCardDescription: { fontSize: 13, fontFamily: 'Poppins-Regular', textAlign: 'center', lineHeight: 20 },
+    row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+    smallCard: {
+        borderRadius: 20, padding: 18, flex: 1, alignItems: 'center',
+        elevation: 3, borderWidth: 1,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.06, shadowRadius: 12,
     },
     smallIconCircle: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: '#ffffff',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 12,
-        elevation: 2,
+        width: 50, height: 50, borderRadius: 25,
+        justifyContent: 'center', alignItems: 'center',
+        marginBottom: 10, elevation: 2,
     },
-    smallCardTitle: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: '#111827',
-        textAlign: 'center',
-    },
-    cardLocked: {
-        opacity: 0.45,
-    },
-    loadingContainer: {
-        paddingVertical: 40,
-        alignItems: 'center',
-    },
-    lockBanner: {
-        borderRadius: 20,
-        borderWidth: 1.5,
-        padding: 24,
-        alignItems: 'center',
-        marginBottom: 20,
-        gap: 8,
-    },
-    lockIconCircle: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    lockTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
-    lockSub: {
-        fontSize: 13,
-        textAlign: 'center',
-        lineHeight: 19,
-        marginBottom: 8,
-    },
-    lockBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 14,
-        marginTop: 4,
-    },
-    lockBtnText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '700',
-    },
+    smallCardTitle: { fontSize: 13, fontFamily: 'Poppins-Bold', textAlign: 'center' },
+    cardLocked: { opacity: 0.45 },
+    loadingContainer: { paddingVertical: 40, alignItems: 'center' },
+    lockBanner: { borderRadius: 20, borderWidth: 1.5, padding: 24, alignItems: 'center', marginBottom: 16, gap: 8 },
+    lockIconCircle: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+    lockTitle: { fontSize: 18, fontFamily: 'Poppins-Bold', textAlign: 'center' },
+    lockSub: { fontSize: 13, fontFamily: 'Poppins-Regular', textAlign: 'center', lineHeight: 19, marginBottom: 8 },
+    lockBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 14, marginTop: 4 },
+    lockBtnText: { color: '#fff', fontSize: 14, fontFamily: 'Poppins-Bold' },
     // ── Modal Styles ──
     backdrop: {
         flex: 1,

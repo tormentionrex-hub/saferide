@@ -482,6 +482,16 @@ const ListOfRequests = ({ route, navigation }) => {
                     <Text style={{ color: theme.textSecondary, marginTop: 4 }}>
                         {item.seats_booked} asiento/s solicitado/s
                     </Text>
+                    {item.passenger_origin && (
+                        <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>
+                            Recogida: {item.passenger_origin}
+                        </Text>
+                    )}
+                    {item.passenger_destination && (
+                        <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 1 }}>
+                            Destino: {item.passenger_destination}
+                        </Text>
+                    )}
                 </View>
                 
                 {item.status === 'pending' && (

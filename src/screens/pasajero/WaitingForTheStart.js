@@ -452,144 +452,153 @@ const WaitingForTheStart = ({ route, navigation }) => {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.surface }]}>
-            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-            <View style={styles.header}>
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
-                >
-                    <Ionicons name="arrow-back" size={26} color={theme.text} />
+            {/* ── HEADER ── */}
+            <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : 44 }]}>
+                <TouchableOpacity style={styles.headerBackBtn} onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}>
+                    <Ionicons name="chevron-back" size={26} color="#191C1E" />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Viaje Confirmado</Text>
-                <View style={{ width: 42 }} />
+                <View style={styles.headerCenter}>
+                    <Ionicons name="time" size={18} color="#1A73E8" />
+                    <Text style={styles.headerTitle}>Viaje Confirmado</Text>
+                </View>
+                <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-                <View style={styles.content}>
-                    <Ionicons name="time" size={60} color={theme.accent} style={{ marginBottom: 15 }} />
-                    <Text style={[styles.title, { color: theme.text }]}>
-                        Por favor esperar a que el conductor inicie el viaje
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+                {/* ── DESTINO ── */}
+                <View style={styles.destinationSection}>
+                    <Text style={styles.destinationLabel}>Destino actual</Text>
+                    <Text style={styles.destinationName} numberOfLines={1}>
+                        {rideData?.destination?.name || 'Cargando...'}
                     </Text>
+                </View>
 
-                    {loading ? (
-                        <ActivityIndicator style={{ marginTop: 30 }} size="large" color={theme.accent} />
-                    ) : (
-                        <View style={styles.detailsContainer}>
-                            {/* Información de Ruta */}
-                            <View style={[styles.card, { backgroundColor: theme.bg, borderColor: theme.border }]}>
-                                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Ruta del Conductor</Text>
+                {/* ── ESTADO DE ESPERA ── */}
+                <View style={styles.waitingCard}>
+                    <View style={styles.waitingIconCircle}>
+                        <Ionicons name="hourglass-outline" size={32} color="#005BBF" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.waitingTitle}>Esperando al conductor</Text>
+                        <Text style={styles.waitingMeta}>El conductor iniciará el viaje en breve</Text>
+                    </View>
+                    {loading && <ActivityIndicator size="small" color="#1A73E8" />}
+                </View>
 
-                                <View style={styles.infoRow}>
-                                    <Ionicons name="location" size={20} color={theme.accent} />
-                                    <View style={styles.textContainer}>
-                                        <Text style={[styles.label, { color: theme.textSecondary }]}>Origen:</Text>
-                                        <Text style={[styles.value, { color: theme.text }]}>{rideData?.origin?.name || '---'}</Text>
-                                    </View>
-                                </View>
-
-                                <View style={styles.infoRow}>
-                                    <Ionicons name="flag" size={20} color="#E74C3C" />
-                                    <View style={styles.textContainer}>
-                                        <Text style={[styles.label, { color: theme.textSecondary }]}>Destino:</Text>
-                                        <Text style={[styles.value, { color: theme.text }]}>{rideData?.destination?.name || '---'}</Text>
-                                    </View>
-                                </View>
-                            </View>
-
-                            {/* Información de Tiempos */}
-                            <View style={[styles.card, { backgroundColor: theme.bg, borderColor: theme.border }]}>
-                                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Horarios</Text>
-                                <View style={styles.row}>
-                                    <View style={styles.halfRow}>
-                                        <Text style={[styles.label, { color: theme.textSecondary }]}>Salida</Text>
-                                        <Text style={[styles.value, { color: theme.text }]}>{formatTime(rideData?.hora)}</Text>
-                                    </View>
-                                    <View style={styles.halfRow}>
-                                        <Text style={[styles.label, { color: theme.textSecondary }]}>Llegada esperada</Text>
-                                        <Text style={[styles.value, { color: theme.text }]}>{calculateArrivalTime(rideData?.hora, rideData?.duration_minutes)}</Text>
-                                    </View>
-                                </View>
-                            </View>
-
-                            {/* Información del Conductor */}
-                            <View style={[styles.card, { backgroundColor: theme.bg, borderColor: theme.border }]}>
-                                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Conductor</Text>
-                                <View style={styles.driverContainer}>
-                                    <View style={styles.driverHeader}>
-                                        {rideData?.driver_id?.profileImage ? (
-                                            <Image
-                                                source={{ uri: rideData.driver_id.profileImage }}
-                                                style={styles.driverPhoto}
-                                            />
-                                        ) : (
-                                            <View style={[styles.driverPhoto, { backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center' }]}>
-                                                <Ionicons name="person" size={24} color={theme.textSecondary} />
-                                            </View>
-                                        )}
-                                        <View style={styles.driverInfo}>
-                                            <Text style={[styles.driverName, { color: theme.text }]}>
-                                                {rideData?.driver_id?.name || '---'}
-                                            </Text>
-                                            <Text style={[styles.driverPhone, { color: theme.textSecondary }]}>
-                                                Tel: {rideData?.driver_id?.phone || 'No disponible'}
-                                            </Text>
-                                        </View>
-                                    </View>
-
-                                    {rideData?.driver_id?.phone && (
-                                        <TouchableOpacity
-                                            style={[styles.whatsappButton, { backgroundColor: '#25D366' }]}
-                                            onPress={() => handleWhatsApp(rideData.driver_id.phone)}
-                                        >
-                                            <Ionicons name="logo-whatsapp" size={20} color="#FFF" />
-                                            <Text style={styles.whatsappText}>Contactar por WhatsApp</Text>
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
-                            </View>
-
-                            {/* Información del Vehículo */}
-                            <View style={[styles.card, { backgroundColor: theme.bg, borderColor: theme.border }]}>
-                                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Vehículo</Text>
-                                <View style={styles.row}>
-                                    <View style={styles.thirdRow}>
-                                        <Text style={[styles.label, { color: theme.textSecondary }]}>Matrícula</Text>
-                                        <Text style={[styles.value, { color: theme.text }]}>{vehicleData?.license_plate || vehicleData?.licensePlate || '---'}</Text>
-                                    </View>
-                                    <View style={styles.thirdRow}>
-                                        <Text style={[styles.label, { color: theme.textSecondary }]}>Color</Text>
-                                        <Text style={[styles.value, { color: theme.text }]}>{vehicleData?.color || '---'}</Text>
-                                    </View>
-                                    <View style={styles.thirdRow}>
-                                        <Text style={[styles.label, { color: theme.textSecondary }]}>Modelo</Text>
-                                        <Text style={[styles.value, { color: theme.text }]}>
-                                            {vehicleData?.model || vehicleData?.brand ? `${vehicleData.brand || ''} ${vehicleData.model || ''}`.trim() : '---'}
+                {!loading && (
+                    <>
+                        {/* ── BENTO GRID: Conductor + Horario ── */}
+                        <View style={styles.bentoGrid}>
+                            {/* Conductor */}
+                            <View style={styles.bentoCard}>
+                                {rideData?.driver_id?.profileImage ? (
+                                    <Image source={{ uri: rideData.driver_id.profileImage }} style={styles.bentoAvatar} />
+                                ) : (
+                                    <View style={[styles.bentoAvatar, styles.bentoAvatarFallback]}>
+                                        <Text style={styles.bentoAvatarInitials}>
+                                            {rideData?.driver_id?.name
+                                                ? rideData.driver_id.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+                                                : '?'}
                                         </Text>
                                     </View>
+                                )}
+                                <Text style={styles.bentoValue} numberOfLines={1}>
+                                    {rideData?.driver_id?.name?.split(' ')[0] || 'Conductor'}
+                                </Text>
+                                <View style={styles.bentoRatingRow}>
+                                    <Ionicons name="star" size={12} color="#F59E0B" />
+                                    <Text style={styles.bentoRating}>{rideData?.driver_id?.rating || 'Nuevo'}</Text>
+                                </View>
+                                {rideData?.driver_id?.phone && (
+                                    <TouchableOpacity style={styles.bentoWhatsappBtn} onPress={() => handleWhatsApp(rideData.driver_id.phone)}>
+                                        <Ionicons name="logo-whatsapp" size={14} color="#fff" style={{ marginRight: 4 }} />
+                                        <Text style={styles.bentoWhatsappText}>Contactar</Text>
+                                    </TouchableOpacity>
+                                )}
+                                <Text style={styles.bentoLabel}>TU CONDUCTOR</Text>
+                            </View>
+
+                            {/* Horario */}
+                            <View style={styles.bentoCard}>
+                                <View style={styles.bentoRow}>
+                                    <Ionicons name="time-outline" size={26} color="#1A73E8" />
+                                    <Text style={styles.bentoValue}>{formatTime(rideData?.hora)}</Text>
+                                </View>
+                                <Text style={styles.bentoMeta}>
+                                    Llegada: {calculateArrivalTime(rideData?.hora, rideData?.duration_minutes)}
+                                </Text>
+                                {rideData?.distance_km ? (
+                                    <Text style={styles.bentoMeta}>{Number(rideData.distance_km).toFixed(1)} km</Text>
+                                ) : null}
+                                <Text style={styles.bentoLabel}>HORARIO</Text>
+                            </View>
+                        </View>
+
+                        {/* ── RUTA ── */}
+                        <View style={styles.routeCard}>
+                            <Text style={styles.routeCardLabel}>RUTA DEL VIAJE</Text>
+                            <View style={styles.routeRow}>
+                                <Ionicons name="location" size={20} color="#1A73E8" />
+                                <View style={{ flex: 1, marginLeft: 10 }}>
+                                    <Text style={styles.routeSubLabel}>Origen</Text>
+                                    <Text style={styles.routeValue} numberOfLines={1}>{rideData?.origin?.name || '---'}</Text>
+                                </View>
+                            </View>
+                            <View style={styles.routeDivider} />
+                            <View style={styles.routeRow}>
+                                <Ionicons name="flag" size={20} color="#EF4444" />
+                                <View style={{ flex: 1, marginLeft: 10 }}>
+                                    <Text style={styles.routeSubLabel}>Destino</Text>
+                                    <Text style={styles.routeValue} numberOfLines={1}>{rideData?.destination?.name || '---'}</Text>
                                 </View>
                             </View>
                         </View>
-                    )}
 
-                    <View style={styles.buttonContainer}>
-                        <TouchableOpacity
-                            style={[styles.button, { backgroundColor: theme.accent }]}
-                            onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
-                        >
-                            <Ionicons name="home-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
-                            <Text style={styles.buttonText}>Volver al Inicio</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.cancelButton, { borderColor: '#E74C3C' }]}
-                            onPress={handleCancel}
-                        >
-                            <Ionicons name="close-circle-outline" size={18} color="#E74C3C" style={{ marginRight: 8 }} />
-                            <Text style={[styles.cancelButtonText, { color: '#E74C3C' }]}>Cancelar Reservación</Text>
-                        </TouchableOpacity>
-                    </View>
+                        {/* ── VEHÍCULO ── */}
+                        <View style={styles.routeCard}>
+                            <Text style={styles.routeCardLabel}>VEHÍCULO</Text>
+                            <View style={styles.vehicleRow}>
+                                <View style={styles.vehicleItem}>
+                                    <Text style={styles.routeSubLabel}>Matrícula</Text>
+                                    <Text style={styles.routeValue}>{vehicleData?.license_plate || vehicleData?.licensePlate || '---'}</Text>
+                                </View>
+                                <View style={styles.vehicleItem}>
+                                    <Text style={styles.routeSubLabel}>Color</Text>
+                                    <Text style={styles.routeValue}>{vehicleData?.color || '---'}</Text>
+                                </View>
+                                <View style={styles.vehicleItem}>
+                                    <Text style={styles.routeSubLabel}>Modelo</Text>
+                                    <Text style={styles.routeValue} numberOfLines={1}>
+                                        {vehicleData?.brand || vehicleData?.model
+                                            ? `${vehicleData.brand || ''} ${vehicleData.model || ''}`.trim()
+                                            : '---'}
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    </>
+                )}
+
+                {/* ── ACCIONES ── */}
+                <View style={styles.actionsContainer}>
+                    <TouchableOpacity
+                        style={styles.homeBtn}
+                        onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons name="home-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                        <Text style={styles.homeBtnText}>Volver al Inicio</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel} activeOpacity={0.8}>
+                        <Ionicons name="close-circle-outline" size={18} color="#EF4444" style={{ marginRight: 8 }} />
+                        <Text style={styles.cancelBtnText}>Cancelar Reservación</Text>
+                    </TouchableOpacity>
                 </View>
+
             </ScrollView>
 
             <RideStartedModal
@@ -633,164 +642,80 @@ const WaitingForTheStart = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
+    container: { flex: 1, backgroundColor: '#F7F9FB' },
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 40,
-        paddingBottom: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#EEE',
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        paddingHorizontal: 20, paddingBottom: 12, backgroundColor: 'rgba(247,249,251,0.95)',
+        zIndex: 10,
     },
-    backButton: {
-        padding: 5,
+    headerBackBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
+    headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    headerTitle: { fontSize: 17, fontFamily: 'Poppins-Bold', color: '#191C1E', letterSpacing: -0.3 },
+    scrollContent: { paddingBottom: 120 },
+
+    // Destino
+    destinationSection: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
+    destinationLabel: { fontSize: 11, fontFamily: 'Poppins-SemiBold', color: '#2B5BB5', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
+    destinationName: { fontSize: 26, fontFamily: 'Poppins-Bold', color: '#191C1E', letterSpacing: -0.5 },
+
+    // Espera
+    waitingCard: {
+        marginHorizontal: 16, marginBottom: 16, padding: 16, borderRadius: 16,
+        backgroundColor: '#EDF2F7', flexDirection: 'row', alignItems: 'center', gap: 12,
     },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
+    waitingIconCircle: {
+        width: 52, height: 52, borderRadius: 26, backgroundColor: '#D8E2FF',
+        justifyContent: 'center', alignItems: 'center', flexShrink: 0,
     },
-    scrollContent: {
-        padding: 20,
-        paddingBottom: 140,
+    waitingTitle: { fontSize: 15, fontFamily: 'Poppins-Bold', color: '#191C1E' },
+    waitingMeta: { fontSize: 12, fontFamily: 'Poppins-Regular', color: '#727785', marginTop: 2 },
+
+    // Bento
+    bentoGrid: { flexDirection: 'row', marginHorizontal: 16, gap: 12, marginBottom: 12 },
+    bentoCard: { flex: 1, backgroundColor: '#EDF2F7', borderRadius: 16, padding: 16, gap: 4 },
+    bentoAvatar: { width: 44, height: 44, borderRadius: 22, flexShrink: 0, marginBottom: 6 },
+    bentoAvatarFallback: { backgroundColor: '#D8E2FF', justifyContent: 'center', alignItems: 'center' },
+    bentoAvatarInitials: { fontSize: 15, fontFamily: 'Poppins-Bold', color: '#005BBF' },
+    bentoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    bentoValue: { fontSize: 18, fontFamily: 'Poppins-Bold', color: '#191C1E', flexShrink: 1, marginLeft: 6 },
+    bentoRatingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    bentoRating: { fontSize: 13, fontFamily: 'Poppins-SemiBold', color: '#414754' },
+    bentoMeta: { fontSize: 12, fontFamily: 'Poppins-Regular', color: '#414754' },
+    bentoLabel: { fontSize: 10, fontFamily: 'Poppins-Bold', color: '#727785', letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 },
+    bentoWhatsappBtn: {
+        backgroundColor: '#25D366', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14,
+        flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginBottom: 4,
     },
-    content: {
-        alignItems: 'center',
-        width: '100%',
+    bentoWhatsappText: { fontSize: 11, fontFamily: 'Poppins-Bold', color: '#fff' },
+
+    // Ruta + Vehículo
+    routeCard: {
+        marginHorizontal: 16, marginBottom: 12, backgroundColor: '#EDF2F7',
+        borderRadius: 16, padding: 16,
     },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 20,
-        paddingHorizontal: 10,
+    routeCardLabel: { fontSize: 10, fontFamily: 'Poppins-Bold', color: '#727785', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 },
+    routeRow: { flexDirection: 'row', alignItems: 'center' },
+    routeDivider: { height: 1, backgroundColor: 'rgba(0,0,0,0.06)', marginVertical: 10 },
+    routeSubLabel: { fontSize: 11, fontFamily: 'Poppins-Regular', color: '#727785' },
+    routeValue: { fontSize: 14, fontFamily: 'Poppins-SemiBold', color: '#191C1E', marginTop: 1 },
+    vehicleRow: { flexDirection: 'row', justifyContent: 'space-between' },
+    vehicleItem: { flex: 1 },
+
+    // Acciones
+    actionsContainer: { marginHorizontal: 16, marginTop: 8, gap: 12 },
+    homeBtn: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        backgroundColor: '#1A73E8', paddingVertical: 16, borderRadius: 14,
+        elevation: 4, shadowColor: '#1A73E8', shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.28, shadowRadius: 8,
     },
-    detailsContainer: {
-        width: '100%',
-        marginTop: 10,
-    },
-    card: {
-        width: '100%',
-        borderWidth: 1,
-        borderRadius: 15,
-        padding: 15,
-        marginBottom: 15,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-    },
-    sectionTitle: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginBottom: 10,
-    },
-    infoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    textContainer: {
-        marginLeft: 12,
-        flex: 1,
-    },
-    label: {
-        fontSize: 12,
-        marginBottom: 2,
-    },
-    value: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    halfRow: {
-        flex: 1,
-    },
-    thirdRow: {
-        flex: 0.33,
-    },
-    buttonContainer: {
-        flexDirection: 'column',
-        gap: 12,
-        marginTop: 20,
-        width: '100%',
-    },
-    button: {
-        width: '100%',
-        paddingVertical: 16,
-        borderRadius: 14,
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'center',
-    },
-    cancelButton: {
-        width: '100%',
-        paddingVertical: 16,
-        borderRadius: 14,
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'center',
-        borderWidth: 1.5,
+    homeBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Poppins-Bold' },
+    cancelBtn: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        paddingVertical: 16, borderRadius: 14, borderWidth: 1.5, borderColor: '#EF4444',
         backgroundColor: 'transparent',
     },
-    buttonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    cancelButtonText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    // Nuevos estilos para Conductor y WhatsApp
-    driverContainer: {
-        marginTop: 5,
-    },
-    driverHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 15,
-    },
-    driverPhoto: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        marginRight: 15,
-    },
-    driverInfo: {
-        flex: 1,
-    },
-    driverName: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    driverPhone: {
-        fontSize: 12,
-        marginTop: 2,
-    },
-    whatsappButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 10,
-        borderRadius: 8,
-        marginTop: 5,
-    },
-    whatsappText: {
-        color: '#FFF',
-        fontWeight: 'bold',
-        marginLeft: 8,
-        fontSize: 14,
-    }
+    cancelBtnText: { color: '#EF4444', fontSize: 16, fontFamily: 'Poppins-Bold' },
 });
 
 const modalStyles = StyleSheet.create({

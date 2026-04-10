@@ -51,7 +51,9 @@ const SearchRide = ({ navigation }) => {
                         });
                         
                         if (activeBooking) {
-                            navigation.replace('TripInProgress', { bookingId: activeBooking._id });
+                            const rideStatus = activeBooking.ride_id?.status;
+                            const dest = rideStatus === 'in progress' ? 'TripInProgress' : 'WaitingForTheStart';
+                            navigation.replace(dest, { bookingId: activeBooking._id });
                             return;
                         }
                     }
