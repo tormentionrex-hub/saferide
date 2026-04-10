@@ -1,10 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, ScrollView, ActivityIndicator, Image, Alert, Linking } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import api from '../../services/api';
+
+// Mismo correo configurado en el backend para los códigos de verificación
+const SUPPORT_EMAIL = 'saferidefwd@gmail.com';
+
+const handleContactSupport = async () => {
+    const subject = encodeURIComponent('Soporte: Problemas con el Pago');
+    const body = encodeURIComponent('Hola, tengo un inconveniente con el pago de un viaje. \n\nDetalle del problema:\n');
+
+    const gmailUrl = `googlegmail:///co?to=${SUPPORT_EMAIL}&subject=${subject}&body=${body}`;
+    const mailtoUrl = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+
+    const canOpenGmail = await Linking.canOpenURL(gmailUrl);
+    if (canOpenGmail) {
+        await Linking.openURL(gmailUrl);
+    } else {
+        await Linking.openURL(mailtoUrl);
+    }
+};
 
 const PaymentVerification = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
@@ -56,15 +74,10 @@ const PaymentVerification = ({ route, navigation }) => {
     }, [rideId]);
 
     const handleSelectPayment = (bookingId, status) => {
-        setPaymentStatuses(prev => {
-            // Si ya está como pagado, ignoramos clicks adicionales (conductor no puede revertir)
-            if (prev[bookingId] === 'paid') return prev;
-            
-            return {
-                ...prev,
-                [bookingId]: status
-            };
-        });
+        setPaymentStatuses(prev => ({
+            ...prev,
+            [bookingId]: status,
+        }));
     };
 
     const handleContinue = async () => {
@@ -113,6 +126,8 @@ const PaymentVerification = ({ route, navigation }) => {
     }
 
     const allSelected = bookings.length > 0 && bookings.every(b => paymentStatuses[b._id]);
+    // Agente 1 → Agente 2: hay al menos un pasajero marcado como no pagó
+    const hasUnpaid = bookings.some(b => paymentStatuses[b._id] === 'unpaid');
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
@@ -176,37 +191,35 @@ const PaymentVerification = ({ route, navigation }) => {
                                     </View>
 
                                     <View style={styles.selectorContainer}>
-                                        <TouchableOpacity 
+                                        <TouchableOpacity
                                             style={[
-                                                styles.selectBtn, 
+                                                styles.selectBtn,
                                                 styles.leftBtn,
                                                 { backgroundColor: theme.bg },
                                                 isUnpaid && styles.unpaidSelected
                                             ]}
                                             activeOpacity={0.7}
                                             onPress={() => handleSelectPayment(booking._id, 'unpaid')}
-                                            disabled={isPaid}
                                         >
                                             <Text style={[
-                                                styles.selectBtnText, 
+                                                styles.selectBtnText,
                                                 { color: theme.textSecondary },
                                                 isUnpaid && styles.unpaidSelectedText
                                             ]}>No pago</Text>
                                         </TouchableOpacity>
-                                        
-                                        <TouchableOpacity 
+
+                                        <TouchableOpacity
                                             style={[
-                                                styles.selectBtn, 
+                                                styles.selectBtn,
                                                 styles.rightBtn,
                                                 { backgroundColor: theme.bg },
                                                 isPaid && styles.paidSelected
                                             ]}
                                             activeOpacity={0.7}
                                             onPress={() => handleSelectPayment(booking._id, 'paid')}
-                                            disabled={isPaid}
                                         >
                                             <Text style={[
-                                                styles.selectBtnText, 
+                                                styles.selectBtnText,
                                                 { color: theme.textSecondary },
                                                 isPaid && styles.paidSelectedText
                                             ]}>Pago</Text>
@@ -217,15 +230,25 @@ const PaymentVerification = ({ route, navigation }) => {
                         })}
                     </View>
 
-                    <View style={[styles.supportBox, { backgroundColor: 'rgba(26,115,232,0.05)' }]}>
-                        <View style={styles.supportIcon}>
-                            <Ionicons name="chatbubbles" size={24} color="#1A73E8" />
+                    <View style={[styles.supportBox, { backgroundColor: hasUnpaid ? 'rgba(255,59,48,0.06)' : 'rgba(26,115,232,0.05)' }]}>
+                        <View style={[styles.supportIcon, { backgroundColor: hasUnpaid ? 'rgba(255,59,48,0.1)' : '#fff' }]}>
+                            <Ionicons name="chatbubbles" size={24} color={hasUnpaid ? '#FF3B30' : '#1A73E8'} />
                         </View>
                         <View style={{ flex: 1 }}>
                             <Text style={[styles.supportTitle, { color: theme.text }]}>¿Problemas con el pago?</Text>
                             <Text style={[styles.supportText, { color: theme.textSecondary }]}>
                                 Si un pasajero se niega a pagar, repórtalo inmediatamente para que nuestro equipo de soporte pueda asistirte.
                             </Text>
+                            <TouchableOpacity
+                                style={[styles.emailBtn, { borderColor: hasUnpaid ? '#FF3B30' : '#1A73E8' }]}
+                                onPress={handleContactSupport}
+                                activeOpacity={0.75}
+                            >
+                                <Ionicons name="mail-outline" size={15} color={hasUnpaid ? '#FF3B30' : '#1A73E8'} />
+                                <Text style={[styles.emailBtnText, { color: hasUnpaid ? '#FF3B30' : '#1A73E8' }]}>
+                                    {SUPPORT_EMAIL}
+                                </Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </ScrollView>
@@ -297,7 +320,18 @@ const styles = StyleSheet.create({
     supportBox: { flexDirection: 'row', padding: 20, borderRadius: 20, alignItems: 'center', gap: 16 },
     supportIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
     supportTitle: { fontSize: 16, fontWeight: '700', marginBottom: 6 },
-    supportText: { fontSize: 13, lineHeight: 18 },
+    supportText: { fontSize: 13, lineHeight: 18, marginBottom: 10 },
+    emailBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        alignSelf: 'flex-start',
+        borderWidth: 1,
+        borderRadius: 20,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+    },
+    emailBtnText: { fontSize: 12, fontWeight: '600' },
     footer: { paddingHorizontal: 24, paddingVertical: 20, borderTopWidth: 1 },
     continueBtn: {
         backgroundColor: '#1A73E8', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
