@@ -13,8 +13,8 @@ const { width, height } = Dimensions.get('window');
 const RideDetail = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const { showAlert } = useCustomAlert();
-    // Recibimos el objeto completo del viaje
-    const { ride } = route.params;
+    // Recibimos el objeto completo del viaje y el origen/destino de búsqueda del pasajero
+    const { ride, searchOrigin, searchDestination } = route.params;
 
     const mapRef = useRef(null);
 
@@ -110,7 +110,12 @@ const RideDetail = ({ route, navigation }) => {
                 }
             }
 
-            const response = await api.post('/bookings', { ride_id: ride._id, seats_booked: 1 });
+            const response = await api.post('/bookings', {
+                ride_id: ride._id,
+                seats_booked: 1,
+                passenger_origin: searchOrigin ?? null,
+                passenger_destination: searchDestination ?? null,
+            });
             if (response.data.success) {
                 navigation.navigate('ScreenSaver', { bookingId: response.data.data._id });
             }

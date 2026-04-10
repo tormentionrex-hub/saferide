@@ -269,11 +269,11 @@ const ListOfDrivers = ({ route, navigation }) => {
                     }
                 }
             }
-            navigation.navigate('RideDetail', { ride });
+            navigation.navigate('RideDetail', { ride, searchOrigin, searchDestination });
         } catch (error) {
             console.error('Error verificando estado del pasajero:', error);
             // Si hay error en la validación, permitimos pasar al detalle pero fallará al intentar reservar
-            navigation.navigate('RideDetail', { ride });
+            navigation.navigate('RideDetail', { ride, searchOrigin, searchDestination });
         }
     };
 

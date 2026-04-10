@@ -95,7 +95,14 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                             );
                             if (activeBooking) {
                                 bookingCache = { data: null, lastCheck: 0 };
-                                const dest = activeBooking.status === 'pending' ? 'ScreenSaver' : 'TripInProgress';
+                                let dest;
+                                if (activeBooking.status === 'pending') {
+                                    dest = 'ScreenSaver';
+                                } else if (activeBooking.ride_id?.status === 'in progress') {
+                                    dest = 'TripInProgress';
+                                } else {
+                                    dest = 'WaitingForTheStart';
+                                }
                                 navigation.navigate(dest, { bookingId: activeBooking._id });
                                 return;
                             }
