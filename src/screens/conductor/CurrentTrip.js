@@ -95,8 +95,7 @@ const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
     return null;
 };
 import { useLocationTracker } from '../../hooks/useLocationTracker';
-import BottomNavigationDriver from '../../components/BottomNavigationDriver';
-import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import { useScrollIndicator } from '../../components/ScrollIndicator';
 
 const TripInProgressDriver = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
@@ -288,173 +287,157 @@ const TripInProgressDriver = ({ route, navigation }) => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+            <StatusBar barStyle="dark-content" backgroundColor="#fff" translucent />
 
             {/* ── HEADER ── */}
             <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : 44 }]}>
                 <TouchableOpacity style={styles.headerBackBtn} onPress={() => navigation.goBack()}>
                     <Ionicons name="chevron-back" size={26} color="#191C1E" />
                 </TouchableOpacity>
-                <View style={styles.headerCenter}>
-                    <Ionicons name="location" size={18} color="#1A73E8" />
-                    <Text style={styles.headerTitle}>Viaje en curso</Text>
-                </View>
-                <View style={{ width: 40 }} />
+                <Text style={styles.headerTitle}>Viaje en curso</Text>
+                <TouchableOpacity style={styles.headerMenuBtn}>
+                    <Ionicons name="ellipsis-vertical" size={20} color="#191C1E" />
+                </TouchableOpacity>
             </View>
 
-            <View style={{ flex: 1 }}>
-                <ScrollView
-                    style={{ flex: 1 }}
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                    {...si.scrollProps}
-                >
-                    {/* ── DESTINO ── */}
-                    <View style={styles.destinationSection}>
-                        <Text style={styles.destinationLabel}>Destino actual</Text>
-                        <Text style={styles.destinationName} numberOfLines={1}>
-                            {ride?.destination?.name || 'Sin destino'}
-                        </Text>
-                    </View>
-
-                    {/* ── MAPA CARD ── */}
-                    <View style={styles.mapCard}>
-                        {hasCoords ? (
-                            <MapView
-                                ref={mapRef}
-                                style={StyleSheet.absoluteFill}
-                                initialRegion={{
-                                    latitude: (Number(originCoords.lat) + Number(destCoords.lat)) / 2,
-                                    longitude: (Number(originCoords.lng) + Number(destCoords.lng)) / 2,
-                                    latitudeDelta: Math.abs(Number(originCoords.lat) - Number(destCoords.lat)) * 2.5 || 0.05,
-                                    longitudeDelta: Math.abs(Number(originCoords.lng) - Number(destCoords.lng)) * 2.5 || 0.05,
-                                }}
-                                showsUserLocation={true}
-                                onMapReady={() => {
-                                    if (mapRef.current) {
-                                        mapRef.current.fitToCoordinates(
-                                            [
-                                                { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
-                                                { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) },
-                                            ],
-                                            { edgePadding: { top: 60, right: 60, bottom: 160, left: 60 }, animated: true }
-                                        );
-                                    }
-                                }}
-                            >
-                                <Marker coordinate={{ latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) }} title="Recogida" pinColor="#1A73E8" />
-                                <Marker coordinate={{ latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }} title="Destino" pinColor="#10B981" />
-                                {routeCoords && routeCoords.length > 0 ? (
-                                    <Polyline coordinates={routeCoords} strokeColor="#1A73E8" strokeWidth={5} lineJoin="round" lineCap="round" />
-                                ) : (
-                                    <Polyline
-                                        coordinates={[
+            <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                {...si.scrollProps}
+            >
+                {/* ── MAPA CARD ── */}
+                <View style={styles.mapCard}>
+                    {hasCoords ? (
+                        <MapView
+                            ref={mapRef}
+                            style={StyleSheet.absoluteFill}
+                            initialRegion={{
+                                latitude: (Number(originCoords.lat) + Number(destCoords.lat)) / 2,
+                                longitude: (Number(originCoords.lng) + Number(destCoords.lng)) / 2,
+                                latitudeDelta: Math.abs(Number(originCoords.lat) - Number(destCoords.lat)) * 2.5 || 0.05,
+                                longitudeDelta: Math.abs(Number(originCoords.lng) - Number(destCoords.lng)) * 2.5 || 0.05,
+                            }}
+                            showsUserLocation={true}
+                            onMapReady={() => {
+                                if (mapRef.current) {
+                                    mapRef.current.fitToCoordinates(
+                                        [
                                             { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
                                             { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) },
-                                        ]}
-                                        strokeColor="#1A73E8" strokeWidth={3} lineDashPattern={[8, 5]}
-                                    />
-                                )}
-                            </MapView>
-                        ) : (
-                            <View style={styles.mapUnavailable}>
-                                <Ionicons name="map-outline" size={60} color="#727785" />
-                                <Text style={styles.mapUnavailableText}>Mapa no disponible</Text>
-                            </View>
-                        )}
-
-                        {/* Controles de mapa */}
-                        <View style={styles.mapControls}>
-                            <TouchableOpacity style={styles.mapControlBtn} activeOpacity={0.8}>
-                                <Ionicons name="add" size={22} color="#005BBF" />
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.mapControlBtn} activeOpacity={0.8}>
-                                <Ionicons name="remove" size={22} color="#005BBF" />
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[styles.mapControlBtn, styles.mapControlBtnPrimary]} activeOpacity={0.8}>
-                                <Ionicons name="locate" size={22} color="#fff" />
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Tarjeta flotante en el mapa */}
-                        <View style={styles.journeyCard}>
-                            <View style={styles.journeyTopRow}>
-                                <View style={styles.journeyCarIcon}>
-                                    <Ionicons name="car" size={20} color="#00337C" />
-                                </View>
-                                <View style={styles.journeyTextBlock}>
-                                    <Text style={styles.journeyTime}>
-                                        {ride?.duration_minutes ? `Aprox. ${ride.duration_minutes} min de viaje` : 'En camino al destino'}
-                                    </Text>
-                                    <Text style={styles.journeyMeta}>
-                                        {ride?.distance_km ? `Distancia: ${Number(ride.distance_km).toFixed(1)} km` : 'Calculando distancia...'}
-                                    </Text>
-                                </View>
-                            </View>
-                            <TouchableOpacity style={styles.journeyFinishBtn} onPress={handleFinalizeTrip} activeOpacity={0.8}>
-                                <MaterialCommunityIcons name="logout" size={15} color="#fff" style={{ marginRight: 5 }} />
-                                <Text style={styles.journeyFinishText}>Finalizar</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    {/* ── BENTO GRID ── */}
-                    <View style={styles.bentoGrid}>
-                        {/* Pasajero */}
-                        <View style={styles.bentoCard}>
-                            <View style={styles.bentoDriverRow}>
-                                {passenger?.profileImage ? (
-                                    <Image source={{ uri: passenger.profileImage }} style={styles.bentoAvatar} onError={() => {}} />
-                                ) : (
-                                    <View style={[styles.bentoAvatar, styles.bentoAvatarFallback]}>
-                                        <Text style={styles.bentoAvatarInitials}>
-                                            {passenger?.name ? passenger.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '?'}
-                                        </Text>
-                                    </View>
-                                )}
-                                <View style={{ flex: 1, minWidth: 0 }}>
-                                    <Text style={styles.bentoValue} numberOfLines={1}>
-                                        {passenger?.name?.split(' ')[0] || 'Pasajero'}
-                                    </Text>
-                                    <View style={styles.bentoRatingRow}>
-                                        <Ionicons name="star" size={12} color="#F59E0B" />
-                                        <Text style={styles.bentoRating}>{passenger?.rating || 'Nuevo'}</Text>
-                                    </View>
-                                </View>
-                            </View>
-                            {passenger?.phone && (
-                                <TouchableOpacity style={styles.bentoWhatsappBtn} onPress={() => {
-                                    const cleanPhone = passenger.phone.replace(/[^0-9+]/g, '');
-                                    const waUrl = `whatsapp://send?phone=${cleanPhone}&text=Hola,%20soy%20tu%20conductor.%20Voy%20en%20camino.`;
-                                    Linking.canOpenURL(waUrl).then(s => s ? Linking.openURL(waUrl) : Linking.openURL(`https://wa.me/${cleanPhone}`)).catch(() => Linking.openURL(`tel:${passenger.phone}`));
-                                }}>
-                                    <Ionicons name="logo-whatsapp" size={14} color="#fff" style={{ marginRight: 4 }} />
-                                    <Text style={styles.bentoWhatsappText}>Contactar</Text>
-                                </TouchableOpacity>
+                                        ],
+                                        { edgePadding: { top: 60, right: 60, bottom: 60, left: 60 }, animated: true }
+                                    );
+                                }
+                            }}
+                        >
+                            <Marker coordinate={{ latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) }} title="Recogida" pinColor="#1A73E8" />
+                            <Marker coordinate={{ latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }} title="Destino" pinColor="#EF4444" />
+                            {routeCoords && routeCoords.length > 0 ? (
+                                <Polyline coordinates={routeCoords} strokeColor="#1A73E8" strokeWidth={5} lineJoin="round" lineCap="round" />
+                            ) : (
+                                <Polyline
+                                    coordinates={[
+                                        { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
+                                        { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) },
+                                    ]}
+                                    strokeColor="#1A73E8" strokeWidth={3} lineDashPattern={[8, 5]}
+                                />
                             )}
-                            <Text style={styles.bentoLabel}>TU PASAJERO</Text>
+                        </MapView>
+                    ) : (
+                        <View style={styles.mapUnavailable}>
+                            <Ionicons name="map-outline" size={60} color="#727785" />
+                            <Text style={styles.mapUnavailableText}>Mapa no disponible</Text>
                         </View>
+                    )}
 
-                        {/* Ruta */}
-                        <View style={styles.bentoCard}>
-                            <View style={styles.bentoRow}>
-                                <Ionicons name="navigate" size={26} color="#1A73E8" />
-                                <Text style={styles.bentoValue}>
-                                    {ride?.distance_km ? `${Number(ride.distance_km).toFixed(1)}` : '--'}
-                                    <Text style={styles.bentoUnit}> km</Text>
+                    {/* Chip de tiempo y distancia sobre el mapa */}
+                    <View style={styles.mapChip}>
+                        <Ionicons name="navigate" size={14} color="#1A73E8" />
+                        <Text style={styles.mapChipText}>
+                            {ride?.duration_minutes ? `${ride.duration_minutes} min` : '--'} • {ride?.distance_km ? `${Number(ride.distance_km).toFixed(1)} km` : '--'}
+                        </Text>
+                    </View>
+                </View>
+
+                {/* ── TARJETA PASAJERO ── */}
+                <View style={styles.passengerCard}>
+                    <View style={styles.passengerInfo}>
+                        {passenger?.profileImage ? (
+                            <Image source={{ uri: passenger.profileImage }} style={styles.passengerAvatar} onError={() => {}} />
+                        ) : (
+                            <View style={[styles.passengerAvatar, styles.passengerAvatarFallback]}>
+                                <Text style={styles.passengerAvatarInitials}>
+                                    {passenger?.name ? passenger.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '?'}
                                 </Text>
                             </View>
-                            <Text style={styles.bentoMeta} numberOfLines={1}>
-                                {ride?.origin?.name?.split(' ')[0] || 'Origen'} → {ride?.destination?.name?.split(' ')[0] || 'Destino'}
+                        )}
+                        <View style={styles.passengerDetails}>
+                            <Text style={styles.passengerName} numberOfLines={2}>
+                                {passenger?.name || 'Pasajero'}
                             </Text>
-                            <Text style={styles.bentoLabel}>DISTANCIA</Text>
+                            <View style={styles.passengerRatingRow}>
+                                <Ionicons name="star" size={13} color="#F59E0B" />
+                                <Text style={styles.passengerRating}>{passenger?.rating || '5.0'}</Text>
+                            </View>
+                        </View>
+                        <View style={styles.passengerActions}>
+                            {passenger?.phone && (
+                                <>
+                                    <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#25D366' }]} onPress={() => {
+                                        const cleanPhone = passenger.phone.replace(/[^0-9+]/g, '');
+                                        const waUrl = `whatsapp://send?phone=${cleanPhone}&text=Hola,%20soy%20tu%20conductor.%20Voy%20en%20camino.`;
+                                        Linking.canOpenURL(waUrl).then(s => s ? Linking.openURL(waUrl) : Linking.openURL(`https://wa.me/${cleanPhone}`)).catch(() => Linking.openURL(`tel:${passenger.phone}`));
+                                    }}>
+                                        <Ionicons name="logo-whatsapp" size={20} color="#fff" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#1A73E8' }]} onPress={() => {
+                                        Linking.openURL(`tel:${passenger.phone}`);
+                                    }}>
+                                        <Ionicons name="call" size={20} color="#fff" />
+                                    </TouchableOpacity>
+                                </>
+                            )}
                         </View>
                     </View>
-                </ScrollView>
-                <ScrollIndicator si={si} thumbColor="#1A73E8" />
-            </View>
+                </View>
 
-            <BottomNavigationDriver navigation={navigation} activeTab="Rutas" />
+                {/* ── TARJETA RUTA ── */}
+                <View style={styles.routeCard}>
+                    <View style={styles.routeRow}>
+                        {/* Columna de iconos con línea conectora */}
+                        <View style={styles.routeIconColumn}>
+                            <View style={[styles.routeDot, { backgroundColor: '#1A73E8' }]} />
+                            <View style={styles.routeLine} />
+                            <View style={[styles.routeDot, styles.routeDotSquare, { backgroundColor: '#EF4444' }]} />
+                        </View>
+                        {/* Columna de textos */}
+                        <View style={styles.routeTextsColumn}>
+                            <View style={styles.routeTextBlock}>
+                                <Text style={styles.routeLabel}>PUNTO DE PARTIDA</Text>
+                                <Text style={styles.routeAddress} numberOfLines={1}>
+                                    {ride?.origin?.name || 'Origen no disponible'}
+                                </Text>
+                            </View>
+                            <View style={styles.routeTextBlock}>
+                                <Text style={styles.routeLabel}>DESTINO</Text>
+                                <Text style={styles.routeAddress} numberOfLines={1}>
+                                    {ride?.destination?.name || 'Destino no disponible'}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+            </ScrollView>
+
+            {/* ── BOTÓN FINALIZAR ── */}
+            <View style={styles.bottomBtnContainer}>
+                <TouchableOpacity style={styles.finalizeBtn} onPress={handleFinalizeTrip} activeOpacity={0.85}>
+                    <MaterialCommunityIcons name="logout" size={18} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={styles.finalizeBtnText}>Finalizar viaje</Text>
+                </TouchableOpacity>
+            </View>
 
             <FinalizeTripModal
                 visible={finishModalVisible}
@@ -468,70 +451,87 @@ const TripInProgressDriver = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#F7F9FB' },
+    container: { flex: 1, backgroundColor: '#FFFFFF' },
     header: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 20, paddingBottom: 12, backgroundColor: 'rgba(247,249,251,0.95)',
+        paddingHorizontal: 16, paddingBottom: 10, backgroundColor: '#FFFFFF',
         zIndex: 10,
     },
     headerBackBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
-    headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    headerTitle: { fontSize: 17, fontFamily: 'Poppins-Bold', color: '#191C1E', letterSpacing: -0.3 },
-    scrollContent: { paddingBottom: 110 },
-    destinationSection: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
-    destinationLabel: { fontSize: 11, fontFamily: 'Poppins-SemiBold', color: '#2B5BB5', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
-    destinationName: { fontSize: 26, fontFamily: 'Poppins-Bold', color: '#191C1E', letterSpacing: -0.5 },
+    headerTitle: { fontSize: 16, fontFamily: 'Poppins-SemiBold', color: '#191C1E', letterSpacing: -0.2 },
+    headerMenuBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
+    scrollContent: { paddingBottom: 120 },
+
+    // Mapa
     mapCard: {
-        marginHorizontal: 16, height: 370, borderRadius: 20, overflow: 'hidden',
-        backgroundColor: '#E0E3E5', shadowColor: '#000', shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.08, shadowRadius: 24, elevation: 8, marginBottom: 16,
+        marginHorizontal: 20, height: 280, borderRadius: 20, overflow: 'hidden',
+        backgroundColor: '#E0E3E5', marginBottom: 20,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1, shadowRadius: 12, elevation: 6,
     },
     mapUnavailable: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     mapUnavailableText: { marginTop: 10, fontSize: 15, fontFamily: 'Poppins-SemiBold', color: '#727785' },
-    mapControls: { position: 'absolute', right: 12, top: 12, gap: 10 },
-    mapControlBtn: {
-        width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.92)',
-        justifyContent: 'center', alignItems: 'center', marginBottom: 2,
+    mapChip: {
+        position: 'absolute', bottom: 14, left: 14,
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 20,
+        paddingHorizontal: 12, paddingVertical: 7,
         shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4,
     },
-    mapControlBtnPrimary: { backgroundColor: '#005BBF' },
-    journeyCard: {
-        position: 'absolute', bottom: 14, left: 12, right: 12,
-        backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 16,
-        paddingHorizontal: 14, paddingTop: 14, paddingBottom: 12,
-        flexDirection: 'column', gap: 10,
-        shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 6,
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.6)',
+    mapChipText: { fontSize: 13, fontFamily: 'Poppins-SemiBold', color: '#191C1E' },
+
+    // Tarjeta pasajero
+    passengerCard: {
+        marginHorizontal: 20, backgroundColor: '#FFFFFF', borderRadius: 18,
+        padding: 16, marginBottom: 14,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06, shadowRadius: 10, elevation: 3,
+        borderWidth: 1, borderColor: '#F0F0F0',
     },
-    journeyTopRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    journeyCarIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#D8E2FF', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
-    journeyTextBlock: { flex: 1 },
-    journeyTime: { fontSize: 14, fontFamily: 'Poppins-Bold', color: '#191C1E' },
-    journeyMeta: { fontSize: 12, fontFamily: 'Poppins-Regular', color: '#727785', marginTop: 2 },
-    journeyFinishBtn: {
-        backgroundColor: '#EF4444', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch',
-        shadowColor: '#EF4444', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.35, shadowRadius: 6, elevation: 3,
+    passengerInfo: { flexDirection: 'row', alignItems: 'center' },
+    passengerAvatar: { width: 52, height: 52, borderRadius: 26 },
+    passengerAvatarFallback: { backgroundColor: '#E8EDF2', justifyContent: 'center', alignItems: 'center' },
+    passengerAvatarInitials: { fontSize: 17, fontFamily: 'Poppins-Bold', color: '#555' },
+    passengerDetails: { flex: 1, marginLeft: 14 },
+    passengerName: { fontSize: 16, fontFamily: 'Poppins-SemiBold', color: '#191C1E', lineHeight: 21 },
+    passengerRatingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 3, gap: 4 },
+    passengerRating: { fontSize: 13, fontFamily: 'Poppins-SemiBold', color: '#414754' },
+    passengerActions: { flexDirection: 'row', gap: 10 },
+    actionBtn: {
+        width: 42, height: 42, borderRadius: 21, backgroundColor: '#F5F5F5',
+        justifyContent: 'center', alignItems: 'center',
     },
-    journeyFinishText: { fontSize: 13, fontFamily: 'Poppins-Bold', color: '#fff', letterSpacing: 0.2 },
-    bentoGrid: { flexDirection: 'row', marginHorizontal: 16, gap: 12 },
-    bentoCard: { flex: 1, backgroundColor: '#EDF2F7', borderRadius: 16, padding: 16, gap: 4 },
-    bentoDriverRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
-    bentoAvatar: { width: 44, height: 44, borderRadius: 22, flexShrink: 0 },
-    bentoAvatarFallback: { backgroundColor: '#D8E2FF', justifyContent: 'center', alignItems: 'center' },
-    bentoAvatarInitials: { fontSize: 15, fontFamily: 'Poppins-Bold', color: '#005BBF' },
-    bentoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    bentoValue: { fontSize: 18, fontFamily: 'Poppins-Bold', color: '#191C1E', flexShrink: 1, marginLeft: 6 },
-    bentoUnit: { fontSize: 14, fontFamily: 'Poppins-Regular' },
-    bentoRatingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    bentoRating: { fontSize: 13, fontFamily: 'Poppins-SemiBold', color: '#414754' },
-    bentoMeta: { fontSize: 12, fontFamily: 'Poppins-Regular', color: '#414754' },
-    bentoLabel: { fontSize: 10, fontFamily: 'Poppins-Bold', color: '#727785', letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 },
-    bentoWhatsappBtn: {
-        backgroundColor: '#25D366', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14,
-        flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginBottom: 4,
+
+    // Tarjeta ruta
+    routeCard: {
+        marginHorizontal: 20, backgroundColor: '#FFFFFF', borderRadius: 18,
+        paddingVertical: 18, paddingHorizontal: 20, marginBottom: 14,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06, shadowRadius: 10, elevation: 3,
+        borderWidth: 1, borderColor: '#F0F0F0',
     },
-    bentoWhatsappText: { fontSize: 11, fontFamily: 'Poppins-Bold', color: '#fff' },
+    routeRow: { flexDirection: 'row' },
+    routeIconColumn: { alignItems: 'center', width: 24, marginRight: 14 },
+    routeDot: { width: 14, height: 14, borderRadius: 7 },
+    routeDotSquare: { borderRadius: 3 },
+    routeLine: { width: 2, flex: 1, backgroundColor: '#D0D5DD', marginVertical: 4 },
+    routeTextsColumn: { flex: 1, justifyContent: 'space-between', gap: 20 },
+    routeTextBlock: {},
+    routeLabel: { fontSize: 10, fontFamily: 'Poppins-Bold', color: '#999', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
+    routeAddress: { fontSize: 15, fontFamily: 'Poppins-SemiBold', color: '#191C1E' },
+
+    // Botón finalizar
+    bottomBtnContainer: {
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        paddingHorizontal: 20, paddingBottom: Platform.OS === 'android' ? 20 : 34, paddingTop: 14,
+        backgroundColor: '#FFFFFF',
+    },
+    finalizeBtn: {
+        backgroundColor: '#EF4444', paddingVertical: 16, borderRadius: 28,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        shadowColor: '#EF4444', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 10, elevation: 5,
+    },
+    finalizeBtnText: { fontSize: 16, fontFamily: 'Poppins-Bold', color: '#fff', letterSpacing: 0.3 },
 });
 
 const modalStyles = StyleSheet.create({
