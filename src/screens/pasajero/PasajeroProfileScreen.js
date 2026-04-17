@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View, Text, StyleSheet, StatusBar, TouchableOpacity, ScrollView,
-    Image, ActivityIndicator, Alert, Modal, TextInput, KeyboardAvoidingView,
+    Image, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView,
     Platform, PanResponder, Animated,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import { useCustomAlert } from '../../context/CustomAlertContext';
 import { uploadToCloudinary } from '../../Cloudinary/Cloudinary';
 import { userService } from '../../services/userService';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
@@ -204,6 +205,7 @@ const PasajeroProfileScreen = ({ navigation }) => {
     const si = useScrollIndicator();
     const logoutModal  = useLogoutModal();
     const successAlert = useSuccessAlert();
+    const { showAlert } = useCustomAlert();
 
     const [loading,       setLoading]       = useState(true);
     const [userData,      setUserData]      = useState(null);
@@ -326,28 +328,28 @@ const PasajeroProfileScreen = ({ navigation }) => {
                 (editForm.profileImage !== userData.profileImage && editForm.profileImage !== null);
 
             if (!hasChanges) {
-                Alert.alert('No hay cambios', 'No has realizado ningún cambio para actualizar.');
+                showAlert('No hay cambios', 'No has realizado ningún cambio para actualizar.', 'warning');
                 setUpdating(false);
                 return;
             }
 
             // 2. Validar campos obligatorios
             if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.company.trim()) {
-                Alert.alert('Datos incompletos', 'Todos los campos son obligatorios.');
+                showAlert('Datos incompletos', 'Todos los campos son obligatorios.', 'warning');
                 setUpdating(false);
                 return;
             }
 
             // 3. Validar formato de nombre
             if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$/.test(editForm.name.trim())) {
-                Alert.alert('Formato Inválido', 'El nombre solo puede contener letras y espacios.');
+                showAlert('Formato Inválido', 'El nombre solo puede contener letras y espacios.', 'error');
                 setUpdating(false);
                 return;
             }
 
             // 4. Validar formato de teléfono
             if (!/^\d{8}$/.test(editForm.phone)) {
-                Alert.alert('Formato Inválido', 'El teléfono debe tener exactamente 8 dígitos.');
+                showAlert('Formato Inválido', 'El teléfono debe tener exactamente 8 dígitos.', 'error');
                 setUpdating(false);
                 return;
             }
@@ -384,7 +386,7 @@ const PasajeroProfileScreen = ({ navigation }) => {
             setTimeout(() => successAlert.show(), 320);
         } catch (e) {
             console.error('Update error:', e);
-            Alert.alert('Error', 'No se pudo actualizar el perfil.');
+            showAlert('Error', 'No se pudo actualizar el perfil.', 'error');
         } finally { setUpdating(false); }
     };
 
