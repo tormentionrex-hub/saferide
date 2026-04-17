@@ -194,6 +194,8 @@ const PaymentMethodScreen = ({ navigation }) => {
                         {
                             backgroundColor: selected ? theme.accent : (isDark ? theme.iconCircleBg : '#EEF2FF'),
                             shadowColor: selected ? theme.accent : 'transparent',
+                            marginTop: 'auto',
+                            marginBottom: insets.bottom > 0 ? insets.bottom : 20
                         }
                     ]}
                     onPress={handleSave}

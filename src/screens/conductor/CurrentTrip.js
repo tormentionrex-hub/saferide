@@ -96,11 +96,13 @@ const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
 };
 import { useLocationTracker } from '../../hooks/useLocationTracker';
 import { useScrollIndicator } from '../../components/ScrollIndicator';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TripInProgressDriver = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const { showAlert } = useCustomAlert();
     const si = useScrollIndicator({ alwaysVisible: true });
+    const insets = useSafeAreaInsets();
 
     // ListOfRequests nos pasa rideId (el ID del viaje), no bookingId
     const rideId = route?.params?.rideId;
@@ -291,7 +293,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
 
             {/* ── HEADER ── */}
             <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : 44 }]}>
-                <TouchableOpacity style={styles.headerBackBtn} onPress={() => navigation.goBack()}>
+                <TouchableOpacity style={styles.headerBackBtn} onPress={() => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })}>
                     <Ionicons name="chevron-back" size={26} color="#191C1E" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Viaje en curso</Text>
@@ -432,7 +434,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
             </ScrollView>
 
             {/* ── BOTÓN FINALIZAR ── */}
-            <View style={styles.bottomBtnContainer}>
+            <View style={[styles.bottomBtnContainer, { paddingBottom: (insets.bottom > 0 ? insets.bottom : 20) + 12 }]}>
                 <TouchableOpacity style={styles.finalizeBtn} onPress={handleFinalizeTrip} activeOpacity={0.85}>
                     <MaterialCommunityIcons name="logout" size={18} color="#fff" style={{ marginRight: 8 }} />
                     <Text style={styles.finalizeBtnText}>Finalizar viaje</Text>
@@ -460,7 +462,7 @@ const styles = StyleSheet.create({
     headerBackBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
     headerTitle: { fontSize: 16, fontFamily: 'Poppins-SemiBold', color: '#191C1E', letterSpacing: -0.2 },
     headerMenuBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
-    scrollContent: { paddingBottom: 120 },
+    scrollContent: { paddingBottom: 30 },
 
     // Mapa
     mapCard: {
@@ -523,7 +525,7 @@ const styles = StyleSheet.create({
     // Botón finalizar
     bottomBtnContainer: {
         position: 'absolute', bottom: 0, left: 0, right: 0,
-        paddingHorizontal: 20, paddingBottom: Platform.OS === 'android' ? 20 : 34, paddingTop: 14,
+        paddingHorizontal: 20, paddingTop: 14,
         backgroundColor: '#FFFFFF',
     },
     finalizeBtn: {
