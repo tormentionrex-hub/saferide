@@ -474,14 +474,26 @@ const History = ({ navigation }) => {
                         maxToRenderPerBatch={3}
                         windowSize={5}
                         ListFooterComponent={renderFooter}
-                        ListEmptyComponent={() => (
-                            <View style={styles.emptyContainer}>
-                                <Ionicons name="receipt-outline" size={64} color={theme.textSecondary + '40'} />
-                                <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                                    No hay viajes registrados en esta fecha.
-                                </Text>
-                            </View>
-                        )}
+                        ListEmptyComponent={() => {
+                                const isFiltered = !!selectedMonth;
+                                return (
+                                    <View style={styles.emptyContainer}>
+                                        <Ionicons
+                                            name={isFiltered ? 'calendar-outline' : 'car-outline'}
+                                            size={72}
+                                            color={theme.textSecondary + '35'}
+                                        />
+                                        <Text style={[styles.emptyTitle, { color: theme.text }]}>
+                                            {isFiltered ? 'Sin viajes en este período' : '¡Aún no tienes viajes!'}
+                                        </Text>
+                                        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                                            {isFiltered
+                                                ? 'No encontramos viajes para la fecha seleccionada. Prueba con otro filtro.'
+                                                : 'Cuando realices tu primer viaje con SafeRide, aparecerá aquí tu historial.'}
+                                        </Text>
+                                    </View>
+                                );
+                            }}
                         refreshControl={
                             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} colors={[theme.accent]} />
                         }
@@ -560,8 +572,9 @@ const styles = StyleSheet.create({
     contactBtn: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
     loadMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 16, borderWidth: 1, borderStyle: 'dashed', marginTop: 10, marginBottom: 30, gap: 8 },
     loadMoreText: { fontSize: 15, fontWeight: 'bold' },
-    emptyContainer: { marginTop: 80, alignItems: 'center', paddingHorizontal: 40, gap: 15 },
-    emptyText: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
+    emptyContainer: { marginTop: 80, alignItems: 'center', paddingHorizontal: 40, gap: 12 },
+    emptyTitle: { fontSize: 18, fontWeight: '700', textAlign: 'center' },
+    emptyText: { fontSize: 14, textAlign: 'center', lineHeight: 22 },
 });
 
 export default History;

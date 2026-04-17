@@ -83,15 +83,15 @@ const DashboardPasajero = ({ navigation, route }) => {
             {/* Barra de estado adaptativa */}
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             
-            {/* Encabezado: Texto 'Saferide' y Tuerquita Animada */}
-            <View style={styles.header}>
+            {/* Encabezado: Texto 'Pasajero' y Tuerquita Animada */}
+            <View style={[styles.header, { borderBottomColor: theme.divider || '#CBD5E1', borderBottomWidth: 1 }]}>
                 <View style={{ width: 40 }} />
                 <Text
-                    style={[styles.headerTitle, { color: theme.text }]}
+                    style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}
                     numberOfLines={1}
                     adjustsFontSizeToFit
                     minimumFontScale={0.7}
-                >Saferide</Text>
+                >Pasajero</Text>
                 
                 <TouchableOpacity 
                     style={styles.settingsButton}
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontFamily: 'Poppins-Bold',
-        fontSize: 24,
+        fontSize: 22,
     },
     settingsButton: {
         padding: 5,

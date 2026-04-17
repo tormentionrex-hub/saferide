@@ -474,14 +474,26 @@ export default function PreviousTripsScreen() {
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} />
                     }
                     ListFooterComponent={renderFooter}
-                    ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <Ionicons name="car-outline" size={64} color={theme.textSecondary + '40'} />
-                            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                                No hay viajes registrados en esta fecha.
-                            </Text>
-                        </View>
-                    }
+                    ListEmptyComponent={() => {
+                        const isFiltered = !!selectedMonth;
+                        return (
+                            <View style={styles.emptyContainer}>
+                                <Ionicons
+                                    name={isFiltered ? 'calendar-outline' : 'car-sport-outline'}
+                                    size={72}
+                                    color={theme.textSecondary + '35'}
+                                />
+                                <Text style={[styles.emptyTitle, { color: theme.text }]}>
+                                    {isFiltered ? 'Sin viajes en este período' : '¡Aún no tienes viajes!'}
+                                </Text>
+                                <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                                    {isFiltered
+                                        ? 'No encontramos viajes para la fecha seleccionada. Prueba con otro filtro.'
+                                        : 'Cuando completes tu primer viaje como conductor, aparecerá aquí tu historial.'}
+                                </Text>
+                            </View>
+                        );
+                    }}
                 />
             )}
         </SafeAreaView>
@@ -787,11 +799,18 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginTop: 100,
-        gap: 15,
+        gap: 12,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        textAlign: 'center',
     },
     emptyText: {
-        fontSize: 16,
+        fontSize: 14,
         textAlign: 'center',
+        lineHeight: 22,
+        paddingHorizontal: 20,
     },
 });
 
