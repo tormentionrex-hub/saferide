@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
-    TextInput, StatusBar, Alert, ScrollView, Animated,
+    TextInput, StatusBar, ScrollView, Animated,
     Modal, FlatList
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import CustomAlert from '../../components/CustomAlert';
 
 const CAR_DATA = { //ESTOS SON LOS QUE VAN A IR EN EL ProfileConductor, para cuando este esa Feature.
     Acura: ['MDX', 'RDX', 'TLX', 'TSX', 'Integra'],
@@ -123,6 +124,7 @@ export default function RegisterVehicleStep1({ navigation }) {
     const [capacity, setCapacity] = useState(4);
     const [showPlateError, setShowPlateError] = useState(false);
     const [plateErrorMessage, setPlateErrorMessage] = useState('');
+    const [fieldAlert, setFieldAlert] = useState({ visible: false, title: '', message: '' });
 
     // ── Animated progress (0 → 50) ──
     const progressAnim = useRef(new Animated.Value(0)).current;
@@ -159,8 +161,14 @@ export default function RegisterVehicleStep1({ navigation }) {
         setPlate(text.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 6));
 
     const handleNext = () => {
-        if (!brand) return Alert.alert('Campo requerido', 'Selecciona la marca.');
-        if (!model) return Alert.alert('Campo requerido', 'Selecciona el modelo.');
+        if (!brand) {
+            setFieldAlert({ visible: true, title: 'Marca requerida', message: 'Por favor selecciona la marca de tu vehículo antes de continuar.' });
+            return;
+        }
+        if (!model) {
+            setFieldAlert({ visible: true, title: 'Modelo requerido', message: 'Por favor selecciona el modelo de tu vehículo antes de continuar.' });
+            return;
+        }
 
         if (plate.length !== 6) {
             setPlateErrorMessage('La placa debe tener exactamente 6 caracteres (ej: ABC123).');
@@ -174,7 +182,10 @@ export default function RegisterVehicleStep1({ navigation }) {
             return;
         }
 
-        if (!color) return Alert.alert('Campo requerido', 'Selecciona el color.');
+        if (!color) {
+            setFieldAlert({ visible: true, title: 'Color requerido', message: 'Por favor selecciona el color de tu vehículo antes de continuar.' });
+            return;
+        }
         navigation.navigate('RegisterVehicleStep2', { brand, model, plate, color, year: parseInt(year), capacity });
     };
 
@@ -357,6 +368,16 @@ export default function RegisterVehicleStep1({ navigation }) {
                         </View>
                     </View>
                 </Modal>
+
+                {/* ── CUSTOM ALERT: MARCA / MODELO ── */}
+                <CustomAlert
+                    visible={fieldAlert.visible}
+                    title={fieldAlert.title}
+                    message={fieldAlert.message}
+                    type="warning"
+                    confirmText="OK"
+                    onClose={() => setFieldAlert(f => ({ ...f, visible: false }))}
+                />
             </View>
         </SafeAreaView>
     );
