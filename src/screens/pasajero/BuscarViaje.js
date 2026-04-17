@@ -89,7 +89,7 @@ const BuscarViaje = ({ navigation }) => {
         try {
             const stored = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
             if (stored) setRecentSearches(JSON.parse(stored));
-        } catch (e) {}
+        } catch (e) { }
     };
 
     const saveRecentSearch = async (search) => {
@@ -101,7 +101,7 @@ const BuscarViaje = ({ navigation }) => {
             searches = searches.slice(0, 5);
             await AsyncStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(searches));
             setRecentSearches(searches);
-        } catch (e) {}
+        } catch (e) { }
     };
 
     // Ajusta el mapa cuando cambian origen/destino
@@ -178,7 +178,7 @@ const BuscarViaje = ({ navigation }) => {
                     const lastUpdate = activeBooking.updatedAt || activeBooking.createdAt;
                     const timeDiff = Date.now() - new Date(lastUpdate).getTime();
                     if (lastUpdate && timeDiff > 3 * 60 * 1000) {
-                        try { await api.delete(`/bookings/${activeBooking._id}`); } catch (e) {}
+                        try { await api.delete(`/bookings/${activeBooking._id}`); } catch (e) { }
                     } else {
                         setLoading(false);
                         setShowActiveBookingModal(true);
@@ -284,14 +284,17 @@ const BuscarViaje = ({ navigation }) => {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <View style={styles.safeArea}>
             <StatusBar barStyle="dark-content" backgroundColor="#F2F4F8" />
 
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={[
                     styles.scrollContent,
-                    { paddingBottom: 80 + (insets.bottom > 0 ? insets.bottom : 14) },
+                    { 
+                        paddingTop: (insets.top || 0) + 30, // Bajamos todo el contenido junto
+                        paddingBottom: 100 + (insets.bottom || 14) 
+                    },
                 ]}
                 showsVerticalScrollIndicator={false}
             >
@@ -502,7 +505,7 @@ const BuscarViaje = ({ navigation }) => {
 
             {/* BOTTOM NAV */}
             <BottomNavigationBar navigation={navigation} />
-        </SafeAreaView>
+        </View>
     );
 };
 
@@ -514,7 +517,6 @@ const styles = StyleSheet.create({
     scrollView: { flex: 1 },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingTop: Platform.OS === 'android' ? 20 : 10,
     },
     header: {
         flexDirection: 'row',
