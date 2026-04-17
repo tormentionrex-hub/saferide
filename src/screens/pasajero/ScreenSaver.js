@@ -248,6 +248,28 @@ const ScreenSaver = ({ route, navigation }) => {
                 const res = await api.get(`/bookings/${bookingId}`);
                 if (res.data.success) {
                     const newStatus = res.data.data.status;
+
+                    // ── NUEVA CONDICIÓN: rechazar si el viaje ya inició o terminó ──
+                    if (newStatus === 'pending') {
+                        try {
+                            const rideId = res.data.data.ride_id?._id || res.data.data.ride_id;
+                            if (rideId) {
+                                const rideRes = await api.get(`/rides/${rideId}`);
+                                const rideStatus = rideRes.data?.data?.status;
+                                if (rideStatus === 'in progress' || rideStatus === 'completed') {
+                                    clearInterval(intervalRef.current);
+                                    try { await api.delete(`/bookings/${bookingId}`); } catch (err) {}
+                                    setStatus('deny');
+                                    setShowRejectionModal(true);
+                                    return;
+                                }
+                            }
+                        } catch (rideErr) {
+                            console.error('Error verificando estado del viaje:', rideErr);
+                        }
+                    }
+                    // ──────────────────────────────────────────────────────────────
+
                     if (newStatus !== status && status === 'pending') {
                         setStatus(newStatus);
                         if (newStatus === 'deny') {
