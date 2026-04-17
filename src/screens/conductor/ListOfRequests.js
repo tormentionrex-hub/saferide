@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
     confirmedText: { fontSize: 11, color: '#10B981', fontWeight: 'bold' },
     btnGroup: { flexDirection: 'column', gap: 6 },
     acceptBtn: { paddingVertical: 8, paddingHorizontal: 15, borderRadius: 10 },
-    denyBtn: { paddingVertical: 8, paddingHorizontal: 15, borderRadius: 10, backgroundColor: '#FEE2E2' },
+    denyBtn: { paddingVertical: 8, paddingHorizontal: 15, borderRadius: 10, backgroundColor: '#EF4444' },
     btnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
     startRideContainer: { position: 'absolute', bottom: 120, left: 20, right: 20, padding: 15, borderRadius: 20, alignItems: 'center', elevation: 12, shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.15, shadowRadius: 8, borderWidth: 1, borderColor: '#F3F4F6' },
     startRideText: { fontSize: 13, marginBottom: 10, fontWeight: '600' },
