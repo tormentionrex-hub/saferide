@@ -176,7 +176,6 @@ const PublishRide = ({ navigation }) => {
                 setIsSuccessModalVisible(true);
             }
         } catch (error) {
-            console.error('Error post detail:', JSON.stringify(error.response?.data, null, 2));
             const data = error.response?.data;
             let errorMsg = 'Error publicando el viaje.';
 

@@ -5,6 +5,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import api from '../../services/api';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Mismo correo configurado en el backend para los códigos de verificación
 const SUPPORT_EMAIL = 'saferidefwd@gmail.com';
@@ -28,6 +29,7 @@ const PaymentVerification = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const { showAlert } = useCustomAlert();
     const si = useScrollIndicator();
+    const insets = useSafeAreaInsets();
     
     // Recibe el rideId (o los bookings directamente si se pasaron)
     const { rideId } = route.params || {};
@@ -255,7 +257,7 @@ const PaymentVerification = ({ route, navigation }) => {
                 <ScrollIndicator si={si} thumbColor={theme.accent} />
             </View>
 
-            <View style={[styles.footer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
+            <View style={[styles.footer, { backgroundColor: theme.surface, borderTopColor: theme.border, paddingBottom: (insets.bottom > 0 ? insets.bottom : 20) + 12 }]}>
                 <TouchableOpacity 
                     style={[
                         styles.continueBtn, 
@@ -332,7 +334,7 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
     },
     emailBtnText: { fontSize: 12, fontWeight: '600' },
-    footer: { paddingHorizontal: 24, paddingVertical: 20, borderTopWidth: 1 },
+    footer: { paddingHorizontal: 24, paddingTop: 20, borderTopWidth: 1 },
     continueBtn: {
         backgroundColor: '#1A73E8', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         paddingVertical: 18, borderRadius: 99, gap: 8,
