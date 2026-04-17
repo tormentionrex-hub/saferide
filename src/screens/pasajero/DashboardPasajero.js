@@ -86,7 +86,12 @@ const DashboardPasajero = ({ navigation, route }) => {
             {/* Encabezado: Texto 'Saferide' y Tuerquita Animada */}
             <View style={styles.header}>
                 <View style={{ width: 40 }} />
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Saferide</Text>
+                <Text
+                    style={[styles.headerTitle, { color: theme.text }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                >Saferide</Text>
                 
                 <TouchableOpacity 
                     style={styles.settingsButton}

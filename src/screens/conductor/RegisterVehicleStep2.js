@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
-    TextInput, StatusBar, Alert, ActivityIndicator,
+    TextInput, StatusBar, ActivityIndicator,
     Platform, ScrollView, Animated, Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +13,7 @@ import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndi
 import api from '../../services/api';
 import sessionCache from '../../services/sessionCache';
 import { uploadToCloudinary } from '../../Cloudinary/Cloudinary';
+import CustomAlert from '../../components/CustomAlert';
 
 export default function RegisterVehicleStep2({ route, navigation }) {
     const { theme } = useDriverTheme();
@@ -26,6 +27,7 @@ export default function RegisterVehicleStep2({ route, navigation }) {
     const [showPicker, setShowPicker]     = useState(false);
     const [loading, setLoading]           = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [fieldAlert, setFieldAlert] = useState({ visible: false, title: '', message: '', type: 'warning' });
 
     // ── Animated progress (50 → 100) ──
     const progressAnim = useRef(new Animated.Value(50)).current;
@@ -58,7 +60,7 @@ export default function RegisterVehicleStep2({ route, navigation }) {
     const pickCertificate = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería.');
+            setFieldAlert({ visible: true, title: 'Permiso requerido', message: 'Necesitamos acceso a tu galería para cargar el certificado.', type: 'warning' });
             return;
         }
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -74,15 +76,25 @@ export default function RegisterVehicleStep2({ route, navigation }) {
     };
 
     const handleFinish = async () => {
-        if (!certUri) return Alert.alert('Campo requerido', 'Debes subir el certificado de seguro del vehículo.');
-
-        if (!policyNumber.trim()) return Alert.alert('Campo requerido', 'Ingresa el número de póliza.');
-
-        if (policyNumber.trim().length < 8 || policyNumber.trim().length > 12) {
-            return Alert.alert('Póliza inválida', 'El número de póliza debe tener entre 8 y 12 caracteres.');
+        if (!certUri) {
+            setFieldAlert({ visible: true, title: 'Certificado requerido', message: 'Debes subir el certificado de seguro del vehículo antes de continuar.', type: 'warning' });
+            return;
         }
 
-        if (!expDate) return Alert.alert('Campo requerido', 'Selecciona la fecha de vencimiento.');
+        if (!policyNumber.trim()) {
+            setFieldAlert({ visible: true, title: 'Número de póliza requerido', message: 'Ingresa el número de póliza de tu seguro.', type: 'warning' });
+            return;
+        }
+
+        if (policyNumber.trim().length < 8 || policyNumber.trim().length > 12) {
+            setFieldAlert({ visible: true, title: 'Póliza inválida', message: 'El número de póliza debe tener entre 8 y 12 caracteres.', type: 'warning' });
+            return;
+        }
+
+        if (!expDate) {
+            setFieldAlert({ visible: true, title: 'Fecha requerida', message: 'Selecciona la fecha de vencimiento de la póliza.', type: 'warning' });
+            return;
+        }
         setLoading(true);
         try {
             // Upload certificate to Cloudinary if one was selected
@@ -115,10 +127,10 @@ export default function RegisterVehicleStep2({ route, navigation }) {
                 sessionCache.clearVehicleStatus();
                 setShowSuccessModal(true);
             } else {
-                Alert.alert('Error', res.data.message || 'No se pudo registrar el vehículo.');
+                setFieldAlert({ visible: true, title: 'Error', message: res.data.message || 'No se pudo registrar el vehículo.', type: 'error' });
             }
         } catch (e) {
-            Alert.alert('Error', e.response?.data?.message || e.message || 'Ocurrió un error al registrar.');
+            setFieldAlert({ visible: true, title: 'Error', message: e.response?.data?.message || e.message || 'Ocurrió un error al registrar.', type: 'error' });
         } finally {
             setLoading(false);
         }
@@ -133,6 +145,7 @@ export default function RegisterVehicleStep2({ route, navigation }) {
         : 'dd/mm/aaaa';
 
     return (
+        <>
         <SafeAreaView style={[styles.safeArea, { backgroundColor: surfBg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={surfBg} />
 
@@ -328,6 +341,17 @@ export default function RegisterVehicleStep2({ route, navigation }) {
                 </Modal>
             </View>
         </SafeAreaView>
+
+        {/* ── CUSTOM ALERT: VALIDACIONES Y ERRORES ── */}
+        <CustomAlert
+            visible={fieldAlert.visible}
+            title={fieldAlert.title}
+            message={fieldAlert.message}
+            type={fieldAlert.type}
+            confirmText="Entendido"
+            onClose={() => setFieldAlert(f => ({ ...f, visible: false }))}
+        />
+        </>
     );
 }
 

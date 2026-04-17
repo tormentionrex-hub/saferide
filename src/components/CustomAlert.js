@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     button: {
-        flex: 1,
+        width: '100%',
         height: 54,
         borderRadius: 16,
         justifyContent: 'center',
