@@ -348,10 +348,10 @@ const WaitingForTheStart = ({ route, navigation }) => {
                         clearInterval(intervalRef.current);
                         showAlert(
                             'Viaje Cancelado',
-                            'La reserva o el viaje han sido cancelados por el conductor.',
+                            'El conductor ha cancelado el viaje. Tu reserva ha sido cancelada. Por favor busca otro viaje.',
                             'warning',
-                            'OK',
-                            () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })
+                            'Buscar otro viaje',
+                            () => navigation.navigate('BuscarViaje')
                         );
                         return;
                     }
@@ -387,11 +387,11 @@ const WaitingForTheStart = ({ route, navigation }) => {
                         } else if (rideStatus === 'cancelled' || rideStatus === 'completed') {
                             clearInterval(intervalRef.current);
                             showAlert(
-                                'Viaje Finalizado',
-                                'El viaje ha finalizado o ha sido cancelado.',
+                                'Viaje Cancelado',
+                                'El conductor ha cancelado el viaje. Tu reserva ha sido cancelada. Por favor busca otro viaje.',
                                 'warning',
-                                'OK',
-                                () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })
+                                'Buscar otro viaje',
+                                () => navigation.navigate('BuscarViaje')
                             );
                         }
                     }
