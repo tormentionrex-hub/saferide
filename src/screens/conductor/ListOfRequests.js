@@ -209,6 +209,59 @@ const DenySuccessModal = ({ visible, onClose, theme }) => {
     );
 };
 
+/* ─── Modal de Cancelar Viaje ───────────────────────────────────── */
+const CancelRideModal = ({ visible, onClose, onConfirm, loading, theme }) => {
+    const scaleAnim = useRef(new Animated.Value(0.85)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.85);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    return (
+        <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
+            <View style={modalStyles.overlay}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme?.surface || '#fff' }]}>
+                    <View style={[modalStyles.iconCircle, { backgroundColor: '#FEF2F2' }]}>
+                        <Ionicons name="warning" size={44} color="#EF4444" />
+                    </View>
+                    <Text style={[modalStyles.title, { color: theme?.text || '#111827' }]}>¿Cancelar el viaje?</Text>
+                    <Text style={[modalStyles.subtitle, { color: theme?.textSecondary || '#6B7280' }]}>
+                        Esta acción cancelará el viaje completo y notificará a todos los pasajeros confirmados. No se puede deshacer.
+                    </Text>
+                    <View style={modalStyles.buttonContainer}>
+                        <TouchableOpacity
+                            style={[modalStyles.confirmBtn, { backgroundColor: '#EF4444' }, loading && modalStyles.btnDisabled]}
+                            onPress={onConfirm}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <>
+                                    <Text style={modalStyles.confirmBtnText}>Sí, cancelar viaje</Text>
+                                    <Ionicons name="trash-outline" size={18} color="#fff" />
+                                </>
+                            )}
+                        </TouchableOpacity>
+                        <TouchableOpacity style={modalStyles.cancelBtn} onPress={onClose} disabled={loading}>
+                            <Text style={modalStyles.cancelBtnText}>Volver atrás</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
+            </View>
+        </Modal>
+    );
+};
+
 const ListOfRequests = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const [requests, setRequests] = useState([]);
@@ -222,6 +275,8 @@ const ListOfRequests = ({ route, navigation }) => {
     const [denyModalVisible, setDenyModalVisible] = useState(false);
     const [cancelledIds, setCancelledIds] = useState(new Set());
     const [tripCompletedVisible, setTripCompletedVisible] = useState(false);
+    const [cancelRideVisible, setCancelRideVisible] = useState(false);
+    const [cancelRideLoading, setCancelRideLoading] = useState(false);
     const intervalRef = useRef(null);
 
     const specificRideId = route.params?.rideId;
@@ -450,6 +505,29 @@ const ListOfRequests = ({ route, navigation }) => {
         }
     };
 
+    const handleCancelRide = async () => {
+        if (!specificRideId) return;
+        try {
+            setCancelRideLoading(true);
+            const res = await api.patch(`/rides/${specificRideId}/cancel`);
+            if (res.data.success) {
+                sessionCache.clearActiveRides();
+                setCancelRideVisible(false);
+                // Redirigir al conductor al dashboard
+                setTimeout(() => {
+                    navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' });
+                }, 300);
+            } else {
+                Alert.alert('Error', res.data?.message || 'No se pudo cancelar el viaje.');
+            }
+        } catch (e) {
+            console.error('Error cancelling ride:', e.response?.data || e.message);
+            Alert.alert('Error', e.response?.data?.message || 'Problema al conectar con el servidor.');
+        } finally {
+            setCancelRideLoading(false);
+        }
+    };
+
     const renderPassengerItem = ({ item }) => {
         const passenger = item.passenger_id || {};
         const isPending = item.status === 'pending';
@@ -571,6 +649,13 @@ const ListOfRequests = ({ route, navigation }) => {
                         <Text style={styles.startRideBtnText}>Iniciar Viaje</Text>
                         <Ionicons name="arrow-forward" size={18} color="#fff" />
                     </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={[styles.cancelRideBtn]}
+                        onPress={() => setCancelRideVisible(true)}
+                    >
+                        <Ionicons name="close-circle-outline" size={18} color="#EF4444" />
+                        <Text style={styles.cancelRideBtnText}>Cancelar Viaje</Text>
+                    </TouchableOpacity>
                 </View>
             )}
 
@@ -598,6 +683,14 @@ const ListOfRequests = ({ route, navigation }) => {
                 theme={theme}
                 visible={denyModalVisible}
                 onClose={() => setDenyModalVisible(false)}
+            />
+
+            <CancelRideModal
+                theme={theme}
+                visible={cancelRideVisible}
+                onClose={() => setCancelRideVisible(false)}
+                onConfirm={handleCancelRide}
+                loading={cancelRideLoading}
             />
 
             <TripCompletedOverlay 
@@ -634,7 +727,9 @@ const styles = StyleSheet.create({
     startRideContainer: { position: 'absolute', bottom: 120, left: 20, right: 20, padding: 15, borderRadius: 20, alignItems: 'center', elevation: 12, shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.15, shadowRadius: 8, borderWidth: 1, borderColor: '#F3F4F6' },
     startRideText: { fontSize: 13, marginBottom: 10, fontWeight: '600' },
     startRideBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', paddingVertical: 14, borderRadius: 14, gap: 10, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2 },
-    startRideBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
+    startRideBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    cancelRideBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', paddingVertical: 12, borderRadius: 14, gap: 8, marginTop: 8, borderWidth: 1.5, borderColor: '#EF4444', backgroundColor: 'transparent' },
+    cancelRideBtnText: { color: '#EF4444', fontSize: 15, fontWeight: '700' }
 });
 
 const modalStyles = StyleSheet.create({

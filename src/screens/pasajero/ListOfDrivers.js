@@ -285,7 +285,7 @@ const ListOfDrivers = ({ route, navigation }) => {
             <View style={[
                 styles.header,
                 {
-                    paddingTop: insets.top > 0 ? insets.top : Platform.OS === 'android' ? 20 : 16,
+                    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 24 : insets.top + 16,
                     borderBottomColor: theme.divider,
                     backgroundColor: theme.bg,
                 },
@@ -382,7 +382,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
-        paddingTop: 60, // Aumentado para bajar el header
         paddingBottom: 14,
         borderBottomWidth: 1,
     },
