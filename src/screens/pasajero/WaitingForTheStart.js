@@ -56,7 +56,7 @@ const CancelConfirmationModal = ({ visible, onConfirm, onCancel, theme }) => {
     );
 };
 
-const SuccessActionModal = ({ visible, onConfirm, theme, title, message }) => {
+const SuccessActionModal = ({ visible, onConfirm, theme, title, message, buttonText }) => {
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -87,7 +87,8 @@ const SuccessActionModal = ({ visible, onConfirm, theme, title, message }) => {
                         style={[modalStyles.confirmBtn, { backgroundColor: '#10B981' }]}
                         onPress={onConfirm}
                     >
-                        <Text style={modalStyles.confirmBtnText}>Entendido</Text>
+                        <Text style={modalStyles.confirmBtnText}>{buttonText || 'Entendido'}</Text>
+                        {buttonText === 'Buscar otro viaje' && <Ionicons name="search" size={18} color="#fff" />}
                     </TouchableOpacity>
                 </Animated.View>
             </View>
@@ -334,6 +335,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
     const [showRideStartedModal, setShowRideStartedModal] = useState(false);
     const [showRideCancelledModal, setShowRideCancelledModal] = useState(false);
     const rideStartedBookingId = useRef(null);
+    const isCancellingRef = useRef(false);
 
     useEffect(() => {
         if (!bookingId) return;
@@ -344,7 +346,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                 if (bookingRes.data.success) {
                     const bookingStatus = bookingRes.data.data.status;
 
-                    if (bookingStatus === 'cancelled' || bookingStatus === 'deny') {
+                    if ((bookingStatus === 'cancelled' || bookingStatus === 'deny') && !isCancellingRef.current) {
                         clearInterval(intervalRef.current);
                         showAlert(
                             'Viaje Cancelado',
@@ -412,14 +414,21 @@ const WaitingForTheStart = ({ route, navigation }) => {
     };
 
     const confirmCancel = async () => {
+        if (isCancellingRef.current) return;
         try {
+            isCancellingRef.current = true;
             setShowCancelModal(false);
             const res = await api.delete(`/bookings/${bookingId}`);
             if (res.data.success) {
                 setShowSuccessModal(true);
             }
         } catch (e) {
-            showAlert('Error', 'No se pudo cancelar la reservación.', 'error');
+            if (e.response && (e.response.status === 400 || e.response.status === 404)) {
+                setShowSuccessModal(true);
+            } else {
+                isCancellingRef.current = false;
+                showAlert('Error', 'No se pudo cancelar la reservación.', 'error');
+            }
         }
     };
 
@@ -629,7 +638,8 @@ const WaitingForTheStart = ({ route, navigation }) => {
                 visible={showSuccessModal}
                 theme={theme}
                 title="Cancelación Exitosa"
-                message="Tu reservación ha sido cancelada correctamente."
+                message="Tu reserva ha sido cancelada correctamente."
+                buttonText="Buscar otro viaje"
                 onConfirm={() => {
                     setShowSuccessModal(false);
                     navigation.navigate('BuscarViaje');

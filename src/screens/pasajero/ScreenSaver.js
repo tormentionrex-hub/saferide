@@ -101,7 +101,7 @@ const RejectionModal = ({ visible, onConfirm, theme, status }) => {
     );
 };
 
-const SuccessActionModal = ({ visible, onConfirm, theme, title, message }) => {
+const SuccessActionModal = ({ visible, onConfirm, theme, title, message, buttonText }) => {
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -132,7 +132,8 @@ const SuccessActionModal = ({ visible, onConfirm, theme, title, message }) => {
                         style={[modalStyles.confirmBtn, { backgroundColor: '#10B981' }]} 
                         onPress={onConfirm}
                     >
-                        <Text style={modalStyles.confirmBtnText}>Entendido</Text>
+                        <Text style={modalStyles.confirmBtnText}>{buttonText || 'Entendido'}</Text>
+                        {buttonText === 'Buscar otro viaje' && <Ionicons name="search" size={18} color="#fff" />}
                     </TouchableOpacity>
                 </Animated.View>
             </View>
@@ -237,7 +238,7 @@ const ScreenSaver = ({ route, navigation }) => {
     const [showScheduledModal, setShowScheduledModal] = useState(false);
     const [showTimeoutModal, setShowTimeoutModal] = useState(false);
     const [modalType, setModalType] = useState('scheduled'); // 'scheduled' or 'in-progress'
-    const [isCancellingLocally, setIsCancellingLocally] = useState(false);
+    const isCancellingRef = useRef(false);
     const intervalRef = useRef(null);
 
     useEffect(() => {
@@ -275,7 +276,7 @@ const ScreenSaver = ({ route, navigation }) => {
                         if (newStatus === 'deny') {
                             clearInterval(intervalRef.current);
                             setShowRejectionModal(true);
-                        } else if (newStatus === 'cancelled' && !isCancellingLocally) {
+                        } else if (newStatus === 'cancelled' && !isCancellingRef.current) {
                             clearInterval(intervalRef.current);
                             setShowRejectionModal(true); // Reutilizamos RejectionModal para informar cancelación externa
                         } else if (newStatus === 'confirmed') {
@@ -374,16 +375,23 @@ const ScreenSaver = ({ route, navigation }) => {
     };
 
     const confirmCancel = async () => {
+        if (isCancellingRef.current) return;
         try {
-            setIsCancellingLocally(true);
+            isCancellingRef.current = true;
             setShowCancelModal(false);
             const res = await api.delete(`/bookings/${bookingId}`);
             if (res.data.success) {
                 setShowSuccessModal(true);
             }
         } catch (e) {
-            setIsCancellingLocally(false);
-            Alert.alert('Error', 'No se pudo cancelar la reservación.');
+            // Si el backend dice que ya está cancelada o no existe (timeout/driver canceló un microsegundo antes)
+            // Tratamos como éxito porque el resultado final es el mismo: la reserva ya no está pendiente
+            if (e.response && (e.response.status === 400 || e.response.status === 404)) {
+                setShowSuccessModal(true);
+            } else {
+                isCancellingRef.current = false;
+                Alert.alert('Error', 'No se pudo cancelar la reservación.');
+            }
         }
     };
 
@@ -449,7 +457,8 @@ const ScreenSaver = ({ route, navigation }) => {
                 visible={showSuccessModal}
                 theme={theme}
                 title="Cancelación Exitosa"
-                message="Tu reservación ha sido cancelada correctamente."
+                message="Tu reserva ha sido cancelada correctamente."
+                buttonText="Buscar otro viaje"
                 onConfirm={() => {
                     setShowSuccessModal(false);
                     navigation.navigate('BuscarViaje');
