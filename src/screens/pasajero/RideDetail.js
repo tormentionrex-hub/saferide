@@ -1,7 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Platform, Dimensions
+    View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Platform, Dimensions, ScrollView
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +13,7 @@ const { width, height } = Dimensions.get('window');
 
 const RideDetail = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
+    const insets = useSafeAreaInsets();
     const { showAlert } = useCustomAlert();
     // Recibimos el objeto completo del viaje y el origen/destino de búsqueda del pasajero
     const { ride, searchOrigin, searchDestination } = route.params;
@@ -138,7 +140,7 @@ const RideDetail = ({ route, navigation }) => {
 
             {/* MAPA CON CARD HEADER */}
             <View style={styles.mapWrapper}>
-                <View style={[styles.mapCardHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+                <View style={[styles.mapCardHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border, paddingTop: insets.top + 15, paddingBottom: 15 }]}>
                     <Ionicons name="navigate-outline" size={15} color={theme.accent} />
                     <Text style={[styles.mapCardLabel, { color: theme.text }]}>Tu Viaje</Text>
                 </View>
@@ -173,7 +175,7 @@ const RideDetail = ({ route, navigation }) => {
 
             {/* BOTÓN CERRAR (FLOTANTE) */}
             <TouchableOpacity
-                style={[styles.closeBtn, { backgroundColor: theme.surface }]}
+                style={[styles.closeBtn, { backgroundColor: theme.surface, top: insets.top + 4 }]}
                 onPress={() => navigation.goBack()}
             >
                 <Ionicons name="close" size={26} color={theme.text} />
@@ -183,17 +185,18 @@ const RideDetail = ({ route, navigation }) => {
             <View style={[styles.detailCard, { backgroundColor: theme.surface }]}>
                 <View style={[styles.dragBar, { backgroundColor: theme.divider }]} />
 
-                <View style={styles.headerRow}>
-                    <View>
-                        <Text style={[styles.driverLabel, { color: theme.textSecondary }]}>CONDUCTOR</Text>
-                        <Text style={[styles.driverName, { color: theme.text }]}>{ride.driver_id?.name || 'Desconocido'}</Text>
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                    <View style={styles.headerRow}>
+                        <View>
+                            <Text style={[styles.driverLabel, { color: theme.textSecondary }]}>CONDUCTOR</Text>
+                            <Text style={[styles.driverName, { color: theme.text }]}>{ride.driver_id?.name || 'Desconocido'}</Text>
+                        </View>
+                        <View style={styles.priceTag}>
+                            <Text style={styles.priceValue}>₡{ride.price}</Text>
+                        </View>
                     </View>
-                    <View style={styles.priceTag}>
-                        <Text style={styles.priceValue}>₡{ride.price}</Text>
-                    </View>
-                </View>
 
-                <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+                    <View style={[styles.divider, { backgroundColor: theme.divider }]} />
 
                     {/* Ruta Detallada */}
                     <View style={styles.routeBox}>
@@ -220,13 +223,14 @@ const RideDetail = ({ route, navigation }) => {
                         </View>
                     </View>
 
-                {/* Botón de Acción Principal */}
-                <TouchableOpacity
-                    style={[styles.bookBtn, { backgroundColor: theme.accent }]}
-                    onPress={handleConfirmBooking}
-                >
-                    <Text style={styles.bookBtnText}>Solicitar unirse</Text>
-                </TouchableOpacity>
+                    {/* Botón de Acción Principal */}
+                    <TouchableOpacity
+                        style={[styles.bookBtn, { backgroundColor: theme.accent }]}
+                        onPress={handleConfirmBooking}
+                    >
+                        <Text style={styles.bookBtnText}>Solicitar unirse</Text>
+                    </TouchableOpacity>
+                </ScrollView>
             </View>
         </View>
     );
@@ -260,11 +264,10 @@ const styles = StyleSheet.create({
     map: { width: '100%', height: height * 0.7 - 44 },
     closeBtn: {
         position: 'absolute',
-        top: 54,
         right: 20,
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 10,
@@ -288,10 +291,10 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 0,
         width: '100%',
-        maxHeight: height * 0.6,
-        paddingHorizontal: 25,
-        paddingTop: 12,
-        paddingBottom: Platform.OS === 'ios' ? 45 : 30,
+        maxHeight: height * 0.5,
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        paddingBottom: Platform.OS === 'ios' ? 35 : 20,
         borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
         elevation: 25,
@@ -300,23 +303,23 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.12,
         shadowRadius: 15,
     },
-    dragBar: { width: 40, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 20 },
-    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+    dragBar: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 15 },
+    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
     driverLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1, marginBottom: 2 },
-    driverName: { fontSize: 20, fontWeight: 'bold' },
-    priceTag: { backgroundColor: '#25C46020', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20 },
-    priceValue: { color: '#25C460', fontWeight: 'bold', fontSize: 18 },
-    divider: { height: 1, marginBottom: 20 },
-    routeBox: { flexDirection: 'row', marginBottom: 25 },
+    driverName: { fontSize: 18, fontWeight: 'bold' },
+    priceTag: { backgroundColor: '#25C46020', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
+    priceValue: { color: '#25C460', fontWeight: 'bold', fontSize: 16 },
+    divider: { height: 1, marginBottom: 15 },
+    routeBox: { flexDirection: 'row', marginBottom: 15 },
     iconColumn: { alignItems: 'center', marginRight: 15 },
     dotLine: { width: 2, height: 25, marginVertical: 4 },
     textColumn: { flex: 1, justifyContent: 'space-between' },
-    locationText: { fontSize: 15, fontWeight: '600' },
-    statsRow: { flexDirection: 'row', gap: 12, marginBottom: 25 },
-    statItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 15 },
-    statText: { fontSize: 13, fontWeight: '600' },
-    bookBtn: { paddingVertical: 18, borderRadius: 16, alignItems: 'center', justifyContent: 'center', elevation: 5 },
-    bookBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16, letterSpacing: 0.5 }
+    locationText: { fontSize: 14, fontWeight: '600' },
+    statsRow: { flexDirection: 'row', gap: 10, marginBottom: 15 },
+    statItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 12 },
+    statText: { fontSize: 12, fontWeight: '600' },
+    bookBtn: { paddingVertical: 15, borderRadius: 14, alignItems: 'center', justifyContent: 'center', elevation: 5 },
+    bookBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15, letterSpacing: 0.5 }
 });
 
 export default RideDetail;
