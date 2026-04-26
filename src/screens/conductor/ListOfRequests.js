@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View, Text, StyleSheet, FlatList, Image, TouchableOpacity,
-    ActivityIndicator, SafeAreaView, StatusBar, Alert, Platform, Modal, Animated
+    ActivityIndicator, SafeAreaView, StatusBar, Alert, Platform, Modal, Animated, Dimensions, ScrollView
 } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import sessionCache from '../../services/sessionCache';
@@ -262,6 +264,232 @@ const CancelRideModal = ({ visible, onClose, onConfirm, loading, theme }) => {
     );
 };
 
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+
+/* ─── Modal de Detalle del Pasajero ──────────────────────────────── */
+const PassengerDetailModal = ({ visible, onClose, booking, rideData, theme }) => {
+    const scaleAnim = useRef(new Animated.Value(0.92)).current;
+    const opacityAnim = useRef(new Animated.Value(0)).current;
+    const mapRef = useRef(null);
+    const insets = useSafeAreaInsets();
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 100, friction: 10 }),
+                Animated.timing(opacityAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+            ]).start();
+        } else {
+            scaleAnim.setValue(0.92);
+            opacityAnim.setValue(0);
+        }
+    }, [visible]);
+
+    if (!booking) return null;
+
+    const passenger = booking.passenger_id || {};
+    const passengerRating = passenger.rating ?? 0;
+    const fullStars = Math.floor(passengerRating);
+    const hasHalf = passengerRating - fullStars >= 0.5;
+
+    // Use ride origin/dest as fallback coordinates for the map
+    const rideOrigin = rideData?.origin;
+    const rideDest = rideData?.destination;
+
+    const hasCoords = rideOrigin?.coordinates && rideDest?.coordinates;
+
+    const darkMapStyle = [
+        { "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] },
+        { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] },
+        { "elementType": "labels.text.stroke", "stylers": [{ "color": "#242f3e" }] },
+        { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#38413e" }] },
+        { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#17263c" }] }
+    ];
+
+    const handleMapReady = () => {
+        if (hasCoords && mapRef.current) {
+            const coords = [
+                { latitude: rideOrigin.coordinates.lat, longitude: rideOrigin.coordinates.lng },
+                { latitude: rideDest.coordinates.lat, longitude: rideDest.coordinates.lng },
+            ];
+            mapRef.current.fitToCoordinates(coords, {
+                edgePadding: { top: 60, right: 60, bottom: 60, left: 60 },
+                animated: true,
+            });
+        }
+    };
+
+    const renderStars = () => {
+        const stars = [];
+        for (let i = 0; i < 5; i++) {
+            if (i < fullStars) {
+                stars.push(<Ionicons key={i} name="star" size={16} color="#F59E0B" />);
+            } else if (i === fullStars && hasHalf) {
+                stars.push(<Ionicons key={i} name="star-half" size={16} color="#F59E0B" />);
+            } else {
+                stars.push(<Ionicons key={i} name="star-outline" size={16} color="#D1D5DB" />);
+            }
+        }
+        return stars;
+    };
+
+    return (
+        <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
+            <Animated.View style={[detailModalStyles.overlay, { opacity: opacityAnim }]}>
+                <Animated.View style={[detailModalStyles.container, { transform: [{ scale: scaleAnim }], backgroundColor: theme.bg }]}>
+                    
+                    {/* Header con mapa */}
+                    <View style={detailModalStyles.mapWrapper}>
+                    <View style={[detailModalStyles.mapHeader, { backgroundColor: theme.surface, paddingTop: (Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 10 : 50) }]}>
+                            <Ionicons name="person-circle-outline" size={16} color={theme.accent} />
+                            <Text style={[detailModalStyles.mapHeaderText, { color: theme.text }]}>Detalle del Pasajero</Text>
+                        </View>
+                        {hasCoords ? (
+                            <MapView
+                                ref={mapRef}
+                                style={detailModalStyles.map}
+                                provider={PROVIDER_GOOGLE}
+                                customMapStyle={theme.dark ? darkMapStyle : []}
+                                onMapReady={handleMapReady}
+                            >
+                                <Marker
+                                    coordinate={{ latitude: rideOrigin.coordinates.lat, longitude: rideOrigin.coordinates.lng }}
+                                    title="Origen general del viaje"
+                                    description={rideOrigin.name}
+                                >
+                                    <View style={detailModalStyles.markerRound}>
+                                        <Ionicons name="radio-button-on" size={14} color="#fff" />
+                                    </View>
+                                </Marker>
+                                <Marker
+                                    coordinate={{ latitude: rideDest.coordinates.lat, longitude: rideDest.coordinates.lng }}
+                                    title="Destino general del viaje"
+                                    description={rideDest.name}
+                                >
+                                    <View style={[detailModalStyles.markerRound, { backgroundColor: '#FF5A5F' }]}>
+                                        <Ionicons name="location" size={14} color="#fff" />
+                                    </View>
+                                </Marker>
+                            </MapView>
+                        ) : (
+                            <View style={[detailModalStyles.map, { justifyContent: 'center', alignItems: 'center', backgroundColor: theme.surfaceVariant || '#F1F5F9' }]}>
+                                <Ionicons name="map-outline" size={50} color={theme.border} />
+                                <Text style={{ color: theme.textSecondary, marginTop: 8, fontSize: 13 }}>Mapa no disponible</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Botón X flotante */}
+                    <TouchableOpacity style={[detailModalStyles.closeBtn, { backgroundColor: theme.surface }]} onPress={onClose}>
+                        <Ionicons name="close" size={24} color={theme.text} />
+                    </TouchableOpacity>
+
+                    {/* Tarjeta inferior */}
+                    <View style={[detailModalStyles.detailCard, { backgroundColor: theme.surface }]}>
+                        <View style={[detailModalStyles.dragBar, { backgroundColor: theme.divider }]} />
+
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
+                        {/* Foto + Nombre + Rating */}
+                        <View style={detailModalStyles.profileRow}>
+                            <Image 
+                                source={{ uri: passenger.profileImage || `https://i.pravatar.cc/150?u=${passenger._id || 'default'}` }} 
+                                style={detailModalStyles.profileImg} 
+                            />
+                            <View style={{ flex: 1 }}>
+                                <Text style={[detailModalStyles.profileName, { color: theme.text }]}>
+                                    {passenger.name || 'Pasajero Anónimo'}
+                                </Text>
+                                <View style={detailModalStyles.starsRow}>
+                                    {renderStars()}
+                                    <Text style={[detailModalStyles.ratingText, { color: theme.textSecondary }]}>
+                                        {passengerRating > 0 ? passengerRating.toFixed(1) : 'Sin calificar'}
+                                    </Text>
+                                </View>
+                            </View>
+                            <View style={detailModalStyles.statusBadge(booking.status)}>
+                                <Text style={detailModalStyles.statusText(booking.status)}>
+                                    {booking.status === 'pending' ? 'Pendiente' : booking.status === 'confirmed' ? 'Aceptado' : booking.status === 'deny' ? 'Rechazado' : 'Cancelado'}
+                                </Text>
+                            </View>
+                        </View>
+
+                        <View style={[detailModalStyles.divider, { backgroundColor: theme.divider }]} />
+
+                        {/* Ruta del pasajero (solo texto) */}
+                        <View style={detailModalStyles.routeSection}>
+                            <Text style={[detailModalStyles.sectionLabel, { color: theme.textSecondary }]}>RUTA SOLICITADA</Text>
+                            <View style={detailModalStyles.routeBox}>
+                                <View style={detailModalStyles.iconCol}>
+                                    <Ionicons name="radio-button-on" size={14} color={theme.accent} />
+                                    <View style={[detailModalStyles.dotLine, { backgroundColor: theme.divider }]} />
+                                    <Ionicons name="location" size={14} color="#FF5A5F" />
+                                </View>
+                                <View style={{ flex: 1, justifyContent: 'space-between' }}>
+                                    <Text style={[detailModalStyles.routeText, { color: theme.text }]} numberOfLines={3}>
+                                        {booking.passenger_origin || 'Punto de partida no especificado'}
+                                    </Text>
+                                    <Text style={[detailModalStyles.routeText, { color: theme.text, marginTop: 14 }]} numberOfLines={3}>
+                                        {booking.passenger_destination || 'Punto de llegada no especificado'}
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* Métricas */}
+                        <View style={detailModalStyles.metricsRow}>
+                            <View style={[detailModalStyles.metricItem, { backgroundColor: theme.surfaceVariant || '#F1F5F9' }]}>
+                                <Ionicons name="people-outline" size={18} color={theme.accent} />
+                                <Text style={[detailModalStyles.metricText, { color: theme.text }]}>{booking.seats_booked} asiento(s)</Text>
+                            </View>
+                            <View style={[detailModalStyles.metricItem, { backgroundColor: theme.surfaceVariant || '#F1F5F9' }]}>
+                                <Ionicons name="time-outline" size={18} color={theme.accent} />
+                                <Text style={[detailModalStyles.metricText, { color: theme.text }]}>{rideData?.duration_minutes ? `${rideData.duration_minutes} min aprox.` : 'Duración N/A'}</Text>
+                            </View>
+                        </View>
+                    </ScrollView>
+                    </View>
+                </Animated.View>
+            </Animated.View>
+        </Modal>
+    );
+};
+
+const detailModalStyles = StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)' },
+    container: { flex: 1 },
+    mapWrapper: { width: '100%', height: SCREEN_H * 0.42 },
+    mapHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+    mapHeaderText: { fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+    map: { width: '100%', flex: 1 },
+    closeBtn: { position: 'absolute', top: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight || 24) + 8, right: 16, width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 5, zIndex: 10 },
+    markerRound: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#2563EB', borderWidth: 2, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', elevation: 4 },
+    detailCard: { position: 'absolute', bottom: 0, width: '100%', maxHeight: SCREEN_H * 0.62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: Platform.OS === 'ios' ? 35 : 20, borderTopLeftRadius: 28, borderTopRightRadius: 28, elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.12, shadowRadius: 12 },
+    dragBar: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 15 },
+    profileRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+    profileImg: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: '#E5E7EB' },
+    profileName: { fontSize: 17, fontWeight: '700', marginBottom: 4 },
+    starsRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    ratingText: { fontSize: 13, fontWeight: '600', marginLeft: 6 },
+    statusBadge: (status) => ({
+        paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
+        backgroundColor: status === 'confirmed' ? '#ECFDF5' : status === 'pending' ? '#FEF3C7' : '#FEE2E2',
+    }),
+    statusText: (status) => ({
+        fontSize: 11, fontWeight: '700',
+        color: status === 'confirmed' ? '#10B981' : status === 'pending' ? '#D97706' : '#EF4444',
+    }),
+    divider: { height: 1, marginBottom: 14 },
+    routeSection: { marginBottom: 14 },
+    sectionLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1.2, marginBottom: 10 },
+    routeBox: { flexDirection: 'row' },
+    iconCol: { alignItems: 'center', marginRight: 12, paddingVertical: 4 },
+    dotLine: { width: 2, flex: 1, marginVertical: 3 },
+    routeText: { fontSize: 14, fontWeight: '600' },
+    metricsRow: { flexDirection: 'row', gap: 10 },
+    metricItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 12 },
+    metricText: { fontSize: 12, fontWeight: '600' },
+});
+
 const ListOfRequests = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const [requests, setRequests] = useState([]);
@@ -277,6 +505,9 @@ const ListOfRequests = ({ route, navigation }) => {
     const [tripCompletedVisible, setTripCompletedVisible] = useState(false);
     const [cancelRideVisible, setCancelRideVisible] = useState(false);
     const [cancelRideLoading, setCancelRideLoading] = useState(false);
+    const [selectedBooking, setSelectedBooking] = useState(null);
+    const [passengerDetailVisible, setPassengerDetailVisible] = useState(false);
+    const [rideDetailData, setRideDetailData] = useState(null);
     const intervalRef = useRef(null);
 
     const specificRideId = route.params?.rideId;
@@ -528,66 +759,82 @@ const ListOfRequests = ({ route, navigation }) => {
         }
     };
 
+    const handleViewDetail = async (booking) => {
+        setSelectedBooking(booking);
+        try {
+            const rideId = booking.ride_id?._id || booking.ride_id;
+            if (rideId) {
+                const res = await api.get(`/rides/${rideId}`);
+                if (res.data.success) {
+                    setRideDetailData(res.data.data);
+                }
+            }
+        } catch (e) {
+            console.log('Error fetching ride detail for modal:', e.message);
+        }
+        setPassengerDetailVisible(true);
+    };
+
     const renderPassengerItem = ({ item }) => {
         const passenger = item.passenger_id || {};
         const isPending = item.status === 'pending';
 
         return (
             <View style={[styles.passengerCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                <Image source={{ uri: passenger.profileImage || `https://i.pravatar.cc/150?u=${passenger._id || 'default'}` }} style={styles.avatar} />
-                <View style={styles.infoContainer}>
-                    <View style={styles.nameRow}>
-                        <Text style={[styles.nameText, { color: theme.text }]}>{passenger.name || 'Pasajero Anónimo'}</Text>
-                        {item.status === 'confirmed' && (
-                            <View style={styles.confirmedBadge}>
-                                <Ionicons name="checkmark-circle" size={14} color="#10B981" />
-                                <Text style={styles.confirmedText}>Aceptado</Text>
-                            </View>
-                        )}
-                        {item.status === 'cancelled' && (
-                            <View style={[styles.confirmedBadge, { backgroundColor: '#FEE2E2' }]}>
-                                <Ionicons name="ban" size={14} color="#EF4444" />
-                                <Text style={[styles.confirmedText, { color: '#EF4444' }]}>Cancelado</Text>
-                            </View>
-                        )}
-                        {item.status === 'deny' && (
-                            <View style={[styles.confirmedBadge, { backgroundColor: '#FEE2E2' }]}>
-                                <Ionicons name="close-circle" size={14} color="#EF4444" />
-                                <Text style={[styles.confirmedText, { color: '#EF4444' }]}>Rechazado</Text>
-                            </View>
-                        )}
+                {/* Fila principal: Avatar + Info + Botones de acción */}
+                <View style={styles.cardTopRow}>
+                    <Image source={{ uri: passenger.profileImage || `https://i.pravatar.cc/150?u=${passenger._id || 'default'}` }} style={styles.avatar} />
+                    <View style={styles.infoContainer}>
+                        <View style={styles.nameRow}>
+                            <Text style={[styles.nameText, { color: theme.text }]} numberOfLines={1}>{passenger.name || 'Pasajero Anónimo'}</Text>
+                            {item.status === 'confirmed' && (
+                                <View style={styles.confirmedBadge}>
+                                    <Ionicons name="checkmark-circle" size={12} color="#10B981" />
+                                    <Text style={styles.confirmedText}>Aceptado</Text>
+                                </View>
+                            )}
+                            {item.status === 'cancelled' && (
+                                <View style={[styles.confirmedBadge, { backgroundColor: '#FEE2E2' }]}>
+                                    <Ionicons name="ban" size={12} color="#EF4444" />
+                                    <Text style={[styles.confirmedText, { color: '#EF4444' }]}>Cancelado</Text>
+                                </View>
+                            )}
+                            {item.status === 'deny' && (
+                                <View style={[styles.confirmedBadge, { backgroundColor: '#FEE2E2' }]}>
+                                    <Ionicons name="close-circle" size={12} color="#EF4444" />
+                                    <Text style={[styles.confirmedText, { color: '#EF4444' }]}>Rechazado</Text>
+                                </View>
+                            )}
+                        </View>
+                        <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 3 }}>
+                            {item.seats_booked} asiento/s solicitado/s
+                        </Text>
                     </View>
-                    <Text style={{ color: theme.textSecondary, marginTop: 4 }}>
-                        {item.seats_booked} asiento/s solicitado/s
-                    </Text>
-                    {item.passenger_origin && (
-                        <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>
-                            Recogida: {item.passenger_origin}
-                        </Text>
-                    )}
-                    {item.passenger_destination && (
-                        <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 1 }}>
-                            Destino: {item.passenger_destination}
-                        </Text>
+                    {isPending && (
+                        <View style={styles.btnGroup}>
+                            <TouchableOpacity
+                                style={[styles.acceptBtn, { backgroundColor: theme.accent }]}
+                                onPress={() => handleAccept(item._id)}
+                            >
+                                <Text style={styles.btnText}>Aceptar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.denyBtn]}
+                                onPress={() => handleDeny(item._id)}
+                            >
+                                <Text style={styles.btnText}>Rechazar</Text>
+                            </TouchableOpacity>
+                        </View>
                     )}
                 </View>
-                
-                {item.status === 'pending' && (
-                    <View style={styles.btnGroup}>
-                        <TouchableOpacity
-                            style={[styles.acceptBtn, { backgroundColor: theme.accent }]}
-                            onPress={() => handleAccept(item._id)}
-                        >
-                            <Text style={styles.btnText}>Aceptar</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.denyBtn]}
-                            onPress={() => handleDeny(item._id)}
-                        >
-                            <Text style={styles.btnText}>Rechazar</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
+                {/* Fila inferior: botón de ver detalles */}
+                <TouchableOpacity
+                    style={[styles.detailBtn, { borderColor: theme.accent }]}
+                    onPress={() => handleViewDetail(item)}
+                >
+                    <Ionicons name="eye-outline" size={14} color={theme.accent} />
+                    <Text style={[styles.detailBtnText, { color: theme.accent }]}>Ver detalles</Text>
+                </TouchableOpacity>
             </View>
         );
     };
@@ -702,6 +949,18 @@ const ListOfRequests = ({ route, navigation }) => {
                 }}
             />
 
+            <PassengerDetailModal
+                visible={passengerDetailVisible}
+                onClose={() => {
+                    setPassengerDetailVisible(false);
+                    setSelectedBooking(null);
+                    setRideDetailData(null);
+                }}
+                booking={selectedBooking}
+                rideData={rideDetailData}
+                theme={theme}
+            />
+
             <BottomNavigationDriver navigation={navigation} activeTab="Rutas" />
         </SafeAreaView>
     );
@@ -713,23 +972,26 @@ const styles = StyleSheet.create({
     backBtn: { position: 'absolute', left: 20 },
     refreshBtn: { position: 'absolute', right: 20 },
     title: { fontSize: 18, fontWeight: 'bold' },
-    passengerCard: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 15, borderWidth: 1, marginBottom: 15, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
-    avatar: { width: 50, height: 50, borderRadius: 25 },
-    infoContainer: { flex: 1, marginLeft: 15 },
-    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    nameText: { fontSize: 16, fontWeight: 'bold' },
-    confirmedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#ECFDF5', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-    confirmedText: { fontSize: 11, color: '#10B981', fontWeight: 'bold' },
-    btnGroup: { flexDirection: 'column', gap: 6 },
-    acceptBtn: { paddingVertical: 8, paddingHorizontal: 15, borderRadius: 10 },
-    denyBtn: { paddingVertical: 8, paddingHorizontal: 15, borderRadius: 10, backgroundColor: '#EF4444' },
-    btnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+    passengerCard: { padding: 14, borderRadius: 15, borderWidth: 1, marginBottom: 15, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+    cardTopRow: { flexDirection: 'row', alignItems: 'center' },
+    avatar: { width: 44, height: 44, borderRadius: 22 },
+    infoContainer: { flex: 1, marginLeft: 12 },
+    nameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
+    nameText: { fontSize: 15, fontWeight: 'bold', maxWidth: '60%' },
+    confirmedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#ECFDF5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
+    confirmedText: { fontSize: 10, color: '#10B981', fontWeight: 'bold' },
+    btnGroup: { flexDirection: 'column', gap: 5 },
+    acceptBtn: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: 10, alignItems: 'center' },
+    denyBtn: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: 10, backgroundColor: '#EF4444', alignItems: 'center' },
+    btnText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
+    detailBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1, marginTop: 10, alignSelf: 'flex-start', marginLeft: 56 },
+    detailBtnText: { fontSize: 12, fontWeight: '600' },
     startRideContainer: { position: 'absolute', bottom: 120, left: 20, right: 20, padding: 15, borderRadius: 20, alignItems: 'center', elevation: 12, shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.15, shadowRadius: 8, borderWidth: 1, borderColor: '#F3F4F6' },
     startRideText: { fontSize: 13, marginBottom: 10, fontWeight: '600' },
     startRideBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', paddingVertical: 14, borderRadius: 14, gap: 10, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2 },
     startRideBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
     cancelRideBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', paddingVertical: 12, borderRadius: 14, gap: 8, marginTop: 8, borderWidth: 1.5, borderColor: '#EF4444', backgroundColor: 'transparent' },
-    cancelRideBtnText: { color: '#EF4444', fontSize: 15, fontWeight: '700' }
+    cancelRideBtnText: { color: '#EF4444', fontSize: 15, fontWeight: '700' },
 });
 
 const modalStyles = StyleSheet.create({
