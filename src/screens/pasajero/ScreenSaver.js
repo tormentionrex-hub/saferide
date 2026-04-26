@@ -434,7 +434,7 @@ const ScreenSaver = ({ route, navigation }) => {
                 status={status}
                 onConfirm={() => {
                     setShowRejectionModal(false);
-                    navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
+                    navigation.navigate('BuscarViaje');
                 }}
             />
 
@@ -452,7 +452,7 @@ const ScreenSaver = ({ route, navigation }) => {
                 message="Tu reservación ha sido cancelada correctamente."
                 onConfirm={() => {
                     setShowSuccessModal(false);
-                    navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
+                    navigation.navigate('BuscarViaje');
                 }}
             />
 
@@ -475,7 +475,7 @@ const ScreenSaver = ({ route, navigation }) => {
                 theme={theme}
                 onConfirm={() => {
                     setShowTimeoutModal(false);
-                    navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
+                    navigation.navigate('BuscarViaje');
                 }}
             />
 

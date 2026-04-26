@@ -614,7 +614,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                 theme={theme}
                 onConfirm={() => {
                     setShowRideCancelledModal(false);
-                    navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' });
+                    navigation.navigate('BuscarViaje');
                 }}
             />
 
@@ -632,7 +632,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                 message="Tu reservación ha sido cancelada correctamente."
                 onConfirm={() => {
                     setShowSuccessModal(false);
-                    navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' });
+                    navigation.navigate('BuscarViaje');
                 }}
             />
 
