@@ -53,7 +53,7 @@ const PaymentVerification = ({ route, navigation }) => {
                 // Inicializamos los estados que ya vengan de BD
                 const initialStatus = {};
                 validBookings.forEach(b => {
-                    if (b.payment_status === 'paid' || b.payment_status === 'unpaid') {
+                    if (b.payment_status === 'paid' || b.payment_status === 'waived') {
                         initialStatus[b._id] = b.payment_status;
                     }
                 });
@@ -96,7 +96,10 @@ const PaymentVerification = ({ route, navigation }) => {
             // Subimos cada estado de pago al backend
             const updatePromises = bookings.map(b => {
                 const status = paymentStatuses[b._id];
-                return api.patch(`/bookings/${b._id}/payment`, { payment_status: status });
+                return api.patch(`/bookings/${b._id}/payment`, {
+                    payment_status: status,
+                    payment_type: 'normal',
+                });
             });
             
             await Promise.all(updatePromises);
@@ -129,7 +132,7 @@ const PaymentVerification = ({ route, navigation }) => {
 
     const allSelected = bookings.length > 0 && bookings.every(b => paymentStatuses[b._id]);
     // Agente 1 → Agente 2: hay al menos un pasajero marcado como no pagó
-    const hasUnpaid = bookings.some(b => paymentStatuses[b._id] === 'unpaid');
+    const hasUnpaid = bookings.some(b => paymentStatuses[b._id] === 'waived');
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
@@ -163,7 +166,7 @@ const PaymentVerification = ({ route, navigation }) => {
                         {bookings.map((booking) => {
                             const passenger = booking.passenger_id;
                             const isPaid = paymentStatuses[booking._id] === 'paid';
-                            const isUnpaid = paymentStatuses[booking._id] === 'unpaid';
+                            const isUnpaid = paymentStatuses[booking._id] === 'waived';
 
                             return (
                                 <View key={booking._id} style={[styles.passengerCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -201,7 +204,7 @@ const PaymentVerification = ({ route, navigation }) => {
                                                 isUnpaid && styles.unpaidSelected
                                             ]}
                                             activeOpacity={0.7}
-                                            onPress={() => handleSelectPayment(booking._id, 'unpaid')}
+                                            onPress={() => handleSelectPayment(booking._id, 'waived')}
                                         >
                                             <Text style={[
                                                 styles.selectBtnText,
