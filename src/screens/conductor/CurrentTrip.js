@@ -287,6 +287,13 @@ const TripInProgressDriver = ({ route, navigation }) => {
     const hasCoords = (originCoords?.lat !== undefined && originCoords?.lng !== undefined) &&
         (destCoords?.lat !== undefined && destCoords?.lng !== undefined);
 
+    const passengerPickup = bookingData?.passenger_origin_coords?.lat
+        ? bookingData.passenger_origin_coords
+        : null;
+    const passengerDropoff = bookingData?.passenger_destination_coords?.lat
+        ? bookingData.passenger_destination_coords
+        : null;
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#fff" translucent />
@@ -323,18 +330,36 @@ const TripInProgressDriver = ({ route, navigation }) => {
                             showsUserLocation={true}
                             onMapReady={() => {
                                 if (mapRef.current) {
-                                    mapRef.current.fitToCoordinates(
-                                        [
-                                            { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
-                                            { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) },
-                                        ],
-                                        { edgePadding: { top: 60, right: 60, bottom: 60, left: 60 }, animated: true }
-                                    );
+                                    const coords = [{ latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) }];
+                                    if (passengerPickup) coords.push({ latitude: Number(passengerPickup.lat), longitude: Number(passengerPickup.lng) });
+                                    if (passengerDropoff) coords.push({ latitude: Number(passengerDropoff.lat), longitude: Number(passengerDropoff.lng) });
+                                    else coords.push({ latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) });
+                                    mapRef.current.fitToCoordinates(coords, { edgePadding: { top: 60, right: 60, bottom: 60, left: 60 }, animated: true });
                                 }
                             }}
                         >
-                            <Marker coordinate={{ latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) }} title="Recogida" pinColor="#1A73E8" />
-                            <Marker coordinate={{ latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }} title="Destino" pinColor="#EF4444" />
+                            {/* Origen del conductor */}
+                            <Marker coordinate={{ latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) }} title="Origen del viaje" pinColor="#1A73E8" />
+                            {/* Punto de recogida del pasajero */}
+                            {passengerPickup && (
+                                <Marker
+                                    coordinate={{ latitude: Number(passengerPickup.lat), longitude: Number(passengerPickup.lng) }}
+                                    title="Subida del pasajero"
+                                    description={bookingData?.passenger_origin || ''}
+                                    pinColor="#F59E0B"
+                                />
+                            )}
+                            {/* Destino del pasajero (fallback al destino del ride) */}
+                            {passengerDropoff ? (
+                                <Marker
+                                    coordinate={{ latitude: Number(passengerDropoff.lat), longitude: Number(passengerDropoff.lng) }}
+                                    title="Bajada del pasajero"
+                                    description={bookingData?.passenger_destination || ''}
+                                    pinColor="#EF4444"
+                                />
+                            ) : (
+                                <Marker coordinate={{ latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }} title="Destino" pinColor="#EF4444" />
+                            )}
                             {routeCoords && routeCoords.length > 0 ? (
                                 <Polyline coordinates={routeCoords} strokeColor="#1A73E8" strokeWidth={5} lineJoin="round" lineCap="round" />
                             ) : (

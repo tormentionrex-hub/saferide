@@ -266,6 +266,21 @@ const CancelRideModal = ({ visible, onClose, onConfirm, loading, theme }) => {
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
+/* ─── Avatar del pasajero con fallback correcto ante URL rota ───── */
+const PassengerAvatar = ({ profileImage, passengerId, style }) => {
+    const [imgError, setImgError] = useState(false);
+    const uri = (!imgError && profileImage)
+        ? profileImage
+        : `https://i.pravatar.cc/150?u=${passengerId || 'default'}`;
+    return (
+        <Image
+            source={{ uri }}
+            style={style}
+            onError={() => setImgError(true)}
+        />
+    );
+};
+
 /* ─── Modal de Detalle del Pasajero ──────────────────────────────── */
 const PassengerDetailModal = ({ visible, onClose, booking, rideData, theme }) => {
     const scaleAnim = useRef(new Animated.Value(0.92)).current;
@@ -292,11 +307,16 @@ const PassengerDetailModal = ({ visible, onClose, booking, rideData, theme }) =>
     const fullStars = Math.floor(passengerRating);
     const hasHalf = passengerRating - fullStars >= 0.5;
 
-    // Use ride origin/dest as fallback coordinates for the map
-    const rideOrigin = rideData?.origin;
-    const rideDest = rideData?.destination;
+    // Coordenadas del pasajero (guardadas al crear el booking)
+    // Fallback a las coordenadas del ride para bookings anteriores
+    const passengerOriginCoords = booking?.passenger_origin_coords?.lat
+        ? booking.passenger_origin_coords
+        : rideData?.origin?.coordinates;
+    const passengerDestCoords = booking?.passenger_destination_coords?.lat
+        ? booking.passenger_destination_coords
+        : rideData?.destination?.coordinates;
 
-    const hasCoords = rideOrigin?.coordinates && rideDest?.coordinates;
+    const hasCoords = passengerOriginCoords?.lat && passengerDestCoords?.lat;
 
     const darkMapStyle = [
         { "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] },
@@ -309,8 +329,8 @@ const PassengerDetailModal = ({ visible, onClose, booking, rideData, theme }) =>
     const handleMapReady = () => {
         if (hasCoords && mapRef.current) {
             const coords = [
-                { latitude: rideOrigin.coordinates.lat, longitude: rideOrigin.coordinates.lng },
-                { latitude: rideDest.coordinates.lat, longitude: rideDest.coordinates.lng },
+                { latitude: passengerOriginCoords.lat, longitude: passengerOriginCoords.lng },
+                { latitude: passengerDestCoords.lat, longitude: passengerDestCoords.lng },
             ];
             mapRef.current.fitToCoordinates(coords, {
                 edgePadding: { top: 60, right: 60, bottom: 60, left: 60 },
@@ -353,18 +373,18 @@ const PassengerDetailModal = ({ visible, onClose, booking, rideData, theme }) =>
                                 onMapReady={handleMapReady}
                             >
                                 <Marker
-                                    coordinate={{ latitude: rideOrigin.coordinates.lat, longitude: rideOrigin.coordinates.lng }}
-                                    title="Origen general del viaje"
-                                    description={rideOrigin.name}
+                                    coordinate={{ latitude: passengerOriginCoords.lat, longitude: passengerOriginCoords.lng }}
+                                    title="Punto de partida del pasajero"
+                                    description={booking.passenger_origin || ''}
                                 >
                                     <View style={detailModalStyles.markerRound}>
                                         <Ionicons name="radio-button-on" size={14} color="#fff" />
                                     </View>
                                 </Marker>
                                 <Marker
-                                    coordinate={{ latitude: rideDest.coordinates.lat, longitude: rideDest.coordinates.lng }}
-                                    title="Destino general del viaje"
-                                    description={rideDest.name}
+                                    coordinate={{ latitude: passengerDestCoords.lat, longitude: passengerDestCoords.lng }}
+                                    title="Punto de llegada del pasajero"
+                                    description={booking.passenger_destination || ''}
                                 >
                                     <View style={[detailModalStyles.markerRound, { backgroundColor: '#FF5A5F' }]}>
                                         <Ionicons name="location" size={14} color="#fff" />
@@ -391,9 +411,10 @@ const PassengerDetailModal = ({ visible, onClose, booking, rideData, theme }) =>
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
                         {/* Foto + Nombre + Rating */}
                         <View style={detailModalStyles.profileRow}>
-                            <Image 
-                                source={{ uri: passenger.profileImage || `https://i.pravatar.cc/150?u=${passenger._id || 'default'}` }} 
-                                style={detailModalStyles.profileImg} 
+                            <PassengerAvatar
+                                profileImage={passenger.profileImage}
+                                passengerId={passenger._id}
+                                style={detailModalStyles.profileImg}
                             />
                             <View style={{ flex: 1 }}>
                                 <Text style={[detailModalStyles.profileName, { color: theme.text }]}>
@@ -539,6 +560,12 @@ const ListOfRequests = ({ route, navigation }) => {
                         activeBookings.push(b);
                     }
 
+                    if (__DEV__) {
+                        activeBookings.forEach(b => {
+                            const p = b.passenger_id;
+                            console.log('[ListOfRequests] passenger:', p?._id, '| profileImage:', p?.profileImage ?? 'NULL');
+                        });
+                    }
                     setRequests(activeBookings);
                     const confirmed = activeBookings.filter(b => b.status === 'confirmed').length;
                     setConfirmedCount(confirmed);
@@ -783,7 +810,11 @@ const ListOfRequests = ({ route, navigation }) => {
             <View style={[styles.passengerCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 {/* Fila principal: Avatar + Info + Botones de acción */}
                 <View style={styles.cardTopRow}>
-                    <Image source={{ uri: passenger.profileImage || `https://i.pravatar.cc/150?u=${passenger._id || 'default'}` }} style={styles.avatar} />
+                    <PassengerAvatar
+                        profileImage={passenger.profileImage}
+                        passengerId={passenger._id}
+                        style={styles.avatar}
+                    />
                     <View style={styles.infoContainer}>
                         <View style={styles.nameRow}>
                             <Text style={[styles.nameText, { color: theme.text }]} numberOfLines={1}>{passenger.name || 'Pasajero Anónimo'}</Text>

@@ -117,6 +117,12 @@ const RideDetail = ({ route, navigation }) => {
                 seats_booked: 1,
                 passenger_origin: searchOrigin?.name ?? null,
                 passenger_destination: searchDestination?.name ?? null,
+                passenger_origin_coords: searchOrigin
+                    ? { lat: searchOrigin.lat, lng: searchOrigin.lng }
+                    : null,
+                passenger_destination_coords: searchDestination
+                    ? { lat: searchDestination.lat, lng: searchDestination.lng }
+                    : null,
             });
             if (response.data.success) {
                 navigation.navigate('ScreenSaver', { bookingId: response.data.data._id });

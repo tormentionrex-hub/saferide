@@ -1,6 +1,6 @@
-export const API_URL = 'http://192.168.0.8:8080/api/v1'; // IP de la computadora para conexión local/Expo
+export const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-export const GOOGLE_MAPS_API_KEY = 'AIzaSyBjX1C4jk1I2E5MB2FnABjTZC0uXt0ullA';
+export const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 export default {
     API_URL,
