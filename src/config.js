@@ -1,5 +1,9 @@
-export const API_URL = 'http://192.168.1.191:8080/api/v1'; // IP detectada automáticamente para uso local
+export const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+export const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 export default {
     API_URL,
+    GOOGLE_MAPS_API_KEY,
 };
+
