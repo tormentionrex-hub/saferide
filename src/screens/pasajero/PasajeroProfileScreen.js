@@ -277,12 +277,14 @@ const PasajeroProfileScreen = ({ navigation }) => {
                 const res = await userService.getProfile();
                 if (res?.data) {
                     const u = res.data;
+                    const localHttpPhoto = (local.profileImage && local.profileImage.startsWith('http'))
+                        ? local.profileImage : null;
                     const server = {
                         name:         u.name         || '',
                         email:        u.email        || '',
                         phone:        u.phone        || '',
                         company:      u.company      || '',
-                        profileImage: u.profileImage || u.photo || local.profileImage,
+                        profileImage: u.profileImage || u.photo || localHttpPhoto,
                     };
                     setUserData(server);
                     setEditForm({ ...server });
@@ -290,7 +292,8 @@ const PasajeroProfileScreen = ({ navigation }) => {
                     await AsyncStorage.setItem('userEmail',   server.email);
                     await AsyncStorage.setItem('userPhone',   server.phone);
                     await AsyncStorage.setItem('userCompany', server.company);
-                    if (server.profileImage) await AsyncStorage.setItem('userPhoto', server.profileImage);
+                    if (server.profileImage && server.profileImage.startsWith('http'))
+                        await AsyncStorage.setItem('userPhoto', server.profileImage);
                 }
             } catch (e) { console.log('API sync error:', e); }
         } catch (e) { console.log('Load error:', e); }
@@ -308,10 +311,17 @@ const PasajeroProfileScreen = ({ navigation }) => {
     }, [navigation]);
 
     const pickImage = async () => {
+        StatusBar.setBarStyle('dark-content', true);
+        if (Platform.OS === 'android') StatusBar.setBackgroundColor('#FFFFFF', true);
+
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true, aspect: [1, 1], quality: 0.8,
         });
+
+        StatusBar.setBarStyle('light-content', true);
+        if (Platform.OS === 'android') StatusBar.setBackgroundColor(theme.bg || '#0A0A18', true);
+
         if (!result.canceled)
             setEditForm(prev => ({ ...prev, profileImage: result.assets[0].uri }));
     };
@@ -354,8 +364,13 @@ const PasajeroProfileScreen = ({ navigation }) => {
                 return;
             }
 
-            let profileImageUrl = userData.profileImage;
-            if (editForm.profileImage && editForm.profileImage !== userData.profileImage) {
+            let profileImageUrl = (userData.profileImage?.startsWith?.('http'))
+                ? userData.profileImage : null;
+            const needsUpload = editForm.profileImage && (
+                editForm.profileImage.startsWith('file://') ||
+                editForm.profileImage !== userData.profileImage
+            );
+            if (needsUpload && editForm.profileImage.startsWith('file://')) {
                 const uriParts = editForm.profileImage.split('.');
                 const fileType = uriParts[uriParts.length - 1] || 'jpg';
                 const cloudResult = await uploadToCloudinary({
@@ -365,6 +380,8 @@ const PasajeroProfileScreen = ({ navigation }) => {
                 });
                 if (!cloudResult.secure_url) throw new Error('Error al subir imagen');
                 profileImageUrl = cloudResult.secure_url;
+            } else if (needsUpload && editForm.profileImage.startsWith('http')) {
+                profileImageUrl = editForm.profileImage;
             }
 
             await userService.updateProfile({
@@ -379,7 +396,7 @@ const PasajeroProfileScreen = ({ navigation }) => {
             await AsyncStorage.setItem('userEmail',   editForm.email);
             await AsyncStorage.setItem('userPhone',   editForm.phone);
             await AsyncStorage.setItem('userCompany', editForm.company);
-            if (profileImageUrl) await AsyncStorage.setItem('userPhoto', profileImageUrl);
+            if (profileImageUrl?.startsWith('http')) await AsyncStorage.setItem('userPhoto', profileImageUrl);
 
             closeModal();
             loadProfile();

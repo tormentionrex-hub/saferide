@@ -150,12 +150,19 @@ const ProfileConductor = ({ navigation, route }) => {
     }, [loading, vehicleSectionY]);
 
     const pickImage = async () => {
+        StatusBar.setBarStyle('dark-content', true);
+        if (Platform.OS === 'android') StatusBar.setBackgroundColor('#FFFFFF', true);
+
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
         });
+
+        StatusBar.setBarStyle('light-content', true);
+        if (Platform.OS === 'android') StatusBar.setBackgroundColor(theme.bg || '#0A0A18', true);
+
         if (!result.canceled) {
             setEditForm(prev => ({ ...prev, profileImage: result.assets[0].uri }));
         }
@@ -200,8 +207,12 @@ const ProfileConductor = ({ navigation, route }) => {
                 return;
             }
 
-            let profileImageUrl = userData.profileImage;
-            if (editForm.profileImage && editForm.profileImage !== userData.profileImage) {
+            let profileImageUrl = userData.profileImage?.startsWith?.('http') ? userData.profileImage : null;
+            const needsUpload = editForm.profileImage && (
+                editForm.profileImage.startsWith('file://') ||
+                editForm.profileImage !== userData.profileImage
+            );
+            if (needsUpload && editForm.profileImage.startsWith('file://')) {
                 const uriParts = editForm.profileImage.split('.');
                 const fileType = uriParts[uriParts.length - 1] || 'jpg';
                 const cloudResult = await uploadToCloudinary({
@@ -213,6 +224,8 @@ const ProfileConductor = ({ navigation, route }) => {
                     throw new Error(cloudResult.error?.message || 'Error al subir imagen a Cloudinary');
                 }
                 profileImageUrl = cloudResult.secure_url;
+            } else if (needsUpload && editForm.profileImage.startsWith('http')) {
+                profileImageUrl = editForm.profileImage;
             }
 
             await api.put(`/users/${userData._id}`, {
@@ -221,6 +234,9 @@ const ProfileConductor = ({ navigation, route }) => {
                 company: editForm.company,
                 profileImage: profileImageUrl,
             });
+            if (profileImageUrl) {
+                await AsyncStorage.setItem('userPhoto', profileImageUrl);
+            }
             showAlert('¡Listo!', 'Perfil actualizado correctamente', 'success');
             setModalVisible(false);
             loadProfile();

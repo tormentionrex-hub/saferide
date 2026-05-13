@@ -338,13 +338,17 @@ const TripInProgress = ({ route, navigation }) => {
 
     const handleRecenter = () => {
         if (!mapRef.current || !bookingData?.ride_id) return;
-        const originCoords = bookingData.ride_id?.origin?.coordinates;
-        const destCoords = bookingData.ride_id?.destination?.coordinates;
-        if (originCoords?.lat && destCoords?.lat) {
-            mapRef.current.fitToCoordinates([
-                { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
-                { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) },
-            ], { edgePadding: { top: 60, right: 60, bottom: 160, left: 60 }, animated: true });
+        const oc = bookingData.ride_id?.origin?.coordinates;
+        const dc = bookingData.ride_id?.destination?.coordinates;
+        const pPickup = bookingData?.passenger_origin_coords?.lat ? bookingData.passenger_origin_coords : null;
+        const pDropoff = bookingData?.passenger_destination_coords?.lat ? bookingData.passenger_destination_coords : null;
+        const coords = [];
+        if (oc?.lat) coords.push({ latitude: Number(oc.lat), longitude: Number(oc.lng) });
+        if (pPickup) coords.push({ latitude: Number(pPickup.lat), longitude: Number(pPickup.lng) });
+        if (pDropoff) coords.push({ latitude: Number(pDropoff.lat), longitude: Number(pDropoff.lng) });
+        else if (dc?.lat) coords.push({ latitude: Number(dc.lat), longitude: Number(dc.lng) });
+        if (coords.length > 0) {
+            mapRef.current.fitToCoordinates(coords, { edgePadding: { top: 60, right: 60, bottom: 160, left: 60 }, animated: true });
         }
     };
 
@@ -391,6 +395,13 @@ const TripInProgress = ({ route, navigation }) => {
     const destCoords = ride_id?.destination?.coordinates;
     const hasCoords = originCoords?.lat !== undefined && originCoords?.lng !== undefined
         && destCoords?.lat !== undefined && destCoords?.lng !== undefined;
+
+    const passengerPickup = bookingData?.passenger_origin_coords?.lat
+        ? bookingData.passenger_origin_coords
+        : null;
+    const passengerDropoff = bookingData?.passenger_destination_coords?.lat
+        ? bookingData.passenger_destination_coords
+        : null;
 
     const distanceKm = bookingData?.distance_km || ride_id?.distance_km;
     const durationMin = ride_id?.duration_minutes;
@@ -441,28 +452,47 @@ const TripInProgress = ({ route, navigation }) => {
                             onRegionChangeComplete={(r) => { currentRegionRef.current = r; }}
                             onMapReady={() => {
                                 if (mapRef.current) {
-                                    mapRef.current.fitToCoordinates(
-                                        [
-                                            { latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) },
-                                            { latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) },
-                                        ],
-                                        { edgePadding: { top: 60, right: 60, bottom: 160, left: 60 }, animated: true }
-                                    );
+                                    const coords = [{ latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) }];
+                                    if (passengerPickup) coords.push({ latitude: Number(passengerPickup.lat), longitude: Number(passengerPickup.lng) });
+                                    if (passengerDropoff) coords.push({ latitude: Number(passengerDropoff.lat), longitude: Number(passengerDropoff.lng) });
+                                    else coords.push({ latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) });
+                                    mapRef.current.fitToCoordinates(coords, { edgePadding: { top: 60, right: 60, bottom: 160, left: 60 }, animated: true });
                                 }
                             }}
                         >
+                            {/* Origen del conductor */}
                             <Marker
                                 coordinate={{ latitude: Number(originCoords.lat), longitude: Number(originCoords.lng) }}
-                                title="Lugar de Recogida"
+                                title="Origen del conductor"
                                 description={ride_id.origin.name}
                                 pinColor="#1A73E8"
                             />
-                            <Marker
-                                coordinate={{ latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }}
-                                title="Destino del viaje"
-                                description={ride_id.destination.name}
-                                pinColor="#10B981"
-                            />
+                            {/* Punto de recogida del pasajero */}
+                            {passengerPickup && (
+                                <Marker
+                                    coordinate={{ latitude: Number(passengerPickup.lat), longitude: Number(passengerPickup.lng) }}
+                                    title="Tu punto de recogida"
+                                    description={bookingData?.passenger_origin || ''}
+                                    pinColor="#F59E0B"
+                                />
+                            )}
+                            {/* Destino del pasajero (fallback al destino del ride) */}
+                            {passengerDropoff ? (
+                                <Marker
+                                    coordinate={{ latitude: Number(passengerDropoff.lat), longitude: Number(passengerDropoff.lng) }}
+                                    title="Tu destino"
+                                    description={bookingData?.passenger_destination || ''}
+                                    pinColor="#10B981"
+                                />
+                            ) : (
+                                <Marker
+                                    coordinate={{ latitude: Number(destCoords.lat), longitude: Number(destCoords.lng) }}
+                                    title="Destino del viaje"
+                                    description={ride_id.destination.name}
+                                    pinColor="#10B981"
+                                />
+                            )}
+                            {/* Ubicación en tiempo real del conductor */}
                             {driverLocation && (
                                 <Marker
                                     coordinate={driverLocation}
