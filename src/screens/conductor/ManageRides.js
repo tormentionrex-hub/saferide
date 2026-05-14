@@ -11,7 +11,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import SettingsGearButton from '../../components/SettingsGearButton';
 
 /* ─── Modal de cancelación ────────────────────────────────────────── */
-const CancelModal = ({ visible, ride, onClose, onConfirm, cancelling }) => {
+const CancelModal = ({ visible, ride, onClose, onConfirm, cancelling, theme }) => {
     const [step, setStep] = useState(1); // 1 = primera confirmación, 2 = segunda confirmación
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -37,10 +37,10 @@ const CancelModal = ({ visible, ride, onClose, onConfirm, cancelling }) => {
     return (
         <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
             <View style={modal.overlay}>
-                <Animated.View style={[modal.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }] }]}>
+                <Animated.View style={[modal.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
 
                     {/* Ícono central */}
-                    <View style={modal.iconCircle}>
+                    <View style={[modal.iconCircle, { backgroundColor: theme.surfaceVariant }]}>
                         <Ionicons
                             name={step === 1 ? 'alert-circle' : 'warning'}
                             size={44}
@@ -49,33 +49,33 @@ const CancelModal = ({ visible, ride, onClose, onConfirm, cancelling }) => {
                     </View>
 
                     {/* Título y subtítulo */}
-                    <Text style={modal.title}>
+                    <Text style={[modal.title, { color: theme.text }]}>
                         {step === 1 ? 'Cancelar viaje' : '¿Completamente seguro?'}
                     </Text>
 
                     {step === 1 ? (
                         <>
-                            <Text style={modal.subtitle}>Estás a punto de cancelar el siguiente viaje:</Text>
+                            <Text style={[modal.subtitle, { color: theme.textSecondary }]}>Estás a punto de cancelar el siguiente viaje:</Text>
 
                             {/* Resumen del viaje */}
-                            <View style={modal.routeSummary}>
+                            <View style={[modal.routeSummary, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }]}>
                                 <View style={modal.routeRow}>
-                                    <Ionicons name="radio-button-on" size={14} color="#2563EB" />
-                                    <Text style={modal.routeText} numberOfLines={1}>{originName}</Text>
+                                    <Ionicons name="radio-button-on" size={14} color={theme.accent} />
+                                    <Text style={[modal.routeText, { color: theme.text }]} numberOfLines={1}>{originName}</Text>
                                 </View>
-                                <View style={modal.routeDotLine} />
+                                <View style={[modal.routeDotLine, { backgroundColor: theme.border }]} />
                                 <View style={modal.routeRow}>
                                     <Ionicons name="location" size={14} color="#EF4444" />
-                                    <Text style={modal.routeText} numberOfLines={1}>{destName}</Text>
+                                    <Text style={[modal.routeText, { color: theme.text }]} numberOfLines={1}>{destName}</Text>
                                 </View>
                             </View>
 
-                            <Text style={modal.hint}>
+                            <Text style={[modal.hint, { color: theme.textSecondary }]}>
                                 Los pasajeros con reservas serán notificados automáticamente.
                             </Text>
                         </>
                     ) : (
-                        <Text style={modal.subtitle}>
+                        <Text style={[modal.subtitle, { color: theme.textSecondary }]}>
                             Esta acción{' '}
                             <Text style={{ fontWeight: '800', color: '#EF4444' }}>no se puede deshacer</Text>
                             . El viaje quedará cancelado de forma permanente y se notificará a todos los pasajeros.
@@ -94,7 +94,7 @@ const CancelModal = ({ visible, ride, onClose, onConfirm, cancelling }) => {
                                     <Text style={modal.btnDestructiveText}>Sí, quiero cancelarlo</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity style={modal.btnGhost} onPress={onClose}>
-                                    <Text style={modal.btnGhostText}>No, volver</Text>
+                                    <Text style={[modal.btnGhostText, { color: theme.textSecondary }]}>No, volver</Text>
                                 </TouchableOpacity>
                             </>
                         ) : (
@@ -114,7 +114,7 @@ const CancelModal = ({ visible, ride, onClose, onConfirm, cancelling }) => {
                                     </Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity style={modal.btnGhost} onPress={() => setStep(1)} disabled={cancelling}>
-                                    <Text style={modal.btnGhostText}>← Volver atrás</Text>
+                                    <Text style={[modal.btnGhostText, { color: theme.textSecondary }]}>← Volver atrás</Text>
                                 </TouchableOpacity>
                             </>
                         )}
@@ -133,7 +133,7 @@ const CancelModal = ({ visible, ride, onClose, onConfirm, cancelling }) => {
 };
 
 /* ─── Modal de Éxito de Cancelación ───────────────────────────────── */
-const SuccessCancelModal = ({ visible, onClose }) => {
+const SuccessCancelModal = ({ visible, onClose, theme }) => {
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -152,12 +152,12 @@ const SuccessCancelModal = ({ visible, onClose }) => {
     return (
         <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
             <View style={modal.overlay}>
-                <Animated.View style={[modal.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }] }]}>
+                <Animated.View style={[modal.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
                     <View style={[modal.iconCircle, { backgroundColor: '#ECFDF5' }]}>
                         <Ionicons name="checkmark-circle" size={44} color="#10B981" />
                     </View>
-                    <Text style={modal.title}>Viaje cancelado</Text>
-                    <Text style={[modal.subtitle, { marginBottom: 25 }]}>
+                    <Text style={[modal.title, { color: theme.text }]}>Viaje cancelado</Text>
+                    <Text style={[modal.subtitle, { marginBottom: 25, color: theme.textSecondary }]}>
                         El viaje fue cancelado exitosamente y los pasajeros han sido notificados.
                     </Text>
                     <View style={modal.buttonsCol}>
@@ -361,11 +361,13 @@ const ManageRides = ({ navigation }) => {
                 onClose={() => { setModalVisible(false); setSelectedRide(null); }}
                 onConfirm={handleModalConfirm}
                 cancelling={!!cancellingId}
+                theme={theme}
             />
 
             <SuccessCancelModal
                 visible={successModalVisible}
                 onClose={() => setSuccessModalVisible(false)}
+                theme={theme}
             />
         </SafeAreaView>
     );

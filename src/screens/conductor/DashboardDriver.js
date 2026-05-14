@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import sessionCache from '../../services/sessionCache';
+import api from '../../services/api';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
@@ -33,12 +34,29 @@ export default function DashboardConductor({ route, navigation }) {
         useCallback(() => {
             const loadData = async () => {
                 try {
-                    const name = await AsyncStorage.getItem('userName');
-                    if (name) setUserName(name.split(' ')[0]);
+                    try {
+                        const meRes = await api.get('/auth/me');
+                        if (meRes.data.success) {
+                            const user = meRes.data.data;
+                            if (user.name) {
+                                setUserName(user.name.split(' ')[0]);
+                                await AsyncStorage.setItem('userName', user.name);
+                            }
+                            if (user.profileImage) {
+                                setUserPhoto(user.profileImage);
+                                await AsyncStorage.setItem('userPhoto', user.profileImage);
+                            } else {
+                                setUserPhoto(null);
+                            }
+                        }
+                    } catch (apiErr) {
+                        const name = await AsyncStorage.getItem('userName');
+                        if (name) setUserName(name.split(' ')[0]);
 
-                    const photo = await AsyncStorage.getItem('userPhoto');
-                    if (photo && (photo.startsWith('http') || photo.startsWith('file'))) {
-                        setUserPhoto(photo);
+                        const photo = await AsyncStorage.getItem('userPhoto');
+                        if (photo && (photo.startsWith('http') || photo.startsWith('file'))) {
+                            setUserPhoto(photo);
+                        }
                     }
 
                     // force=true: siempre consultar el API al regresar, nunca usar caché

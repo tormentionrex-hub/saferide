@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GOOGLE_MAPS_API_KEY } from '../config.js';
 import { getCurrentLocation, reverseGeocode } from '../services/locationService';
 import { useDriverTheme } from '../context/DriverThemeContext';
+import { darkMapStyle } from '../utils/mapStyle';
 
 const { width, height } = Dimensions.get('window');
 
@@ -228,6 +229,7 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
                                     setSelectedPlace(null);
                                 }}
                                 showsUserLocation={true}
+                                customMapStyle={theme.dark ? darkMapStyle : []}
                                 userInterfaceStyle={theme.dark ? 'dark' : 'light'}
                             />
                             

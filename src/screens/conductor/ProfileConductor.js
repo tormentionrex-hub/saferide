@@ -107,6 +107,7 @@ const ProfileConductor = ({ navigation, route }) => {
             if (resUser.data.success) {
                 const user = resUser.data.data;
                 setUserData(user);
+                await AsyncStorage.setItem('userPhoto', user.profileImage || '');
                 setEditForm({
                     name: user.name || '',
                     phone: user.phone || '',

@@ -24,6 +24,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { rideService } from '../../services/rideService';
 import sessionCache from '../../services/sessionCache';
+import { darkMapStyle } from '../../utils/mapStyle';
 import { DateTime } from 'luxon';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -79,6 +80,7 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact }) => 
                             pitchEnabled={false}
                             rotateEnabled={false}
                             cacheEnabled={true} // Performance optimization for MapView
+                            customMapStyle={theme.dark ? darkMapStyle : []}
                         >
                             <Marker coordinate={{ latitude: originCoords.lat, longitude: originCoords.lng }}>
                                 <View style={[styles.markerIcon, { backgroundColor: theme.accent }]}>

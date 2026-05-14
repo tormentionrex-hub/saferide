@@ -192,23 +192,23 @@ const PublishRide = ({ navigation }) => {
     };
 
     return (
-        <SafeAreaView style={styles.safe}>
-            <StatusBar barStyle="dark-content" backgroundColor="#f7f9fb" />
+        <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]}>
+            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
             {/* ── GLASS HEADER ─────────────────────────────────── */}
-            <View style={styles.header}>
-                <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
-                    <Ionicons name="chevron-back" size={22} color="#727785" />
+            <View style={[styles.header, { backgroundColor: theme.surface }]}>
+                <TouchableOpacity style={[styles.headerBtn, { backgroundColor: theme.surfaceVariant }]} onPress={() => navigation.goBack()}>
+                    <Ionicons name="chevron-back" size={22} color={theme.textSecondary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Itinerario de Viaje</Text>
-                <SettingsGearButton navigation={navigation} color="#727785" style={styles.headerBtn} />
+                <Text style={[styles.headerTitle, { color: theme.text }]}>Itinerario de Viaje</Text>
+                <SettingsGearButton navigation={navigation} color={theme.textSecondary} style={[styles.headerBtn, { backgroundColor: theme.surfaceVariant }]} />
             </View>
 
             <View style={{ flex: 1 }}>
                 <ScrollView contentContainerStyle={styles.content} {...si.scrollProps}>
 
                     {/* ── SECCIÓN RUTA ─────────────────────────────────── */}
-                    <View style={styles.routeCard}>
+                    <View style={[styles.routeCard, { backgroundColor: theme.surface }]}>
                         <View style={styles.routeRow}>
 
                             {/* Timeline gráfico */}
@@ -222,16 +222,16 @@ const PublishRide = ({ navigation }) => {
                             <View style={styles.routeInputs}>
                                 {/* Origen */}
                                 <View>
-                                    <Text style={styles.inputLabel}>SALIDA DE</Text>
+                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>SALIDA DE</Text>
                                     <TouchableOpacity
-                                        style={[styles.locationCard, errors.origen && styles.cardError]}
+                                        style={[styles.locationCard, { backgroundColor: theme.surfaceVariant }, errors.origen && styles.cardError]}
                                         onPress={() => handleOpenPicker('origin')}
                                         activeOpacity={0.75}
                                     >
-                                        <Text style={styles.locationCardPrimary}>
+                                        <Text style={[styles.locationCardPrimary, { color: theme.navActive }]}>
                                             {origin ? origin.name : 'Presiona para elegir el punto de Origen'}
                                         </Text>
-                                        <Text style={styles.locationCardSecondary}>
+                                        <Text style={[styles.locationCardSecondary, { color: theme.textSecondary }]}>
                                             {origin ? origin.address : '¿Desde dónde inicias?'}
                                         </Text>
                                     </TouchableOpacity>
@@ -239,16 +239,16 @@ const PublishRide = ({ navigation }) => {
 
                                 {/* Destino */}
                                 <View>
-                                    <Text style={styles.inputLabel}>DESTINO FINAL</Text>
+                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>DESTINO FINAL</Text>
                                     <TouchableOpacity
-                                        style={[styles.locationCard, errors.destino && styles.cardError]}
+                                        style={[styles.locationCard, { backgroundColor: theme.surfaceVariant }, errors.destino && styles.cardError]}
                                         onPress={() => handleOpenPicker('destination')}
                                         activeOpacity={0.75}
                                     >
-                                        <Text style={styles.locationCardPrimary}>
+                                        <Text style={[styles.locationCardPrimary, { color: theme.navActive }]}>
                                             {destination ? destination.name : 'Presiona para elegir el Destino'}
                                         </Text>
-                                        <Text style={styles.locationCardSecondary}>
+                                        <Text style={[styles.locationCardSecondary, { color: theme.textSecondary }]}>
                                             {destination ? destination.address : '¿A dónde te diriges hoy?'}
                                         </Text>
                                     </TouchableOpacity>
@@ -261,31 +261,31 @@ const PublishRide = ({ navigation }) => {
                     <View style={styles.dateTimeRow}>
                         {/* Fecha */}
                         <TouchableOpacity
-                            style={styles.dateCard}
+                            style={[styles.dateCard, { backgroundColor: theme.surfaceVariant }]}
                             onPress={() => setMostrarCalendario(true)}
                             activeOpacity={0.8}
                         >
                             <View>
-                                <Text style={styles.inputLabel}>FECHA</Text>
-                                <Text style={styles.dateValue}>
+                                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>FECHA</Text>
+                                <Text style={[styles.dateValue, { color: theme.text }]}>
                                     {fechaSeleccionada
                                         ? fechaSeleccionada.toLocaleDateString('es-CR', { day: 'numeric', month: 'short' })
                                         : 'Hoy'}
                                 </Text>
                             </View>
-                            <View style={styles.calendarIconCircle}>
-                                <Ionicons name="calendar-outline" size={22} color="#005bbf" />
+                            <View style={[styles.calendarIconCircle, { backgroundColor: theme.surface }]}>
+                                <Ionicons name="calendar-outline" size={22} color={theme.navActive} />
                             </View>
                         </TouchableOpacity>
 
                         {/* Hora */}
                         <TouchableOpacity
-                            style={[styles.timeCard, errors.fechaHora && styles.cardError]}
+                            style={[styles.timeCard, { backgroundColor: theme.surfaceVariant }, errors.fechaHora && styles.cardError]}
                             onPress={() => setMostrarHora(true)}
                             activeOpacity={0.8}
                         >
-                            <Text style={styles.inputLabel}>HORA DE PARTIDA</Text>
-                            <Text style={styles.timeValue}>
+                            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>HORA DE PARTIDA</Text>
+                            <Text style={[styles.timeValue, { color: theme.text }]}>
                                 {horaSeleccionada
                                     ? horaSeleccionada.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                                     : '--:--'}
@@ -294,51 +294,51 @@ const PublishRide = ({ navigation }) => {
                     </View>
 
                     {/* ── ASIENTOS ─────────────────────────────────── */}
-                    <View style={styles.seatsCard}>
-                        <Text style={[styles.inputLabel, { textAlign: 'center', marginBottom: 20 }]}>
+                    <View style={[styles.seatsCard, { backgroundColor: theme.surface }]}>
+                        <Text style={[styles.inputLabel, { color: theme.textSecondary, textAlign: 'center', marginBottom: 20 }]}>
                             ASIENTOS DISPONIBLES
                         </Text>
                         <View style={styles.seatsRow}>
                             <TouchableOpacity
-                                style={[styles.seatsMinusBtn, asientos <= 1 && { opacity: 0.3 }]}
+                                style={[styles.seatsMinusBtn, { backgroundColor: theme.surfaceVariant, elevation: 0, shadowOpacity: 0 }, asientos <= 1 && { opacity: 0.3 }]}
                                 onPress={() => setAsientos(v => Math.max(1, v - 1))}
                                 disabled={asientos <= 1}
                                 activeOpacity={0.75}
                             >
-                                <Ionicons name="remove" size={28} color="#005bbf" />
+                                <Ionicons name="remove" size={28} color={theme.text} />
                             </TouchableOpacity>
 
-                            <Text style={styles.seatsNumber}>{asientos}</Text>
+                            <Text style={[styles.seatsNumber, { color: theme.text }]}>{asientos}</Text>
 
                             <TouchableOpacity
-                                style={[styles.seatsPlusBtn, asientos >= 6 && { opacity: 0.3 }]}
+                                style={[styles.seatsPlusBtn, { backgroundColor: theme.surfaceVariant, elevation: 0, shadowOpacity: 0 }, asientos >= 6 && { opacity: 0.3 }]}
                                 onPress={() => setAsientos(v => Math.min(6, v + 1))}
                                 disabled={asientos >= 6}
                                 activeOpacity={0.85}
                             >
-                                <Ionicons name="add" size={28} color="#fff" />
+                                <Ionicons name="add" size={28} color={theme.text} />
                             </TouchableOpacity>
                         </View>
                     </View>
 
                     {/* ── RESUMEN DE RUTA ─────────────────────────────── */}
                     {calculatingRoute ? (
-                        <ActivityIndicator color="#1a73e8" style={{ marginVertical: 20 }} />
+                        <ActivityIndicator color={theme.navActive} style={{ marginVertical: 20 }} />
                     ) : routeInfo && (
-                        <View style={styles.summaryCard}>
+                        <View style={[styles.summaryCard, { backgroundColor: theme.surfaceVariant }]}>
                             <View style={styles.summaryRow}>
                                 <View style={styles.summaryItem}>
-                                    <Text style={styles.summaryLabel}>Distancia</Text>
-                                    <Text style={styles.summaryValue}>{routeInfo.distance_km} km</Text>
+                                    <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Distancia</Text>
+                                    <Text style={[styles.summaryValue, { color: theme.text }]}>{routeInfo.distance_km} km</Text>
                                 </View>
                                 <View style={styles.summaryDivider} />
                                 <View style={styles.summaryItem}>
-                                    <Text style={styles.summaryLabel}>Duración</Text>
-                                    <Text style={styles.summaryValue}>{routeInfo.duration_minutes} min</Text>
+                                    <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Duración</Text>
+                                    <Text style={[styles.summaryValue, { color: theme.text }]}>{routeInfo.duration_minutes} min</Text>
                                 </View>
                                 <View style={styles.summaryDivider} />
                                 <View style={styles.summaryItem}>
-                                    <Text style={styles.summaryLabel}>Precio Sug.</Text>
+                                    <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Precio Sug.</Text>
                                     <Text style={[styles.summaryValue, { color: '#25C460' }]}>₡{calculatePrice()}</Text>
                                 </View>
                             </View>

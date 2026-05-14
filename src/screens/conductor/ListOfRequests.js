@@ -11,9 +11,10 @@ import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 import TripCompletedOverlay from '../../components/TripCompletedOverlay';
+import { darkMapStyle } from '../../utils/mapStyle';
 
 /* ─── Modal de inicio de viaje ───────────────────────────────────── */
-const StartRideModal = ({ visible, onClose, onConfirm, loading, confirmedCount }) => {
+const StartRideModal = ({ visible, onClose, onConfirm, loading, confirmedCount, theme }) => {
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -32,30 +33,30 @@ const StartRideModal = ({ visible, onClose, onConfirm, loading, confirmedCount }
     return (
         <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
             <View style={modalStyles.overlay}>
-                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }] }]}>
+                <Animated.View style={[modalStyles.card, { opacity: opacityAnim, transform: [{ scale: scaleAnim }], backgroundColor: theme.surface }]}>
                     
                     {/* Icono central animado/destacado */}
-                    <View style={modalStyles.iconCircle}>
-                        <Ionicons name="car-sport" size={44} color="#2563EB" />
+                    <View style={[modalStyles.iconCircle, { backgroundColor: theme.surfaceVariant }]}>
+                        <Ionicons name="car-sport" size={44} color={theme.navActive} />
                     </View>
 
                     {/* Título y subtítulo */}
-                    <Text style={modalStyles.title}>¿Iniciar viaje ahora?</Text>
-                    <Text style={modalStyles.subtitle}>
+                    <Text style={[modalStyles.title, { color: theme.text }]}>¿Iniciar viaje ahora?</Text>
+                    <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>
                         Al iniciar, notificaremos a los pasajeros que estás en camino.
                     </Text>
 
                     {/* Información del viaje */}
-                    <View style={modalStyles.infoBox}>
+                    <View style={[modalStyles.infoBox, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }]}>
                         <View style={modalStyles.infoRow}>
                             <Ionicons name="checkmark-circle" size={18} color="#10B981" />
-                            <Text style={modalStyles.infoText}>
+                            <Text style={[modalStyles.infoText, { color: theme.text }]}>
                                 {confirmedCount} pasajeros confirmados
                             </Text>
                         </View>
                         <View style={modalStyles.infoRow}>
-                            <Ionicons name="map-outline" size={18} color="#6B7280" />
-                            <Text style={modalStyles.infoText}>La ruta se mostrará en el mapa</Text>
+                            <Ionicons name="map-outline" size={18} color={theme.textSecondary} />
+                            <Text style={[modalStyles.infoText, { color: theme.text }]}>La ruta se mostrará en el mapa</Text>
                         </View>
                     </View>
 
@@ -80,7 +81,7 @@ const StartRideModal = ({ visible, onClose, onConfirm, loading, confirmedCount }
                             )}
                         </TouchableOpacity>
                         <TouchableOpacity style={modalStyles.cancelBtn} onPress={onClose} disabled={loading}>
-                            <Text style={modalStyles.cancelBtnText}>Aún no, volver</Text>
+                            <Text style={[modalStyles.cancelBtnText, { color: theme.textSecondary }]}>Aún no, volver</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -318,13 +319,7 @@ const PassengerDetailModal = ({ visible, onClose, booking, rideData, theme }) =>
 
     const hasCoords = passengerOriginCoords?.lat && passengerDestCoords?.lat;
 
-    const darkMapStyle = [
-        { "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] },
-        { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] },
-        { "elementType": "labels.text.stroke", "stylers": [{ "color": "#242f3e" }] },
-        { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#38413e" }] },
-        { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#17263c" }] }
-    ];
+
 
     const handleMapReady = () => {
         if (hasCoords && mapRef.current) {
@@ -943,6 +938,7 @@ const ListOfRequests = ({ route, navigation }) => {
                 onConfirm={handleStartRide}
                 loading={startRideLoading}
                 confirmedCount={confirmedCount}
+                theme={theme}
             />
 
             <WithdrawalModal

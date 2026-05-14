@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../services/api';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
 import MapView, { Marker, Polyline } from 'react-native-maps';
+import { darkMapStyle } from '../../utils/mapStyle';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBjX1C4jk1I2E5MB2FnABjTZC0uXt0ullA';
 
@@ -355,10 +356,10 @@ const TripInProgress = ({ route, navigation }) => {
     /* ── Loading ── */
     if (loading && !bookingData) {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: '#F7F9FB', justifyContent: 'center', alignItems: 'center' }]}>
-                <StatusBar barStyle="dark-content" backgroundColor="#F7F9FB" />
-                <ActivityIndicator size="large" color="#005BBF" />
-                <Text style={{ marginTop: 10, color: '#727785', fontFamily: 'Poppins-Regular' }}>Cargando información del viaje...</Text>
+            <SafeAreaView style={[styles.container, { backgroundColor: theme.bg, justifyContent: 'center', alignItems: 'center' }]}>
+                <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
+                <ActivityIndicator size="large" color={theme.navActive} />
+                <Text style={{ marginTop: 10, color: theme.textSecondary, fontFamily: 'Poppins-Regular' }}>Cargando información del viaje...</Text>
             </SafeAreaView>
         );
     }
@@ -366,14 +367,14 @@ const TripInProgress = ({ route, navigation }) => {
     /* ── Sin viaje activo ── */
     if (noActiveTrip || !bookingData || !bookingData.ride_id) {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: '#F7F9FB' }]}>
-                <StatusBar barStyle="dark-content" backgroundColor="#F7F9FB" />
+            <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+                <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-                    <Ionicons name="car-sport-outline" size={80} color="#727785" style={{ opacity: 0.4, marginBottom: 20 }} />
-                    <Text style={{ fontSize: 22, fontFamily: 'Poppins-Bold', color: '#191C1E', textAlign: 'center', marginBottom: 10 }}>
+                    <Ionicons name="car-sport-outline" size={80} color={theme.textSecondary} style={{ opacity: 0.4, marginBottom: 20 }} />
+                    <Text style={{ fontSize: 22, fontFamily: 'Poppins-Bold', color: theme.text, textAlign: 'center', marginBottom: 10 }}>
                         No tienes ningún viaje activo
                     </Text>
-                    <Text style={{ fontSize: 15, fontFamily: 'Poppins-Regular', color: '#727785', textAlign: 'center', marginBottom: 40, paddingHorizontal: 20 }}>
+                    <Text style={{ fontSize: 15, fontFamily: 'Poppins-Regular', color: theme.textSecondary, textAlign: 'center', marginBottom: 40, paddingHorizontal: 20 }}>
                         Actualmente no estás a bordo de ningún viaje ni esperando a ser recogido.
                     </Text>
                     <TouchableOpacity
@@ -407,14 +408,14 @@ const TripInProgress = ({ route, navigation }) => {
     const durationMin = ride_id?.duration_minutes;
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+            <StatusBar barStyle={theme.statusBar} backgroundColor="transparent" translucent />
 
             {/* ── HEADER ───────────────────────────────────────────── */}
-            <View style={[styles.header, { paddingTop: insets.top > 0 ? insets.top + 4 : 28 }]}>
+            <View style={[styles.header, { paddingTop: insets.top > 0 ? insets.top + 4 : 28, backgroundColor: theme.bg }]}>
                 <View style={styles.headerLeft}>
-                    <Ionicons name="location" size={22} color="#1A73E8" />
-                    <Text style={styles.headerTitle}>Viaje en Curso</Text>
+                    <Ionicons name="location" size={22} color={theme.navActive} />
+                    <Text style={[styles.headerTitle, { color: theme.text }]}>Viaje en Curso</Text>
                 </View>
                 <TouchableOpacity
                     style={styles.avatarWrapper}
@@ -431,8 +432,8 @@ const TripInProgress = ({ route, navigation }) => {
             >
                 {/* ── DESTINO ─────────────────────────────────────── */}
                 <View style={styles.destinationSection}>
-                    <Text style={styles.destinationLabel}>Destino actual</Text>
-                    <Text style={styles.destinationName} numberOfLines={1}>
+                    <Text style={[styles.destinationLabel, { color: theme.navActive }]}>Destino actual</Text>
+                    <Text style={[styles.destinationName, { color: theme.text }]} numberOfLines={1}>
                         {ride_id?.destination?.name || 'Sin destino'}
                     </Text>
                 </View>
@@ -442,6 +443,7 @@ const TripInProgress = ({ route, navigation }) => {
                     {hasCoords ? (
                         <MapView
                             ref={mapRef}
+                            customMapStyle={theme.dark ? darkMapStyle : []}
                             style={StyleSheet.absoluteFill}
                             initialRegion={{
                                 latitude: (Number(originCoords.lat) + Number(destCoords.lat)) / 2,
@@ -565,16 +567,16 @@ const TripInProgress = ({ route, navigation }) => {
                 </View>
 
                 {/* ── TARJETA CONDUCTOR ──────────────────────────── */}
-                <View style={styles.infoCard}>
+                <View style={[styles.infoCard, { backgroundColor: theme.surface }]}>
                     <View style={styles.driverRow}>
                         <DriverAvatar profileImage={driver?.profileImage} name={driver?.name} size={52} />
                         <View style={styles.driverInfo}>
-                            <Text style={styles.driverName} numberOfLines={1}>
+                            <Text style={[styles.driverName, { color: theme.text }]} numberOfLines={1}>
                                 {driver?.name || 'Tu Conductor'}
                             </Text>
                             <View style={styles.driverRatingRow}>
                                 <Ionicons name="star" size={14} color="#F59E0B" />
-                                <Text style={styles.driverRatingText}>
+                                <Text style={[styles.driverRatingText, { color: theme.textSecondary }]}>
                                     {driver?.rating || '5.0'}
                                     {driver?.total_rides ? ` (${driver.total_rides} viajes)` : ''}
                                 </Text>
@@ -592,24 +594,24 @@ const TripInProgress = ({ route, navigation }) => {
                 </View>
 
                 {/* ── TARJETA RUTA ────────────────────────────────── */}
-                <View style={styles.infoCard}>
+                <View style={[styles.infoCard, { backgroundColor: theme.surface }]}>
                     <View style={styles.routeRow}>
                         <View style={styles.routeIconCol}>
-                            <View style={styles.routeDotOrigin} />
+                            <View style={[styles.routeDotOrigin, { backgroundColor: theme.navActive }]} />
                             <View style={styles.routeLine} />
-                            <View style={styles.routeDotDest} />
+                            <View style={[styles.routeDotDest, { backgroundColor: theme.text }]} />
                         </View>
                         <View style={styles.routeTextCol}>
                             <View style={styles.routeItem}>
-                                <Text style={styles.routeItemLabel}>RECOGIDA</Text>
-                                <Text style={styles.routeItemValue} numberOfLines={2}>
+                                <Text style={[styles.routeItemLabel, { color: theme.textSecondary }]}>RECOGIDA</Text>
+                                <Text style={[styles.routeItemValue, { color: theme.text }]} numberOfLines={2}>
                                     {ride_id?.origin?.name || '---'}
                                 </Text>
                             </View>
-                            <View style={styles.routeItemDivider} />
+                            <View style={[styles.routeItemDivider, { backgroundColor: theme.surfaceVariant }]} />
                             <View style={styles.routeItem}>
-                                <Text style={styles.routeItemLabel}>DESTINO</Text>
-                                <Text style={styles.routeItemValue} numberOfLines={2}>
+                                <Text style={[styles.routeItemLabel, { color: theme.textSecondary }]}>DESTINO</Text>
+                                <Text style={[styles.routeItemValue, { color: theme.text }]} numberOfLines={2}>
                                     {ride_id?.destination?.name || '---'}
                                 </Text>
                             </View>

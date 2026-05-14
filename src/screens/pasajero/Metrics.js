@@ -148,7 +148,13 @@ const Metrics = ({ navigation }) => {
                     <Ionicons name="chevron-back" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={[styles.innerTitle, { color: theme.text }]}>Estadísticas</Text>
-                <SettingsGearButton navigation={navigation} color={theme.text} style={styles.gearBtn} />
+                <SettingsGearButton
+                    navigation={navigation}
+                    color={theme.text}
+                    style={styles.gearBtn}
+                    profileScreen="PasajeroProfileScreen"
+                    settingsScreen="SettingPasajero"
+                />
             </View>
 
             {loading ? (

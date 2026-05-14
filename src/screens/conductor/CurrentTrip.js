@@ -5,6 +5,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
 import MapView, { Marker, Polyline } from 'react-native-maps';
+import { darkMapStyle } from '../../utils/mapStyle';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBjX1C4jk1I2E5MB2FnABjTZC0uXt0ullA';
 
@@ -295,17 +296,17 @@ const TripInProgressDriver = ({ route, navigation }) => {
         : null;
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#fff" translucent />
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+            <StatusBar barStyle={theme.statusBar} backgroundColor="transparent" translucent />
 
             {/* ── HEADER ── */}
-            <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : 44 }]}>
+            <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : 44, backgroundColor: theme.bg }]}>
                 <TouchableOpacity style={styles.headerBackBtn} onPress={() => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })}>
-                    <Ionicons name="chevron-back" size={26} color="#191C1E" />
+                    <Ionicons name="chevron-back" size={26} color={theme.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Viaje en curso</Text>
+                <Text style={[styles.headerTitle, { color: theme.text }]}>Viaje en curso</Text>
                 <TouchableOpacity style={styles.headerMenuBtn}>
-                    <Ionicons name="ellipsis-vertical" size={20} color="#191C1E" />
+                    <Ionicons name="ellipsis-vertical" size={20} color={theme.text} />
                 </TouchableOpacity>
             </View>
 
@@ -320,6 +321,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
                     {hasCoords ? (
                         <MapView
                             ref={mapRef}
+                            customMapStyle={theme.dark ? darkMapStyle : []}
                             style={StyleSheet.absoluteFill}
                             initialRegion={{
                                 latitude: (Number(originCoords.lat) + Number(destCoords.lat)) / 2,
@@ -380,16 +382,16 @@ const TripInProgressDriver = ({ route, navigation }) => {
                     )}
 
                     {/* Chip de tiempo y distancia sobre el mapa */}
-                    <View style={styles.mapChip}>
-                        <Ionicons name="navigate" size={14} color="#1A73E8" />
-                        <Text style={styles.mapChipText}>
+                    <View style={[styles.mapChip, { backgroundColor: theme.surface }]}>
+                        <Ionicons name="navigate" size={14} color={theme.navActive} />
+                        <Text style={[styles.mapChipText, { color: theme.text }]}>
                             {ride?.duration_minutes ? `${ride.duration_minutes} min` : '--'} • {ride?.distance_km ? `${Number(ride.distance_km).toFixed(1)} km` : '--'}
                         </Text>
                     </View>
                 </View>
 
                 {/* ── TARJETA PASAJERO ── */}
-                <View style={styles.passengerCard}>
+                <View style={[styles.passengerCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                     <View style={styles.passengerInfo}>
                         {passenger?.profileImage ? (
                             <Image source={{ uri: passenger.profileImage }} style={styles.passengerAvatar} onError={() => {}} />
@@ -401,12 +403,12 @@ const TripInProgressDriver = ({ route, navigation }) => {
                             </View>
                         )}
                         <View style={styles.passengerDetails}>
-                            <Text style={styles.passengerName} numberOfLines={2}>
+                            <Text style={[styles.passengerName, { color: theme.text }]} numberOfLines={2}>
                                 {passenger?.name || 'Pasajero'}
                             </Text>
                             <View style={styles.passengerRatingRow}>
                                 <Ionicons name="star" size={13} color="#F59E0B" />
-                                <Text style={styles.passengerRating}>{passenger?.rating || '5.0'}</Text>
+                                <Text style={[styles.passengerRating, { color: theme.textSecondary }]}>{passenger?.rating || '5.0'}</Text>
                             </View>
                         </View>
                         <View style={styles.passengerActions}>
@@ -431,25 +433,25 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 </View>
 
                 {/* ── TARJETA RUTA ── */}
-                <View style={styles.routeCard}>
+                <View style={[styles.routeCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                     <View style={styles.routeRow}>
                         {/* Columna de iconos con línea conectora */}
                         <View style={styles.routeIconColumn}>
-                            <View style={[styles.routeDot, { backgroundColor: '#1A73E8' }]} />
-                            <View style={styles.routeLine} />
+                            <View style={[styles.routeDot, { backgroundColor: theme.navActive }]} />
+                            <View style={[styles.routeLine, { backgroundColor: theme.border }]} />
                             <View style={[styles.routeDot, styles.routeDotSquare, { backgroundColor: '#EF4444' }]} />
                         </View>
                         {/* Columna de textos */}
                         <View style={styles.routeTextsColumn}>
                             <View style={styles.routeTextBlock}>
                                 <Text style={styles.routeLabel}>PUNTO DE PARTIDA</Text>
-                                <Text style={styles.routeAddress} numberOfLines={1}>
+                                <Text style={[styles.routeAddress, { color: theme.text }]} numberOfLines={1}>
                                     {ride?.origin?.name || 'Origen no disponible'}
                                 </Text>
                             </View>
                             <View style={styles.routeTextBlock}>
                                 <Text style={styles.routeLabel}>DESTINO</Text>
-                                <Text style={styles.routeAddress} numberOfLines={1}>
+                                <Text style={[styles.routeAddress, { color: theme.text }]} numberOfLines={1}>
                                     {ride?.destination?.name || 'Destino no disponible'}
                                 </Text>
                             </View>
@@ -459,7 +461,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
             </ScrollView>
 
             {/* ── BOTÓN FINALIZAR ── */}
-            <View style={[styles.bottomBtnContainer, { paddingBottom: (insets.bottom > 0 ? insets.bottom : 20) + 12 }]}>
+            <View style={[styles.bottomBtnContainer, { paddingBottom: (insets.bottom > 0 ? insets.bottom : 20) + 12, backgroundColor: theme.bg }]}>
                 <TouchableOpacity style={styles.finalizeBtn} onPress={handleFinalizeTrip} activeOpacity={0.85}>
                     <MaterialCommunityIcons name="logout" size={18} color="#fff" style={{ marginRight: 8 }} />
                     <Text style={styles.finalizeBtnText}>Finalizar viaje</Text>

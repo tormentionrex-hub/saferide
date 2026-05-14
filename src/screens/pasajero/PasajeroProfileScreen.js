@@ -292,8 +292,7 @@ const PasajeroProfileScreen = ({ navigation }) => {
                     await AsyncStorage.setItem('userEmail',   server.email);
                     await AsyncStorage.setItem('userPhone',   server.phone);
                     await AsyncStorage.setItem('userCompany', server.company);
-                    if (server.profileImage && server.profileImage.startsWith('http'))
-                        await AsyncStorage.setItem('userPhoto', server.profileImage);
+                    await AsyncStorage.setItem('userPhoto', server.profileImage || '');
                 }
             } catch (e) { console.log('API sync error:', e); }
         } catch (e) { console.log('Load error:', e); }

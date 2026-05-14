@@ -45,6 +45,7 @@ import CurrentTrip from './src/screens/conductor/CurrentTrip';
 import RatePassenger from './src/screens/conductor/RatePassenger';
 import RateDriver from './src/screens/pasajero/RateDriver';
 import BuscarViaje from './src/screens/pasajero/BuscarViaje';
+import SettingPasajero from './src/screens/pasajero/SettingPasajero';
 import PaymentVerification from './src/screens/conductor/PaymentVerification';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -298,6 +299,11 @@ export default function App() {
             <Stack.Screen
               name="BuscarViaje"
               component={BuscarViaje}
+              options={{ headerShown: false, animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="SettingPasajero"
+              component={SettingPasajero}
               options={{ headerShown: false, animation: 'slide_from_right' }}
             />
             <Stack.Screen name="ForgotPasswordEmail" component={ForgotPasswordEmail} options={{ animation: 'slide_from_right' }} />

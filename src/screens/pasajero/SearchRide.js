@@ -92,7 +92,7 @@ const SearchRide = ({ navigation }) => {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: '#F1F5F9' }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             
             {/* HEADER CUSTOM */}
@@ -133,7 +133,7 @@ const SearchRide = ({ navigation }) => {
 
             {/* CONTENIDO SCROLLABLE O LOADER */}
             {isChecking ? (
-                <View style={[styles.content, { backgroundColor: '#F1F5F9', flex: 1 }]}>
+                <View style={[styles.content, { backgroundColor: theme.bg, flex: 1 }]}>
                     <ActivityIndicator size="large" color={theme.navActive} />
                     <Text style={{ marginTop: 15, color: theme.textSecondary }}>Cargando información...</Text>
                 </View>
@@ -141,7 +141,7 @@ const SearchRide = ({ navigation }) => {
                 <ScrollView 
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
-                    style={{ backgroundColor: '#F1F5F9' }}
+                    style={{ backgroundColor: theme.bg }}
                 >
                     <View style={[styles.content]}>
                         <Text style={[styles.mainTitle, { color: theme.text }]}>
@@ -152,8 +152,8 @@ const SearchRide = ({ navigation }) => {
                         Por favor busca un viaje para comenzar
                     </Text>
 
-                    <View style={[styles.iconContainer, { backgroundColor: '#E2E8F0' }]}>
-                        <View style={[styles.innerCircle, { backgroundColor: '#fff', elevation: 2 }]}>
+                    <View style={[styles.iconContainer, { backgroundColor: theme.surfaceVariant }]}>
+                        <View style={[styles.innerCircle, { backgroundColor: theme.surface, elevation: 2 }]}>
                             <Ionicons name="hourglass-outline" size={60} color={theme.navActive} />
                         </View>
                     </View>

@@ -117,35 +117,7 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                     }
                 };
 
-                // ── Tab Activo (Elevado) ──────────────────────────────────────
-                if (isActive) {
-                    return (
-                        <TouchableOpacity
-                            key={item.label}
-                            style={styles.centerWrapper}
-                            activeOpacity={0.85}
-                            onPress={onPress}
-                        >
-                            <View style={[
-                                styles.centerButton,
-                                { backgroundColor: activeColor },
-                                styles.centerButtonActive,
-                            ]}>
-                                <Ionicons name={item.activeIcon} size={28} color="#fff" />
-                            </View>
-                            <Text
-                                style={[styles.centerLabel, { color: activeColor }]}
-                                numberOfLines={1}
-                                adjustsFontSizeToFit
-                                allowFontScaling={false}
-                            >
-                                {item.label}
-                            </Text>
-                        </TouchableOpacity>
-                    );
-                }
-
-                // ── Tab Inactivo (Plano) ──────────────────────────────────────
+                // ── Renderizado del Tab (Activo e Inactivo) ───────────────────
                 return (
                     <TouchableOpacity
                         key={item.label}
@@ -154,14 +126,15 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
                         onPress={onPress}
                     >
                         <Ionicons
-                            name={item.inactiveIcon}
-                            size={24}
-                            color={inactiveColor}
+                            name={isActive ? item.activeIcon : item.inactiveIcon}
+                            size={26}
+                            color={color}
                         />
                         <Text
                             style={[
                                 styles.navText,
-                                { color: inactiveColor },
+                                isActive && styles.navTextActive,
+                                { color: color },
                             ]}
                             numberOfLines={1}
                             adjustsFontSizeToFit

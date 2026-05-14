@@ -12,21 +12,16 @@ import { useCustomAlert } from '../../context/CustomAlertContext';
 import { getCurrentLocation, reverseGeocode } from '../../services/locationService';
 import api from '../../services/api';
 import LocationPicker from '../../components/LocationPicker';
+import { useDriverTheme } from '../../context/DriverThemeContext';
+import { darkMapStyle } from '../../utils/mapStyle';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
 
 const { width } = Dimensions.get('window');
 const ACCENT = '#2563EB';
 const RECENT_SEARCHES_KEY = 'buscarViaje_recentSearches';
 
-const darkMapStyle = [
-    { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
-    { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
-    { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
-    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#38413e' }] },
-    { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#17263c' }] },
-];
-
 const BuscarViaje = ({ navigation }) => {
+    const { theme } = useDriverTheme();
     const { showAlert, hideAlert } = useCustomAlert();
     const alertTimerRef = useRef(null);
     const insets = useSafeAreaInsets();
@@ -322,6 +317,7 @@ const BuscarViaje = ({ navigation }) => {
                         style={styles.map}
                         provider={PROVIDER_GOOGLE}
                         region={region}
+                        customMapStyle={theme.dark ? darkMapStyle : []}
                         showsUserLocation={false}
                         showsMyLocationButton={false}
                         onPress={handleMapPress}

@@ -12,10 +12,12 @@ import {
     Animated,
     Modal,
     Alert,
+    Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import api from '../../services/api';
 
 // Obtenemos dimensiones de la pantalla para garantizar responsividad
 const { height, width } = Dimensions.get('window');
@@ -27,6 +29,7 @@ const DashboardPasajero = ({ navigation, route }) => {
     // Nombre del usuario: primero intenta route.params (viene del login directo),
     // si está vacío lo lee de AsyncStorage (guardado al hacer login en SignInScreen).
     const [userName, setUserName] = useState(route?.params?.userName || '');
+    const [userPhoto, setUserPhoto] = useState(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isLogoutAlertVisible, setIsLogoutAlertVisible] = useState(false);
 
@@ -35,9 +38,33 @@ const DashboardPasajero = ({ navigation, route }) => {
 
     useFocusEffect(
         useCallback(() => {
-            AsyncStorage.getItem('userName').then((name) => {
-                if (name) setUserName(name);
-            });
+            const loadData = async () => {
+                try {
+                    const meRes = await api.get('/auth/me');
+                    if (meRes.data.success) {
+                        const user = meRes.data.data;
+                        if (user.name) {
+                            setUserName(user.name.split(' ')[0]);
+                            await AsyncStorage.setItem('userName', user.name);
+                        }
+                        if (user.profileImage) {
+                            setUserPhoto(user.profileImage);
+                            await AsyncStorage.setItem('userPhoto', user.profileImage);
+                        } else {
+                            setUserPhoto(null);
+                        }
+                    }
+                } catch (error) {
+                    const name = await AsyncStorage.getItem('userName');
+                    if (name) setUserName(name.split(' ')[0]);
+
+                    const photo = await AsyncStorage.getItem('userPhoto');
+                    if (photo && (photo.startsWith('http') || photo.startsWith('file'))) {
+                        setUserPhoto(photo);
+                    }
+                }
+            };
+            loadData();
         }, [])
     );
 
@@ -94,13 +121,17 @@ const DashboardPasajero = ({ navigation, route }) => {
                 >Pasajero</Text>
                 
                 <TouchableOpacity 
-                    style={styles.settingsButton}
+                    style={styles.profileButton}
                     onPress={toggleModal}
                     activeOpacity={0.7}
                 >
-                    <Animated.View style={{ transform: [{ rotate: spin }] }}>
-                        <Ionicons name="settings-sharp" size={28} color={theme.text} />
-                    </Animated.View>
+                    {userPhoto ? (
+                        <Image source={{ uri: userPhoto }} style={styles.profileImg} />
+                    ) : (
+                        <Animated.View style={{ transform: [{ rotate: spin }] }}>
+                            <Ionicons name="settings-sharp" size={28} color={theme.text} />
+                        </Animated.View>
+                    )}
                 </TouchableOpacity>
             </View>
 
@@ -263,6 +294,19 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontFamily: 'Poppins-Bold',
         fontSize: 22,
+    },
+    profileButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+    },
+    profileImg: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
     },
     settingsButton: {
         padding: 5,

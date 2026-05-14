@@ -177,30 +177,17 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                     const isActive = currentTab === item.tab;
                     const color = item.locked ? theme.navInactive : (isActive ? theme.navActive : theme.navInactive);
 
-                    if (isActive) {
-                        return (
-                            <TouchableOpacity key={item.label} style={styles.centerWrapper} activeOpacity={0.85} onPress={item.onPress}>
-                                <View style={[styles.centerButton, { backgroundColor: theme.navActive }]}>
-                                    <Ionicons name={item.activeIcon} size={26} color="#fff" />
-                                </View>
-                                <Text style={[styles.centerLabel, { color: theme.navActive }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>
-                                    {item.label}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    }
-
                     return (
                         <TouchableOpacity key={item.label} style={styles.navItem} activeOpacity={0.6} onPress={item.onPress}>
                             <View>
-                                <Ionicons name={item.inactiveIcon} size={24} color={color} />
+                                <Ionicons name={isActive ? item.activeIcon : item.inactiveIcon} size={26} color={color} />
                                 {item.locked && !loadingVehicle && (
                                     <View style={styles.smallLock}>
                                         <Ionicons name="lock-closed" size={10} color="#FFF" />
                                     </View>
                                 )}
                             </View>
-                            <Text style={[styles.navText, { color }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>
+                            <Text style={[styles.navText, isActive && { fontFamily: 'Poppins-Bold' }, { color }]} numberOfLines={1} adjustsFontSizeToFit allowFontScaling={false}>
                                 {item.label}
                             </Text>
                         </TouchableOpacity>

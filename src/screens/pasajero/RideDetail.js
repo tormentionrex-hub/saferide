@@ -8,6 +8,8 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
+import { darkMapStyle } from '../../utils/mapStyle';
+import { Image } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -132,13 +134,6 @@ const RideDetail = ({ route, navigation }) => {
         }
     };
 
-    const darkMapStyle = [
-        { "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] },
-        { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] },
-        { "elementType": "labels.text.stroke", "stylers": [{ "color": "#242f3e" }] },
-        { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#38413e" }] },
-        { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#17263c" }] }
-    ];
 
     return (
         <View style={[styles.container, { backgroundColor: theme.bg }]}>
@@ -193,9 +188,20 @@ const RideDetail = ({ route, navigation }) => {
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
                     <View style={styles.headerRow}>
-                        <View>
-                            <Text style={[styles.driverLabel, { color: theme.textSecondary }]}>CONDUCTOR</Text>
-                            <Text style={[styles.driverName, { color: theme.text }]}>{ride.driver_id?.name || 'Desconocido'}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                            {ride.driver_id?.profileImage ? (
+                                <Image source={{ uri: ride.driver_id.profileImage }} style={styles.avatar} />
+                            ) : (
+                                <View style={[styles.avatar, { backgroundColor: theme.accent + '22' }]}>
+                                    <Text style={[styles.avatarText, { color: theme.accent }]}>
+                                        {(ride.driver_id?.name || 'D').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                    </Text>
+                                </View>
+                            )}
+                            <View>
+                                <Text style={[styles.driverLabel, { color: theme.textSecondary }]}>CONDUCTOR</Text>
+                                <Text style={[styles.driverName, { color: theme.text }]}>{ride.driver_id?.name || 'Desconocido'}</Text>
+                            </View>
                         </View>
                         <View style={styles.priceTag}>
                             <Text style={styles.priceValue}>₡{ride.price}</Text>
@@ -311,6 +317,8 @@ const styles = StyleSheet.create({
     },
     dragBar: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 15 },
     headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+    avatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+    avatarText: { fontSize: 16, fontWeight: 'bold' },
     driverLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1, marginBottom: 2 },
     driverName: { fontSize: 18, fontWeight: 'bold' },
     priceTag: { backgroundColor: '#25C46020', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },

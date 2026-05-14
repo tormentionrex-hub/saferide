@@ -461,17 +461,17 @@ const WaitingForTheStart = ({ route, navigation }) => {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+            <StatusBar barStyle={theme.statusBar} backgroundColor="transparent" translucent />
 
             {/* ── HEADER ── */}
-            <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : 44 }]}>
+            <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : 44, backgroundColor: theme.bg }]}>
                 <TouchableOpacity style={styles.headerBackBtn} onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}>
-                    <Ionicons name="chevron-back" size={26} color="#191C1E" />
+                    <Ionicons name="chevron-back" size={26} color={theme.text} />
                 </TouchableOpacity>
                 <View style={styles.headerCenter}>
-                    <Ionicons name="time" size={18} color="#1A73E8" />
-                    <Text style={styles.headerTitle}>Viaje Confirmado</Text>
+                    <Ionicons name="time" size={18} color={theme.navActive} />
+                    <Text style={[styles.headerTitle, { color: theme.text }]}>Viaje Confirmado</Text>
                 </View>
                 <View style={{ width: 40 }} />
             </View>
@@ -480,22 +480,22 @@ const WaitingForTheStart = ({ route, navigation }) => {
 
                 {/* ── DESTINO ── */}
                 <View style={styles.destinationSection}>
-                    <Text style={styles.destinationLabel}>Destino actual</Text>
-                    <Text style={styles.destinationName} numberOfLines={1}>
+                    <Text style={[styles.destinationLabel, { color: theme.navActive }]}>Destino actual</Text>
+                    <Text style={[styles.destinationName, { color: theme.text }]} numberOfLines={1}>
                         {rideData?.destination?.name || 'Cargando...'}
                     </Text>
                 </View>
 
                 {/* ── ESTADO DE ESPERA ── */}
-                <View style={styles.waitingCard}>
+                <View style={[styles.waitingCard, { backgroundColor: theme.surface }]}>
                     <View style={styles.waitingIconCircle}>
                         <Ionicons name="hourglass-outline" size={32} color="#005BBF" />
                     </View>
                     <View style={{ flex: 1 }}>
-                        <Text style={styles.waitingTitle}>Esperando al conductor</Text>
-                        <Text style={styles.waitingMeta}>El conductor iniciará el viaje en breve</Text>
+                        <Text style={[styles.waitingTitle, { color: theme.text }]}>Esperando al conductor</Text>
+                        <Text style={[styles.waitingMeta, { color: theme.textSecondary }]}>El conductor iniciará el viaje en breve</Text>
                     </View>
-                    {loading && <ActivityIndicator size="small" color="#1A73E8" />}
+                    {loading && <ActivityIndicator size="small" color={theme.navActive} />}
                 </View>
 
                 {!loading && (
@@ -503,7 +503,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                         {/* ── BENTO GRID: Conductor + Horario ── */}
                         <View style={styles.bentoGrid}>
                             {/* Conductor */}
-                            <View style={styles.bentoCard}>
+                            <View style={[styles.bentoCard, { backgroundColor: theme.surface }]}>
                                 {rideData?.driver_id?.profileImage ? (
                                     <Image source={{ uri: rideData.driver_id.profileImage }} style={styles.bentoAvatar} />
                                 ) : (
@@ -515,12 +515,12 @@ const WaitingForTheStart = ({ route, navigation }) => {
                                         </Text>
                                     </View>
                                 )}
-                                <Text style={styles.bentoValue} numberOfLines={1}>
+                                <Text style={[styles.bentoValue, { color: theme.text }]} numberOfLines={1}>
                                     {rideData?.driver_id?.name?.split(' ')[0] || 'Conductor'}
                                 </Text>
                                 <View style={styles.bentoRatingRow}>
                                     <Ionicons name="star" size={12} color="#F59E0B" />
-                                    <Text style={styles.bentoRating}>{rideData?.driver_id?.rating || 'Nuevo'}</Text>
+                                    <Text style={[styles.bentoRating, { color: theme.textSecondary }]}>{rideData?.driver_id?.rating || 'Nuevo'}</Text>
                                 </View>
                                 {rideData?.driver_id?.phone && (
                                     <TouchableOpacity style={styles.bentoWhatsappBtn} onPress={() => handleWhatsApp(rideData.driver_id.phone)}>
@@ -532,56 +532,56 @@ const WaitingForTheStart = ({ route, navigation }) => {
                             </View>
 
                             {/* Horario */}
-                            <View style={styles.bentoCard}>
+                            <View style={[styles.bentoCard, { backgroundColor: theme.surface }]}>
                                 <View style={styles.bentoRow}>
-                                    <Ionicons name="time-outline" size={26} color="#1A73E8" />
-                                    <Text style={styles.bentoValue}>{formatTime(rideData?.hora)}</Text>
+                                    <Ionicons name="time-outline" size={26} color={theme.navActive} />
+                                    <Text style={[styles.bentoValue, { color: theme.text }]}>{formatTime(rideData?.hora)}</Text>
                                 </View>
-                                <Text style={styles.bentoMeta}>
+                                <Text style={[styles.bentoMeta, { color: theme.textSecondary }]}>
                                     Llegada: {calculateArrivalTime(rideData?.hora, rideData?.duration_minutes)}
                                 </Text>
                                 {rideData?.distance_km ? (
-                                    <Text style={styles.bentoMeta}>{Number(rideData.distance_km).toFixed(1)} km</Text>
+                                    <Text style={[styles.bentoMeta, { color: theme.textSecondary }]}>{Number(rideData.distance_km).toFixed(1)} km</Text>
                                 ) : null}
                                 <Text style={styles.bentoLabel}>HORARIO</Text>
                             </View>
                         </View>
 
                         {/* ── RUTA ── */}
-                        <View style={styles.routeCard}>
+                        <View style={[styles.routeCard, { backgroundColor: theme.surface }]}>
                             <Text style={styles.routeCardLabel}>RUTA DEL VIAJE</Text>
                             <View style={styles.routeRow}>
-                                <Ionicons name="location" size={20} color="#1A73E8" />
+                                <Ionicons name="location" size={20} color={theme.navActive} />
                                 <View style={{ flex: 1, marginLeft: 10 }}>
-                                    <Text style={styles.routeSubLabel}>Origen</Text>
-                                    <Text style={styles.routeValue} numberOfLines={1}>{rideData?.origin?.name || '---'}</Text>
+                                    <Text style={[styles.routeSubLabel, { color: theme.textSecondary }]}>Origen</Text>
+                                    <Text style={[styles.routeValue, { color: theme.text }]} numberOfLines={1}>{rideData?.origin?.name || '---'}</Text>
                                 </View>
                             </View>
-                            <View style={styles.routeDivider} />
+                            <View style={[styles.routeDivider, { backgroundColor: theme.divider }]} />
                             <View style={styles.routeRow}>
                                 <Ionicons name="flag" size={20} color="#EF4444" />
                                 <View style={{ flex: 1, marginLeft: 10 }}>
-                                    <Text style={styles.routeSubLabel}>Destino</Text>
-                                    <Text style={styles.routeValue} numberOfLines={1}>{rideData?.destination?.name || '---'}</Text>
+                                    <Text style={[styles.routeSubLabel, { color: theme.textSecondary }]}>Destino</Text>
+                                    <Text style={[styles.routeValue, { color: theme.text }]} numberOfLines={1}>{rideData?.destination?.name || '---'}</Text>
                                 </View>
                             </View>
                         </View>
 
                         {/* ── VEHÍCULO ── */}
-                        <View style={styles.routeCard}>
+                        <View style={[styles.routeCard, { backgroundColor: theme.surface }]}>
                             <Text style={styles.routeCardLabel}>VEHÍCULO</Text>
                             <View style={styles.vehicleRow}>
                                 <View style={styles.vehicleItem}>
-                                    <Text style={styles.routeSubLabel}>Matrícula</Text>
-                                    <Text style={styles.routeValue}>{vehicleData?.license_plate || vehicleData?.licensePlate || '---'}</Text>
+                                    <Text style={[styles.routeSubLabel, { color: theme.textSecondary }]}>Matrícula</Text>
+                                    <Text style={[styles.routeValue, { color: theme.text }]}>{vehicleData?.license_plate || vehicleData?.licensePlate || '---'}</Text>
                                 </View>
                                 <View style={styles.vehicleItem}>
-                                    <Text style={styles.routeSubLabel}>Color</Text>
-                                    <Text style={styles.routeValue}>{vehicleData?.color || '---'}</Text>
+                                    <Text style={[styles.routeSubLabel, { color: theme.textSecondary }]}>Color</Text>
+                                    <Text style={[styles.routeValue, { color: theme.text }]}>{vehicleData?.color || '---'}</Text>
                                 </View>
                                 <View style={styles.vehicleItem}>
-                                    <Text style={styles.routeSubLabel}>Modelo</Text>
-                                    <Text style={styles.routeValue} numberOfLines={1}>
+                                    <Text style={[styles.routeSubLabel, { color: theme.textSecondary }]}>Modelo</Text>
+                                    <Text style={[styles.routeValue, { color: theme.text }]} numberOfLines={1}>
                                         {vehicleData?.brand || vehicleData?.model
                                             ? `${vehicleData.brand || ''} ${vehicleData.model || ''}`.trim()
                                             : '---'}

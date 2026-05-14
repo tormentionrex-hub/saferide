@@ -10,7 +10,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../context/DriverThemeContext';
 
-const SettingsGearButton = ({ navigation, color, style }) => {
+const SettingsGearButton = ({
+    navigation,
+    color,
+    style,
+    profileScreen = 'ProfileConductor',
+    settingsScreen = 'AjustesConductor',
+}) => {
     const { theme } = useDriverTheme();
     const [modalVisible, setModalVisible] = useState(false);
 
@@ -89,7 +95,7 @@ const SettingsGearButton = ({ navigation, color, style }) => {
                             {/* Perfil */}
                             <TouchableOpacity
                                 style={[styles.optionCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }]}
-                                onPress={() => handleOption('ProfileConductor')}
+                                onPress={() => handleOption(profileScreen)}
                                 activeOpacity={0.8}
                             >
                                 <View style={[styles.iconCircle, { backgroundColor: theme.surface }]}>
@@ -102,7 +108,7 @@ const SettingsGearButton = ({ navigation, color, style }) => {
                             {/* Ajustes */}
                             <TouchableOpacity
                                 style={[styles.optionCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }]}
-                                onPress={() => handleOption('AjustesConductor')}
+                                onPress={() => handleOption(settingsScreen)}
                                 activeOpacity={0.8}
                             >
                                 <View style={[styles.iconCircle, { backgroundColor: theme.surface }]}>

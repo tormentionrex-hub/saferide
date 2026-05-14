@@ -213,7 +213,7 @@ export default function SignInScreen({ navigation }) {
                 await AsyncStorage.setItem('userId', userData._id || '');
                 await AsyncStorage.setItem('userEmail', userData.email || '');
                 await AsyncStorage.setItem('userPhone', userData.phone || '');
-                await AsyncStorage.setItem('userPhoto', userData.photo || '');
+                await AsyncStorage.setItem('userPhoto', userData.profileImage || '');
 
                 // Registrar push token en background (no bloquea el flujo de login)
                 registerForPushNotifications().catch(() => {});

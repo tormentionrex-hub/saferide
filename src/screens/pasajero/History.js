@@ -23,6 +23,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import { rideService } from '../../services/rideService';
 import api from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { darkMapStyle } from '../../utils/mapStyle';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DateTime } from 'luxon';
 import { Image } from 'expo-image';
@@ -112,6 +113,7 @@ const HistoryItem = memo(({ item, theme, calculateArrivalTime, handleContact }) 
                             pitchEnabled={false}
                             rotateEnabled={false}
                             cacheEnabled={true}
+                            customMapStyle={theme.dark ? darkMapStyle : []}
                         >
                             <Marker coordinate={{ latitude: originCoords.lat, longitude: originCoords.lng }}>
                                 <View style={[styles.markerIcon, { backgroundColor: theme.accent }]}>

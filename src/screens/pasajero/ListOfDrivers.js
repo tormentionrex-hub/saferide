@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
-    StatusBar, Platform, ActivityIndicator,
+    StatusBar, Platform, ActivityIndicator, Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -63,6 +63,8 @@ const DriverCard = ({ item, onPress, theme }) => {
         .slice(0, 2)
         .toUpperCase();
 
+    const profileImage = item.driver_id?.profileImage;
+
     return (
         <TouchableOpacity
             style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
@@ -71,9 +73,13 @@ const DriverCard = ({ item, onPress, theme }) => {
         >
             {/* Cabecera: avatar + nombre + rating */}
             <View style={styles.cardHeader}>
-                <View style={[styles.avatar, { backgroundColor: theme.accent + '22' }]}>
-                    <Text style={[styles.avatarText, { color: theme.accent }]}>{initials}</Text>
-                </View>
+                {profileImage ? (
+                    <Image source={{ uri: profileImage }} style={styles.avatar} />
+                ) : (
+                    <View style={[styles.avatar, { backgroundColor: theme.accent + '22' }]}>
+                        <Text style={[styles.avatarText, { color: theme.accent }]}>{initials}</Text>
+                    </View>
+                )}
                 <View style={{ flex: 1 }}>
                     <Text style={[styles.driverName, { color: theme.text }]} numberOfLines={1}>
                         {driverName}
