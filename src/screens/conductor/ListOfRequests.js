@@ -328,7 +328,7 @@ const PassengerDetailModal = ({ visible, onClose, booking, rideData, theme }) =>
                 { latitude: passengerDestCoords.lat, longitude: passengerDestCoords.lng },
             ];
             mapRef.current.fitToCoordinates(coords, {
-                edgePadding: { top: 60, right: 60, bottom: 60, left: 60 },
+                edgePadding: { top: 60, right: 60, bottom: SCREEN_H * 0.45, left: 60 },
                 animated: true,
             });
         }
@@ -486,7 +486,7 @@ const PassengerDetailModal = ({ visible, onClose, booking, rideData, theme }) =>
 const detailModalStyles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)' },
     container: { flex: 1 },
-    mapWrapper: { width: '100%', height: SCREEN_H * 0.42 },
+    mapWrapper: { width: '100%', flex: 1 },
     mapHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
     mapHeaderText: { fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
     map: { width: '100%', flex: 1 },
