@@ -62,8 +62,8 @@ const DriverCard = ({ item, onPress, theme }) => {
         .join('')
         .slice(0, 2)
         .toUpperCase();
-
     const profileImage = item.driver_id?.profileImage;
+    const defaultAvatar = 'https://res.cloudinary.com/do2ccwxm3/image/upload/v1/assets/default-avatar.png';
 
     return (
         <TouchableOpacity

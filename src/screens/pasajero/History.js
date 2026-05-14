@@ -146,11 +146,19 @@ const HistoryItem = memo(({ item, theme, calculateArrivalTime, handleContact }) 
 
             <View style={[styles.cardFooter, { borderTopColor: theme.border }]}>
                 <View style={styles.driverInfoMain}>
-                    <Image
-                        source={ride.driver_id?.profileImage ? { uri: ride.driver_id.profileImage } : 'https://res.cloudinary.com/do2ccwxm3/image/upload/v1/assets/default-avatar.png'}
-                        style={styles.avatarMini}
-                        contentFit="cover"
-                    />
+                    {ride.driver_id?.profileImage ? (
+                        <Image
+                            source={{ uri: ride.driver_id.profileImage }}
+                            style={styles.avatarMini}
+                            contentFit="cover"
+                        />
+                    ) : (
+                        <View style={[styles.avatarMini, { backgroundColor: theme.accent + '22', justifyContent: 'center', alignItems: 'center' }]}>
+                            <Text style={{ color: theme.accent, fontSize: 14, fontWeight: 'bold' }}>
+                                {(ride.driver_id?.name || '?').charAt(0).toUpperCase()}
+                            </Text>
+                        </View>
+                    )}
                     <View>
                         <Text style={[styles.driverNameText, { color: theme.text }]} numberOfLines={1}>
                             {ride.driver_id?.name || 'Conductor'}

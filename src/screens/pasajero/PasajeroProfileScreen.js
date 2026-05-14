@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
     View, Text, StyleSheet, StatusBar, TouchableOpacity, ScrollView,
     Image, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView,
-    Platform, PanResponder, Animated,
+    Platform, PanResponder, Animated, DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -396,6 +396,9 @@ const PasajeroProfileScreen = ({ navigation }) => {
             await AsyncStorage.setItem('userPhone',   editForm.phone);
             await AsyncStorage.setItem('userCompany', editForm.company);
             if (profileImageUrl?.startsWith('http')) await AsyncStorage.setItem('userPhoto', profileImageUrl);
+            
+            // Emitir evento para actualizar en tiempo real en otras pantallas
+            DeviceEventEmitter.emit('profileUpdated', profileImageUrl);
 
             closeModal();
             loadProfile();

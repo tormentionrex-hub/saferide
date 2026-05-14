@@ -13,6 +13,7 @@ import {
     Modal,
     Alert,
     Image,
+    DeviceEventEmitter,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -35,6 +36,13 @@ const DashboardPasajero = ({ navigation, route }) => {
 
     // Valor animado para la rotación de la tuerca
     const rotateAnim = useRef(new Animated.Value(0)).current;
+
+    React.useEffect(() => {
+        const subscription = DeviceEventEmitter.addListener('profileUpdated', (newPhoto) => {
+            if (newPhoto) setUserPhoto(newPhoto);
+        });
+        return () => subscription.remove();
+    }, []);
 
     useFocusEffect(
         useCallback(() => {
@@ -128,9 +136,11 @@ const DashboardPasajero = ({ navigation, route }) => {
                     {userPhoto ? (
                         <Image source={{ uri: userPhoto }} style={styles.profileImg} />
                     ) : (
-                        <Animated.View style={{ transform: [{ rotate: spin }] }}>
-                            <Ionicons name="settings-sharp" size={28} color={theme.text} />
-                        </Animated.View>
+                        <View style={[styles.profileImg, { backgroundColor: theme.accent + '22', justifyContent: 'center', alignItems: 'center' }]}>
+                            <Text style={{ color: theme.accent, fontSize: 20, fontFamily: 'Poppins-Bold' }}>
+                                {userName ? userName.charAt(0).toUpperCase() : '?'}
+                            </Text>
+                        </View>
                     )}
                 </TouchableOpacity>
             </View>
