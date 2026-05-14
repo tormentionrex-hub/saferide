@@ -570,7 +570,7 @@ const ListOfRequests = ({ route, navigation }) => {
                         if (b.status === 'pending') {
                             const lastUpdate = b.updatedAt || b.createdAt || b.timestamp;
                             if (lastUpdate && (now - new Date(lastUpdate).getTime() > 2 * 60 * 1000)) {
-                                try { await api.patch(`/bookings/${b._id}/status`, { status: 'deny' }); } catch(e){}
+                                try { await api.patch(`/bookings/${b._id}/status`, { status: 'deny', payment_status: 'waived', payment_type: 'normal' }); } catch(e){}
                                 continue;
                             }
                         }
@@ -614,7 +614,7 @@ const ListOfRequests = ({ route, navigation }) => {
                     if (b.status === 'pending') {
                         const lastUpdate = b.updatedAt || b.createdAt || b.timestamp;
                         if (lastUpdate && (now - new Date(lastUpdate).getTime() > 2 * 60 * 1000)) {
-                            try { await api.patch(`/bookings/${b._id}/status`, { status: 'deny' }); } catch(e){}
+                            try { await api.patch(`/bookings/${b._id}/status`, { status: 'deny', payment_status: 'waived', payment_type: 'normal' }); } catch(e){}
                             continue;
                         }
                     }
@@ -669,7 +669,15 @@ const ListOfRequests = ({ route, navigation }) => {
                 return;
             }
 
-            const res = await api.patch(`/bookings/${bookingId}/status`, { status: 'confirmed' });
+            // Determinar payment fields según offered_amount
+            const bookingData = checkRes.data.data;
+            const hasOffer = (bookingData.offered_amount ?? 0) > 0;
+
+            const res = await api.patch(`/bookings/${bookingId}/status`, {
+                status: 'confirmed',
+                payment_status: hasOffer ? 'pending' : 'waived',
+                payment_type: hasOffer ? 'normal' : 'gifted',
+            });
             if (res.data.success) {
                 setSuccessModalVisible(true);
                 // Invalidar cache de viajes ya que cambiaron los asientos/estado
@@ -692,7 +700,11 @@ const ListOfRequests = ({ route, navigation }) => {
                 return;
             }
 
-            const res = await api.patch(`/bookings/${bookingId}/status`, { status: 'deny' });
+            const res = await api.patch(`/bookings/${bookingId}/status`, {
+                status: 'deny',
+                payment_status: 'waived',
+                payment_type: 'normal',
+            });
             if (res.data.success) {
                 setDenyModalVisible(true);
                 // Invalidar cache de viajes ya que cambiaron los asientos/estado
