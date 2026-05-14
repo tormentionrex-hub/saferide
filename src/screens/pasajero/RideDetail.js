@@ -198,7 +198,7 @@ const RideDetail = ({ route, navigation }) => {
                             <Text style={[styles.driverName, { color: theme.text }]}>{ride.driver_id?.name || 'Desconocido'}</Text>
                         </View>
                         <View style={styles.priceTag}>
-                            <Text style={styles.priceValue}>₡{ride.price}</Text>
+                            <Text style={styles.priceValue}>₡{ride.suggested_price}</Text>
                         </View>
                     </View>
 
