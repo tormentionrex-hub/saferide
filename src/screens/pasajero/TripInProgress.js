@@ -241,14 +241,12 @@ const TripInProgress = ({ route, navigation }) => {
                             });
                         } else {
                             showAlert(
-                                'Viaje Finalizado',
-                                'El viaje ha sido cancelado o rechazado.',
+                                'Viaje Cancelado',
+                                'El conductor ha cancelado el viaje.',
                                 'warning',
                                 'Aceptar',
                                 () => {
-                                    setResolvedBookingId(null);
-                                    setBookingData(null);
-                                    setNoActiveTrip(true);
+                                    navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' });
                                 }
                             );
                         }
