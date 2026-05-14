@@ -166,7 +166,7 @@ const PublishRide = ({ navigation }) => {
                 available_seats: asientos,
                 distance_km: routeInfo?.distance_km || 0,
                 duration_minutes: routeInfo?.duration_minutes || 0,
-                price: calculatePrice(),
+                suggested_price: calculatePrice(),
             };
 
             const response = await api.post('/rides', payload);

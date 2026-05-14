@@ -125,7 +125,7 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact }) => 
                 </View>
                 <View style={styles.priceContainer}>
                     <Text style={[styles.priceText, { color: theme.accent }]}>
-                        ₡{item.price?.toLocaleString()}
+                        ₡{item.suggested_price?.toLocaleString()}
                     </Text>
                 </View>
             </View>
