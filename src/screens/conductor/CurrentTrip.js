@@ -118,6 +118,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
     const [routeCoords, setRouteCoords] = useState(null);
     const [finishModalVisible, setFinishModalVisible] = useState(false);
     const [finishingTrip, setFinishingTrip] = useState(false);
+    const [cancellingTrip, setCancellingTrip] = useState(false);
     const routeFetched = useRef(false);
 
     // Cargamos tanto el ride como el primer booking confirmado del viaje
@@ -254,6 +255,61 @@ const TripInProgressDriver = ({ route, navigation }) => {
                             console.error('Error finalizing trip:', serverMsg, error.response?.status);
                             showAlert('Error al finalizar', serverMsg, 'error');
                         }
+            }
+        );
+    };
+
+    const handleCancelTrip = () => {
+        showAlert(
+            'Cancelar viaje',
+            '¿Estás seguro de cancelar el viaje?\nEsta acción notificará a todos los pasajeros.',
+            'warning',
+            'Cancelar',           // confirmText (left/dismiss button)
+            null,                 // onClose
+            'Confirmar',          // cancelText (actually the confirm action button)
+            async () => {
+                // onConfirm — user pressed "Confirmar"
+                if (cancellingTrip) return;
+                setCancellingTrip(true);
+                try {
+                    // A. Fetch all bookings for this ride
+                    const bookingsRes = await api.get(`/bookings/ride/${rideId}`);
+                    const allBookings = bookingsRes.data?.data || [];
+
+                    // Update each active booking to cancelled + waived (preserve payment_type)
+                    const activeBookings = allBookings.filter(b =>
+                        ['pending', 'confirmed'].includes(b.status)
+                    );
+
+                    for (const booking of activeBookings) {
+                        try {
+                            await api.patch(`/bookings/${booking._id}/status`, {
+                                status: 'cancelled',
+                                payment_status: 'waived',
+                            });
+                        } catch (bookingErr) {
+                            console.log(`Error cancelando booking ${booking._id}:`, bookingErr?.message);
+                        }
+                    }
+
+                    // B. Cancel the ride itself
+                    await api.patch(`/rides/${rideId}/cancel`);
+
+                    // Redirect driver to dashboard
+                    showAlert(
+                        'Viaje cancelado',
+                        'El viaje ha sido cancelado exitosamente y los pasajeros han sido notificados.',
+                        'success',
+                        'Ir al inicio',
+                        () => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })
+                    );
+                } catch (error) {
+                    const serverMsg = error.response?.data?.message || error.message || 'Error desconocido';
+                    console.error('Error cancelling trip:', serverMsg);
+                    showAlert('Error', `No se pudo cancelar el viaje: ${serverMsg}`, 'error');
+                } finally {
+                    setCancellingTrip(false);
+                }
             }
         );
     };
@@ -460,11 +516,26 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 </View>
             </ScrollView>
 
-            {/* ── BOTÓN FINALIZAR ── */}
+            {/* ── BOTONES FINALIZAR / CANCELAR ── */}
             <View style={[styles.bottomBtnContainer, { paddingBottom: (insets.bottom > 0 ? insets.bottom : 20) + 12, backgroundColor: theme.bg }]}>
                 <TouchableOpacity style={styles.finalizeBtn} onPress={handleFinalizeTrip} activeOpacity={0.85}>
                     <MaterialCommunityIcons name="logout" size={18} color="#fff" style={{ marginRight: 8 }} />
                     <Text style={styles.finalizeBtnText}>Finalizar viaje</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.cancelTripBtn, cancellingTrip && { opacity: 0.6 }]}
+                    onPress={handleCancelTrip}
+                    activeOpacity={0.85}
+                    disabled={cancellingTrip}
+                >
+                    {cancellingTrip ? (
+                        <ActivityIndicator size="small" color="#EF4444" />
+                    ) : (
+                        <>
+                            <Ionicons name="close-circle-outline" size={18} color="#EF4444" style={{ marginRight: 8 }} />
+                            <Text style={styles.cancelTripBtnText}>Cancelar viaje</Text>
+                        </>
+                    )}
                 </TouchableOpacity>
             </View>
 
@@ -561,6 +632,12 @@ const styles = StyleSheet.create({
         shadowColor: '#EF4444', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 10, elevation: 5,
     },
     finalizeBtnText: { fontSize: 16, fontFamily: 'Poppins-Bold', color: '#fff', letterSpacing: 0.3 },
+    cancelTripBtn: {
+        marginTop: 10, paddingVertical: 16, borderRadius: 28,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        borderWidth: 1.5, borderColor: '#EF4444', backgroundColor: 'transparent',
+    },
+    cancelTripBtnText: { fontSize: 16, fontFamily: 'Poppins-Bold', color: '#EF4444', letterSpacing: 0.3 },
 });
 
 const modalStyles = StyleSheet.create({

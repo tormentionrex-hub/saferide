@@ -350,10 +350,10 @@ const WaitingForTheStart = ({ route, navigation }) => {
                         clearInterval(intervalRef.current);
                         showAlert(
                             'Viaje Cancelado',
-                            'El conductor ha cancelado el viaje. Tu reserva ha sido cancelada. Por favor busca otro viaje.',
+                            'El conductor ha cancelado el viaje.',
                             'warning',
-                            'Buscar otro viaje',
-                            () => navigation.navigate('BuscarViaje')
+                            'Aceptar',
+                            () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })
                         );
                         return;
                     }
@@ -390,10 +390,10 @@ const WaitingForTheStart = ({ route, navigation }) => {
                             clearInterval(intervalRef.current);
                             showAlert(
                                 'Viaje Cancelado',
-                                'El conductor ha cancelado el viaje. Tu reserva ha sido cancelada. Por favor busca otro viaje.',
+                                'El conductor ha cancelado el viaje.',
                                 'warning',
-                                'Buscar otro viaje',
-                                () => navigation.navigate('BuscarViaje')
+                                'Aceptar',
+                                () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })
                             );
                         }
                     }
@@ -623,7 +623,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                 theme={theme}
                 onConfirm={() => {
                     setShowRideCancelledModal(false);
-                    navigation.navigate('BuscarViaje');
+                    navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' });
                 }}
             />
 
