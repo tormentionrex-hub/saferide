@@ -58,7 +58,7 @@ const HistoryItem = memo(({ item, theme, calculateArrivalTime, handleContact }) 
     const day = dateObj.day || '--';
     const month = getShortMonthNameES(dateObj);
 
-    const totalPaid = (ride.price || 0) * (item.seats_booked || 1);
+    const totalPaid = (ride.suggested_price || 0) * (item.seats_booked || 1);
     const originCoords = ride.origin?.coordinates;
     const destCoords = ride.destination?.coordinates;
 

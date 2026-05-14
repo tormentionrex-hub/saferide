@@ -462,6 +462,19 @@ const PassengerDetailModal = ({ visible, onClose, booking, rideData, theme }) =>
                                 <Text style={[detailModalStyles.metricText, { color: theme.text }]}>{rideData?.duration_minutes ? `${rideData.duration_minutes} min aprox.` : 'Duración N/A'}</Text>
                             </View>
                         </View>
+
+                        {/* Monto Ofrecido */}
+                        <View style={[detailModalStyles.offerCard, { backgroundColor: theme.surfaceVariant || '#F1F5F9', borderColor: (booking.offered_amount ?? 0) > 0 ? '#25C460' : (theme.border || '#E5E7EB') }]}>
+                            <View style={detailModalStyles.offerIconCircle}>
+                                <Ionicons name="cash-outline" size={22} color="#25C460" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={[detailModalStyles.offerLabel, { color: theme.textSecondary }]}>MONTO OFRECIDO</Text>
+                                <Text style={[detailModalStyles.offerValue, { color: (booking.offered_amount ?? 0) > 0 ? '#25C460' : theme.text }]}>
+                                    ₡{(booking.offered_amount ?? 0).toLocaleString()}
+                                </Text>
+                            </View>
+                        </View>
                     </ScrollView>
                     </View>
                 </Animated.View>
@@ -504,6 +517,10 @@ const detailModalStyles = StyleSheet.create({
     metricsRow: { flexDirection: 'row', gap: 10 },
     metricItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 12 },
     metricText: { fontSize: 12, fontWeight: '600' },
+    offerCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, marginTop: 10 },
+    offerIconCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#25C46015', justifyContent: 'center', alignItems: 'center' },
+    offerLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 1, marginBottom: 2 },
+    offerValue: { fontSize: 18, fontWeight: '800' },
 });
 
 const ListOfRequests = ({ route, navigation }) => {
@@ -548,7 +565,7 @@ const ListOfRequests = ({ route, navigation }) => {
                         if (b.status === 'pending') {
                             const lastUpdate = b.updatedAt || b.createdAt || b.timestamp;
                             if (lastUpdate && (now - new Date(lastUpdate).getTime() > 2 * 60 * 1000)) {
-                                try { await api.delete(`/bookings/${b._id}`); } catch(e){}
+                                try { await api.patch(`/bookings/${b._id}/status`, { status: 'deny', payment_status: 'waived', payment_type: 'normal' }); } catch(e){}
                                 continue;
                             }
                         }
@@ -592,7 +609,7 @@ const ListOfRequests = ({ route, navigation }) => {
                     if (b.status === 'pending') {
                         const lastUpdate = b.updatedAt || b.createdAt || b.timestamp;
                         if (lastUpdate && (now - new Date(lastUpdate).getTime() > 2 * 60 * 1000)) {
-                            try { await api.delete(`/bookings/${b._id}`); } catch(e){}
+                            try { await api.patch(`/bookings/${b._id}/status`, { status: 'deny', payment_status: 'waived', payment_type: 'normal' }); } catch(e){}
                             continue;
                         }
                     }
@@ -647,7 +664,15 @@ const ListOfRequests = ({ route, navigation }) => {
                 return;
             }
 
-            const res = await api.patch(`/bookings/${bookingId}/status`, { status: 'confirmed' });
+            // Determinar payment fields según offered_amount
+            const bookingData = checkRes.data.data;
+            const hasOffer = (bookingData.offered_amount ?? 0) > 0;
+
+            const res = await api.patch(`/bookings/${bookingId}/status`, {
+                status: 'confirmed',
+                payment_status: hasOffer ? 'pending' : 'waived',
+                payment_type: hasOffer ? 'normal' : 'gifted',
+            });
             if (res.data.success) {
                 setSuccessModalVisible(true);
                 // Invalidar cache de viajes ya que cambiaron los asientos/estado
@@ -670,7 +695,11 @@ const ListOfRequests = ({ route, navigation }) => {
                 return;
             }
 
-            const res = await api.patch(`/bookings/${bookingId}/status`, { status: 'deny' });
+            const res = await api.patch(`/bookings/${bookingId}/status`, {
+                status: 'deny',
+                payment_status: 'waived',
+                payment_type: 'normal',
+            });
             if (res.data.success) {
                 setDenyModalVisible(true);
                 // Invalidar cache de viajes ya que cambiaron los asientos/estado
@@ -835,6 +864,10 @@ const ListOfRequests = ({ route, navigation }) => {
                         <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 3 }}>
                             {item.seats_booked} asiento/s solicitado/s
                         </Text>
+                        <View style={styles.offeredRow}>
+                            <Ionicons name="cash-outline" size={14} color="#25C460" />
+                            <Text style={styles.offeredText}>Ofrece: ₡{(item.offered_amount ?? 0).toLocaleString()}</Text>
+                        </View>
                     </View>
                     {isPending && (
                         <View style={styles.btnGroup}>
@@ -1007,6 +1040,8 @@ const styles = StyleSheet.create({
     nameText: { fontSize: 15, fontWeight: 'bold', maxWidth: '60%' },
     confirmedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#ECFDF5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
     confirmedText: { fontSize: 10, color: '#10B981', fontWeight: 'bold' },
+    offeredRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+    offeredText: { fontSize: 12, fontWeight: '700', color: '#25C460' },
     btnGroup: { flexDirection: 'column', gap: 5 },
     acceptBtn: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: 10, alignItems: 'center' },
     denyBtn: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: 10, backgroundColor: '#EF4444', alignItems: 'center' },

@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
-    View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Platform, Dimensions, ScrollView
+    View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Platform, Dimensions, ScrollView, TextInput
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCustomAlert } from '../../context/CustomAlertContext';
@@ -21,6 +21,7 @@ const RideDetail = ({ route, navigation }) => {
     const { ride, searchOrigin, searchDestination } = route.params;
 
     const mapRef = useRef(null);
+    const [offeredAmount, setOfferedAmount] = useState('0');
 
     // Extraemos las coordenadas de origen y destino
     const origin = ride.origin;
@@ -114,9 +115,13 @@ const RideDetail = ({ route, navigation }) => {
                 }
             }
 
+            const parsedAmount = parseInt(offeredAmount, 10);
+            const safeAmount = isNaN(parsedAmount) || parsedAmount < 0 ? 0 : parsedAmount;
+
             const response = await api.post('/bookings', {
                 ride_id: ride._id,
                 seats_booked: 1,
+                offered_amount: safeAmount,
                 passenger_origin: searchOrigin?.name ?? null,
                 passenger_destination: searchDestination?.name ?? null,
                 passenger_origin_coords: searchOrigin
@@ -204,7 +209,7 @@ const RideDetail = ({ route, navigation }) => {
                             </View>
                         </View>
                         <View style={styles.priceTag}>
-                            <Text style={styles.priceValue}>₡{ride.price}</Text>
+                            <Text style={styles.priceValue}>₡{ride.suggested_price}</Text>
                         </View>
                     </View>
 
@@ -233,6 +238,35 @@ const RideDetail = ({ route, navigation }) => {
                             <Ionicons name="time-outline" size={18} color={theme.accent} />
                             <Text style={[styles.statText, { color: theme.text }]}>{ride.duration_minutes} min</Text>
                         </View>
+                    </View>
+
+                    {/* Input de Monto Ofrecido */}
+                    <View style={styles.offerSection}>
+                        <Text style={[styles.offerLabel, { color: theme.textSecondary }]}>MONTO A OFRECER (₡)</Text>
+                        <View style={[styles.offerInputRow, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }]}>
+                            <Ionicons name="cash-outline" size={20} color={theme.accent} />
+                            <Text style={[styles.offerCurrency, { color: theme.accent }]}>₡</Text>
+                            <TextInput
+                                style={[styles.offerInput, { color: theme.text }]}
+                                value={offeredAmount}
+                                onChangeText={(text) => {
+                                    const cleaned = text.replace(/[^0-9]/g, '');
+                                    setOfferedAmount(cleaned);
+                                }}
+                                onBlur={() => {
+                                    if (!offeredAmount || offeredAmount.trim() === '') {
+                                        setOfferedAmount('0');
+                                    }
+                                }}
+                                keyboardType="numeric"
+                                placeholder="0"
+                                placeholderTextColor={theme.textSecondary}
+                                maxLength={7}
+                            />
+                        </View>
+                        <Text style={[styles.offerHint, { color: theme.textSecondary }]}>
+                            Ingresa el monto en colones que deseas ofrecer al conductor.
+                        </Text>
                     </View>
 
                     {/* Botón de Acción Principal */}
@@ -332,6 +366,12 @@ const styles = StyleSheet.create({
     statsRow: { flexDirection: 'row', gap: 10, marginBottom: 15 },
     statItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 12 },
     statText: { fontSize: 12, fontWeight: '600' },
+    offerSection: { marginBottom: 15 },
+    offerLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1.2, marginBottom: 8 },
+    offerInputRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 4, borderWidth: 1, gap: 8 },
+    offerCurrency: { fontSize: 18, fontWeight: '800' },
+    offerInput: { flex: 1, fontSize: 18, fontWeight: '700', paddingVertical: Platform.OS === 'ios' ? 12 : 8 },
+    offerHint: { fontSize: 11, marginTop: 6, fontStyle: 'italic' },
     bookBtn: { paddingVertical: 15, borderRadius: 14, alignItems: 'center', justifyContent: 'center', elevation: 5 },
     bookBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15, letterSpacing: 0.5 }
 });

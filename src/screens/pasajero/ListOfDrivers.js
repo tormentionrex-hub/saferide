@@ -53,7 +53,7 @@ const DriverCard = ({ item, onPress, theme }) => {
     const destName = item.destination?.name || 'Destino';
     const date = item.fecha || null;
     const time = item.hora || null;
-    const price = item.price != null ? `₡${item.price.toLocaleString()}` : null;
+    const price = item.suggested_price != null ? `₡${item.suggested_price.toLocaleString()}` : null;
     const seats = item.available_seats ?? null;
 
     const initials = driverName
