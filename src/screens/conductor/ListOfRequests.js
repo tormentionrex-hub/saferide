@@ -553,7 +553,7 @@ const ListOfRequests = ({ route, navigation }) => {
                         if (b.status === 'pending') {
                             const lastUpdate = b.updatedAt || b.createdAt || b.timestamp;
                             if (lastUpdate && (now - new Date(lastUpdate).getTime() > 2 * 60 * 1000)) {
-                                try { await api.delete(`/bookings/${b._id}`); } catch(e){}
+                                try { await api.patch(`/bookings/${b._id}/status`, { status: 'deny' }); } catch(e){}
                                 continue;
                             }
                         }
@@ -597,7 +597,7 @@ const ListOfRequests = ({ route, navigation }) => {
                     if (b.status === 'pending') {
                         const lastUpdate = b.updatedAt || b.createdAt || b.timestamp;
                         if (lastUpdate && (now - new Date(lastUpdate).getTime() > 2 * 60 * 1000)) {
-                            try { await api.delete(`/bookings/${b._id}`); } catch(e){}
+                            try { await api.patch(`/bookings/${b._id}/status`, { status: 'deny' }); } catch(e){}
                             continue;
                         }
                     }
