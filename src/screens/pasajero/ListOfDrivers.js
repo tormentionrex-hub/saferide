@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
-    StatusBar, Platform, ActivityIndicator, Image
+    StatusBar, Platform, ActivityIndicator, Image, Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -46,7 +46,7 @@ const projectionT = (px, py, ax, ay, bx, by) => {
 };
 
 // ── Tarjeta de conductor ──────────────────────────────────────────────────────
-const DriverCard = ({ item, onPress, theme }) => {
+const DriverCard = ({ item, onPress, onImagePress, theme }) => {
     const driverName = item.driver_id?.name || 'Conductor Desconocido';
     const rating = item.driver_id?.rating ?? null;
     const originName = item.origin?.name || 'Origen';
@@ -73,13 +73,18 @@ const DriverCard = ({ item, onPress, theme }) => {
         >
             {/* Cabecera: avatar + nombre + rating */}
             <View style={styles.cardHeader}>
-                {profileImage ? (
-                    <Image source={{ uri: profileImage }} style={styles.avatar} />
-                ) : (
-                    <View style={[styles.avatar, { backgroundColor: theme.accent + '22' }]}>
-                        <Text style={[styles.avatarText, { color: theme.accent }]}>{initials}</Text>
-                    </View>
-                )}
+                <TouchableOpacity 
+                    activeOpacity={0.8}
+                    onPress={() => profileImage && onImagePress && onImagePress(profileImage)}
+                >
+                    {profileImage ? (
+                        <Image source={{ uri: profileImage }} style={styles.avatar} />
+                    ) : (
+                        <View style={[styles.avatar, { backgroundColor: theme.accent + '22', justifyContent: 'center', alignItems: 'center' }]}>
+                            <Text style={[styles.avatarText, { color: theme.accent }]}>{initials}</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
                 <View style={{ flex: 1 }}>
                     <Text style={[styles.driverName, { color: theme.text }]} numberOfLines={1}>
                         {driverName}
@@ -156,6 +161,7 @@ const ListOfDrivers = ({ route, navigation }) => {
     const initialRides = route.params?.rides;
     const [ridesData, setRidesData] = useState(initialRides || []);
     const [loading, setLoading] = useState(!initialRides);
+    const [selectedImage, setSelectedImage] = useState(null);
 
     const searchTime = route.params?.searchTime ? new Date(route.params.searchTime) : new Date();
     const searchOrigin = route.params?.searchOrigin;
@@ -361,7 +367,7 @@ const ListOfDrivers = ({ route, navigation }) => {
                         data={processedRides}
                         keyExtractor={(item) => item._id?.toString() ?? Math.random().toString()}
                         renderItem={({ item }) => (
-                            <DriverCard item={item} onPress={handleRideSelection} theme={theme} />
+                            <DriverCard item={item} onPress={handleRideSelection} onImagePress={setSelectedImage} theme={theme} />
                         )}
                         contentContainerStyle={[
                             styles.listContent,
@@ -375,6 +381,18 @@ const ListOfDrivers = ({ route, navigation }) => {
                     <ScrollIndicator si={si} thumbColor={theme.accent} />
                 </View>
             )}
+
+            {/* ── MODAL VISOR DE IMAGEN ── */}
+            <Modal transparent visible={!!selectedImage} animationType="fade" onRequestClose={() => setSelectedImage(null)}>
+                <View style={styles.imageViewerOverlay}>
+                    <TouchableOpacity style={styles.imageViewerClose} onPress={() => setSelectedImage(null)}>
+                        <Ionicons name="close" size={30} color="#fff" />
+                    </TouchableOpacity>
+                    {selectedImage && (
+                        <Image source={{ uri: selectedImage }} style={styles.imageViewerImage} resizeMode="contain" />
+                    )}
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -382,6 +400,24 @@ const ListOfDrivers = ({ route, navigation }) => {
 // ── Estilos ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     container: { flex: 1 },
+    imageViewerOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    imageViewerClose: {
+        position: 'absolute',
+        top: 50,
+        right: 20,
+        padding: 10,
+        zIndex: 10,
+    },
+    imageViewerImage: {
+        width: '90%',
+        height: '70%',
+        borderRadius: 20,
+    },
 
     header: {
         flexDirection: 'row',
