@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert, Platform, Modal, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import { useCustomAlert } from '../../context/CustomAlertContext';
 import api from '../../services/api';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
 
@@ -230,6 +231,7 @@ const TimeoutModal = ({ visible, onConfirm, theme }) => {
 /* ─── Pantalla ScreenSaver ────────────────────────────────────────── */
 const ScreenSaver = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
+    const { showAlert } = useCustomAlert();
     const bookingId = route.params?.bookingId;
     const [status, setStatus] = useState('pending');
     const [showRejectionModal, setShowRejectionModal] = useState(false);
@@ -390,7 +392,7 @@ const ScreenSaver = ({ route, navigation }) => {
                 setShowSuccessModal(true);
             } else {
                 isCancellingRef.current = false;
-                Alert.alert('Error', 'No se pudo cancelar la reservación.');
+                showAlert('Error', 'No se pudo cancelar la reservación.', 'error');
             }
         }
     };
