@@ -58,8 +58,11 @@ const PaymentVerification = ({ route, navigation }) => {
                 // Inicializamos los estados que ya vengan de BD
                 const initialStatus = {};
                 validBookings.forEach(b => {
-                    if (b.payment_status === 'paid' || b.payment_status === 'waived') {
-                        initialStatus[b._id] = b.payment_status;
+                    if (b.payment_type === 'gifted') {
+                        // El viaje fue regalado, se habilita automáticamente
+                        initialStatus[b._id] = 'gifted';
+                    } else if (b.payment_status === 'paid') {
+                        initialStatus[b._id] = 'paid';
                     }
                 });
                 setPaymentStatuses(initialStatus);
@@ -100,10 +103,15 @@ const PaymentVerification = ({ route, navigation }) => {
             
             // Subimos cada estado de pago al backend
             const updatePromises = bookings.map(b => {
+                if (b.payment_type === 'gifted') {
+                    // Viaje regalado: NO modificar absolutamente nada del booking.
+                    return Promise.resolve();
+                }
+
                 const status = paymentStatuses[b._id];
                 return api.patch(`/bookings/${b._id}/payment`, {
                     payment_status: status,
-                    payment_type: 'normal',
+                    // NO enviamos payment_type para no alterarlo
                 });
             });
             
@@ -137,8 +145,8 @@ const PaymentVerification = ({ route, navigation }) => {
     }
 
     const allSelected = bookings.length > 0 && bookings.every(b => paymentStatuses[b._id]);
-    // Agente 1 → Agente 2: hay al menos un pasajero marcado como no pagó
-    const hasUnpaid = bookings.some(b => paymentStatuses[b._id] === 'waived');
+    // Hay al menos un pasajero marcado como no pagó (pending)
+    const hasUnpaid = bookings.some(b => paymentStatuses[b._id] === 'pending');
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
@@ -171,8 +179,9 @@ const PaymentVerification = ({ route, navigation }) => {
                     <View style={styles.passengersContainer}>
                         {bookings.map((booking) => {
                             const passenger = booking.passenger_id;
+                            const isGifted = booking.payment_type === 'gifted';
                             const isPaid = paymentStatuses[booking._id] === 'paid';
-                            const isUnpaid = paymentStatuses[booking._id] === 'waived';
+                            const isUnpaid = paymentStatuses[booking._id] === 'pending';
 
                             return (
                                 <View key={booking._id} style={[styles.passengerCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -192,12 +201,21 @@ const PaymentVerification = ({ route, navigation }) => {
                                                     <View style={[styles.badge, styles.badgeDanger]}>
                                                         <Text style={styles.badgeTextDanger}>PENDIENTE</Text>
                                                     </View>
+                                                ) : isGifted ? (
+                                                    <View style={[styles.badge, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
+                                                        <Text style={[styles.badgeTextSuccess, { color: '#10B981' }]}>GIFTED</Text>
+                                                    </View>
                                                 ) : (
                                                     <View style={[styles.badge, { backgroundColor: theme.border }]}>
                                                         <Text style={[styles.badgeTextSuccess, { color: theme.textSecondary }]}>STANDARD TRIP</Text>
                                                     </View>
                                                 )}
                                             </View>
+                                        </View>
+                                        <View style={{ justifyContent: 'center', alignItems: 'flex-end', marginLeft: 10 }}>
+                                            <Text style={{ fontSize: 18, fontWeight: '700', color: theme.text }}>
+                                                ₡{booking.charged_amount ?? 0}
+                                            </Text>
                                         </View>
                                     </View>
 
@@ -207,16 +225,18 @@ const PaymentVerification = ({ route, navigation }) => {
                                                 styles.selectBtn,
                                                 styles.leftBtn,
                                                 { backgroundColor: theme.bg },
-                                                isUnpaid && styles.unpaidSelected
+                                                isUnpaid && styles.unpaidSelected,
+                                                isGifted && { opacity: 0.5 }
                                             ]}
-                                            activeOpacity={0.7}
-                                            onPress={() => handleSelectPayment(booking._id, 'waived')}
+                                            activeOpacity={isGifted ? 1 : 0.7}
+                                            disabled={isGifted}
+                                            onPress={() => handleSelectPayment(booking._id, 'pending')}
                                         >
                                             <Text style={[
                                                 styles.selectBtnText,
                                                 { color: theme.textSecondary },
                                                 isUnpaid && styles.unpaidSelectedText
-                                            ]}>No pago</Text>
+                                            ]}>No pagó</Text>
                                         </TouchableOpacity>
 
                                         <TouchableOpacity
@@ -224,16 +244,18 @@ const PaymentVerification = ({ route, navigation }) => {
                                                 styles.selectBtn,
                                                 styles.rightBtn,
                                                 { backgroundColor: theme.bg },
-                                                isPaid && styles.paidSelected
+                                                isPaid && styles.paidSelected,
+                                                isGifted && { opacity: 0.5 }
                                             ]}
-                                            activeOpacity={0.7}
+                                            activeOpacity={isGifted ? 1 : 0.7}
+                                            disabled={isGifted}
                                             onPress={() => handleSelectPayment(booking._id, 'paid')}
                                         >
                                             <Text style={[
                                                 styles.selectBtnText,
                                                 { color: theme.textSecondary },
                                                 isPaid && styles.paidSelectedText
-                                            ]}>Pago</Text>
+                                            ]}>Pagó</Text>
                                         </TouchableOpacity>
                                     </View>
                                 </View>
