@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
     View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
     StatusBar, Platform, Linking, ActivityIndicator, Animated,
@@ -152,6 +152,18 @@ const TripInProgress = ({ route, navigation }) => {
     // Datos del pasajero (para el avatar del header)
     const [passengerPhoto, setPassengerPhoto] = useState(null);
     const [passengerName, setPassengerName] = useState('');
+
+    const [vehicleData, setVehicleData] = useState(null);
+    const [vehicleLoading, setVehicleLoading] = useState(false);
+    const [vehicleImageError, setVehicleImageError] = useState(false);
+
+    const driverIdForVehicle = useMemo(() => {
+        const d = bookingData?.ride_id?.driver_id;
+        if (!d) return null;
+        const id = d._id ?? d;
+        if (!id) return null;
+        return typeof id === 'string' ? id : id.toString?.() ?? String(id);
+    }, [bookingData?.ride_id?.driver_id]);
 
     useEffect(() => {
         const loadPassenger = async () => {
@@ -309,6 +321,36 @@ const TripInProgress = ({ route, navigation }) => {
         return () => { if (locationInterval) clearInterval(locationInterval); };
     }, [bookingData]);
 
+    useEffect(() => {
+        if (!driverIdForVehicle) {
+            setVehicleData(null);
+            setVehicleLoading(false);
+            return;
+        }
+        let cancelled = false;
+        setVehicleLoading(true);
+        setVehicleData(null);
+        setVehicleImageError(false);
+        (async () => {
+            try {
+                const vRes = await api.get(`/vehicles/driver/${driverIdForVehicle}`);
+                if (cancelled) return;
+                if (vRes.data?.success && vRes.data.data) {
+                    const raw = vRes.data.data;
+                    const vInfo = Array.isArray(raw) ? raw[0] : raw;
+                    setVehicleData(vInfo && typeof vInfo === 'object' ? vInfo : null);
+                } else {
+                    setVehicleData(null);
+                }
+            } catch {
+                if (!cancelled) setVehicleData(null);
+            } finally {
+                if (!cancelled) setVehicleLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [driverIdForVehicle]);
+
     const handleCall = (phone) => {
         if (!phone) { showAlert('Aviso', 'El conductor no tiene número registrado.', 'info'); return; }
         Linking.openURL(`tel:${phone}`).catch(() => showAlert('Error', 'No se pudo abrir el marcador.', 'error'));
@@ -322,6 +364,45 @@ const TripInProgress = ({ route, navigation }) => {
             if (supported) return Linking.openURL(whatsappUrl);
             return Linking.openURL(`https://wa.me/${cleanPhone}?text=Hola,%20voy%20en%20el%20viaje`);
         }).catch(() => showAlert('Error', 'No se pudo abrir WhatsApp.', 'error'));
+    };
+
+    const handleDriverMoreOptions = () => {
+        showAlert(
+            '¿Cancelar el viaje?',
+            '¿Deseas cancelar el viaje en curso?',
+            'warning',
+            'Sí',
+            null,
+            'No',
+            () => {
+                showAlert(
+                    'Advertencia',
+                    'Si cancelas un viaje en progreso, recibirás un cobro pendiente que deberás pagar obligatoriamente. Si sigues cancelando viajes, podrías recibir una amonestación.',
+                    'advertencia',
+                    'Sí, deseo cancelar',
+                    null,
+                    'No, mantener el viaje',
+                    async () => {
+                        const bid = resolvedBookingId || bookingData?._id?.toString?.() || bookingData?._id;
+                        if (!bid) {
+                            showAlert('Error', 'No se encontró la reserva del viaje.', 'error');
+                            return;
+                        }
+                        try {
+                            const res = await api.delete(`/bookings/${bid}`);
+                            if (res.data?.success) {
+                                navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' });
+                            } else {
+                                showAlert('Aviso', res.data?.message || 'No se pudo cancelar la reserva.', 'warning');
+                            }
+                        } catch (e) {
+                            const msg = e.response?.data?.message || 'No se pudo cancelar el viaje. Intenta de nuevo.';
+                            showAlert('Error', msg, 'error');
+                        }
+                    },
+                );
+            },
+        );
     };
 
     const handleZoom = (direction) => {
@@ -564,30 +645,85 @@ const TripInProgress = ({ route, navigation }) => {
                     </View>
                 </View>
 
-                {/* ── TARJETA CONDUCTOR ──────────────────────────── */}
+                {/* ── TARJETA CONDUCTOR + VEHÍCULO (solo lectura, datos del conductor) ── */}
                 <View style={[styles.infoCard, { backgroundColor: theme.surface }]}>
-                    <View style={styles.driverRow}>
-                        <DriverAvatar profileImage={driver?.profileImage} name={driver?.name} size={52} />
-                        <View style={styles.driverInfo}>
-                            <Text style={[styles.driverName, { color: theme.text }]} numberOfLines={1}>
-                                {driver?.name || 'Tu Conductor'}
-                            </Text>
-                            <View style={styles.driverRatingRow}>
-                                <Ionicons name="star" size={14} color="#F59E0B" />
-                                <Text style={[styles.driverRatingText, { color: theme.textSecondary }]}>
-                                    {driver?.rating || '5.0'}
-                                    {driver?.total_rides ? ` (${driver.total_rides} viajes)` : ''}
+                    <View style={styles.driverVehicleTopRow}>
+                        <View style={styles.driverLeftCol}>
+                            <DriverAvatar profileImage={driver?.profileImage} name={driver?.name} size={56} />
+                            <View style={styles.ratingUnderAvatar}>
+                                <Ionicons name="star" size={12} color="#F59E0B" />
+                                <Text style={[styles.ratingUnderAvatarText, { color: theme.text }]}>
+                                    {driver?.rating != null ? String(driver.rating) : '5.0'}
                                 </Text>
                             </View>
                         </View>
-                        <View style={styles.driverActions}>
-                            <TouchableOpacity style={styles.actionBtn} onPress={() => handleCall(driver?.phone)} activeOpacity={0.8}>
-                                <Ionicons name="call" size={19} color="#fff" />
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[styles.actionBtn, styles.actionBtnWhatsapp]} onPress={() => handleMessage(driver?.phone)} activeOpacity={0.8}>
-                                <Ionicons name="logo-whatsapp" size={19} color="#fff" />
-                            </TouchableOpacity>
+                        <View style={styles.vehicleSummaryCol}>
+                            {vehicleLoading ? (
+                                <ActivityIndicator size="small" color={theme.navActive} style={{ alignSelf: 'flex-end' }} />
+                            ) : (
+                                <>
+                                    <Text style={[styles.vehiclePlate, { color: theme.text }]} numberOfLines={1}>
+                                        {vehicleData?.license_plate || vehicleData?.licensePlate || '---'}
+                                    </Text>
+                                    <Text
+                                        style={[styles.vehicleColorModel, { color: theme.text }]}
+                                        numberOfLines={2}
+                                    >
+                                        {[vehicleData?.color, vehicleData?.brand, vehicleData?.model]
+                                            .filter(Boolean)
+                                            .join(' ')
+                                            .trim() || '---'}
+                                    </Text>
+                                </>
+                            )}
                         </View>
+                        <View
+                            style={[
+                                styles.vehiclePhotoSlot,
+                                {
+                                    backgroundColor: theme.dark ? '#1C1C1E' : '#E8ECF2',
+                                    borderColor: theme.border,
+                                },
+                            ]}
+                        >
+                            {vehicleData?.vehicleImage && !vehicleImageError ? (
+                                <Image
+                                    source={{ uri: vehicleData.vehicleImage }}
+                                    style={StyleSheet.absoluteFillObject}
+                                    resizeMode="cover"
+                                    onError={() => setVehicleImageError(true)}
+                                />
+                            ) : null}
+                        </View>
+                    </View>
+                    <Text style={[styles.driverNameHero, { color: theme.text }]} numberOfLines={2}>
+                        {(driver?.name || 'Tu conductor').toUpperCase()}
+                    </Text>
+                    <View style={styles.driverActionsRow}>
+                        <TouchableOpacity
+                            style={[styles.msgBtnWide, { backgroundColor: theme.surfaceVariant }]}
+                            onPress={() => handleMessage(driver?.phone)}
+                            activeOpacity={0.85}
+                        >
+                            <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
+                            <Text style={[styles.msgBtnWideText, { color: theme.text }]} numberOfLines={1}>
+                                Envía un mensaje
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.actionBtnSquare, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }]}
+                            onPress={() => handleCall(driver?.phone)}
+                            activeOpacity={0.85}
+                        >
+                            <Ionicons name="call" size={20} color={theme.text} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.actionBtnSquare, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }]}
+                            onPress={handleDriverMoreOptions}
+                            activeOpacity={0.85}
+                        >
+                            <Ionicons name="ellipsis-horizontal" size={22} color={theme.text} />
+                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -871,53 +1007,87 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
 
-    /* Conductor card */
-    driverRow: {
+    /* Conductor + vehículo (referencia: placa, color/marca/modelo, foto opcional) */
+    driverVehicleTopRow: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         gap: 12,
     },
-    driverInfo: {
-        flex: 1,
-        minWidth: 0,
+    driverLeftCol: {
+        alignItems: 'center',
+        width: 64,
     },
-    driverName: {
-        fontSize: 16,
-        fontFamily: 'Poppins-Bold',
-        color: '#191C1E',
-    },
-    driverRatingRow: {
+    ratingUnderAvatar: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        marginTop: 2,
+        marginTop: 6,
     },
-    driverRatingText: {
+    ratingUnderAvatarText: {
         fontSize: 13,
-        fontFamily: 'Poppins-Regular',
-        color: '#414754',
+        fontFamily: 'Poppins-SemiBold',
     },
-    driverActions: {
+    vehicleSummaryCol: {
+        flex: 1,
+        minWidth: 0,
+        alignItems: 'flex-end',
+        paddingRight: 4,
+    },
+    vehiclePlate: {
+        fontSize: 22,
+        fontFamily: 'Poppins-Bold',
+        letterSpacing: 0.5,
+        textAlign: 'right',
+    },
+    vehicleColorModel: {
+        fontSize: 14,
+        fontFamily: 'Poppins-Medium',
+        textAlign: 'right',
+        marginTop: 4,
+        lineHeight: 18,
+    },
+    vehiclePhotoSlot: {
+        width: 72,
+        height: 72,
+        borderRadius: 10,
+        overflow: 'hidden',
+        borderWidth: StyleSheet.hairlineWidth,
+    },
+    driverNameHero: {
+        fontSize: 20,
+        fontFamily: 'Poppins-Bold',
+        letterSpacing: 0.3,
+        marginTop: 14,
+    },
+    driverActionsRow: {
         flexDirection: 'row',
+        alignItems: 'center',
         gap: 10,
-        flexShrink: 0,
+        marginTop: 16,
     },
-    actionBtn: {
-        width: 42,
-        height: 42,
-        borderRadius: 21,
-        backgroundColor: '#1A73E8',
+    msgBtnWide: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        minHeight: 48,
+    },
+    msgBtnWideText: {
+        fontSize: 14,
+        fontFamily: 'Poppins-SemiBold',
+        flexShrink: 1,
+    },
+    actionBtnSquare: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#1A73E8',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 4,
-    },
-    actionBtnWhatsapp: {
-        backgroundColor: '#25D366',
-        shadowColor: '#25D366',
+        borderWidth: StyleSheet.hairlineWidth,
     },
 
     /* Route card */

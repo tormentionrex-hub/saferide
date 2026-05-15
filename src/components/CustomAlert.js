@@ -6,12 +6,9 @@ import {
     Modal,
     TouchableOpacity,
     Animated,
-    Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../context/DriverThemeContext';
-
-const { width } = Dimensions.get('window');
 
 /**
  * CustomAlert - Un componente de alerta premium y temático.
@@ -19,7 +16,7 @@ const { width } = Dimensions.get('window');
  * @param {boolean} visible - Controla la visibilidad
  * @param {string} title - Título de la alerta
  * @param {string} message - Mensaje del cuerpo
- * @param {string} type - 'success' | 'error' | 'warning' | 'info'
+ * @param {string} type - 'success' | 'error' | 'warning' | 'advertencia' | 'info' | 'confirm' | 'map'
  * @param {string} cancelText - Texto botón secundario; null = sin botón cancelar
  * @param {function} onConfirm - Se llama al pulsar confirmar (2-botones); si es null se usa onClose
  */
@@ -71,11 +68,13 @@ const CustomAlert = ({
     }, [visible]);
 
     const getIcon = () => {
+        const danger = theme.danger || '#E2202C';
         switch (type) {
             case 'success': return { name: 'checkmark-circle', color: '#00C851' };
-            case 'error': return { name: 'alert-circle', color: theme.danger || '#ff4444' };
+            case 'error': return { name: 'alert-circle', color: danger };
             case 'warning': return { name: 'warning', color: '#FFBB33' };
-            case 'confirm': return { name: 'help-circle', color: theme.danger || '#ff4444' };
+            case 'advertencia': return { name: 'warning', color: danger };
+            case 'confirm': return { name: 'help-circle', color: danger };
             case 'info': return { name: 'information-circle', color: theme.accent || '#33b5e5' };
             case 'map':  return { name: 'map', color: '#2563EB' };
             default: return { name: 'help-circle', color: theme.accent };
@@ -120,15 +119,18 @@ const CustomAlert = ({
                                 style={[
                                     styles.buttonHalf,
                                     {
-                                        backgroundColor: '#f0f0f0ff',
-                                        borderWidth: 1.4,
+                                        backgroundColor: theme.dark ? theme.surfaceVariant : '#f0f0f0',
+                                        borderWidth: StyleSheet.hairlineWidth * 2,
                                         borderColor: theme.divider || '#ccc',
                                     },
                                 ]}
                                 onPress={onClose}
                                 activeOpacity={0.8}
                             >
-                                <Text style={[styles.buttonText, { color: theme.textSecondary || '#888' }]}>
+                                <Text
+                                    style={[styles.buttonHalfLabel, { color: theme.text }]}
+                                    numberOfLines={3}
+                                >
                                     {cancelText}
                                 </Text>
                             </TouchableOpacity>
@@ -139,7 +141,9 @@ const CustomAlert = ({
                                 onPress={onConfirm || onClose}
                                 activeOpacity={0.8}
                             >
-                                <Text style={styles.buttonText}>{confirmText}</Text>
+                                <Text style={styles.buttonHalfLabelLight} numberOfLines={3}>
+                                    {confirmText}
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     ) : (
@@ -219,6 +223,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         width: '100%',
         gap: 12,
+        alignItems: 'stretch',
     },
     button: {
         width: '100%',
@@ -232,32 +237,40 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 3,
     },
-    /* Fila de 2 botones */
-    buttonRow: {
-        flexDirection: 'row',
-        gap: 10,
-        width: '100%',
-    },
     buttonHalf: {
         flex: 1,
-        height: 54,
+        minHeight: 56,
+        paddingVertical: 14,
+        paddingHorizontal: 10,
         borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.12,
+        shadowRadius: 4,
         elevation: 2,
+    },
+    buttonHalfLabel: {
+        fontSize: 13,
+        fontFamily: 'Poppins-SemiBold',
+        fontWeight: '600',
+        textAlign: 'center',
+        lineHeight: 19,
+        width: '100%',
+    },
+    buttonHalfLabelLight: {
+        fontSize: 13,
+        fontFamily: 'Poppins-SemiBold',
+        fontWeight: '600',
+        color: '#FFFFFF',
+        textAlign: 'center',
+        lineHeight: 19,
+        width: '100%',
     },
     buttonText: {
         color: '#FFF',
         fontSize: 15,
-        fontFamily: 'Poppins-SemiBold',
-        fontWeight: '600',
-    },
-    secondaryButtonText: {
-        fontSize: 16,
         fontFamily: 'Poppins-SemiBold',
         fontWeight: '600',
     },
