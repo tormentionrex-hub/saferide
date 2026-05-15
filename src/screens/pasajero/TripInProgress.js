@@ -241,6 +241,7 @@ const TripInProgress = ({ route, navigation }) => {
             if (isCancellingRef.current) return;
             try {
                 const res = await api.get(`/bookings/${resolvedBookingId}`);
+                if (isCancellingRef.current) return; // BLOQUEO TARDÍO
                 if (res.data && res.data.success) {
                     const data = res.data.data;
                     setBookingData(data);

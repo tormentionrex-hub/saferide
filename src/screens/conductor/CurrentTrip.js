@@ -156,6 +156,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
             try {
                 // 1. Traemos los datos del ride (origen, destino, etc.)
                 const rideRes = await api.get(`/rides/${rideId}`);
+                if (isCancellingRef.current) return; // BLOQUEO TARDÍO
                 if (rideRes.data?.success) {
                     const ride = rideRes.data.data;
                     setRideData(ride);
@@ -182,6 +183,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
 
                 // 2. Traemos los bookings confirmados de este ride para mostrar al pasajero
                 const bookingsRes = await api.get(`/bookings/ride/${rideId}`);
+                if (isCancellingRef.current) return; // BLOQUEO TARDÍO
                 if (bookingsRes.data?.success) {
                     const allBookings = bookingsRes.data.data || [];
                     const confirmedBookings = allBookings.filter(b => b.status === 'confirmed');
