@@ -9,16 +9,16 @@ import {
     StatusBar,
     Dimensions,
     Platform,
-    Animated,
-    Modal,
-    Alert,
     Image,
     DeviceEventEmitter,
+    ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
+import { rideService } from '../../services/rideService';
+import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
 // Obtenemos dimensiones de la pantalla para garantizar responsividad
 const { height, width } = Dimensions.get('window');
@@ -26,16 +26,14 @@ const { height, width } = Dimensions.get('window');
 const DashboardPasajero = ({ navigation, route }) => {
     const { theme } = useDriverTheme();
     const isDark = theme.dark;
+    const si = useScrollIndicator();
 
     // Nombre del usuario: primero intenta route.params (viene del login directo),
     // si está vacío lo lee de AsyncStorage (guardado al hacer login en SignInScreen).
     const [userName, setUserName] = useState(route?.params?.userName || '');
     const [userPhoto, setUserPhoto] = useState(null);
-    const [isModalVisible, setIsModalVisible] = useState(false);
-    const [isLogoutAlertVisible, setIsLogoutAlertVisible] = useState(false);
-
-    // Valor animado para la rotación de la tuerca
-    const rotateAnim = useRef(new Animated.Value(0)).current;
+    const [userCompany, setUserCompany] = useState('');
+    const [frequentRoutes, setFrequentRoutes] = useState([]);
 
     React.useEffect(() => {
         const subscription = DeviceEventEmitter.addListener('profileUpdated', (newPhoto) => {
@@ -52,7 +50,7 @@ const DashboardPasajero = ({ navigation, route }) => {
                     if (meRes.data.success) {
                         const user = meRes.data.data;
                         if (user.name) {
-                            setUserName(user.name.split(' ')[0]);
+                            setUserName(user.name);
                             await AsyncStorage.setItem('userName', user.name);
                         }
                         if (user.profileImage) {
@@ -61,66 +59,87 @@ const DashboardPasajero = ({ navigation, route }) => {
                         } else {
                             setUserPhoto(null);
                         }
+                        if (user.company) {
+                            setUserCompany(user.company);
+                            await AsyncStorage.setItem('userCompany', user.company);
+                        }
                     }
                 } catch (error) {
                     const name = await AsyncStorage.getItem('userName');
-                    if (name) setUserName(name.split(' ')[0]);
+                    if (name) setUserName(name);
 
                     const photo = await AsyncStorage.getItem('userPhoto');
                     if (photo && (photo.startsWith('http') || photo.startsWith('file'))) {
                         setUserPhoto(photo);
                     }
+
+                    const company = await AsyncStorage.getItem('userCompany');
+                    if (company) setUserCompany(company);
+                }
+
+                // ── Cargar rutas frecuentes ──
+                try {
+                    let userId = await AsyncStorage.getItem('userId');
+                    if (!userId) {
+                        const meRes2 = await api.get('/auth/me');
+                        userId = meRes2.data?.data?._id;
+                    }
+                    if (userId) {
+                        const res = await rideService.getBookingsByPassenger(userId);
+                        if (res.success && res.data) {
+                            const completed = res.data.filter(
+                                b => b.status === 'completed' && b.ride_id?.origin && b.ride_id?.destination
+                            );
+                            // Agrupar por par origen→destino (por nombre)
+                            const routeMap = {};
+                            completed.forEach(b => {
+                                const ride = b.ride_id;
+                                const key = `${ride.origin.name}|||${ride.destination.name}`;
+                                if (!routeMap[key]) {
+                                    routeMap[key] = {
+                                        count: 0,
+                                        origin: {
+                                            name: ride.origin.name,
+                                            lat: ride.origin.coordinates?.lat,
+                                            lng: ride.origin.coordinates?.lng,
+                                        },
+                                        destination: {
+                                            name: ride.destination.name,
+                                            lat: ride.destination.coordinates?.lat,
+                                            lng: ride.destination.coordinates?.lng,
+                                        },
+                                    };
+                                }
+                                routeMap[key].count += 1;
+                            });
+                            // Ordenar y tomar top 2 (solo rutas con 4+ viajes)
+                            const sorted = Object.values(routeMap)
+                                .filter(r => r.count >= 4)
+                                .sort((a, b) => b.count - a.count)
+                                .slice(0, 2);
+                            setFrequentRoutes(sorted);
+                        }
+                    }
+                } catch (e) {
+                    console.log('Frequent routes load error:', e);
                 }
             };
             loadData();
         }, [])
     );
 
-    // Lógica de apertura/cierre con animación
-    const toggleModal = () => {
-        const toValue = isModalVisible ? 0 : 1;
-        
-        // Animación de rotación de 360 grados
-        Animated.timing(rotateAnim, {
-            toValue: toValue,
-            duration: 400,
-            useNativeDriver: true,
-        }).start();
-
-        setIsModalVisible(!isModalVisible);
-    };
-
-    // Interpolación para convertir el valor 0-1 en grados 0-360
-    const spin = rotateAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: ['0deg', '360deg'],
-    });
-
-    // Lógica de cierre de sesión refactorizada para diseño adhoc
-    const handleLogoutPress = () => {
-        setIsLogoutAlertVisible(true);
-    };
-
-    const confirmLogout = async () => {
-        setIsLogoutAlertVisible(false);
-        setIsModalVisible(false);
-        await AsyncStorage.multiRemove(['userToken', 'userRole', 'userName']);
-        navigation.reset({
-            index: 0,
-            routes: [{ name: 'SignIn' }],
-        });
-    };
-
     return (
-        <Animated.View style={[styles.safeAreaWrapper, { backgroundColor: theme.bg }]}>
+        <View style={[styles.safeAreaWrapper, { backgroundColor: theme.bg }]}>
         <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
 
             {/* Barra de estado adaptativa */}
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             
-            {/* Encabezado: Texto 'Pasajero' y Tuerquita Animada */}
+            {/* Encabezado: Texto 'Pasajero' y Tuerquita */}
             <View style={[styles.header, { borderBottomColor: theme.divider || '#CBD5E1', borderBottomWidth: 1 }]}>
-                <View style={{ width: 40 }} />
+                <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('CustomizeApp')}>
+                    <Ionicons name="settings-sharp" size={24} color={theme.text} />
+                </TouchableOpacity>
                 <Text
                     style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}
                     numberOfLines={1}
@@ -130,7 +149,7 @@ const DashboardPasajero = ({ navigation, route }) => {
                 
                 <TouchableOpacity 
                     style={styles.profileButton}
-                    onPress={toggleModal}
+                    onPress={() => navigation.navigate('PasajeroProfileScreen')}
                     activeOpacity={0.7}
                 >
                     {userPhoto ? (
@@ -146,7 +165,12 @@ const DashboardPasajero = ({ navigation, route }) => {
             </View>
 
             {/* Contenido principal del Dashboard */}
-            <View style={styles.content}>
+            <View style={{ flex: 1 }}>
+                <ScrollView 
+                    {...si.scrollProps}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
 
                 {/* Saludo dinámico al usuario */}
                 <Text style={[styles.greeting, { color: theme.text }]}>Hola, {userName}</Text>
@@ -160,6 +184,11 @@ const DashboardPasajero = ({ navigation, route }) => {
                     }}
                     activeOpacity={0.9}
                 >
+                    {/* Contenedor interno para marca de agua sin afectar la sombra */}
+                    <View style={[StyleSheet.absoluteFill, { borderRadius: 15, overflow: 'hidden' }]}>
+                        <Ionicons name="car" size={140} color="rgba(255,255,255,0.15)" style={styles.watermarkIcon} />
+                    </View>
+
                     <View style={styles.searchIconContainer}>
                         <Ionicons name="search" size={24} color="#ffffff" />
                     </View>
@@ -169,120 +198,61 @@ const DashboardPasajero = ({ navigation, route }) => {
                         <Text style={styles.cardSubtitle}>Encuentra tu próximo viaje seguro</Text>
                     </View>
                 </TouchableOpacity>
+
+                {/* ── SECCIÓN: Rutas Frecuentes ── */}
+                <View style={styles.quickDestinationsWrapper}>
+                    <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Rutas Frecuentes</Text>
+                    
+                    {frequentRoutes.length > 0 && (
+                        <View style={styles.quickCardsRow}>
+                            {frequentRoutes.map((rt, idx) => {
+                                const icons = ['navigate-circle-outline', 'location-outline'];
+                                const iconColors = [theme.accent || '#2563EB', '#FF5A5F'];
+                                return (
+                                    <TouchableOpacity
+                                        key={idx}
+                                        style={[styles.quickCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.divider }]}
+                                        onPress={() => navigation.navigate('BuscarViaje', {
+                                            prefillOrigin: rt.origin,
+                                            prefillDestination: rt.destination,
+                                        })}
+                                        activeOpacity={0.8}
+                                    >
+                                        <View style={[styles.quickIconCircle, { backgroundColor: theme.iconCircleBg || 'rgba(37, 99, 235, 0.1)' }]}>
+                                            <Ionicons name={icons[idx] || 'navigate-outline'} size={26} color={iconColors[idx] || theme.accent} />
+                                        </View>
+                                        <Text style={[styles.quickCardTitle, { color: theme.text }]} numberOfLines={1}>
+                                            {rt.destination.name}
+                                        </Text>
+                                        <Text style={[styles.quickCardSub, { color: theme.textSecondary }]} numberOfLines={1}>
+                                            {rt.count} {rt.count === 1 ? 'viaje' : 'viajes'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    )}
+                </View>
+
+                {/* ── BANNER: Comunidad y Gamificación ── */}
+                <View style={[styles.ecoBanner, { backgroundColor: isDark ? '#132A1D' : '#ECFDF5', borderColor: isDark ? '#166534' : '#A7F3D0' }]}>
+                    <View style={[styles.ecoIconBox, { backgroundColor: isDark ? '#166534' : '#D1FAE5' }]}>
+                        <Ionicons name="leaf-outline" size={24} color={isDark ? '#4ADE80' : '#059669'} />
+                    </View>
+                    <View style={styles.ecoTextCont}>
+                        <Text style={[styles.ecoTitle, { color: isDark ? '#6EE7B7' : '#065F46' }]}>Comunidad SafeRide</Text>
+                        <Text style={[styles.ecoSub, { color: isDark ? '#A7F3D0' : '#047857' }]}>
+                            Al compartir viaje con tus compañeros, ayudas a reducir el tráfico y la huella de carbono.
+                        </Text>
+                    </View>
+                </View>
+
+                </ScrollView>
+                <ScrollIndicator si={si} thumbColor={theme.accent} />
             </View>
 
-            {/* Modal de Configuración (Acciones Rápidas) */}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={isModalVisible}
-                onRequestClose={toggleModal}
-            >
-                {/* Overlay oscuro de fondo */}
-                <TouchableOpacity 
-                    style={styles.modalOverlay} 
-                    activeOpacity={1} 
-                    onPress={toggleModal}
-                >
-                    {/* Contenedor del Modal */}
-                    <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
-                        
-                        {/* Cabecera del Modal con Título y Botón Cerrar (X) */}
-                        <View style={styles.modalHeader}>
-                            <Text style={[styles.modalTitle, { color: theme.text }]}>Configuración</Text>
-                            <TouchableOpacity onPress={toggleModal} style={styles.closeModalButton}>
-                                <Ionicons name="close" size={26} color={theme.textSecondary} />
-                            </TouchableOpacity>
-                        </View>
-                        
-                        <Text style={[styles.modalSub, { color: theme.textSecondary }]}>¿A dónde quieres ir?</Text>
-
-                        {/* Opciones del Modal en formato de cuadrícula/fila */}
-                        <View style={styles.optionsRow}>
-                            {/* Opción Perfil */}
-                            <TouchableOpacity 
-                                style={[styles.optionCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }]}
-                                onPress={() => {
-                                    toggleModal();
-                                    navigation.navigate('PasajeroProfileScreen'); 
-                                }}
-                            >
-                                <View style={[styles.iconCircle, { backgroundColor: theme.surface }]}>
-                                    <Ionicons name="person-outline" size={28} color={theme.accent} />
-                                </View>
-                                <Text style={[styles.optionLabel, { color: theme.text }]}>Perfil</Text>
-                                <Text style={[styles.optionSub, { color: theme.textSecondary }]}>Tu información</Text>
-                            </TouchableOpacity>
-
-                            {/* Opción Ajustes/Personalización */}
-                            <TouchableOpacity 
-                                style={[styles.optionCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }]}
-                                onPress={() => {
-                                    toggleModal();
-                                    navigation.navigate('CustomizeApp');
-                                }}
-                            >
-                                <View style={[styles.iconCircle, { backgroundColor: theme.surface }]}>
-                                    <Ionicons name="construct-outline" size={28} color={theme.accent} />
-                                </View>
-                                <Text style={[styles.optionLabel, { color: theme.text }]}>Ajustes</Text>
-                                <Text style={[styles.optionSub, { color: theme.textSecondary }]}>Apariencia y más</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Botón de Cerrar Sesión en la parte inferior */}
-                        <TouchableOpacity 
-                            style={[styles.logoutModalBtn, { borderColor: theme.danger, backgroundColor: theme.surfaceVariant }]}
-                            onPress={handleLogoutPress}
-                        >
-                            <Ionicons name="log-out-outline" size={20} color={theme.danger} />
-                            <Text style={[styles.logoutModalText, { color: theme.danger }]}>Cerrar sesión</Text>
-                        </TouchableOpacity>
-                    </View>
-                </TouchableOpacity>
-            </Modal>
-
-            {/* Modal de Alerta Customizada de Cierre de Sesión */}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={isLogoutAlertVisible}
-                onRequestClose={() => setIsLogoutAlertVisible(false)}
-            >
-                <TouchableOpacity 
-                    style={styles.modalOverlay} 
-                    activeOpacity={1} 
-                    onPress={() => setIsLogoutAlertVisible(false)}
-                >
-                    <View style={[styles.alertContent, { backgroundColor: theme.surface }]}>
-                        <View style={[styles.alertIconContainer, { backgroundColor: theme.danger + '20' }]}>
-                            <Ionicons name="log-out-outline" size={32} color={theme.danger} />
-                        </View>
-                        <Text style={[styles.alertTitle, { color: theme.text }]}>Cerrar sesión</Text>
-                        <Text style={[styles.alertMessage, { color: theme.textSecondary }]}>
-                            ¿Estás seguro que deseas salir de tu cuenta?
-                        </Text>
-                        
-                        <View style={styles.alertActions}>
-                            <TouchableOpacity 
-                                style={[styles.alertCancelBtn, { backgroundColor: theme.surfaceVariant }]}
-                                onPress={() => setIsLogoutAlertVisible(false)}
-                            >
-                                <Text style={[styles.alertCancelText, { color: theme.text }]}>Cancelar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                                style={[styles.alertConfirmBtn, { backgroundColor: theme.danger }]}
-                                onPress={confirmLogout}
-                            >
-                                <Text style={styles.alertConfirmText}>Sí, salir</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </TouchableOpacity>
-            </Modal>
-
         </SafeAreaView>
-        </Animated.View>
+        </View>
     );
 };
 
@@ -305,6 +275,12 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins-Bold',
         fontSize: 22,
     },
+    headerIconBtn: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     profileButton: {
         width: 40,
         height: 40,
@@ -322,10 +298,10 @@ const styles = StyleSheet.create({
         padding: 5,
         zIndex: 10, // Asegura que esté por encima por si acaso
     },
-    content: {
-        flex: 1,
+    scrollContent: {
         paddingHorizontal: 20,
         paddingTop: 20,
+        paddingBottom: 120,
         alignItems: 'center',
     },
     greeting: {
@@ -364,151 +340,88 @@ const styles = StyleSheet.create({
         color: '#ffffff',
         fontSize: 14,
     },
-    // Estilos del Modal (Inspirados en DashboardDriver / SettingsGearButton)
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    modalContent: {
-        width: '90%',
-        borderRadius: 24,
-        padding: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.2,
-        shadowRadius: 15,
-        elevation: 10,
-        alignItems: 'center',
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        width: '100%',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 4,
-        position: 'relative',
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontFamily: 'Poppins-Bold',
-    },
-    closeModalButton: {
+    watermarkIcon: {
         position: 'absolute',
-        right: 0,
-        padding: 2,
+        right: -20,
+        bottom: -30,
+        transform: [{ rotate: '-15deg' }],
     },
-    modalSub: {
-        fontSize: 13,
-        fontFamily: 'Poppins-Regular',
-        marginBottom: 20,
+    quickDestinationsWrapper: {
+        width: '100%', // Usa 100% porque el contenedor padre ya tiene paddingHorizontal 20
+        marginTop: 28,
     },
-    optionsRow: {
-        flexDirection: 'row',
-        width: '100%',
-        gap: 12,
-        marginBottom: 16,
-    },
-    optionCard: {
-        flex: 1,
-        borderRadius: 16,
-        borderWidth: 1,
-        paddingVertical: 20,
-        alignItems: 'center',
-    },
-    iconCircle: {
-        width: 58,
-        height: 58,
-        borderRadius: 29,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 10,
-        elevation: 2,
-    },
-    optionLabel: {
-        fontSize: 14, // Reducido un punto para asegurar que quepa el texto largo
+    sectionTitle: {
         fontFamily: 'Poppins-Bold',
-        marginBottom: 2,
-        textAlign: 'center',
-        paddingHorizontal: 4,
-    },
-    optionSub: {
-        fontSize: 11,
-        fontFamily: 'Poppins-Regular',
-        textAlign: 'center',
-    },
-    logoutModalBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        paddingVertical: 14,
-        borderRadius: 14,
-        borderWidth: 1.5,
-    },
-    logoutModalText: {
-        fontSize: 15,
-        fontFamily: 'Poppins-Bold',
-        marginLeft: 8,
-    },
-    alertContent: {
-        width: '85%',
-        borderRadius: 24,
-        padding: 24,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.25,
-        shadowRadius: 15,
-        elevation: 10,
-    },
-    alertIconContainer: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    alertTitle: {
-        fontSize: 20,
-        fontFamily: 'Poppins-Bold',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    alertMessage: {
         fontSize: 14,
+        marginBottom: 14,
+        letterSpacing: 0.5,
+        alignSelf: 'flex-start',
+    },
+    quickCardsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 14,
+    },
+    quickCard: {
+        flex: 1,
+        borderRadius: 18,
+        padding: 16,
+        alignItems: 'center',
+        borderWidth: 1,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+    },
+    quickIconCircle: {
+        width: 54,
+        height: 54,
+        borderRadius: 27,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    quickCardTitle: {
+        fontSize: 14,
+        fontFamily: 'Poppins-Bold',
+        textAlign: 'center',
+    },
+    quickCardSub: {
+        fontSize: 12,
         fontFamily: 'Poppins-Regular',
         textAlign: 'center',
-        marginBottom: 24,
-        lineHeight: 20,
+        marginTop: 2,
     },
-    alertActions: {
-        flexDirection: 'row',
+    ecoBanner: {
         width: '100%',
-        gap: 12,
-    },
-    alertCancelBtn: {
-        flex: 1,
-        paddingVertical: 14,
-        borderRadius: 14,
+        flexDirection: 'row',
         alignItems: 'center',
+        marginTop: 28,
+        padding: 18,
+        borderRadius: 18,
+        borderWidth: 1,
     },
-    alertCancelText: {
-        fontSize: 15,
-        fontFamily: 'Poppins-SemiBold',
-    },
-    alertConfirmBtn: {
-        flex: 1,
-        paddingVertical: 14,
-        borderRadius: 14,
+    ecoIconBox: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: 'center',
         alignItems: 'center',
+        marginRight: 16,
     },
-    alertConfirmText: {
-        color: '#fff',
+    ecoTextCont: {
+        flex: 1,
+    },
+    ecoTitle: {
         fontSize: 15,
-        fontFamily: 'Poppins-SemiBold',
+        fontFamily: 'Poppins-Bold',
+        marginBottom: 4,
+    },
+    ecoSub: {
+        fontSize: 12,
+        fontFamily: 'Poppins-Regular',
+        lineHeight: 18,
     }
 });
 

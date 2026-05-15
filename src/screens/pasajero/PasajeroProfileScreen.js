@@ -23,9 +23,6 @@ const COMPANIES = [
     'WeWork Costa Rica', 'Concentrix', 'Nestlé Costa Rica'
 ];
 
-const PAYMENT_LABELS = { efectivo: 'Efectivo', sinpe: 'SINPE Móvil', tarjeta: 'Tarjeta' };
-const PAYMENT_ICONS  = { efectivo: 'cash-outline', sinpe: 'phone-portrait-outline', tarjeta: 'card-outline' };
-
 // ── Burbujas y colores por modo ───────────────────────────────────────────────
 const BUBBLES_LIGHT = ['#4F8EF7','#34D399','#F59E0B','#EC4899','#8B5CF6','#06B6D4','#F97316','#10B981'];
 const BUBBLES_DARK  = ['#818CF8','#A78BFA','#C084FC','#F472B6','#38BDF8','#34D399','#FB923C','#FBBF24'];
@@ -209,7 +206,6 @@ const PasajeroProfileScreen = ({ navigation }) => {
 
     const [loading,       setLoading]       = useState(true);
     const [userData,      setUserData]      = useState(null);
-    const [paymentMethod, setPaymentMethod] = useState('');
     const [modalVisible,  setModalVisible]  = useState(false);
     const [updating,      setUpdating]      = useState(false);
     const [editForm,      setEditForm]      = useState({
@@ -260,7 +256,6 @@ const PasajeroProfileScreen = ({ navigation }) => {
             const phone   = await AsyncStorage.getItem('userPhone');
             const photo   = await AsyncStorage.getItem('userPhoto');
             const company = await AsyncStorage.getItem('userCompany');
-            const payment = await AsyncStorage.getItem('paymentMethod');
 
             const local = {
                 name:         name    || '',
@@ -271,7 +266,6 @@ const PasajeroProfileScreen = ({ navigation }) => {
             };
             setUserData(local);
             setEditForm({ ...local });
-            if (payment) setPaymentMethod(payment);
 
             try {
                 const res = await userService.getProfile();
@@ -300,14 +294,6 @@ const PasajeroProfileScreen = ({ navigation }) => {
     };
 
     useEffect(() => { loadProfile(); }, []);
-
-    // Reload payment method immediately when returning from PaymentMethodScreen
-    useEffect(() => {
-        const unsubscribe = navigation.addListener('focus', () => {
-            AsyncStorage.getItem('paymentMethod').then(val => { if (val) setPaymentMethod(val); });
-        });
-        return unsubscribe;
-    }, [navigation]);
 
     const pickImage = async () => {
         StatusBar.setBarStyle('dark-content', true);
@@ -428,8 +414,6 @@ const PasajeroProfileScreen = ({ navigation }) => {
     const initials = userData?.name
         ? userData.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
         : '?';
-    const paymentLabel = PAYMENT_LABELS[paymentMethod] || 'No configurado';
-    const paymentIcon  = PAYMENT_ICONS[paymentMethod]  || 'wallet-outline';
 
     return (
         <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg || '#0A0A18' }]}>
@@ -503,21 +487,6 @@ const PasajeroProfileScreen = ({ navigation }) => {
                     <InfoCard icon="mail-outline"     label="Correo electrónico"  value={userData?.email   || 'No registrado'} theme={theme} />
                     <InfoCard icon="call-outline"     label="Teléfono"            value={userData?.phone   || 'No registrado'} theme={theme} />
                     <InfoCard icon="business-outline" label="Empresa"             value={userData?.company || 'No registrada'} theme={theme} />
-
-                    {/* ── Método de pago ── */}
-                    <SectionHeader title="MÉTODO DE PAGO" theme={theme} />
-                    <TouchableOpacity
-                        onPress={() => navigation.navigate('PaymentMethod')}
-                        activeOpacity={0.8}
-                    >
-                        <InfoCard
-                            icon={paymentIcon}
-                            label="Método favorito"
-                            value={paymentLabel}
-                            theme={theme}
-                            showArrow
-                        />
-                    </TouchableOpacity>
 
                     {/* ── Acciones ── */}
                     <View style={styles.actionsWrapper}>

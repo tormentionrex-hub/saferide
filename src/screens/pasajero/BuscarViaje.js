@@ -3,7 +3,7 @@ import {
     View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
     SafeAreaView, StatusBar, Platform, Dimensions, ScrollView, Modal, Linking,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { getCurrentLocation, reverseGeocode } from '../../services/locationService';
 import api from '../../services/api';
+import { GOOGLE_MAPS_API_KEY } from '../../config.js';
 import LocationPicker from '../../components/LocationPicker';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { darkMapStyle } from '../../utils/mapStyle';
@@ -20,7 +21,37 @@ const { width } = Dimensions.get('window');
 const ACCENT = '#2563EB';
 const RECENT_SEARCHES_KEY = 'buscarViaje_recentSearches';
 
-const BuscarViaje = ({ navigation }) => {
+// ── Decodificar polyline de Google Directions ──
+const decodePolyline = (encoded) => {
+    const points = [];
+    let index = 0, lat = 0, lng = 0;
+    while (index < encoded.length) {
+        let shift = 0, result = 0, byte;
+        do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+        lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+        shift = 0; result = 0;
+        do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+        lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+        points.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
+    }
+    return points;
+};
+
+const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
+    try {
+        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLng}&destination=${destLat},${destLng}&key=${GOOGLE_MAPS_API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.status === 'OK' && data.routes?.length > 0) {
+            return decodePolyline(data.routes[0].overview_polyline.points);
+        }
+    } catch (e) {
+        console.log('[BuscarViaje] Error obteniendo ruta:', e.message);
+    }
+    return null;
+};
+
+const BuscarViaje = ({ navigation, route }) => {
     const { theme } = useDriverTheme();
     const { showAlert, hideAlert } = useCustomAlert();
     const alertTimerRef = useRef(null);
@@ -38,6 +69,7 @@ const BuscarViaje = ({ navigation }) => {
     const [errors, setErrors] = useState({});
     const [recentSearches, setRecentSearches] = useState([]);
     const [showActiveBookingModal, setShowActiveBookingModal] = useState(false);
+    const [routeCoords, setRouteCoords] = useState(null);
 
     const mapRef = useRef(null);
     const [region, setRegion] = useState({
@@ -48,7 +80,42 @@ const BuscarViaje = ({ navigation }) => {
     });
 
     useEffect(() => {
-        loadCurrentLocation();
+        const hasPrefill = route?.params?.prefillOrigin;
+
+        if (hasPrefill) {
+            // ── Ruta frecuente: pre-llenar origen y destino ──
+            const o = route.params.prefillOrigin;
+            setOrigen({ lat: o.lat, lng: o.lng, name: o.name, address: o.address || o.name });
+            setRegion({
+                latitude: o.lat,
+                longitude: o.lng,
+                latitudeDelta: 0.05,
+                longitudeDelta: 0.05,
+            });
+            setLoadingLocation(false);
+
+            if (route.params.prefillDestination) {
+                const d = route.params.prefillDestination;
+                setDestino({ lat: d.lat, lng: d.lng, name: d.name, address: d.address || d.name });
+            }
+
+            // Preguntar al usuario si desea usar su ubicación actual como origen
+            setTimeout(() => {
+                showAlert(
+                    '📍 Punto de salida',
+                    `Tu ruta frecuente sale desde "${o.name}".\n\n¿Deseas mantener este punto de salida o prefieres usar tu ubicación actual? (Esto solo cambiará el campo "DESDE")`,
+                    'info',
+                    'Usar mi ubicación',   // confirmText (botón principal)
+                    null,                   // onClose
+                    'Mantener ruta',        // cancelText (botón secundario)
+                    () => loadCurrentLocation() // onConfirm → reemplaza el origen
+                );
+            }, 600);
+        } else {
+            // ── Flujo normal: detectar ubicación automáticamente ──
+            loadCurrentLocation();
+        }
+
         loadRecentSearches();
     }, []);
 
@@ -99,7 +166,7 @@ const BuscarViaje = ({ navigation }) => {
         } catch (e) { }
     };
 
-    // Ajusta el mapa cuando cambian origen/destino
+    // Ajusta el mapa y carga ruta real cuando cambian origen/destino
     useEffect(() => {
         if (origen && destino) {
             mapRef.current?.fitToCoordinates(
@@ -109,11 +176,27 @@ const BuscarViaje = ({ navigation }) => {
                 ],
                 { edgePadding: { top: 60, right: 60, bottom: 60, left: 60 }, animated: true }
             );
+            // Obtener la ruta real por carretera
+            setRouteCoords(null);
+            fetchRoutePolyline(origen.lat, origen.lng, destino.lat, destino.lng)
+                .then(coords => {
+                    if (coords && coords.length > 0) {
+                        setRouteCoords(coords);
+                        // Re-ajustar el mapa a la ruta real
+                        mapRef.current?.fitToCoordinates(coords, {
+                            edgePadding: { top: 60, right: 60, bottom: 60, left: 60 },
+                            animated: true,
+                        });
+                    }
+                });
         } else if (origen) {
+            setRouteCoords(null);
             mapRef.current?.animateToRegion(
                 { latitude: origen.lat, longitude: origen.lng, latitudeDelta: 0.02, longitudeDelta: 0.02 },
                 500
             );
+        } else {
+            setRouteCoords(null);
         }
     }, [origen, destino]);
 
@@ -331,6 +414,28 @@ const BuscarViaje = ({ navigation }) => {
                             <Marker coordinate={{ latitude: destino.lat, longitude: destino.lng }}>
                                 <Ionicons name="location" size={30} color="#FF5A5F" />
                             </Marker>
+                        )}
+                        {/* Ruta real por carretera (o línea punteada mientras carga) */}
+                        {origen?.lat && origen?.lng && destino?.lat && destino?.lng && (
+                            routeCoords && routeCoords.length > 0 ? (
+                                <Polyline
+                                    coordinates={routeCoords}
+                                    strokeColor={ACCENT}
+                                    strokeWidth={4}
+                                    lineJoin="round"
+                                    lineCap="round"
+                                />
+                            ) : (
+                                <Polyline
+                                    coordinates={[
+                                        { latitude: origen.lat, longitude: origen.lng },
+                                        { latitude: destino.lat, longitude: destino.lng },
+                                    ]}
+                                    strokeColor={ACCENT}
+                                    strokeWidth={2}
+                                    lineDashPattern={[6, 6]}
+                                />
+                            )
                         )}
                     </MapView>
                 </View>
