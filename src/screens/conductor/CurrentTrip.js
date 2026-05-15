@@ -122,7 +122,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
     const [cancellingTrip, setCancellingTrip] = useState(false);
     const routeFetched = useRef(false);
     const prevConfirmedIdsRef = useRef([]);
-
+    const isCancellingRef = useRef(false);
     // ── INTERCEPTAR BOTÓN BACK (hardware Android) ──
     // Redirige siempre a DashboardDriver y reemplaza el stack
     // para que el usuario no pueda volver a CurrentTrip con back.
@@ -148,6 +148,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
     useEffect(() => {
         let intervalId;
         const fetchTripDetails = async () => {
+            if (isCancellingRef.current) return;
             if (!rideId) {
                 setLoading(false);
                 return;
@@ -348,6 +349,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 // onConfirm — user pressed "Confirmar"
                 if (cancellingTrip) return;
                 setCancellingTrip(true);
+                isCancellingRef.current = true;
                 try {
                     // A. Fetch all bookings for this ride
                     const bookingsRes = await api.get(`/bookings/ride/${rideId}`);

@@ -139,6 +139,7 @@ const TripInProgress = ({ route, navigation }) => {
     const bookingId = route?.params?.bookingId;
     const mapRef = useRef(null);
     const currentRegionRef = useRef(null);
+    const isCancellingRef = useRef(false);
 
     const [loading, setLoading] = useState(true);
     const [bookingData, setBookingData] = useState(null);
@@ -237,6 +238,7 @@ const TripInProgress = ({ route, navigation }) => {
         let intervalId;
 
         const fetchTripDetails = async () => {
+            if (isCancellingRef.current) return;
             try {
                 const res = await api.get(`/bookings/${resolvedBookingId}`);
                 if (res.data && res.data.success) {
@@ -383,6 +385,7 @@ const TripInProgress = ({ route, navigation }) => {
                     null,
                     'No, mantener el viaje',
                     async () => {
+                        isCancellingRef.current = true;
                         const bid = resolvedBookingId || bookingData?._id?.toString?.() || bookingData?._id;
                         if (!bid) {
                             showAlert('Error', 'No se encontró la reserva del viaje.', 'error');
