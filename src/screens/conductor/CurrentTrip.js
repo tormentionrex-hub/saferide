@@ -214,10 +214,16 @@ const TripInProgressDriver = ({ route, navigation }) => {
                                     // Reiniciar polling después de mostrar alerta
                                     intervalId = setInterval(fetchTripDetails, 30000);
                                 } else {
-                                    // No quedan pasajeros confirmados → ir a PaymentVerification
+                                    // No quedan pasajeros confirmados → auto-cancelar el viaje y redirigir
+                                    try {
+                                        await api.patch(`/rides/${rideId}/cancel`);
+                                    } catch (err) {
+                                        console.log('No se pudo auto-cancelar el viaje:', err.message);
+                                    }
+
                                     showAlert(
                                         'Reservación cancelada',
-                                        'El pasajero ha cancelado su reservación.',
+                                        'El pasajero ha cancelado su reservación. El viaje ha sido cancelado automáticamente.',
                                         'warning',
                                         'OK',
                                         () => navigation.replace('PaymentVerification', { rideId })
