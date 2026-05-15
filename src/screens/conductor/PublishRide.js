@@ -24,7 +24,7 @@ import SettingsGearButton from '../../components/SettingsGearButton';
 /**
  * Pantalla para que los conductores publiquen un nuevo viaje con geolocalización avanzada.
  */
-const PublishRide = ({ navigation }) => {
+const PublishRide = ({ navigation, route }) => {
     const { theme } = useDriverTheme();
     const si = useScrollIndicator();
 
@@ -32,6 +32,17 @@ const PublishRide = ({ navigation }) => {
     const [origin, setOrigin] = useState(null);
     const [destination, setDestination] = useState(null);
     const [routeInfo, setRouteInfo] = useState(null);
+
+    // Pre-llenar origen/destino desde rutas frecuentes
+    useEffect(() => {
+        const params = route?.params;
+        if (params?.prefillOrigin) {
+            setOrigin(params.prefillOrigin);
+        }
+        if (params?.prefillDestination) {
+            setDestination(params.prefillDestination);
+        }
+    }, []);
 
     const [pickerVisible, setPickerVisible] = useState(false);
     const [pickingFor, setPickingFor] = useState('origin');
