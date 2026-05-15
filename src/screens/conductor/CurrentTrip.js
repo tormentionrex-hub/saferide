@@ -121,6 +121,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
     const [finishingTrip, setFinishingTrip] = useState(false);
     const [cancellingTrip, setCancellingTrip] = useState(false);
     const routeFetched = useRef(false);
+    const prevConfirmedIdsRef = useRef([]);
 
     // ── INTERCEPTAR BOTÓN BACK (hardware Android) ──
     // Redirige siempre a DashboardDriver y reemplaza el stack
@@ -182,9 +183,57 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 const bookingsRes = await api.get(`/bookings/ride/${rideId}`);
                 if (bookingsRes.data?.success) {
                     const allBookings = bookingsRes.data.data || [];
+                    const confirmedBookings = allBookings.filter(b => b.status === 'confirmed');
+                    const confirmedIds = confirmedBookings.map(b => b._id);
+
+                    // Detectar si un booking que antes era confirmed ahora fue cancelado por el pasajero
+                    const prevIds = prevConfirmedIdsRef.current;
+                    if (prevIds.length > 0) {
+                        const cancelledIds = prevIds.filter(id => !confirmedIds.includes(id));
+                        if (cancelledIds.length > 0) {
+                            // Verificar que realmente fue cancelado (no completado u otro estado)
+                            const wasCancelled = cancelledIds.some(id => {
+                                const b = allBookings.find(bk => bk._id === id);
+                                return b && ['cancelled', 'canceled'].includes(b.status);
+                            });
+
+                            if (wasCancelled) {
+                                if (intervalId) clearInterval(intervalId);
+
+                                if (confirmedBookings.length > 0) {
+                                    // Aún hay otros pasajeros confirmados → permanecer en CurrentTrip
+                                    setBookingData(confirmedBookings[0]);
+                                    prevConfirmedIdsRef.current = confirmedIds;
+                                    showAlert(
+                                        'Reservación cancelada',
+                                        'El pasajero ha cancelado su reservación.',
+                                        'warning',
+                                        'OK',
+                                        null
+                                    );
+                                    // Reiniciar polling después de mostrar alerta
+                                    intervalId = setInterval(fetchTripDetails, 30000);
+                                } else {
+                                    // No quedan pasajeros confirmados → ir a PaymentVerification
+                                    showAlert(
+                                        'Reservación cancelada',
+                                        'El pasajero ha cancelado su reservación.',
+                                        'warning',
+                                        'OK',
+                                        () => navigation.replace('PaymentVerification', { rideId })
+                                    );
+                                }
+                                return;
+                            }
+                        }
+                    }
+
+                    // Actualizar ref con los IDs confirmados actuales
+                    prevConfirmedIdsRef.current = confirmedIds;
+
                     // Tomamos el primero confirmado (o cualquiera si no hay confirmado aún)
-                    const confirmed = allBookings.find(b => b.status === 'confirmed') || allBookings[0];
-                    setBookingData(confirmed || null);
+                    const currentBooking = confirmedBookings[0] || allBookings[0];
+                    setBookingData(currentBooking || null);
                 }
             } catch (error) {
                 console.log('Error fetching trip:', error.message);
