@@ -46,8 +46,13 @@ const PaymentVerification = ({ route, navigation }) => {
         try {
             const res = await api.get(`/bookings/ride/${rideId}`);
             if (res.data?.success) {
-                // Filtramos sólo pasajeros confirmados o los que llegaron al final
-                const validBookings = res.data.data.filter(b => b.status === 'confirmed' || b.status === 'completed');
+                // Filtramos pasajeros confirmados, completados o cancelados (para cobrar penalizaciones)
+                const validBookings = res.data.data.filter(b => 
+                    b.status === 'confirmed' || 
+                    b.status === 'completed' || 
+                    b.status === 'cancelled' || 
+                    b.status === 'canceled'
+                );
                 setBookings(validBookings);
                 
                 // Inicializamos los estados que ya vengan de BD

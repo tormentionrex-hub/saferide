@@ -388,12 +388,59 @@ const TripInProgress = ({ route, navigation }) => {
                             showAlert('Error', 'No se encontró la reserva del viaje.', 'error');
                             return;
                         }
+
+                        const isGifted = bookingData?.payment_type === 'gifted' && bookingData?.payment_status === 'waived';
+
                         try {
-                            const res = await api.delete(`/bookings/${bid}`);
-                            if (res.data?.success) {
-                                navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' });
+                            if (isGifted) {
+                                // ── ESCENARIO 1: Viaje regalado ──
+                                // Solo cancelar sin tocar payment_status ni payment_type
+                                const res = await api.patch(`/bookings/${bid}/status`, {
+                                    status: 'cancelled',
+                                });
+
+                                if (res.data?.success) {
+                                    showAlert(
+                                        'Cancelación exitosa',
+                                        'Tu viaje ha sido cancelado correctamente.',
+                                        'success',
+                                        'OK',
+                                        () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })
+                                    );
+                                } else {
+                                    showAlert('Aviso', res.data?.message || 'No se pudo cancelar la reserva.', 'warning');
+                                }
                             } else {
-                                showAlert('Aviso', res.data?.message || 'No se pudo cancelar la reserva.', 'warning');
+                                // ── ESCENARIO 2: Viaje normal con penalización ──
+                                const res = await api.patch(`/bookings/${bid}/status`, {
+                                    status: 'cancelled',
+                                    apply_penalty: true,
+                                });
+
+                                if (res.data?.success) {
+                                    const updatedBooking = res.data.data;
+                                    const penaltyApplied = updatedBooking.charged_amount !== updatedBooking.offered_amount;
+
+                                    if (penaltyApplied) {
+                                        showAlert(
+                                            'Cancelación con penalización',
+                                            `Se te cobrará un monto debido a la cancelación.\nPor favor realiza el pago correspondiente.\n\nMonto a pagar: ₡${updatedBooking.charged_amount}`,
+                                            'warning',
+                                            'OK',
+                                            () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })
+                                        );
+                                    } else {
+                                        showAlert(
+                                            'Cancelación exitosa',
+                                            'Tu viaje ha sido cancelado.',
+                                            'success',
+                                            'OK',
+                                            () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })
+                                        );
+                                    }
+                                } else {
+                                    showAlert('Aviso', res.data?.message || 'No se pudo cancelar la reserva.', 'warning');
+                                }
                             }
                         } catch (e) {
                             const msg = e.response?.data?.message || 'No se pudo cancelar el viaje. Intenta de nuevo.';
