@@ -39,7 +39,7 @@ export default function DashboardConductor({ route, navigation }) {
                         if (meRes.data.success) {
                             const user = meRes.data.data;
                             if (user.name) {
-                                setUserName(user.name.split(' ')[0]);
+                                setUserName(user.name);
                                 await AsyncStorage.setItem('userName', user.name);
                             }
                             if (user.profileImage) {
@@ -51,7 +51,7 @@ export default function DashboardConductor({ route, navigation }) {
                         }
                     } catch (apiErr) {
                         const name = await AsyncStorage.getItem('userName');
-                        if (name) setUserName(name.split(' ')[0]);
+                        if (name) setUserName(name);
 
                         const photo = await AsyncStorage.getItem('userPhoto');
                         if (photo && (photo.startsWith('http') || photo.startsWith('file'))) {
