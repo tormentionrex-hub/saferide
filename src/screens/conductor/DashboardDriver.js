@@ -13,6 +13,7 @@ import {
     Modal,
     Platform,
     Image,
+    RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -21,6 +22,7 @@ import sessionCache from '../../services/sessionCache';
 import api from '../../services/api';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import { rideService } from '../../services/rideService';
 
 export default function DashboardConductor({ route, navigation }) {
     const { theme } = useDriverTheme();
@@ -28,47 +30,98 @@ export default function DashboardConductor({ route, navigation }) {
     const [hasVehicle, setHasVehicle] = useState(null); // null = cargando
     const [showModal, setShowModal] = useState(false);
     const [userPhoto, setUserPhoto] = useState(null);
+    const [frequentRoutes, setFrequentRoutes] = useState([]);
+    const [refreshing, setRefreshing] = useState(false);
     const si = useScrollIndicator();
+
+    const loadData = async () => {
+        try {
+            try {
+                const meRes = await api.get('/auth/me');
+                if (meRes.data.success) {
+                    const user = meRes.data.data;
+                    if (user.name) {
+                        setUserName(user.name);
+                        await AsyncStorage.setItem('userName', user.name);
+                    }
+                    if (user.profileImage) {
+                        setUserPhoto(user.profileImage);
+                        await AsyncStorage.setItem('userPhoto', user.profileImage);
+                    } else {
+                        setUserPhoto(null);
+                    }
+                }
+            } catch (apiErr) {
+                const name = await AsyncStorage.getItem('userName');
+                if (name) setUserName(name);
+
+                const photo = await AsyncStorage.getItem('userPhoto');
+                if (photo && (photo.startsWith('http') || photo.startsWith('file'))) {
+                    setUserPhoto(photo);
+                }
+            }
+
+            // force=true: siempre consultar el API al regresar, nunca usar caché
+            const hasVehicleRes = await sessionCache.getVehicleStatus(true);
+            setHasVehicle(hasVehicleRes);
+
+            // ── Cargar rutas frecuentes del conductor ──
+            try {
+                const driverId = await sessionCache.getDriverId();
+                if (driverId) {
+                    const completedRes = await rideService.getRidesByDriver(driverId, 'completed');
+                    const completedRides = completedRes.data?.filter(
+                        r => r.origin && r.destination
+                    ) || [];
+
+                    const routeMap = {};
+                    completedRides.forEach(ride => {
+                        const key = `${ride.origin.name}|||${ride.destination.name}`;
+                        if (!routeMap[key]) {
+                            routeMap[key] = {
+                                count: 0,
+                                origin: {
+                                    name: ride.origin.name,
+                                    address: ride.origin.address || ride.origin.name,
+                                    lat: ride.origin.coordinates?.lat,
+                                    lng: ride.origin.coordinates?.lng,
+                                },
+                                destination: {
+                                    name: ride.destination.name,
+                                    address: ride.destination.address || ride.destination.name,
+                                    lat: ride.destination.coordinates?.lat,
+                                    lng: ride.destination.coordinates?.lng,
+                                },
+                            };
+                        }
+                        routeMap[key].count += 1;
+                    });
+
+                    const sorted = Object.values(routeMap)
+                        .filter(r => r.count >= 4)
+                        .sort((a, b) => b.count - a.count)
+                        .slice(0, 2);
+                    setFrequentRoutes(sorted);
+                }
+            } catch (e) {
+                console.log('Driver frequent routes error:', e);
+            }
+        } catch (err) {
+            setHasVehicle(false);
+        }
+    };
 
     useFocusEffect(
         useCallback(() => {
-            const loadData = async () => {
-                try {
-                    try {
-                        const meRes = await api.get('/auth/me');
-                        if (meRes.data.success) {
-                            const user = meRes.data.data;
-                            if (user.name) {
-                                setUserName(user.name);
-                                await AsyncStorage.setItem('userName', user.name);
-                            }
-                            if (user.profileImage) {
-                                setUserPhoto(user.profileImage);
-                                await AsyncStorage.setItem('userPhoto', user.profileImage);
-                            } else {
-                                setUserPhoto(null);
-                            }
-                        }
-                    } catch (apiErr) {
-                        const name = await AsyncStorage.getItem('userName');
-                        if (name) setUserName(name);
-
-                        const photo = await AsyncStorage.getItem('userPhoto');
-                        if (photo && (photo.startsWith('http') || photo.startsWith('file'))) {
-                            setUserPhoto(photo);
-                        }
-                    }
-
-                    // force=true: siempre consultar el API al regresar, nunca usar caché
-                    const hasVehicle = await sessionCache.getVehicleStatus(true);
-                    setHasVehicle(hasVehicle);
-                } catch (err) {
-                    setHasVehicle(false);
-                }
-            };
             loadData();
         }, [])
     );
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await loadData();
+        setRefreshing(false);
+    };
 
     return (
         <Animated.View style={{ flex: 1, backgroundColor: theme.bg }}>
@@ -138,7 +191,15 @@ export default function DashboardConductor({ route, navigation }) {
                 </View>
 
                 <View style={{ flex: 1 }}>
-                    <ScrollView contentContainerStyle={styles.scrollContent} {...si.scrollProps}>
+                    <ScrollView 
+                        contentContainerStyle={styles.scrollContent} 
+                        {...si.scrollProps}
+                        showsVerticalScrollIndicator={false}
+                        alwaysBounceVertical={true}
+                        refreshControl={
+                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} colors={[theme.accent]} />
+                        }
+                    >
 
                         {/* Banner de bloqueo: sin vehículo */}
                         {hasVehicle === false && (
@@ -189,6 +250,51 @@ export default function DashboardConductor({ route, navigation }) {
                                 Define tu ruta y comparte los asientos libres de tu coche.
                             </Text>
                         </TouchableOpacity>
+
+                        {/* ── SECCIÓN: Rutas Frecuentes del Conductor ── */}
+                        <View style={styles.frequentSection}>
+                            <Text style={[styles.frequentTitle, { color: theme.textSecondary }]}>Rutas Frecuentes</Text>
+                            
+                            {frequentRoutes.length > 0 && (
+                                <View style={styles.frequentRow}>
+                                    {frequentRoutes.map((rt, idx) => {
+                                        const icons = ['navigate-circle-outline', 'location-outline'];
+                                        const iconColors = [theme.accent || '#2563EB', '#FF5A5F'];
+                                        return (
+                                            <TouchableOpacity
+                                                key={idx}
+                                                style={[
+                                                    styles.frequentCard,
+                                                    { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.divider },
+                                                    !hasVehicle && styles.cardLocked,
+                                                ]}
+                                                onPress={() => {
+                                                    if (hasVehicle) {
+                                                        navigation.navigate('PublishRide', {
+                                                            prefillOrigin: rt.origin,
+                                                            prefillDestination: rt.destination,
+                                                        });
+                                                    } else if (hasVehicle === false) {
+                                                        setShowModal(true);
+                                                    }
+                                                }}
+                                                activeOpacity={0.8}
+                                            >
+                                                <View style={[styles.frequentIconCircle, { backgroundColor: theme.iconCircleBg || 'rgba(37, 99, 235, 0.1)' }]}>
+                                                    <Ionicons name={icons[idx] || 'navigate-outline'} size={24} color={iconColors[idx] || theme.accent} />
+                                                </View>
+                                                <Text style={[styles.frequentCardTitle, { color: theme.text }]} numberOfLines={1}>
+                                                    {rt.destination.name}
+                                                </Text>
+                                                <Text style={[styles.frequentCardSub, { color: theme.textSecondary }]} numberOfLines={1}>
+                                                    {rt.count} {rt.count === 1 ? 'viaje' : 'viajes'}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            )}
+                        </View>
 
                         {/* Fila de Cards Secundarias */}
                         <View style={styles.row}>
@@ -314,6 +420,47 @@ const styles = StyleSheet.create({
     lockSub: { fontSize: 13, fontFamily: 'Poppins-Regular', textAlign: 'center', lineHeight: 19, marginBottom: 8 },
     lockBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 14, marginTop: 4 },
     lockBtnText: { color: '#fff', fontSize: 14, fontFamily: 'Poppins-Bold' },
+    // ── Frequent Routes ──
+    frequentSection: { marginBottom: 16 },
+    frequentTitle: {
+        fontSize: 12,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 10,
+        marginLeft: 4,
+    },
+    frequentRow: { flexDirection: 'row', gap: 12 },
+    frequentCard: {
+        flex: 1,
+        borderRadius: 18,
+        padding: 16,
+        alignItems: 'center',
+        borderWidth: 1,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+    },
+    frequentIconCircle: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    frequentCardTitle: {
+        fontSize: 13,
+        fontFamily: 'Poppins-Bold',
+        textAlign: 'center',
+        marginBottom: 2,
+    },
+    frequentCardSub: {
+        fontSize: 11,
+        fontFamily: 'Poppins-Regular',
+    },
     // ── Modal Styles ──
     backdrop: {
         flex: 1,

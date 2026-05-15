@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
     headerBackBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
     headerTitle: { fontSize: 16, fontFamily: 'Poppins-SemiBold', color: '#191C1E', letterSpacing: -0.2 },
     headerMenuBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
-    scrollContent: { paddingBottom: 30 },
+    scrollContent: { paddingBottom: 160 },
 
     // Mapa
     mapCard: {
