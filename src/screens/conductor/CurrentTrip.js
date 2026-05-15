@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, ScrollView, ActivityIndicator, Image, Linking, Animated, Modal } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, ScrollView, ActivityIndicator, Image, Linking, Animated, Modal, BackHandler } from 'react-native';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
@@ -98,6 +98,7 @@ const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
 import { useLocationTracker } from '../../hooks/useLocationTracker';
 import { useScrollIndicator } from '../../components/ScrollIndicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 
 const TripInProgressDriver = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
@@ -120,6 +121,27 @@ const TripInProgressDriver = ({ route, navigation }) => {
     const [finishingTrip, setFinishingTrip] = useState(false);
     const [cancellingTrip, setCancellingTrip] = useState(false);
     const routeFetched = useRef(false);
+
+    // ── INTERCEPTAR BOTÓN BACK (hardware Android) ──
+    // Redirige siempre a DashboardDriver y reemplaza el stack
+    // para que el usuario no pueda volver a CurrentTrip con back.
+    const navigateToDashboard = useCallback(() => {
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainTabsDriver', params: { screen: 'DashboardDriver' } }],
+        });
+    }, [navigation]);
+
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => {
+                navigateToDashboard();
+                return true; // Consumir el evento: impide el retroceso por defecto
+            };
+            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => subscription.remove();
+        }, [navigateToDashboard])
+    );
 
     // Cargamos tanto el ride como el primer booking confirmado del viaje
     useEffect(() => {
@@ -357,7 +379,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
 
             {/* ── HEADER ── */}
             <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : 44, backgroundColor: theme.bg }]}>
-                <TouchableOpacity style={styles.headerBackBtn} onPress={() => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })}>
+                <TouchableOpacity style={styles.headerBackBtn} onPress={navigateToDashboard}>
                     <Ionicons name="chevron-back" size={26} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Viaje en curso</Text>
