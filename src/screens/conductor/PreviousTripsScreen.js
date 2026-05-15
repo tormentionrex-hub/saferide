@@ -22,6 +22,8 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import { useCustomAlert } from '../../context/CustomAlertContext';
+import api from '../../services/api';
 import { rideService } from '../../services/rideService';
 import sessionCache from '../../services/sessionCache';
 import { darkMapStyle } from '../../utils/mapStyle';
@@ -31,7 +33,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 const { width } = Dimensions.get('window');
 
 // Memoized Trip Item for better performance
-const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact }) => {
+const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handlePaymentToggle }) => {
     const isCancelled = item.status === 'cancelled';
     const statusColor = isCancelled ? '#FF3B30' : '#4CD964';
     const arrivalTime = calculateArrivalTime(item.fecha, item.hora, item.duration_minutes);
@@ -136,37 +138,70 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact }) => 
             {item.passengers?.length > 0 && (
                 <View style={[styles.passengerSection, { borderTopColor: theme.border }]}>
                     <Text style={[styles.passengerLabel, { color: theme.textSecondary }]}>
-                        Pasajeros y Contacto:
+                        Pasajeros, Contacto y Pago:
                     </Text>
                     <View style={styles.passengerFullList}>
-                        {item.passengers.map((p, idx) => (
-                            <View key={idx} style={styles.passengerContactRow}>
-                                <View style={styles.passengerInfoMain}>
-                                    <Image
-                                        source={p.image ? { uri: p.image } : 'https://res.cloudinary.com/do2ccwxm3/image/upload/v1/assets/default-avatar.png'}
-                                        style={styles.avatarLarge}
-                                        contentFit="cover"
-                                    />
-                                    <Text style={[styles.passengerNameText, { color: theme.text }]} numberOfLines={1}>
-                                        {p.name}
-                                    </Text>
+                        {item.passengers.map((p, idx) => {
+                            const isPaid = p.payment_status === 'paid';
+                            const isWaived = p.payment_status === 'waived';
+                            const showPayBtn = item.status === 'completed' && !isPaid && !isWaived;
+                            return (
+                                <View key={idx} style={styles.passengerContactRow}>
+                                    <View style={styles.passengerInfoMain}>
+                                        <Image
+                                            source={p.image ? { uri: p.image } : 'https://res.cloudinary.com/do2ccwxm3/image/upload/v1/assets/default-avatar.png'}
+                                            style={styles.avatarLarge}
+                                            contentFit="cover"
+                                        />
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[styles.passengerNameText, { color: theme.text }]} numberOfLines={1}>
+                                                {p.name}
+                                            </Text>
+                                            {p.charged_amount != null && (
+                                                <Text style={[styles.passengerAmountText, { color: theme.textSecondary }]}>
+                                                    ₡{Number(p.charged_amount).toLocaleString()}
+                                                </Text>
+                                            )}
+                                        </View>
+                                    </View>
+                                    <View style={styles.contactButtons}>
+                                        {/* Badge de pago */}
+                                        {isPaid ? (
+                                            <View style={[styles.paymentBadge, { backgroundColor: '#4CD96420' }]}>
+                                                <Ionicons name="checkmark-circle" size={16} color="#4CD964" />
+                                                <Text style={[styles.paymentBadgeText, { color: '#4CD964' }]}>Pagado</Text>
+                                            </View>
+                                        ) : isWaived ? (
+                                            <View style={[styles.paymentBadge, { backgroundColor: '#FF9F0A20' }]}>
+                                                <Ionicons name="gift-outline" size={16} color="#FF9F0A" />
+                                                <Text style={[styles.paymentBadgeText, { color: '#FF9F0A' }]}>Regalado</Text>
+                                            </View>
+                                        ) : showPayBtn ? (
+                                            <TouchableOpacity
+                                                style={[styles.paymentBadge, { backgroundColor: '#FF3B3020' }]}
+                                                onPress={() => handlePaymentToggle(p.bookingId, p.name)}
+                                                activeOpacity={0.7}
+                                            >
+                                                <Ionicons name="close-circle" size={16} color="#FF3B30" />
+                                                <Text style={[styles.paymentBadgeText, { color: '#FF3B30' }]}>No pagado</Text>
+                                            </TouchableOpacity>
+                                        ) : null}
+                                        <TouchableOpacity 
+                                            style={[styles.contactBtn, { backgroundColor: '#25D366' + '20' }]}
+                                            onPress={() => handleContact('whatsapp', p.phone)}
+                                        >
+                                            <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={[styles.contactBtn, { backgroundColor: theme.accent + '20' }]}
+                                            onPress={() => handleContact('call', p.phone)}
+                                        >
+                                            <Ionicons name="call" size={18} color={theme.accent} />
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
-                                <View style={styles.contactButtons}>
-                                    <TouchableOpacity 
-                                        style={[styles.contactBtn, { backgroundColor: '#25D366' + '20' }]}
-                                        onPress={() => handleContact('whatsapp', p.phone)}
-                                    >
-                                        <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity 
-                                        style={[styles.contactBtn, { backgroundColor: theme.accent + '20' }]}
-                                        onPress={() => handleContact('call', p.phone)}
-                                    >
-                                        <Ionicons name="call" size={18} color={theme.accent} />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        ))}
+                            );
+                        })}
                     </View>
                 </View>
             )}
@@ -176,6 +211,7 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact }) => 
 
 export default function PreviousTripsScreen() {
     const { theme } = useDriverTheme();
+    const { showAlert } = useCustomAlert();
     const [allTrips, setAllTrips] = useState([]);
     const [filteredTrips, setFilteredTrips] = useState([]);
     const [availableMonths, setAvailableMonths] = useState([]);
@@ -211,9 +247,12 @@ export default function PreviousTripsScreen() {
                     const passengers = bookingsRes.data
                         ?.filter(b => b.status === 'confirmed' || b.status === 'completed')
                         ?.map(b => ({
+                            bookingId: b._id,
                             name: b.passenger_id?.name || 'Pasajero',
                             image: b.passenger_id?.profileImage,
-                            phone: b.passenger_id?.phone
+                            phone: b.passenger_id?.phone,
+                            payment_status: b.payment_status || 'pending',
+                            charged_amount: b.charged_amount,
                         }));
                     
                     return { ...trip, passengers };
@@ -306,6 +345,41 @@ export default function PreviousTripsScreen() {
             Linking.openURL(`tel:${cleanPhone}`);
         }
     }, []);
+
+    const handlePaymentToggle = useCallback((bookingId, passengerName) => {
+        showAlert(
+            '💰 Confirmar pago',
+            `¿Confirmas que ${passengerName} ya realizó el pago?\n\nEsta acción no se puede deshacer.`,
+            'info',
+            'Sí, confirmar pago',
+            null,
+            'Cancelar',
+            async () => {
+                try {
+                    await api.patch(`/bookings/${bookingId}/payment`, {
+                        payment_status: 'paid',
+                    });
+                    // Actualizar localmente sin recargar todo
+                    setAllTrips(prev => prev.map(trip => ({
+                        ...trip,
+                        passengers: trip.passengers?.map(p =>
+                            p.bookingId === bookingId
+                                ? { ...p, payment_status: 'paid' }
+                                : p
+                        ),
+                    })));
+                    showAlert(
+                        'Pago confirmado',
+                        `El pago de ${passengerName} ha sido registrado correctamente.`,
+                        'success'
+                    );
+                } catch (error) {
+                    const msg = error.response?.data?.message || 'Error al actualizar el pago';
+                    showAlert('Error', msg, 'error');
+                }
+            }
+        );
+    }, [showAlert]);
 
     const renderMonthSelector = () => {
         let selectedLabel = '';
@@ -431,9 +505,10 @@ export default function PreviousTripsScreen() {
             item={item} 
             theme={theme} 
             calculateArrivalTime={calculateArrivalTime} 
-            handleContact={handleContact} 
+            handleContact={handleContact}
+            handlePaymentToggle={handlePaymentToggle}
         />
-    ), [theme, calculateArrivalTime, handleContact]);
+    ), [theme, calculateArrivalTime, handleContact, handlePaymentToggle]);
 
     const renderFooter = () => {
         if (displayLimit >= filteredTrips.length) return <View style={{ height: 40 }} />;
@@ -767,6 +842,23 @@ const styles = StyleSheet.create({
     contactButtons: {
         flexDirection: 'row',
         gap: 8,
+    },
+    paymentBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 12,
+    },
+    paymentBadgeText: {
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    passengerAmountText: {
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 1,
     },
     contactBtn: {
         width: 36,

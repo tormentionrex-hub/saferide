@@ -109,9 +109,10 @@ const PaymentVerification = ({ route, navigation }) => {
             
             await Promise.all(updatePromises);
             
-            // Navegamos al rating usando el primer pasajero (como hace la app actualmente)
-            // Idealmente deberías redirigir a un RateMultiplePassengers, pero mantenemos la lógica actual:
-            const primaryPassenger = bookings[0];
+            // Navegamos al rating usando el primer pasajero activo (no cancelado)
+            const primaryPassenger = bookings.find(b => 
+                b.status !== 'cancelled' && b.status !== 'canceled'
+            ) || bookings[0];
             navigation.replace('RatePassenger', {
                 rideId,
                 passengerId: primaryPassenger?.passenger_id?._id?.toString() || primaryPassenger?.passenger_id?.toString(),
