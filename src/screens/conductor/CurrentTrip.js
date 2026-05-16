@@ -123,6 +123,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
     const routeFetched = useRef(false);
     const prevConfirmedIdsRef = useRef([]);
     const isCancellingRef = useRef(false);
+    const intervalIdRef = useRef(null);
     // ── INTERCEPTAR BOTÓN BACK (hardware Android) ──
     // Redirige siempre a DashboardDriver y reemplaza el stack
     // para que el usuario no pueda volver a CurrentTrip con back.
@@ -146,7 +147,6 @@ const TripInProgressDriver = ({ route, navigation }) => {
 
     // Cargamos tanto el ride como el primer booking confirmado del viaje
     useEffect(() => {
-        let intervalId;
         const fetchTripDetails = async () => {
             if (isCancellingRef.current) return;
             if (!rideId) {
@@ -201,7 +201,14 @@ const TripInProgressDriver = ({ route, navigation }) => {
                             });
 
                             if (wasCancelled) {
-                                if (intervalId) clearInterval(intervalId);
+                                if (intervalIdRef.current) {
+                                    clearInterval(intervalIdRef.current);
+                                    intervalIdRef.current = null;
+                                }
+
+                                // El conductor inició la cancelación: no disparar
+                                // los alerts/navegación de "pasajero canceló".
+                                if (isCancellingRef.current) return;
 
                                 if (confirmedBookings.length > 0) {
                                     // Aún hay otros pasajeros confirmados → permanecer en CurrentTrip
@@ -215,7 +222,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
                                         null
                                     );
                                     // Reiniciar polling después de mostrar alerta
-                                    intervalId = setInterval(fetchTripDetails, 30000);
+                                    intervalIdRef.current = setInterval(fetchTripDetails, 30000);
                                 } else {
                                     // No quedan pasajeros confirmados → auto-cancelar el viaje y redirigir
                                     try {
@@ -252,9 +259,12 @@ const TripInProgressDriver = ({ route, navigation }) => {
         };
 
         fetchTripDetails();
-        intervalId = setInterval(fetchTripDetails, 30000);
+        intervalIdRef.current = setInterval(fetchTripDetails, 30000);
         return () => {
-            if (intervalId) clearInterval(intervalId);
+            if (intervalIdRef.current) {
+                clearInterval(intervalIdRef.current);
+                intervalIdRef.current = null;
+            }
         };
     }, [rideId]);
 
@@ -352,6 +362,12 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 if (cancellingTrip) return;
                 setCancellingTrip(true);
                 isCancellingRef.current = true;
+                // Detener el polling de inmediato para evitar alerts cruzadas
+                // que sobreescriban la confirmación "Viaje cancelado".
+                if (intervalIdRef.current) {
+                    clearInterval(intervalIdRef.current);
+                    intervalIdRef.current = null;
+                }
                 try {
                     // A. Fetch all bookings for this ride
                     const bookingsRes = await api.get(`/bookings/ride/${rideId}`);
@@ -382,7 +398,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
                         'El viaje ha sido cancelado exitosamente y los pasajeros han sido notificados.',
                         'success',
                         'Ir al inicio',
-                        () => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })
+                        navigateToDashboard
                     );
                 } catch (error) {
                     const serverMsg = error.response?.data?.message || error.message || 'Error desconocido';
