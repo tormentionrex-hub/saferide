@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
     View, Text, TouchableOpacity, StyleSheet, Image,
     SafeAreaView, StatusBar, Platform, Dimensions, ScrollView, ActivityIndicator
@@ -18,15 +18,22 @@ const SearchRide = ({ navigation }) => {
     const [userPhoto, setUserPhoto] = useState(null);
     const [userName, setUserName] = useState('');
     const [isChecking, setIsChecking] = useState(true);
+    // Refs de control de ciclo de vida y anti-solapamiento (se reinician al entrar a foco)
+    const mountedRef = useRef(true);
+    const isFetchingRef = useRef(false);
 
     useFocusEffect(
         useCallback(() => {
             let intervalId;
+            // Al obtener foco: reactivar montaje y limpiar bandera (cubre el caso re-foco)
+            mountedRef.current = true;
+            isFetchingRef.current = false;
 
             const loadUserData = async () => {
                 const photo = await AsyncStorage.getItem('userPhoto');
                 const name = await AsyncStorage.getItem('userName');
-                
+                if (!mountedRef.current) return;
+
                 if (photo && (photo.startsWith('http') || photo.startsWith('file'))) {
                     setUserPhoto(photo);
                 } else {
@@ -36,10 +43,15 @@ const SearchRide = ({ navigation }) => {
             };
 
             const checkActiveTrip = async () => {
+                // Anti-solapamiento: si la cascada anterior aún corre, saltamos este tick
+                if (isFetchingRef.current) return;
+                isFetchingRef.current = true;
                 try {
                     // Consultamos reservas confirmadas del usuario
                     const resConfirmed = await api.get('/bookings?status=confirmed&limit=5');
+                    if (!mountedRef.current) return;
                     const resPending = await api.get('/bookings?status=pending&limit=5');
+                    if (!mountedRef.current) return;
 
                     let activeBooking = null;
 
@@ -49,7 +61,7 @@ const SearchRide = ({ navigation }) => {
                             const rideStatus = b.ride_id?.status;
                             return rideStatus === 'in progress' || rideStatus === 'scheduled';
                         });
-                        
+
                         if (activeBooking) {
                             const rideStatus = activeBooking.ride_id?.status;
                             const dest = rideStatus === 'in progress' ? 'TripInProgress' : 'WaitingForTheStart';
@@ -68,19 +80,24 @@ const SearchRide = ({ navigation }) => {
                     }
 
                     // Si no hay viajes activos confirmados ni en proceso y termina, quitamos el loader
-                    setIsChecking(false);
+                    if (mountedRef.current) setIsChecking(false);
                 } catch (error) {
                     console.log('Error silenciado verificando viajes activos en SearchRide:', error?.message);
-                    setIsChecking(false);
+                    if (mountedRef.current) setIsChecking(false);
+                } finally {
+                    // Liberar bandera siempre, sobrevive a excepciones
+                    isFetchingRef.current = false;
                 }
             };
 
             loadUserData();
             checkActiveTrip();
             // Poll cada 15 segundos (balance entre rapidez y ahorro de batería/datos)
-            intervalId = setInterval(checkActiveTrip, 15000); 
+            intervalId = setInterval(checkActiveTrip, 15000);
 
             return () => {
+                mountedRef.current = false;
+                isFetchingRef.current = false;
                 if (intervalId) clearInterval(intervalId);
             };
         }, [navigation])

@@ -40,6 +40,7 @@ const RatingScreen = ({
     badgeColor,
     onSuccess,
     onSkip,
+    disabled = false,
 }) => {
     const { theme } = useDriverTheme();
 
@@ -155,6 +156,7 @@ const RatingScreen = ({
                     value={rating}
                     onChange={handleRatingChange}
                     emptyColor={theme.border}
+                    disabled={disabled}
                 />
                 <Animated.View style={{ 
                     opacity: labelAnim,
@@ -175,6 +177,7 @@ const RatingScreen = ({
                         color: theme.text,
                         borderColor: isFocused ? accentColor : theme.border,
                         borderWidth: isFocused ? 2 : 1,
+                        opacity: disabled ? 0.5 : 1,
                     }]}
                     placeholder="Deja un comentario (opcional)"
                     placeholderTextColor={theme.textSecondary}
@@ -182,6 +185,7 @@ const RatingScreen = ({
                     numberOfLines={4}
                     maxLength={500}
                     value={comment}
+                    editable={!disabled}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
                     onChangeText={(text) => {
@@ -206,10 +210,10 @@ const RatingScreen = ({
                 <TouchableOpacity
                     style={[
                         styles.submitBtn,
-                        { backgroundColor: accentColor, opacity: rating === 0 ? 0.5 : 1 },
+                        { backgroundColor: accentColor, opacity: (rating === 0 || disabled) ? 0.5 : 1 },
                     ]}
                     onPress={handleSubmit}
-                    disabled={loading || rating === 0}
+                    disabled={loading || rating === 0 || disabled}
                     activeOpacity={0.8}
                 >
                     {loading ? (

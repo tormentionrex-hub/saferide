@@ -336,18 +336,32 @@ const WaitingForTheStart = ({ route, navigation }) => {
     const [showRideCancelledModal, setShowRideCancelledModal] = useState(false);
     const rideStartedBookingId = useRef(null);
     const isCancellingRef = useRef(false);
+    // Refs de control de ciclo de vida y anti-solapamiento
+    const mountedRef = useRef(true);
+    const isFetchingRef = useRef(false);
+
+    // Cleanup global de montaje: bloquea setStates tardíos tras desmontar
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => { mountedRef.current = false; };
+    }, []);
 
     useEffect(() => {
         if (!bookingId) return;
 
         const checkStatus = async () => {
+            // Anti-solapamiento: si las requests anteriores aún corren, saltamos este tick
+            if (isFetchingRef.current) return;
+            isFetchingRef.current = true;
             try {
                 const bookingRes = await api.get(`/bookings/${bookingId}`);
+                if (!mountedRef.current) return;
                 if (bookingRes.data.success) {
                     const bookingStatus = bookingRes.data.data.status;
 
                     if ((bookingStatus === 'cancelled' || bookingStatus === 'deny') && !isCancellingRef.current) {
                         clearInterval(intervalRef.current);
+                        intervalRef.current = null;
                         showAlert(
                             'Viaje Cancelado',
                             'El conductor ha cancelado el viaje.',
@@ -360,6 +374,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
 
                     const rideId = bookingRes.data.data.ride_id._id || bookingRes.data.data.ride_id;
                     const rideRes = await api.get(`/rides/${rideId}`);
+                    if (!mountedRef.current) return;
 
                     if (rideRes.data.success) {
                         const rideObj = rideRes.data.data;
@@ -372,22 +387,25 @@ const WaitingForTheStart = ({ route, navigation }) => {
                             const driverId = rideObj.driver_id._id || rideObj.driver_id;
                             try {
                                 const vRes = await api.get(`/vehicles/driver/${driverId}`);
+                                if (!mountedRef.current) return;
                                 if (vRes.data.success && vRes.data.data) {
                                     const vInfo = Array.isArray(vRes.data.data) ? vRes.data.data[0] : vRes.data.data;
                                     setVehicleData(vInfo || {});
                                 }
                             } catch (e) {
                                 console.log('Sin detalles de vehículo asociados.');
-                                setVehicleData({}); // Para que no intente buscar repetidamente
+                                if (mountedRef.current) setVehicleData({}); // Para que no intente buscar repetidamente
                             }
                         }
 
                         if (rideStatus === 'in progress') {
                             clearInterval(intervalRef.current);
+                            intervalRef.current = null;
                             rideStartedBookingId.current = bookingId;
                             setShowRideStartedModal(true);
                         } else if (rideStatus === 'cancelled' || rideStatus === 'completed') {
                             clearInterval(intervalRef.current);
+                            intervalRef.current = null;
                             showAlert(
                                 'Viaje Cancelado',
                                 'El conductor ha cancelado el viaje.',
@@ -400,13 +418,22 @@ const WaitingForTheStart = ({ route, navigation }) => {
                 }
             } catch (e) {
                 console.error('Error al verificar estado del viaje:', e);
+            } finally {
+                // Liberar bandera siempre, sobrevive a excepciones
+                isFetchingRef.current = false;
             }
         };
 
         checkStatus();
         intervalRef.current = setInterval(checkStatus, 5000);
 
-        return () => clearInterval(intervalRef.current);
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+            isFetchingRef.current = false;
+        };
     }, [bookingId]);
 
     const handleCancel = () => {

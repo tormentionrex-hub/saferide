@@ -118,7 +118,7 @@ const PaymentVerification = ({ route, navigation }) => {
             await Promise.all(updatePromises);
             
             // Navegamos al rating usando el primer pasajero activo (no cancelado)
-            const primaryPassenger = bookings.find(b => 
+            const primaryPassenger = bookings.find(b =>
                 b.status !== 'cancelled' && b.status !== 'canceled'
             ) || bookings[0];
             navigation.replace('RatePassenger', {
@@ -126,6 +126,8 @@ const PaymentVerification = ({ route, navigation }) => {
                 passengerId: primaryPassenger?.passenger_id?._id?.toString() || primaryPassenger?.passenger_id?.toString(),
                 passengerName: primaryPassenger?.passenger_id?.name,
                 passengerImage: primaryPassenger?.passenger_id?.profileImage,
+                bookingId: primaryPassenger?._id?.toString?.() || primaryPassenger?._id,
+                bookingStatus: primaryPassenger?.status,
             });
 
         } catch (error) {
