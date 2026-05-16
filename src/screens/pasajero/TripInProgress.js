@@ -153,6 +153,7 @@ const TripInProgress = ({ route, navigation }) => {
     // Datos del pasajero (para el avatar del header)
     const [passengerPhoto, setPassengerPhoto] = useState(null);
     const [passengerName, setPassengerName] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState('');
 
     const [vehicleData, setVehicleData] = useState(null);
     const [vehicleLoading, setVehicleLoading] = useState(false);
@@ -171,6 +172,9 @@ const TripInProgress = ({ route, navigation }) => {
             // 1. Cargar lo que hay en cache primero (respuesta inmediata)
             const cachedPhoto = await AsyncStorage.getItem('userPhoto');
             const cachedName  = await AsyncStorage.getItem('userName');
+            const cachedMethod = await AsyncStorage.getItem('paymentMethod');
+            if (cachedMethod) setPaymentMethod(cachedMethod);
+
             if (cachedPhoto && (cachedPhoto.startsWith('http') || cachedPhoto.startsWith('file'))) {
                 setPassengerPhoto(cachedPhoto);
             }
@@ -248,12 +252,22 @@ const TripInProgress = ({ route, navigation }) => {
                     if (data.status === 'cancelled' || data.status === 'completed' || data.status === 'deny') {
                         if (intervalId) clearInterval(intervalId);
                         if (data.status === 'completed') {
-                            navigation.replace('RateDriver', {
-                                rideId: data.ride_id?._id?.toString() || data.ride_id?.toString(),
-                                driverId: data.ride_id?.driver_id?._id?.toString() || data.ride_id?.driver_id?.toString(),
-                                driverName: data.ride_id?.driver_id?.name,
-                                driverImage: data.ride_id?.driver_id?.profileImage,
-                            });
+                            if (paymentMethod === 'paypal' && data.payment_status !== 'paid') {
+                                navigation.replace('PayPalCheckout', {
+                                    bookingId: data._id,
+                                    rideId: data.ride_id?._id?.toString() || data.ride_id?.toString(),
+                                    driverId: data.ride_id?.driver_id?._id?.toString() || data.ride_id?.driver_id?.toString(),
+                                    driverName: data.ride_id?.driver_id?.name,
+                                    driverImage: data.ride_id?.driver_id?.profileImage,
+                                });
+                            } else {
+                                navigation.replace('RateDriver', {
+                                    rideId: data.ride_id?._id?.toString() || data.ride_id?.toString(),
+                                    driverId: data.ride_id?.driver_id?._id?.toString() || data.ride_id?.driver_id?.toString(),
+                                    driverName: data.ride_id?.driver_id?.name,
+                                    driverImage: data.ride_id?.driver_id?.profileImage,
+                                });
+                            }
                         } else {
                             showAlert(
                                 'Viaje Cancelado',
@@ -277,7 +291,7 @@ const TripInProgress = ({ route, navigation }) => {
         fetchTripDetails();
         intervalId = setInterval(fetchTripDetails, 30000);
         return () => { if (intervalId) clearInterval(intervalId); };
-    }, [resolvedBookingId, navigation]);
+    }, [resolvedBookingId, navigation, paymentMethod]);
 
     // Polling de ubicación del conductor + carga de ruta
     useEffect(() => {

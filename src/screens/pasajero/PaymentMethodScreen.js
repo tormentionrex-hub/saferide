@@ -26,6 +26,12 @@ const METHODS = [
         label:    'Tarjeta',
         subtitle: 'Débito o crédito, pago digital seguro',
     },
+    {
+        id:       'paypal',
+        icon:     'logo-paypal',
+        label:    'PayPal',
+        subtitle: 'Pago rápido y seguro vía plataforma',
+    },
 ];
 
 const PaymentMethodScreen = ({ navigation }) => {
