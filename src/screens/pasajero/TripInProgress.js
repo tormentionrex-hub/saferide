@@ -140,6 +140,7 @@ const TripInProgress = ({ route, navigation }) => {
     const mapRef = useRef(null);
     const currentRegionRef = useRef(null);
     const isCancellingRef = useRef(false);
+    const intervalIdRef = useRef(null);
 
     const [loading, setLoading] = useState(true);
     const [bookingData, setBookingData] = useState(null);
@@ -239,7 +240,6 @@ const TripInProgress = ({ route, navigation }) => {
     // Polling principal de datos del booking
     useEffect(() => {
         if (!resolvedBookingId) return;
-        let intervalId;
 
         const fetchTripDetails = async () => {
             if (isCancellingRef.current) return;
@@ -250,7 +250,13 @@ const TripInProgress = ({ route, navigation }) => {
                     const data = res.data.data;
                     setBookingData(data);
                     if (data.status === 'cancelled' || data.status === 'completed' || data.status === 'deny') {
-                        if (intervalId) clearInterval(intervalId);
+                        if (intervalIdRef.current) {
+                            clearInterval(intervalIdRef.current);
+                            intervalIdRef.current = null;
+                        }
+                        // El pasajero inició la cancelación: no disparar el alert
+                        // "El conductor ha cancelado el viaje".
+                        if (data.status !== 'completed' && isCancellingRef.current) return;
                         if (data.status === 'completed') {
                             if (paymentMethod === 'paypal' && data.payment_status !== 'paid') {
                                 navigation.replace('PayPalCheckout', {
@@ -289,8 +295,13 @@ const TripInProgress = ({ route, navigation }) => {
         };
 
         fetchTripDetails();
-        intervalId = setInterval(fetchTripDetails, 30000);
-        return () => { if (intervalId) clearInterval(intervalId); };
+        intervalIdRef.current = setInterval(fetchTripDetails, 30000);
+        return () => {
+            if (intervalIdRef.current) {
+                clearInterval(intervalIdRef.current);
+                intervalIdRef.current = null;
+            }
+        };
     }, [resolvedBookingId, navigation, paymentMethod]);
 
     // Polling de ubicación del conductor + carga de ruta
@@ -401,6 +412,12 @@ const TripInProgress = ({ route, navigation }) => {
                     'No, mantener el viaje',
                     async () => {
                         isCancellingRef.current = true;
+                        // Detener el polling de inmediato para evitar el alert
+                        // cruzado "El conductor ha cancelado el viaje".
+                        if (intervalIdRef.current) {
+                            clearInterval(intervalIdRef.current);
+                            intervalIdRef.current = null;
+                        }
                         const bid = resolvedBookingId || bookingData?._id?.toString?.() || bookingData?._id;
                         if (!bid) {
                             showAlert('Error', 'No se encontró la reserva del viaje.', 'error');
