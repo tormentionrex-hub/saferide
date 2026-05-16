@@ -141,6 +141,12 @@ const TripInProgress = ({ route, navigation }) => {
     const currentRegionRef = useRef(null);
     const isCancellingRef = useRef(false);
     const intervalIdRef = useRef(null);
+    // Refs de control de ciclo de vida y anti-solapamiento
+    const mountedRef = useRef(true);
+    const findIntervalRef = useRef(null);
+    const findFetchingRef = useRef(false);
+    const tripFetchingRef = useRef(false);
+    const locationFetchingRef = useRef(false);
 
     const [loading, setLoading] = useState(true);
     const [bookingData, setBookingData] = useState(null);
@@ -200,13 +206,22 @@ const TripInProgress = ({ route, navigation }) => {
         loadPassenger();
     }, []);
 
+    // Cleanup global de montaje: bloquea setStates tardíos tras desmontar
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => { mountedRef.current = false; };
+    }, []);
+
     // Si no hay bookingId en params, buscamos el booking activo del usuario
     useEffect(() => {
-        let findInterval;
         if (!bookingId) {
             const findActiveBooking = async () => {
+                // Anti-solapamiento: si la request anterior aún corre, saltamos este tick
+                if (findFetchingRef.current) return;
+                findFetchingRef.current = true;
                 try {
                     const res = await api.get('/bookings?status=confirmed&limit=5');
+                    if (!mountedRef.current) return;
                     if (res.data?.success) {
                         const bookings = res.data.data || [];
                         const active = bookings.find(b => {
@@ -216,7 +231,10 @@ const TripInProgress = ({ route, navigation }) => {
                         if (active) {
                             setResolvedBookingId(active._id);
                             setNoActiveTrip(false);
-                            if (findInterval) clearInterval(findInterval);
+                            if (findIntervalRef.current) {
+                                clearInterval(findIntervalRef.current);
+                                findIntervalRef.current = null;
+                            }
                         } else {
                             setNoActiveTrip(true);
                             setLoading(false);
@@ -227,14 +245,24 @@ const TripInProgress = ({ route, navigation }) => {
                     }
                 } catch (err) {
                     console.log('Error buscando booking activo:', err?.message);
+                    if (!mountedRef.current) return;
                     setNoActiveTrip(true);
                     setLoading(false);
+                } finally {
+                    // Liberar siempre, aunque haya lanzado: el siguiente tick podrá correr
+                    findFetchingRef.current = false;
                 }
             };
             findActiveBooking();
-            findInterval = setInterval(findActiveBooking, 10000);
+            findIntervalRef.current = setInterval(findActiveBooking, 10000);
         }
-        return () => { if (findInterval) clearInterval(findInterval); };
+        return () => {
+            if (findIntervalRef.current) {
+                clearInterval(findIntervalRef.current);
+                findIntervalRef.current = null;
+            }
+            findFetchingRef.current = false;
+        };
     }, []);
 
     // Polling principal de datos del booking
@@ -243,9 +271,13 @@ const TripInProgress = ({ route, navigation }) => {
 
         const fetchTripDetails = async () => {
             if (isCancellingRef.current) return;
+            // Anti-solapamiento: si la request anterior sigue activa, saltamos este tick
+            if (tripFetchingRef.current) return;
+            tripFetchingRef.current = true;
             try {
                 const res = await api.get(`/bookings/${resolvedBookingId}`);
                 if (isCancellingRef.current) return; // BLOQUEO TARDÍO
+                if (!mountedRef.current) return;
                 if (res.data && res.data.success) {
                     const data = res.data.data;
                     setBookingData(data);
@@ -290,7 +322,9 @@ const TripInProgress = ({ route, navigation }) => {
             } catch (error) {
                 console.log('Error silenciado haciendo polling a trip details:', error?.message);
             } finally {
-                setLoading(false);
+                // Liberar la bandera siempre, sobreviviendo a excepciones
+                tripFetchingRef.current = false;
+                if (mountedRef.current) setLoading(false);
             }
         };
 
@@ -301,6 +335,7 @@ const TripInProgress = ({ route, navigation }) => {
                 clearInterval(intervalIdRef.current);
                 intervalIdRef.current = null;
             }
+            tripFetchingRef.current = false;
         };
     }, [resolvedBookingId, navigation, paymentMethod]);
 
@@ -311,8 +346,12 @@ const TripInProgress = ({ route, navigation }) => {
         const rideId = bookingData.ride_id._id || bookingData.ride_id;
 
         const fetchDriverLocation = async () => {
+            // Anti-solapamiento: si una consulta de ubicación sigue en vuelo, saltamos este tick
+            if (locationFetchingRef.current) return;
+            locationFetchingRef.current = true;
             try {
                 const res = await api.get(`/location/${rideId}/driver`);
+                if (!mountedRef.current) return;
                 if (res.data?.success && res.data.location?.lat) {
                     setDriverLocation({
                         latitude: res.data.location.lat,
@@ -321,6 +360,8 @@ const TripInProgress = ({ route, navigation }) => {
                 }
             } catch (error) {
                 // silenciado
+            } finally {
+                locationFetchingRef.current = false;
             }
         };
 
@@ -346,7 +387,10 @@ const TripInProgress = ({ route, navigation }) => {
             });
         }
 
-        return () => { if (locationInterval) clearInterval(locationInterval); };
+        return () => {
+            if (locationInterval) clearInterval(locationInterval);
+            locationFetchingRef.current = false;
+        };
     }, [bookingData]);
 
     useEffect(() => {

@@ -242,13 +242,26 @@ const ScreenSaver = ({ route, navigation }) => {
     const [modalType, setModalType] = useState('scheduled'); // 'scheduled' or 'in-progress'
     const isCancellingRef = useRef(false);
     const intervalRef = useRef(null);
+    // Refs de control de ciclo de vida y anti-solapamiento
+    const mountedRef = useRef(true);
+    const isFetchingRef = useRef(false);
+
+    // Cleanup global de montaje: bloquea setStates tardíos tras desmontar
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => { mountedRef.current = false; };
+    }, []);
 
     useEffect(() => {
         if (!bookingId) return;
 
         const checkStatus = async () => {
+            // Anti-solapamiento: si la cascada anterior sigue activa, saltamos este tick
+            if (isFetchingRef.current) return;
+            isFetchingRef.current = true;
             try {
                 const res = await api.get(`/bookings/${bookingId}`);
+                if (!mountedRef.current) return;
                 if (res.data.success) {
                     const newStatus = res.data.data.status;
 
@@ -261,7 +274,9 @@ const ScreenSaver = ({ route, navigation }) => {
                                 const rideStatus = rideRes.data?.data?.status;
                                 if (rideStatus === 'in progress' || rideStatus === 'completed') {
                                     clearInterval(intervalRef.current);
+                                    intervalRef.current = null;
                                     try { await api.delete(`/bookings/${bookingId}`); } catch (err) {}
+                                    if (!mountedRef.current) return;
                                     setStatus('deny');
                                     setShowRejectionModal(true);
                                     return;
@@ -277,17 +292,21 @@ const ScreenSaver = ({ route, navigation }) => {
                         setStatus(newStatus);
                         if (newStatus === 'deny') {
                             clearInterval(intervalRef.current);
+                            intervalRef.current = null;
                             setShowRejectionModal(true);
                         } else if (newStatus === 'cancelled' && !isCancellingRef.current) {
                             clearInterval(intervalRef.current);
+                            intervalRef.current = null;
                             setShowRejectionModal(true); // Reutilizamos RejectionModal para informar cancelación externa
                         } else if (newStatus === 'confirmed') {
                             clearInterval(intervalRef.current);
+                            intervalRef.current = null;
                             try {
                                 const rideId = res.data.data.ride_id._id || res.data.data.ride_id;
                                 const rideRes = await api.get(`/rides/${rideId}`);
+                                if (!mountedRef.current) return;
                                 const rideStatus = rideRes.data.data.status;
-                                
+
                                 if (rideStatus === 'scheduled') {
                                     setModalType('scheduled');
                                     setShowScheduledModal(true);
@@ -297,6 +316,7 @@ const ScreenSaver = ({ route, navigation }) => {
                                 }
                             } catch (error) {
                                 console.error('Error getting ride status:', error);
+                                if (!mountedRef.current) return;
                                 navigation.navigate('WaitingForTheStart', { bookingId });
                             }
                         }
@@ -304,20 +324,23 @@ const ScreenSaver = ({ route, navigation }) => {
                         // AUTO CANCEL OUTDATED PENDING
                         const lastUpdate = res.data.data.updatedAt || res.data.data.createdAt || res.data.data.timestamp;
                         const timeDiff = Date.now() - new Date(lastUpdate).getTime();
-                        
+
                         if (lastUpdate && timeDiff > 2 * 60 * 1000) {
                             clearInterval(intervalRef.current);
+                            intervalRef.current = null;
                             try {
                                 // Borramos el booking para que el usuario pueda intentar de nuevo
                                 await api.delete(`/bookings/${bookingId}`);
                             } catch (err) {
                                 console.error('Error deleting timed out booking:', err);
                             }
+                            if (!mountedRef.current) return;
                             setStatus('timeout');
                             setShowTimeoutModal(true);
                         }
                     } else if (newStatus === 'confirmed' || newStatus === 'deny' || newStatus === 'cancelled') {
                         clearInterval(intervalRef.current);
+                        intervalRef.current = null;
                         setStatus(newStatus);
                         if (newStatus === 'deny') setShowRejectionModal(true);
                     } else {
@@ -326,13 +349,22 @@ const ScreenSaver = ({ route, navigation }) => {
                 }
             } catch (e) {
                 console.error('Error al verificar estado del booking:', e);
+            } finally {
+                // Liberar bandera siempre, sobrevive a excepciones
+                isFetchingRef.current = false;
             }
         };
 
         checkStatus();
         intervalRef.current = setInterval(checkStatus, 12000); // Aumentado de 5s a 12s para evitar error 429
 
-        return () => clearInterval(intervalRef.current);
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+            isFetchingRef.current = false;
+        };
     }, [bookingId]);
 
     const getContent = () => {
