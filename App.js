@@ -36,6 +36,7 @@ import ListOfDrivers from './src/screens/pasajero/ListOfDrivers';
 import PasajeroProfileScreen from './src/screens/pasajero/PasajeroProfileScreen';
 import CustomizeApp from './src/screens/pasajero/CustomizeApp';
 import PaymentMethodScreen from './src/screens/pasajero/PaymentMethodScreen';
+import PayPalCheckoutScreen from './src/screens/pasajero/PayPalCheckoutScreen';
 import RideDetail from './src/screens/pasajero/RideDetail';
 import ScreenSaver from './src/screens/pasajero/ScreenSaver';
 import WaitingForTheStart from './src/screens/pasajero/WaitingForTheStart';
@@ -219,6 +220,12 @@ export default function App() {
               name="PaymentMethod"
               component={PaymentMethodScreen}
               options={{ headerShown: false, animation: 'slide_from_right' }}
+            />
+
+            <Stack.Screen
+              name="PayPalCheckout"
+              component={PayPalCheckoutScreen}
+              options={{ headerShown: false, animation: 'slide_from_bottom' }}
             />
 
             <Stack.Screen
