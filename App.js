@@ -37,9 +37,11 @@ import PasajeroProfileScreen from './src/screens/pasajero/PasajeroProfileScreen'
 import CustomizeApp from './src/screens/pasajero/CustomizeApp';
 import PaymentMethodScreen from './src/screens/pasajero/PaymentMethodScreen';
 import PayPalCheckoutScreen from './src/screens/pasajero/PayPalCheckoutScreen';
+import PendingPayment from './src/screens/pasajero/PendingPayment';
 import RideDetail from './src/screens/pasajero/RideDetail';
 import ScreenSaver from './src/screens/pasajero/ScreenSaver';
 import WaitingForTheStart from './src/screens/pasajero/WaitingForTheStart';
+import WaitingPaymentConfirmation from './src/screens/pasajero/WaitingPaymentConfirmation';
 import ListOfRequests from './src/screens/conductor/ListOfRequests';
 import TripInProgress from './src/screens/pasajero/TripInProgress';
 import CurrentTrip from './src/screens/conductor/CurrentTrip';
@@ -229,6 +231,12 @@ export default function App() {
             />
 
             <Stack.Screen
+              name="PendingPayment"
+              component={PendingPayment}
+              options={{ headerShown: false, animation: 'slide_from_right' }}
+            />
+
+            <Stack.Screen
               name="RideDetail"
               component={RideDetail}
               options={{
@@ -250,6 +258,15 @@ export default function App() {
               options={{
                 headerShown: false,
                 animation: 'slide_from_bottom'
+              }}
+            />
+            <Stack.Screen
+              name="WaitingPaymentConfirmation"
+              component={WaitingPaymentConfirmation}
+              options={{
+                headerShown: false,
+                animation: 'fade',
+                gestureEnabled: false,
               }}
             />
             <Stack.Screen

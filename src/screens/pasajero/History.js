@@ -48,6 +48,148 @@ const getShortMonthNameES = (dt) => {
     return MONTHS_SHORT_ES[dt.month - 1] || '---';
 };
 
+// Tarjeta de urgencia para pagos pendientes
+const PendingPaymentCard = memo(({ item, theme, navigation }) => {
+    const ride = item.ride_id;
+    if (!ride) return null;
+    const amount = Number(item.charged_amount) || 0;
+    const driverName = ride.driver_id?.name || 'Conductor';
+    const originName = ride.origin?.name || 'Origen';
+    const destName = ride.destination?.name || 'Destino';
+    const dateObj = ride.fecha ? DateTime.fromISO(ride.fecha) : null;
+    const dateLabel = dateObj && dateObj.isValid
+        ? `${dateObj.day} ${getShortMonthNameES(dateObj)} ${dateObj.year}`
+        : 'Fecha no disponible';
+
+    return (
+        <View style={pendingStyles.card}>
+            <View style={pendingStyles.topRow}>
+                <View style={pendingStyles.iconCircle}>
+                    <Ionicons name="alert-circle" size={26} color="#fff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                    <Text style={pendingStyles.badge}>COBRO PENDIENTE</Text>
+                    <Text style={pendingStyles.title} numberOfLines={1}>
+                        Tienes un pago sin completar
+                    </Text>
+                </View>
+                <Text style={pendingStyles.amount}>₡{Number(amount).toLocaleString('es-CR')}</Text>
+            </View>
+
+            <View style={pendingStyles.body}>
+                <View style={pendingStyles.row}>
+                    <Ionicons name="person-outline" size={14} color="#7A0F1A" />
+                    <Text style={pendingStyles.rowText} numberOfLines={1}>{driverName}</Text>
+                </View>
+                <View style={pendingStyles.row}>
+                    <Ionicons name="calendar-outline" size={14} color="#7A0F1A" />
+                    <Text style={pendingStyles.rowText} numberOfLines={1}>{dateLabel}</Text>
+                </View>
+                <View style={pendingStyles.routeMini}>
+                    <View style={pendingStyles.routePoint}>
+                        <View style={[pendingStyles.dot, { backgroundColor: '#7A0F1A' }]} />
+                        <Text style={pendingStyles.routeText} numberOfLines={1}>{originName}</Text>
+                    </View>
+                    <View style={pendingStyles.routeLine} />
+                    <View style={pendingStyles.routePoint}>
+                        <Ionicons name="location" size={12} color="#7A0F1A" />
+                        <Text style={pendingStyles.routeText} numberOfLines={1}>{destName}</Text>
+                    </View>
+                </View>
+            </View>
+
+            <TouchableOpacity
+                style={pendingStyles.payBtn}
+                activeOpacity={0.85}
+                onPress={() => navigation.navigate('PendingPayment', { bookingId: item._id })}
+            >
+                <Ionicons name="card" size={18} color="#fff" />
+                <Text style={pendingStyles.payBtnText}>Pagar viaje</Text>
+                <Ionicons name="arrow-forward" size={18} color="#fff" />
+            </TouchableOpacity>
+        </View>
+    );
+});
+
+const pendingStyles = StyleSheet.create({
+    card: {
+        backgroundColor: '#FFF5F5',
+        borderRadius: 22,
+        borderWidth: 1.5,
+        borderColor: '#FF3B30',
+        padding: 16,
+        marginBottom: 18,
+        shadowColor: '#FF3B30',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.22,
+        shadowRadius: 14,
+        elevation: 6,
+    },
+    topRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+    iconCircle: {
+        width: 44, height: 44, borderRadius: 22,
+        backgroundColor: '#FF3B30',
+        justifyContent: 'center', alignItems: 'center',
+        shadowColor: '#FF3B30',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.45,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    badge: {
+        fontSize: 10,
+        fontFamily: 'Poppins-Bold',
+        color: '#FF3B30',
+        letterSpacing: 1.2,
+        marginBottom: 2,
+    },
+    title: {
+        fontSize: 14,
+        fontFamily: 'Poppins-Bold',
+        color: '#7A0F1A',
+    },
+    amount: {
+        fontSize: 18,
+        fontFamily: 'Poppins-Bold',
+        color: '#FF3B30',
+    },
+    body: { gap: 8, paddingHorizontal: 4, marginBottom: 14 },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    rowText: { fontSize: 13, fontFamily: 'Poppins-SemiBold', color: '#7A0F1A', flex: 1 },
+    routeMini: {
+        marginTop: 6,
+        paddingTop: 10,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: '#FFC5C0',
+    },
+    routePoint: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    dot: { width: 8, height: 8, borderRadius: 4 },
+    routeLine: { width: 1.5, height: 10, backgroundColor: '#FFC5C0', marginLeft: 3.5, marginVertical: 2 },
+    routeText: { fontSize: 12, fontFamily: 'Poppins-SemiBold', color: '#7A0F1A', flex: 1 },
+    payBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        backgroundColor: '#FF3B30',
+        paddingVertical: 14,
+        borderRadius: 14,
+        shadowColor: '#FF3B30',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+        elevation: 4,
+    },
+    payBtnText: {
+        flex: 1,
+        textAlign: 'center',
+        fontSize: 15,
+        fontFamily: 'Poppins-Bold',
+        color: '#fff',
+        letterSpacing: 0.3,
+    },
+});
+
 // Memoized History Item for better performance
 const HistoryItem = memo(({ item, theme, calculateArrivalTime, handleContact }) => {
     const ride = item.ride_id;
@@ -447,13 +589,44 @@ const History = ({ navigation }) => {
     };
 
     const renderItem = useCallback(({ item }) => (
-        <HistoryItem 
-            item={item} 
-            theme={theme} 
+        <HistoryItem
+            item={item}
+            theme={theme}
             calculateArrivalTime={calculateArrivalTime}
             handleContact={handleContact}
         />
     ), [theme, calculateArrivalTime, handleContact]);
+
+    const pendingPayments = allHistory.filter(b =>
+        b.status === 'completed' &&
+        b.payment_status === 'pending' &&
+        Number(b.charged_amount) > 0
+    );
+
+    const renderListHeader = () => {
+        if (pendingPayments.length === 0) return null;
+        return (
+            <View style={{ marginBottom: 6 }}>
+                <View style={styles.pendingHeader}>
+                    <Ionicons name="warning" size={16} color="#FF3B30" />
+                    <Text style={styles.pendingHeaderText}>
+                        {pendingPayments.length === 1
+                            ? 'Tienes 1 pago pendiente'
+                            : `Tienes ${pendingPayments.length} pagos pendientes`}
+                    </Text>
+                </View>
+                {pendingPayments.map(b => (
+                    <PendingPaymentCard
+                        key={`pending-${b._id}`}
+                        item={b}
+                        theme={theme}
+                        navigation={navigation}
+                    />
+                ))}
+                <View style={styles.pendingDivider} />
+            </View>
+        );
+    };
 
     return (
         <View style={[styles.container, { backgroundColor: theme.bg }]}>
@@ -483,6 +656,7 @@ const History = ({ navigation }) => {
                         initialNumToRender={3}
                         maxToRenderPerBatch={3}
                         windowSize={5}
+                        ListHeaderComponent={renderListHeader}
                         ListFooterComponent={renderFooter}
                         ListEmptyComponent={() => {
                                 const isFiltered = !!selectedMonth;
@@ -585,6 +759,26 @@ const styles = StyleSheet.create({
     emptyContainer: { marginTop: 80, alignItems: 'center', paddingHorizontal: 40, gap: 12 },
     emptyTitle: { fontSize: 18, fontWeight: '700', textAlign: 'center' },
     emptyText: { fontSize: 14, textAlign: 'center', lineHeight: 22 },
+    pendingHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 10,
+        paddingHorizontal: 4,
+    },
+    pendingHeaderText: {
+        fontSize: 12,
+        fontFamily: 'Poppins-Bold',
+        color: '#FF3B30',
+        letterSpacing: 0.8,
+        textTransform: 'uppercase',
+    },
+    pendingDivider: {
+        height: 1,
+        backgroundColor: 'rgba(255,59,48,0.18)',
+        marginVertical: 6,
+        marginBottom: 14,
+    },
 });
 
 export default History;

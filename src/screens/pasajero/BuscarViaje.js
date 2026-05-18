@@ -246,6 +246,26 @@ const BuscarViaje = ({ navigation, route }) => {
             if (bookingsRes.data?.success && bookingsRes.data?.data) {
                 const bookings = bookingsRes.data.data;
 
+                // 0. Cobro pendiente → prioridad máxima, debe pagar antes de cualquier acción
+                const unpaidBooking = bookings.find(b =>
+                    b.status === 'completed' &&
+                    b.payment_status === 'pending' &&
+                    Number(b.charged_amount) > 0
+                );
+                if (unpaidBooking) {
+                    setLoading(false);
+                    showAlert(
+                        'Tienes un cobro pendiente',
+                        `Para buscar nuevos viajes primero debes pagar el viaje pendiente por ₡${Number(unpaidBooking.charged_amount).toLocaleString('es-CR')}.`,
+                        'warning',
+                        'Pagar ahora',
+                        null,
+                        'Cancelar',
+                        () => navigation.navigate('PendingPayment', { bookingId: unpaidBooking._id })
+                    );
+                    return;
+                }
+
                 // 1. Booking confirmed → máxima prioridad (ignorar las demás validaciones)
                 const confirmedBooking = bookings.find(b => b.status === 'confirmed');
                 if (confirmedBooking) {
