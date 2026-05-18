@@ -168,6 +168,11 @@ const Metrics = ({ navigation }) => {
         return () => task.cancel();
     }, [fetchMetrics]));
 
+    const chartData = useMemo(
+        () => ({ labels: stats.labels, datasets: [{ data: stats.dataKm }] }),
+        [stats.labels, stats.dataKm]
+    );
+
     const chartConfig = useMemo(() => ({
         backgroundColor: theme.surface,
         backgroundGradientFrom: theme.surface,
@@ -215,7 +220,7 @@ const Metrics = ({ navigation }) => {
                         <View style={[styles.chartContainer, { backgroundColor: theme.surface, borderColor: theme.divider }]}>
                             <Text style={[styles.chartHeaderTitle, { color: theme.text }]}>Kilómetros por mes</Text>
                             <LineChart
-                                data={{ labels: stats.labels, datasets: [{ data: stats.dataKm }] }}
+                                data={chartData}
                                 width={screenWidth - 70}
                                 height={180}
                                 chartConfig={chartConfig}
@@ -229,27 +234,12 @@ const Metrics = ({ navigation }) => {
                             <View style={[styles.chartContainer, { backgroundColor: theme.surface, borderColor: theme.divider }]}>
                                 <Text style={[styles.chartHeaderTitle, { color: theme.text, marginBottom: 15 }]}>Historial Mensual</Text>
                                 {monthlyDetails.map((item, index) => (
-                                    <View
+                                    <MonthRow
                                         key={item.key}
-                                        style={[
-                                            styles.monthRow,
-                                            {
-                                                borderBottomColor: theme.divider,
-                                                borderBottomWidth: index === monthlyDetails.length - 1 ? 0 : StyleSheet.hairlineWidth,
-                                            },
-                                        ]}
-                                    >
-                                        <View style={styles.monthLeft}>
-                                            <View style={[styles.monthIconBg, { backgroundColor: theme.surfaceVariant }]}>
-                                                <Ionicons name="calendar-outline" size={20} color={theme.accent} />
-                                            </View>
-                                            <Text style={[styles.monthName, { color: theme.text }]}>{item.name}</Text>
-                                        </View>
-                                        <View style={styles.monthRight}>
-                                            <Text style={[styles.monthStatLabel, { color: theme.textSecondary }]}>{item.rides} Viajes • {item.co2} kg CO₂</Text>
-                                            <Text style={[styles.monthStatKm, { color: theme.text }]}>{item.km} km</Text>
-                                        </View>
-                                    </View>
+                                        item={item}
+                                        theme={theme}
+                                        isLast={index === monthlyDetails.length - 1}
+                                    />
                                 ))}
                             </View>
                         )}
@@ -262,12 +252,37 @@ const Metrics = ({ navigation }) => {
 };
 
 // Componente pequeño para las tarjetas superiores
-const StatCard = ({ label, value, theme }) => (
+const StatCard = React.memo(({ label, value, theme }) => (
     <View style={[styles.statBox, { backgroundColor: theme.surfaceVariant }]}>
         <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{label}</Text>
         <Text style={[styles.statValue, { color: theme.text }]}>{value}</Text>
     </View>
-);
+));
+
+// Fila del historial mensual, aislada para evitar re-renders de toda la lista
+// cuando solo cambia el estado del padre (scroll, theme, etc.).
+const MonthRow = React.memo(({ item, theme, isLast }) => (
+    <View
+        style={[
+            styles.monthRow,
+            {
+                borderBottomColor: theme.divider,
+                borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+            },
+        ]}
+    >
+        <View style={styles.monthLeft}>
+            <View style={[styles.monthIconBg, { backgroundColor: theme.surfaceVariant }]}>
+                <Ionicons name="calendar-outline" size={20} color={theme.accent} />
+            </View>
+            <Text style={[styles.monthName, { color: theme.text }]}>{item.name}</Text>
+        </View>
+        <View style={styles.monthRight}>
+            <Text style={[styles.monthStatLabel, { color: theme.textSecondary }]}>{item.rides} Viajes • {item.co2} kg CO₂</Text>
+            <Text style={[styles.monthStatKm, { color: theme.text }]}>{item.km} km</Text>
+        </View>
+    </View>
+));
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1 },
