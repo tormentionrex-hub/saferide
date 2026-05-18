@@ -10,6 +10,13 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
 import { darkMapStyle } from '../../utils/mapStyle';
 import { Image } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const PAYMENT_OPTIONS = [
+    { id: 'efectivo', label: 'Efectivo', icon: 'cash-outline' },
+    { id: 'tarjeta',  label: 'Tarjeta',  icon: 'card-outline' },
+    { id: 'paypal',   label: 'PayPal',   icon: 'logo-paypal' },
+];
 
 const { width, height } = Dimensions.get('window');
 
@@ -22,6 +29,15 @@ const RideDetail = ({ route, navigation }) => {
 
     const mapRef = useRef(null);
     const [offeredAmount, setOfferedAmount] = useState('0');
+    const [paymentMethod, setPaymentMethod] = useState('efectivo');
+
+    useEffect(() => {
+        AsyncStorage.getItem('paymentMethod').then(val => {
+            if (val && PAYMENT_OPTIONS.some(o => o.id === val)) {
+                setPaymentMethod(val);
+            }
+        });
+    }, []);
 
     // Extraemos las coordenadas de origen y destino
     const origin = ride.origin;
@@ -85,6 +101,25 @@ const RideDetail = ({ route, navigation }) => {
                 const passengerId = meRes.data.data._id;
                 const bookingsRes = await api.get(`/bookings/passenger/${passengerId}`);
                 if (bookingsRes.data.success) {
+                    // --- BLOQUEO POR COBRO PENDIENTE ---
+                    const unpaidBooking = bookingsRes.data.data.find(b =>
+                        b.status === 'completed' &&
+                        b.payment_status === 'pending' &&
+                        Number(b.charged_amount) > 0
+                    );
+                    if (unpaidBooking) {
+                        showAlert(
+                            'Tienes un cobro pendiente',
+                            `Para unirte a nuevos viajes primero debes pagar el viaje pendiente por ₡${Number(unpaidBooking.charged_amount).toLocaleString('es-CR')}.`,
+                            'warning',
+                            'Pagar ahora',
+                            null,
+                            'Cancelar',
+                            () => navigation.navigate('PendingPayment', { bookingId: unpaidBooking._id })
+                        );
+                        return;
+                    }
+
                     const activeBooking = bookingsRes.data.data.find(b =>
                         b.status === 'pending' || b.status === 'confirmed'
                     );
@@ -117,6 +152,8 @@ const RideDetail = ({ route, navigation }) => {
 
             const parsedAmount = parseInt(offeredAmount, 10);
             const safeAmount = isNaN(parsedAmount) || parsedAmount < 0 ? 0 : parsedAmount;
+
+            await AsyncStorage.setItem('paymentMethod', paymentMethod);
 
             const response = await api.post('/bookings', {
                 ride_id: ride._id,
@@ -269,6 +306,44 @@ const RideDetail = ({ route, navigation }) => {
                         </Text>
                     </View>
 
+                    {/* Selector de Método de Pago */}
+                    <View style={styles.paymentSection}>
+                        <Text style={[styles.offerLabel, { color: theme.textSecondary }]}>MÉTODO DE PAGO</Text>
+                        <View style={styles.paymentRow}>
+                            {PAYMENT_OPTIONS.map(opt => {
+                                const isSelected = paymentMethod === opt.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={opt.id}
+                                        style={[
+                                            styles.paymentChip,
+                                            {
+                                                backgroundColor: isSelected ? theme.accent : theme.surfaceVariant,
+                                                borderColor: isSelected ? theme.accent : theme.border,
+                                            },
+                                        ]}
+                                        onPress={() => setPaymentMethod(opt.id)}
+                                        activeOpacity={0.85}
+                                    >
+                                        <Ionicons
+                                            name={opt.icon}
+                                            size={18}
+                                            color={isSelected ? '#fff' : theme.accent}
+                                        />
+                                        <Text
+                                            style={[
+                                                styles.paymentChipText,
+                                                { color: isSelected ? '#fff' : theme.text },
+                                            ]}
+                                        >
+                                            {opt.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </View>
+
                     {/* Botón de Acción Principal */}
                     <TouchableOpacity
                         style={[styles.bookBtn, { backgroundColor: theme.accent }]}
@@ -372,6 +447,20 @@ const styles = StyleSheet.create({
     offerCurrency: { fontSize: 18, fontWeight: '800' },
     offerInput: { flex: 1, fontSize: 18, fontWeight: '700', paddingVertical: Platform.OS === 'ios' ? 12 : 8 },
     offerHint: { fontSize: 11, marginTop: 6, fontStyle: 'italic' },
+    paymentSection: { marginBottom: 15 },
+    paymentRow: { flexDirection: 'row', gap: 8 },
+    paymentChip: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 10,
+        paddingHorizontal: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+    },
+    paymentChipText: { fontSize: 12, fontFamily: 'Poppins-SemiBold' },
     bookBtn: { paddingVertical: 15, borderRadius: 14, alignItems: 'center', justifyContent: 'center', elevation: 5 },
     bookBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15, letterSpacing: 0.5 }
 });

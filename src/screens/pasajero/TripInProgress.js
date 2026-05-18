@@ -290,20 +290,37 @@ const TripInProgress = ({ route, navigation }) => {
                         // "El conductor ha cancelado el viaje".
                         if (data.status !== 'completed' && isCancellingRef.current) return;
                         if (data.status === 'completed') {
-                            if (paymentMethod === 'paypal' && data.payment_status !== 'paid') {
+                            const rideIdStr = data.ride_id?._id?.toString() || data.ride_id?.toString();
+                            const driverIdStr = data.ride_id?.driver_id?._id?.toString() || data.ride_id?.driver_id?.toString();
+                            const driverNameStr = data.ride_id?.driver_id?.name;
+                            const driverImageStr = data.ride_id?.driver_id?.profileImage;
+
+                            if (data.payment_status === 'paid') {
+                                // Ya está pagado (PayPal previo o conductor lo marcó)
+                                navigation.replace('RateDriver', {
+                                    rideId: rideIdStr,
+                                    driverId: driverIdStr,
+                                    driverName: driverNameStr,
+                                    driverImage: driverImageStr,
+                                    paidConfirmed: true,
+                                });
+                            } else if (paymentMethod === 'paypal') {
                                 navigation.replace('PayPalCheckout', {
                                     bookingId: data._id,
-                                    rideId: data.ride_id?._id?.toString() || data.ride_id?.toString(),
-                                    driverId: data.ride_id?.driver_id?._id?.toString() || data.ride_id?.driver_id?.toString(),
-                                    driverName: data.ride_id?.driver_id?.name,
-                                    driverImage: data.ride_id?.driver_id?.profileImage,
+                                    rideId: rideIdStr,
+                                    driverId: driverIdStr,
+                                    driverName: driverNameStr,
+                                    driverImage: driverImageStr,
                                 });
                             } else {
-                                navigation.replace('RateDriver', {
-                                    rideId: data.ride_id?._id?.toString() || data.ride_id?.toString(),
-                                    driverId: data.ride_id?.driver_id?._id?.toString() || data.ride_id?.driver_id?.toString(),
-                                    driverName: data.ride_id?.driver_id?.name,
-                                    driverImage: data.ride_id?.driver_id?.profileImage,
+                                navigation.replace('WaitingPaymentConfirmation', {
+                                    bookingId: data._id,
+                                    rideId: rideIdStr,
+                                    driverId: driverIdStr,
+                                    driverName: driverNameStr,
+                                    driverImage: driverImageStr,
+                                    paymentMethod,
+                                    chargedAmount: data.charged_amount ?? null,
                                 });
                             }
                         } else {
@@ -329,7 +346,7 @@ const TripInProgress = ({ route, navigation }) => {
         };
 
         fetchTripDetails();
-        intervalIdRef.current = setInterval(fetchTripDetails, 30000);
+        intervalIdRef.current = setInterval(fetchTripDetails, 4000);
         return () => {
             if (intervalIdRef.current) {
                 clearInterval(intervalIdRef.current);

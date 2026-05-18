@@ -23,9 +23,13 @@ import api from '../../services/api';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import { rideService } from '../../services/rideService';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { usePaidNotices } from '../../hooks/usePaidNotices';
+import PaidNoticeBanner from '../../components/PaidNoticeBanner';
 
 export default function DashboardConductor({ route, navigation }) {
     const { theme } = useDriverTheme();
+    const insets = useSafeAreaInsets();
     const [userName, setUserName] = useState('Conductor');
     const [hasVehicle, setHasVehicle] = useState(null); // null = cargando
     const [showModal, setShowModal] = useState(false);
@@ -33,6 +37,8 @@ export default function DashboardConductor({ route, navigation }) {
     const [frequentRoutes, setFrequentRoutes] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
     const si = useScrollIndicator();
+    const { notices, dismissNotice } = usePaidNotices(true);
+    const currentNotice = notices[0] || null;
 
     const loadData = async () => {
         try {
@@ -127,6 +133,17 @@ export default function DashboardConductor({ route, navigation }) {
         <Animated.View style={{ flex: 1, backgroundColor: theme.bg }}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+
+                {/* Aviso flotante: pasajero pagó cuota pendiente */}
+                {currentNotice && (
+                    <PaidNoticeBanner
+                        key={currentNotice.bookingId}
+                        notice={currentNotice}
+                        onDismiss={dismissNotice}
+                        topInset={insets.top}
+                    />
+                )}
+
 
                 {/* ── MODAL ACCESO BLOQUEADO ── */}
                 <Modal visible={showModal} transparent animationType="fade" statusBarTranslucent>
