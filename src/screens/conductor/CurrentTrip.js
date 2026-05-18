@@ -99,6 +99,7 @@ import { useLocationTracker } from '../../hooks/useLocationTracker';
 import { useScrollIndicator } from '../../components/ScrollIndicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import BottomNavigationBarAlt from '../../components/BottomNavigationDriver';
 
 const TripInProgressDriver = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
@@ -614,7 +615,14 @@ const TripInProgressDriver = ({ route, navigation }) => {
             </ScrollView>
 
             {/* ── BOTONES FINALIZAR / CANCELAR ── */}
-            <View style={[styles.bottomBtnContainer, { paddingBottom: (insets.bottom > 0 ? insets.bottom : 20) + 12, backgroundColor: theme.bg }]}>
+            <View style={[
+                styles.bottomBtnContainer,
+                {
+                    bottom: 70 + (insets.bottom > 0 ? insets.bottom : 14),
+                    paddingBottom: 12,
+                    backgroundColor: theme.bg,
+                }
+            ]}>
                 <TouchableOpacity style={styles.finalizeBtn} onPress={handleFinalizeTrip} activeOpacity={0.85}>
                     <MaterialCommunityIcons name="logout" size={18} color="#fff" style={{ marginRight: 8 }} />
                     <Text style={styles.finalizeBtnText}>Finalizar viaje</Text>
@@ -635,6 +643,9 @@ const TripInProgressDriver = ({ route, navigation }) => {
                     )}
                 </TouchableOpacity>
             </View>
+
+            {/* ── BARRA DE NAVEGACIÓN INFERIOR ── */}
+            <BottomNavigationBarAlt navigation={navigation} activeTab="Rutas" />
 
             <FinalizeTripModal
                 visible={finishModalVisible}
@@ -657,7 +668,7 @@ const styles = StyleSheet.create({
     headerBackBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
     headerTitle: { fontSize: 16, fontFamily: 'Poppins-SemiBold', color: '#191C1E', letterSpacing: -0.2 },
     headerMenuBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
-    scrollContent: { paddingBottom: 160 },
+    scrollContent: { paddingBottom: 260 },
 
     // Mapa
     mapCard: {

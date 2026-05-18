@@ -241,27 +241,55 @@ const BuscarViaje = ({ navigation, route }) => {
 
         setLoading(true);
         try {
-            // Verificar si el usuario ya tiene un viaje activo
+            // Verificaciones previas antes de buscar viajes (en orden de prioridad)
             const bookingsRes = await api.get('/bookings');
             if (bookingsRes.data?.success && bookingsRes.data?.data) {
-                const activeBooking = bookingsRes.data.data.find(
-                    b => b.status === 'pending' || b.status === 'confirmed'
-                );
-                if (activeBooking) {
-                    if (activeBooking.status === 'confirmed') {
-                        setLoading(false);
-                        setShowActiveBookingModal(true);
-                        return;
-                    }
-                    const lastUpdate = activeBooking.updatedAt || activeBooking.createdAt;
+                const bookings = bookingsRes.data.data;
+
+                // 1. Booking confirmed → máxima prioridad (ignorar las demás validaciones)
+                const confirmedBooking = bookings.find(b => b.status === 'confirmed');
+                if (confirmedBooking) {
+                    setLoading(false);
+                    showAlert(
+                        'Viaje en curso',
+                        'Ya estás abordo en otro viaje.',
+                        'warning',
+                        'OK'
+                    );
+                    return;
+                }
+
+                // 2. Booking pending
+                const pendingBooking = bookings.find(b => b.status === 'pending');
+                if (pendingBooking) {
+                    // Auto-eliminar pending obsoleto (>3 min) para no bloquear al usuario
+                    const lastUpdate = pendingBooking.updatedAt || pendingBooking.createdAt;
                     const timeDiff = Date.now() - new Date(lastUpdate).getTime();
                     if (lastUpdate && timeDiff > 3 * 60 * 1000) {
-                        try { await api.delete(`/bookings/${activeBooking._id}`); } catch (e) { }
+                        try { await api.delete(`/bookings/${pendingBooking._id}`); } catch (e) { }
                     } else {
                         setLoading(false);
-                        setShowActiveBookingModal(true);
+                        showAlert(
+                            'Solicitud pendiente',
+                            'Ya has solicitado unirte a un viaje.',
+                            'warning',
+                            'OK'
+                        );
                         return;
                     }
+                }
+
+                // 3. payment_status pendiente (paid y waived son válidos)
+                const paymentPendingBooking = bookings.find(b => b.payment_status === 'pending');
+                if (paymentPendingBooking) {
+                    setLoading(false);
+                    showAlert(
+                        'Cobro pendiente',
+                        'Tienes un cobro pendiente. Por favor realiza el pago correspondiente o comunícate con el chofer.',
+                        'warning',
+                        'OK'
+                    );
+                    return;
                 }
             }
 
