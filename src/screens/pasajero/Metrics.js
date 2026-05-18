@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
     View,
     Text,
@@ -8,7 +8,8 @@ import {
     TouchableOpacity,
     Dimensions,
     ActivityIndicator,
-    RefreshControl
+    RefreshControl,
+    InteractionManager
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +22,13 @@ import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndi
 import SettingsGearButton from '../../components/SettingsGearButton';
 
 const screenWidth = Dimensions.get('window').width;
+
+// Cache a nivel módulo: evita refetcha en cada useFocusEffect cuando el usuario
+// rebota entre tabs. Se invalida con pull-to-refresh o tras 60s.
+const METRICS_CACHE_TTL = 60 * 1000;
+let passengerMetricsCache = { userId: null, stats: null, details: null, ts: 0 };
+// Cache del userId: no cambia durante la sesión, evita un /auth/me por fetch
+let cachedUserId = null;
 
 const Metrics = ({ navigation }) => {
     const { theme } = useDriverTheme(); // El pasajero y conductor usan el mismo context de tema en la app actual
@@ -38,15 +46,34 @@ const Metrics = ({ navigation }) => {
     
     const [monthlyDetails, setMonthlyDetails] = useState([]);
 
-    const fetchMetrics = useCallback(async () => {
+    const fetchMetrics = useCallback(async (forceRefresh = false) => {
         try {
-            const meResponse = await api.get('/auth/me');
-            const userId = meResponse.data.data._id;
+            let userId = cachedUserId;
+            if (!userId) {
+                const meResponse = await api.get('/auth/me');
+                userId = meResponse.data.data._id;
+                cachedUserId = userId;
+            }
 
-            // 1. Peticiones paralelas para ganar velocidad (aquí pedimos bookings en lugar de rides)
+            // Si hay cache fresca para este usuario, salir temprano.
+            if (
+                !forceRefresh &&
+                passengerMetricsCache.userId === userId &&
+                Date.now() - passengerMetricsCache.ts < METRICS_CACHE_TTL
+            ) {
+                setStats(passengerMetricsCache.stats);
+                setMonthlyDetails(passengerMetricsCache.details);
+                setLoading(false);
+                setRefreshing(false);
+                return;
+            }
+
+            // 1. Totales precalculados (Metrics, rol=pasajero) + detalle histórico (bookings)
+            //    Los bookings se siguen necesitando para el gráfico mensual y el listado por mes,
+            //    ya que la colección Metrics solo guarda agregados totales.
             const [mResponse, bResponse] = await Promise.allSettled([
-                api.get(`/metrics/user/${userId}`),
-                api.get(`/bookings/passenger/${userId}?limit=500&status=completed`) // Filtramos directamente desde el backend para no traer cancelados
+                api.get(`/metrics/user/${userId}?role=pasajero`),
+                api.get(`/bookings/passenger/${userId}?limit=200&status=completed`)
             ]);
 
             let metricsData = mResponse.status === 'fulfilled' ? mResponse.value.data.data : null;
@@ -65,21 +92,16 @@ const Metrics = ({ navigation }) => {
             });
 
             const monthlyObj = {};
-            let calcKm = 0;
-            let calcRides = 0;
 
-            // 3. Procesamiento en UN solo loop
+            // 3. Bookings: solo para el desglose mensual (gráfico + historial),
+            //    NO para los totales — esos vienen del endpoint de Metrics.
             allBookings.forEach(booking => {
-                // Verificar que el booking esté completado y que el registro del ride exista y tenga fecha.
                 if (booking.status !== 'completed' || !booking.ride_id || !booking.ride_id.fecha) return;
 
                 const ride = booking.ride_id;
                 const [y, m, d] = ride.fecha.split('-').map(Number);
                 const rDate = new Date(y, m - 1, d);
                 const dist = ride.distance_km || 0;
-
-                calcKm += dist;
-                calcRides += 1;
 
                 // Para la lista histórica
                 const monthKey = `${y}-${m.toString().padStart(2, '0')}`;
@@ -97,15 +119,18 @@ const Metrics = ({ navigation }) => {
                 });
             });
 
-            // 4. Formatear resultados
-            const finalKm = metricsData?.kilometers_driven || calcKm;
-            setStats({
-                kmTotal: finalKm.toLocaleString(undefined, { minimumFractionDigits: 1 }),
-                viajesTotal: (metricsData?.total_rides || calcRides).toString(),
-                co2Total: (metricsData?.carbon_footprint || (calcKm * 0.12 * 0.6)).toFixed(1),
+            // 4. Totales: fuente única es el endpoint de Metrics (rol=pasajero)
+            const km = metricsData?.kilometers_driven ?? 0;
+            const rides = metricsData?.total_rides ?? 0;
+            const co2 = metricsData?.carbon_footprint ?? 0;
+            const newStats = {
+                kmTotal: km.toLocaleString(undefined, { minimumFractionDigits: 1 }),
+                viajesTotal: rides.toString(),
+                co2Total: co2.toFixed(1),
                 dataKm: last6Months.map(m => m.km),
                 labels: last6Months.map(m => m.label)
-            });
+            };
+            setStats(newStats);
 
             // 5. Historial detallado
             const monthNames = { '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril', '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto', '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre' };
@@ -120,6 +145,14 @@ const Metrics = ({ navigation }) => {
                 }));
 
             setMonthlyDetails(sortedDetails);
+
+            // Guardar en cache para los próximos focuses dentro del TTL
+            passengerMetricsCache = {
+                userId,
+                stats: newStats,
+                details: sortedDetails,
+                ts: Date.now(),
+            };
         } catch (error) {
             console.error("Error metrics:", error);
         } finally {
@@ -128,9 +161,14 @@ const Metrics = ({ navigation }) => {
         }
     }, []);
 
-    useFocusEffect(useCallback(() => { fetchMetrics(); }, [fetchMetrics]));
+    useFocusEffect(useCallback(() => {
+        // Diferir el fetch hasta después de las animaciones de transición del tab
+        // para que el cambio de pantalla se sienta más fluido.
+        const task = InteractionManager.runAfterInteractions(() => fetchMetrics());
+        return () => task.cancel();
+    }, [fetchMetrics]));
 
-    const chartConfig = {
+    const chartConfig = useMemo(() => ({
         backgroundColor: theme.surface,
         backgroundGradientFrom: theme.surface,
         backgroundGradientTo: theme.surface,
@@ -138,7 +176,7 @@ const Metrics = ({ navigation }) => {
         color: (opacity = 1) => theme.dark ? `rgba(116, 143, 255, ${opacity})` : `rgba(45, 99, 237, ${opacity})`,
         labelColor: (opacity = 1) => theme.dark ? `rgba(170, 170, 200, ${opacity})` : `rgba(153, 153, 153, ${opacity})`,
         propsForBackgroundLines: { strokeWidth: 0 },
-    };
+    }), [theme.surface, theme.dark]);
 
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.surface }]}>
@@ -164,7 +202,7 @@ const Metrics = ({ navigation }) => {
                     <ScrollView 
                         contentContainerStyle={styles.scrollBody} 
                         {...si.scrollProps}
-                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={fetchMetrics} tintColor={theme.accent} />}
+                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchMetrics(true); }} tintColor={theme.accent} />}
                     >
                         {/* Métrica Cards */}
                         <View style={styles.statsRow}>
@@ -187,16 +225,34 @@ const Metrics = ({ navigation }) => {
                         </View>
 
                         {/* Lista Histórica */}
-                        <Text style={[styles.sectionTitle, { color: theme.text }]}>Historial Mensual</Text>
-                        {monthlyDetails.map((item) => (
-                            <View key={item.key} style={[styles.monthRow, { borderBottomColor: theme.divider }]}>
-                                <Text style={[styles.monthName, { color: theme.text }]}>{item.name}</Text>
-                                <View style={{ alignItems: 'flex-end' }}>
-                                    <Text style={[styles.monthStatKm, { color: theme.text }]}>{item.km} km</Text>
-                                    <Text style={{ color: theme.textSecondary, fontSize: 11 }}>{item.rides} viajes</Text>
-                                </View>
+                        {monthlyDetails.length > 0 && (
+                            <View style={[styles.chartContainer, { backgroundColor: theme.surface, borderColor: theme.divider }]}>
+                                <Text style={[styles.chartHeaderTitle, { color: theme.text, marginBottom: 15 }]}>Historial Mensual</Text>
+                                {monthlyDetails.map((item, index) => (
+                                    <View
+                                        key={item.key}
+                                        style={[
+                                            styles.monthRow,
+                                            {
+                                                borderBottomColor: theme.divider,
+                                                borderBottomWidth: index === monthlyDetails.length - 1 ? 0 : StyleSheet.hairlineWidth,
+                                            },
+                                        ]}
+                                    >
+                                        <View style={styles.monthLeft}>
+                                            <View style={[styles.monthIconBg, { backgroundColor: theme.surfaceVariant }]}>
+                                                <Ionicons name="calendar-outline" size={20} color={theme.accent} />
+                                            </View>
+                                            <Text style={[styles.monthName, { color: theme.text }]}>{item.name}</Text>
+                                        </View>
+                                        <View style={styles.monthRight}>
+                                            <Text style={[styles.monthStatLabel, { color: theme.textSecondary }]}>{item.rides} Viajes • {item.co2} kg CO₂</Text>
+                                            <Text style={[styles.monthStatKm, { color: theme.text }]}>{item.km} km</Text>
+                                        </View>
+                                    </View>
+                                ))}
                             </View>
-                        ))}
+                        )}
                     </ScrollView>
                     <ScrollIndicator si={si} thumbColor={theme.accent} />
                 </View>
@@ -225,12 +281,15 @@ const styles = StyleSheet.create({
     statBox: { width: '31%', borderRadius: 12, padding: 12, alignItems: 'center' },
     statLabel: { fontSize: 10, textAlign: 'center', marginBottom: 4 },
     statValue: { fontSize: 14, fontWeight: 'bold' },
-    chartContainer: { borderRadius: 16, padding: 15, borderWidth: 1, marginBottom: 20 },
-    chartHeaderTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 10 },
+    chartContainer: { borderRadius: 20, padding: 15, borderWidth: 1, marginBottom: 20 },
+    chartHeaderTitle: { fontSize: 13, fontWeight: 'bold' },
     chartStyle: { marginVertical: 8, borderRadius: 16, marginLeft: -10 },
-    sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 10 },
-    monthRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 15, borderBottomWidth: 0.5 },
-    monthName: { fontSize: 15, fontWeight: '500' },
+    monthRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
+    monthLeft: { flexDirection: 'row', alignItems: 'center' },
+    monthIconBg: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+    monthName: { fontSize: 16, fontWeight: 'bold', textTransform: 'capitalize' },
+    monthRight: { alignItems: 'flex-end' },
+    monthStatLabel: { fontSize: 11, marginBottom: 4 },
     monthStatKm: { fontSize: 15, fontWeight: 'bold' }
 });
 

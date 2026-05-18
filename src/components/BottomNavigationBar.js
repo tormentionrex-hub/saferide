@@ -60,7 +60,7 @@ const BottomNavigationBar = ({ state, descriptors, navigation }) => {
     const route = useRoute();
     const currentRouteName = state ? state.routes[state.index].name : route.name;
 
-    const visibleItems = NAV_ITEMS.filter(item => item.label !== 'Métricas');
+    const visibleItems = NAV_ITEMS;
 
     return (
         <View style={[

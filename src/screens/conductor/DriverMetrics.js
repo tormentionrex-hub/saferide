@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
     View,
     Text,
@@ -8,7 +8,8 @@ import {
     TouchableOpacity,
     Dimensions,
     ActivityIndicator,
-    RefreshControl
+    RefreshControl,
+    InteractionManager
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,11 @@ import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 
 const screenWidth = Dimensions.get('window').width;
 
+// Cache a nivel módulo: evita refetcha en cada useFocusEffect cuando el usuario
+// rebota entre tabs. Se invalida con pull-to-refresh o tras 60s.
+const METRICS_CACHE_TTL = 60 * 1000;
+let driverMetricsCache = { userId: null, stats: null, details: null, ts: 0 };
+
 const DriverMetrics = ({ navigation }) => {
     const { theme } = useDriverTheme();
     const [loading, setLoading] = useState(true);
@@ -32,8 +38,8 @@ const DriverMetrics = ({ navigation }) => {
 
     // --- ESTADO PARA DATOS ---
     const [stats, setStats] = useState({
-        kmTotal: "0",
-        viajesTotal: "0",
+        kmTotal: "0",            // Km manejados (vehículo)
+        passengerKmTotal: "0",   // Km compartidos (vehículo × pasajeros)
         co2Total: "0",
         dataKm: [0, 0, 0, 0, 0, 0],
         dataRides: [0, 0, 0, 0, 0, 0],
@@ -43,34 +49,48 @@ const DriverMetrics = ({ navigation }) => {
     // --- ESTADO PARA HISTORIAL POR MESES ---
     const [monthlyDetails, setMonthlyDetails] = useState([]);
 
-    const fetchMetrics = useCallback(async () => {
+    const fetchMetrics = useCallback(async (forceRefresh = false) => {
         try {
             // 1. Obtener ID del usuario actual mediante sessionCache
             const userId = await sessionCache.getDriverId();
             if (!userId) throw new Error("No se pudo obtener información del usuario");
 
-            // 2. Obtener Métricas Generales (Carbono, Km totales, etc.)
+            // Cache hit: salir temprano si está fresco para este usuario
+            if (
+                !forceRefresh &&
+                driverMetricsCache.userId === userId &&
+                Date.now() - driverMetricsCache.ts < METRICS_CACHE_TTL
+            ) {
+                setStats(driverMetricsCache.stats);
+                setMonthlyDetails(driverMetricsCache.details);
+                setLoading(false);
+                return;
+            }
+
+            // 2. Totales precalculados desde el backend (rol=conductor).
+            //    El backend se refresca automáticamente al completar viajes (hooks en ride/booking).
             let metricsData = {
                 kilometers_driven: 0,
                 total_rides: 0,
-                carbon_footprint: 0
+                carbon_footprint: 0,
+                passenger_kilometers: 0,
             };
 
             try {
-                const mResponse = await api.get(`/metrics/user/${userId}`);
+                const mResponse = await api.get(`/metrics/user/${userId}?role=conductor`);
                 if (mResponse.data.success) {
                     metricsData = mResponse.data.data;
                 }
             } catch (e) {
-                console.log("No se encontraron métricas previas, usando ceros.");
-            }            // 3. Obtener Historial de Viajes para armar el gráfico
-            // Se solicita un límite alto y filtramos solo viajes enteramente 'completed'
+                console.log("No se pudieron cargar métricas, usando ceros.");
+            }
+
+            // 3. Detalle mensual (gráfico + historial): se sigue armando en vivo desde rides+bookings.
+            //    Filtramos rides que efectivamente tuvieron pasajeros para que el desglose sea
+            //    consistente con los totales del backend.
             const rResponse = await api.get(`/rides/driver/${userId}?limit=1000&status=completed`);
             const rawRides = rResponse.data.data || [];
-            
-            // --- NUEVO: Verificación de pasajeros por viaje (Frontend Only) ---
-            // Consultamos las reservaciones de cada viaje para asegurar que hubo pasajeros reales.
-            // Esto se hace porque no podemos tocar el backend para que lo devuelva poblado.
+
             const ridesWithPassData = await Promise.all(
                 rawRides.map(async (ride) => {
                     try {
@@ -83,12 +103,10 @@ const DriverMetrics = ({ navigation }) => {
                 })
             );
 
-            // Filtramos solo aquellos viajes que tienen al menos una reservación en estado 'completed'
-            const allRides = ridesWithPassData.filter(ride => 
+            const allRides = ridesWithPassData.filter(ride =>
                 ride.bookings && ride.bookings.some(b => b.status === 'completed')
             );
-            
-            // Procesar viajes de los últimos 6 meses
+
             const now = new Date();
             const months = [];
             const monthLabels = [];
@@ -103,30 +121,28 @@ const DriverMetrics = ({ navigation }) => {
                 ridesByMonth.push(0);
             }
 
-            let calcTotalKm = 0;
-            let calcTotalRides = 0;
             const monthlyObj = {};
 
             allRides.forEach(ride => {
                 if (!ride.fecha) return;
 
-                // Verificamos driver_id (puede venir como objeto poblado o como string)
                 if (ride.driver_id) {
                     const rideDriverId = typeof ride.driver_id === 'object' ? ride.driver_id._id : ride.driver_id;
                     if (rideDriverId.toString() !== userId.toString()) return;
                 }
 
-                // El filtro a continuación asegura que solo contemos KM y viajes con pasajeros reales
-                calcTotalKm += (ride.distance_km || 0);
-                calcTotalRides += 1;
+                // Cantidad real de pasajeros que completaron este viaje
+                const passengersInRide = (ride.bookings || []).filter(b => b.status === 'completed').length;
+                const rideKm = ride.distance_km || 0;
+                const ridePassengerKm = rideKm * passengersInRide;
 
-                // Agrupación mensual
                 const [y, mStr] = ride.fecha.split('-');
                 const monthKey = `${y}-${mStr}`;
                 if (!monthlyObj[monthKey]) {
-                    monthlyObj[monthKey] = { year: y, month: mStr, km: 0, rides: 0 };
+                    monthlyObj[monthKey] = { year: y, month: mStr, km: 0, passenger_km: 0, rides: 0 };
                 }
-                monthlyObj[monthKey].km += (ride.distance_km || 0);
+                monthlyObj[monthKey].km += rideKm;
+                monthlyObj[monthKey].passenger_km += ridePassengerKm;
                 monthlyObj[monthKey].rides += 1;
 
                 const [y_num, mm, dd] = ride.fecha.split('-').map(Number);
@@ -134,27 +150,26 @@ const DriverMetrics = ({ navigation }) => {
 
                 months.forEach((m, idx) => {
                     if (rideDate.getFullYear() === m.year && rideDate.getMonth() === m.month) {
-                        kmByMonth[idx] += (ride.distance_km || 0);
+                        kmByMonth[idx] += rideKm;
                         ridesByMonth[idx] += 1;
                     }
                 });
             });
 
-            // Forzamos el uso del cálculo local (calcTotalKm, calcTotalRides) 
-            // ya que el endpoint /metrics del backend cuenta viajes vacíos.
-            const finalKm = calcTotalKm;
-            const finalRides = calcTotalRides;
-            // Cálculo estimado de CO2 basado en los KM reales con pasajeros
-            const finalCo2 = (calcTotalKm * 0.12 * 0.6);
+            // Totales: fuente única son las métricas precalculadas del backend.
+            const km = metricsData?.kilometers_driven ?? 0;
+            const passengerKm = metricsData?.passenger_kilometers ?? 0;
+            const co2 = metricsData?.carbon_footprint ?? 0;
 
-            setStats({
-                kmTotal: finalKm.toFixed(1),
-                viajesTotal: finalRides.toString(),
-                co2Total: finalCo2.toFixed(1),
+            const newStats = {
+                kmTotal: km.toFixed(1),
+                passengerKmTotal: passengerKm.toFixed(1),
+                co2Total: co2.toFixed(1),
                 dataKm: kmByMonth,
                 dataRides: ridesByMonth,
                 labels: monthLabels
-            });
+            };
+            setStats(newStats);
 
             // Mapear, procesar y guardar la data agrupada
             const monthNamesDict = {
@@ -167,7 +182,9 @@ const DriverMetrics = ({ navigation }) => {
                 .sort((a, b) => b.localeCompare(a)) // Ordenar descendente (más nuevos primero)
                 .map(key => {
                     const item = monthlyObj[key];
-                    const monthCo2 = item.km * 0.12 * 0.6;
+                    // CO₂ mensual usa passenger-km para que la suma de todos los meses
+                    // coincida con el CO₂ total mostrado en la tarjeta superior.
+                    const monthCo2 = item.passenger_km * 0.12 * 0.6;
                     return {
                         key,
                         name: `${monthNamesDict[item.month]} ${item.year}`,
@@ -179,6 +196,14 @@ const DriverMetrics = ({ navigation }) => {
 
             setMonthlyDetails(sortedMonthlyData);
 
+            // Guardar en cache para los próximos focuses dentro del TTL
+            driverMetricsCache = {
+                userId,
+                stats: newStats,
+                details: sortedMonthlyData,
+                ts: Date.now(),
+            };
+
         } catch (error) {
             console.error("Error al traer datos de Mongo:", error);
         } finally {
@@ -188,17 +213,20 @@ const DriverMetrics = ({ navigation }) => {
 
     useFocusEffect(
         useCallback(() => {
-            fetchMetrics();
+            // Diferir el fetch hasta después de las animaciones de transición del tab
+            // para que el cambio de pantalla se sienta más fluido.
+            const task = InteractionManager.runAfterInteractions(() => fetchMetrics());
+            return () => task.cancel();
         }, [fetchMetrics])
     );
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await fetchMetrics();
+        await fetchMetrics(true); // forceRefresh: bypass cache
         setRefreshing(false);
     };
 
-    const chartConfig = {
+    const chartConfig = useMemo(() => ({
         backgroundColor: theme.surface,
         backgroundGradientFrom: theme.surface,
         backgroundGradientTo: theme.surface,
@@ -216,7 +244,7 @@ const DriverMetrics = ({ navigation }) => {
             stroke: theme.accent,
         },
         propsForBackgroundLines: { strokeWidth: 0 },
-    };
+    }), [theme.surface, theme.dark, theme.accent]);
 
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.surface }]}>
@@ -253,20 +281,23 @@ const DriverMetrics = ({ navigation }) => {
                             }
                         >
 
+                            {/* Tarjeta prominente: CO₂ ahorrado */}
+                            <View style={[styles.statBox, styles.statBoxPrimary, { backgroundColor: theme.surfaceVariant }]}>
+                                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>CO₂ ahorrado</Text>
+                                <Text style={[styles.statValue, styles.statValuePrimary, { color: theme.text }]}>
+                                    {stats.co2Total} <Text style={{ fontSize: 12, color: theme.textSecondary }}>kg</Text>
+                                </Text>
+                            </View>
+
+                            {/* Segunda fila: dos métricas de kilómetros */}
                             <View style={styles.statsRow}>
-                                <View style={[styles.statBox, { backgroundColor: theme.surfaceVariant }]}>
-                                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Km{"\n"}compartidos</Text>
+                                <View style={[styles.statBox, styles.statBoxHalf, { backgroundColor: theme.surfaceVariant }]}>
+                                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Km manejados</Text>
                                     <Text style={[styles.statValue, { color: theme.text }]}>{stats.kmTotal}</Text>
                                 </View>
-                                <View style={[styles.statBox, { backgroundColor: theme.surfaceVariant }]}>
-                                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Viajes{"\n"}realizados</Text>
-                                    <Text style={[styles.statValue, { color: theme.text }]}>{stats.viajesTotal}</Text>
-                                </View>
-                                <View style={[styles.statBox, { backgroundColor: theme.surfaceVariant }]}>
-                                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>CO₂{"\n"}ahorrado</Text>
-                                    <Text style={[styles.statValue, { color: theme.text }]}>
-                                        {stats.co2Total} <Text style={{ fontSize: 10, color: theme.textSecondary }}>kg</Text>
-                                    </Text>
+                                <View style={[styles.statBox, styles.statBoxHalf, { backgroundColor: theme.surfaceVariant }]}>
+                                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Km compartidos</Text>
+                                    <Text style={[styles.statValue, { color: theme.text }]}>{stats.passengerKmTotal}</Text>
                                 </View>
                             </View>
 
@@ -344,8 +375,11 @@ const styles = StyleSheet.create({
         width: '31%', borderRadius: 15,
         padding: 10, alignItems: 'center'
     },
+    statBoxPrimary: { width: '100%', padding: 16, marginBottom: 12 },
+    statBoxHalf: { width: '48%', padding: 12 },
     statLabel: { fontSize: 10, textAlign: 'center', marginBottom: 5 },
     statValue: { fontSize: 15, fontWeight: 'bold' },
+    statValuePrimary: { fontSize: 26, fontWeight: 'bold', marginTop: 2 },
     chartContainer: {
         borderRadius: 20, padding: 15,
         marginBottom: 20, borderWidth: 1,
