@@ -295,7 +295,17 @@ const TripInProgress = ({ route, navigation }) => {
                             const driverNameStr = data.ride_id?.driver_id?.name;
                             const driverImageStr = data.ride_id?.driver_id?.profileImage;
 
-                            if (data.payment_status === 'paid') {
+                            if (data.payment_type === 'gifted') {
+                                // Viaje regalado: el conductor no confirma pago, pasajero pasa directo a calificar
+                                navigation.replace('RateDriver', {
+                                    rideId: rideIdStr,
+                                    driverId: driverIdStr,
+                                    driverName: driverNameStr,
+                                    driverImage: driverImageStr,
+                                    paidConfirmed: true,
+                                    gifted: true,
+                                });
+                            } else if (data.payment_status === 'paid') {
                                 // Ya está pagado (PayPal previo o conductor lo marcó)
                                 navigation.replace('RateDriver', {
                                     rideId: rideIdStr,
