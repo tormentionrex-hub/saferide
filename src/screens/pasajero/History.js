@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useCallback, useMemo, memo } from 'react';
 import {
     View,
     Text,
@@ -329,7 +329,6 @@ const History = ({ navigation }) => {
     
     // States
     const [allHistory, setAllHistory] = useState([]);
-    const [filteredHistory, setFilteredHistory] = useState([]);
     const [availableMonths, setAvailableMonths] = useState([]);
     const [selectedMonth, setSelectedMonth] = useState('');
     const [loading, setLoading] = useState(true);
@@ -379,23 +378,16 @@ const History = ({ navigation }) => {
         }, [fetchHistory])
     );
 
-    // Filter whenever selectedMonth or allHistory changes
-    useEffect(() => {
-        if (!selectedMonth) {
-            setFilteredHistory(allHistory);
-            return;
-        }
-        
-        const filtered = allHistory.filter(b => {
+    // Derivado directo: se calcula en el mismo render que dispara el cambio,
+    // ahorra un render extra vs. el patrón useEffect + setState.
+    const filteredHistory = useMemo(() => {
+        if (!selectedMonth) return allHistory;
+        return allHistory.filter(b => {
             const dateStr = b.ride_id?.fecha || '';
-            if (selectedMonth.length > 7) {
-                return dateStr === selectedMonth;
-            } else {
-                return dateStr.startsWith(selectedMonth);
-            }
+            return selectedMonth.length > 7
+                ? dateStr === selectedMonth
+                : dateStr.startsWith(selectedMonth);
         });
-        
-        setFilteredHistory(filtered);
     }, [selectedMonth, allHistory]);
 
     const onRefresh = () => {
@@ -559,10 +551,13 @@ const History = ({ navigation }) => {
         />
     ), [theme, calculateArrivalTime, handleContact]);
 
-    const pendingPayments = allHistory.filter(b =>
-        b.status === 'completed' &&
-        b.payment_status === 'pending' &&
-        Number(b.charged_amount) > 0
+    const pendingPayments = useMemo(
+        () => allHistory.filter(b =>
+            b.status === 'completed' &&
+            b.payment_status === 'pending' &&
+            Number(b.charged_amount) > 0
+        ),
+        [allHistory]
     );
 
     const renderListHeader = () => {
