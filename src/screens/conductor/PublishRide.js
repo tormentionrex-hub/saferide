@@ -57,7 +57,10 @@ const PublishRide = ({ navigation, route }) => {
 
     // --- OTROS ESTADOS DEL FORMULARIO ---
     const [asientos, setAsientos] = useState(1);
-    const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
+    // La fecha arranca con "hoy" porque el backend solo permite publicar viajes
+    // para el día actual — pedirle al usuario que la "seleccione" sería una
+    // fricción innecesaria. El picker sigue disponible por si quiere abrirlo.
+    const [fechaSeleccionada, setFechaSeleccionada] = useState(new Date());
     const [horaSeleccionada, setHoraSeleccionada] = useState(null);
     const [mostrarCalendario, setMostrarCalendario] = useState(false);
     const [mostrarHora, setMostrarHora] = useState(false);
@@ -115,7 +118,7 @@ const PublishRide = ({ navigation, route }) => {
         const newErrors = {};
         if (!origin) newErrors.origen = 'Requerido';
         if (!destination) newErrors.destino = 'Requerido';
-        if (!fechaSeleccionada || !horaSeleccionada) newErrors.fechaHora = 'Requerido';
+        if (!horaSeleccionada) newErrors.hora = 'Requerido';
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
@@ -286,11 +289,7 @@ const PublishRide = ({ navigation, route }) => {
                         >
                             <View>
                                 <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>FECHA</Text>
-                                <Text style={[styles.dateValue, { color: theme.text }]}>
-                                    {fechaSeleccionada
-                                        ? fechaSeleccionada.toLocaleDateString('es-CR', { day: 'numeric', month: 'short' })
-                                        : 'Hoy'}
-                                </Text>
+                                <Text style={[styles.dateValue, { color: theme.text }]}>Hoy</Text>
                             </View>
                             <View style={[styles.calendarIconCircle, { backgroundColor: theme.surface }]}>
                                 <Ionicons name="calendar-outline" size={22} color={theme.navActive} />
@@ -299,7 +298,7 @@ const PublishRide = ({ navigation, route }) => {
 
                         {/* Hora */}
                         <TouchableOpacity
-                            style={[styles.timeCard, { backgroundColor: theme.surfaceVariant }, errors.fechaHora && styles.cardError]}
+                            style={[styles.timeCard, { backgroundColor: theme.surfaceVariant }, errors.hora && styles.cardError]}
                             onPress={() => setMostrarHora(true)}
                             activeOpacity={0.8}
                         >
