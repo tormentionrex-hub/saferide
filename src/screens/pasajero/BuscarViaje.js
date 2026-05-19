@@ -79,45 +79,55 @@ const BuscarViaje = ({ navigation, route }) => {
         longitudeDelta: 0.05,
     });
 
+    // Montaje inicial: cargar búsquedas recientes y, si NO hay prefill,
+    // detectar la ubicación actual automáticamente.
     useEffect(() => {
-        const hasPrefill = route?.params?.prefillOrigin;
-
-        if (hasPrefill) {
-            // ── Ruta frecuente: pre-llenar origen y destino ──
-            const o = route.params.prefillOrigin;
-            setOrigen({ lat: o.lat, lng: o.lng, name: o.name, address: o.address || o.name });
-            setRegion({
-                latitude: o.lat,
-                longitude: o.lng,
-                latitudeDelta: 0.05,
-                longitudeDelta: 0.05,
-            });
-            setLoadingLocation(false);
-
-            if (route.params.prefillDestination) {
-                const d = route.params.prefillDestination;
-                setDestino({ lat: d.lat, lng: d.lng, name: d.name, address: d.address || d.name });
-            }
-
-            // Preguntar al usuario si desea usar su ubicación actual como origen
-            setTimeout(() => {
-                showAlert(
-                    '📍 Punto de salida',
-                    `Tu ruta frecuente sale desde "${o.name}".\n\n¿Deseas mantener este punto de salida o prefieres usar tu ubicación actual? (Esto solo cambiará el campo "DESDE")`,
-                    'info',
-                    'Usar mi ubicación',   // confirmText (botón principal)
-                    null,                   // onClose
-                    'Mantener ruta',        // cancelText (botón secundario)
-                    () => loadCurrentLocation() // onConfirm → reemplaza el origen
-                );
-            }, 600);
-        } else {
-            // ── Flujo normal: detectar ubicación automáticamente ──
+        if (!route?.params?.prefillOrigin) {
             loadCurrentLocation();
         }
-
         loadRecentSearches();
     }, []);
+
+    // Aplicar prefill cada vez que cambian los params.
+    // Esto es necesario porque la pantalla puede quedar montada en el stack
+    // (cuando se sale con navigation.navigate en vez de goBack), y un nuevo
+    // tap en otra ruta frecuente debe refrescar los campos.
+    useEffect(() => {
+        const o = route?.params?.prefillOrigin;
+        if (!o) return;
+
+        setOrigen({ lat: o.lat, lng: o.lng, name: o.name, address: o.address || o.name });
+        setRegion({
+            latitude: o.lat,
+            longitude: o.lng,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+        });
+        setLoadingLocation(false);
+
+        if (route?.params?.prefillDestination) {
+            const d = route.params.prefillDestination;
+            setDestino({ lat: d.lat, lng: d.lng, name: d.name, address: d.address || d.name });
+        }
+
+        // Preguntar al usuario si desea usar su ubicación actual como origen
+        if (alertTimerRef.current) clearTimeout(alertTimerRef.current);
+        alertTimerRef.current = setTimeout(() => {
+            showAlert(
+                '📍 Punto de salida',
+                `Tu ruta frecuente sale desde "${o.name}".\n\n¿Deseas mantener este punto de salida o prefieres usar tu ubicación actual? (Esto solo cambiará el campo "DESDE")`,
+                'info',
+                'Usar mi ubicación',   // confirmText (botón principal)
+                null,                   // onClose
+                'Mantener ruta',        // cancelText (botón secundario)
+                () => loadCurrentLocation() // onConfirm → reemplaza el origen
+            );
+        }, 600);
+
+        // Limpiar los params para que, si el usuario vuelve a esta pantalla
+        // sin pasar por una ruta frecuente, no se re-aplique el prefill viejo.
+        navigation.setParams({ prefillOrigin: undefined, prefillDestination: undefined });
+    }, [route?.params?.prefillOrigin, route?.params?.prefillDestination]);
 
     const loadCurrentLocation = async () => {
         try {

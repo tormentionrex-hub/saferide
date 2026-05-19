@@ -33,16 +33,24 @@ const PublishRide = ({ navigation, route }) => {
     const [destination, setDestination] = useState(null);
     const [routeInfo, setRouteInfo] = useState(null);
 
-    // Pre-llenar origen/destino desde rutas frecuentes
+    // Pre-llenar origen/destino desde rutas frecuentes.
+    // PublishRide es Tab.Screen (siempre montada), así que el efecto debe
+    // reaccionar a cambios en los params, no sólo al primer montaje.
     useEffect(() => {
         const params = route?.params;
+        if (!params?.prefillOrigin && !params?.prefillDestination) return;
+
         if (params?.prefillOrigin) {
             setOrigin(params.prefillOrigin);
         }
         if (params?.prefillDestination) {
             setDestination(params.prefillDestination);
         }
-    }, []);
+
+        // Limpiar los params para evitar re-aplicar si el usuario vuelve
+        // a entrar manualmente a la pestaña sin pasar por una ruta frecuente.
+        navigation.setParams({ prefillOrigin: undefined, prefillDestination: undefined });
+    }, [route?.params?.prefillOrigin, route?.params?.prefillDestination]);
 
     const [pickerVisible, setPickerVisible] = useState(false);
     const [pickingFor, setPickingFor] = useState('origin');
