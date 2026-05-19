@@ -355,25 +355,36 @@ export default function PreviousTripsScreen() {
             null,
             'Cancelar',
             async () => {
+                // Optimistic update: el badge pasa a "Pagado" al instante,
+                // sin esperar al backend. Si el PATCH falla, revertimos.
+                setAllTrips(prev => prev.map(trip => ({
+                    ...trip,
+                    passengers: trip.passengers?.map(p =>
+                        p.bookingId === bookingId
+                            ? { ...p, payment_status: 'paid' }
+                            : p
+                    ),
+                })));
+
                 try {
                     await api.patch(`/bookings/${bookingId}/payment`, {
                         payment_status: 'paid',
                     });
-                    // Actualizar localmente sin recargar todo
-                    setAllTrips(prev => prev.map(trip => ({
-                        ...trip,
-                        passengers: trip.passengers?.map(p =>
-                            p.bookingId === bookingId
-                                ? { ...p, payment_status: 'paid' }
-                                : p
-                        ),
-                    })));
                     showAlert(
                         'Pago confirmado',
                         `El pago de ${passengerName} ha sido registrado correctamente.`,
                         'success'
                     );
                 } catch (error) {
+                    // Revert: el PATCH falló, devolvemos el badge a "No pagado".
+                    setAllTrips(prev => prev.map(trip => ({
+                        ...trip,
+                        passengers: trip.passengers?.map(p =>
+                            p.bookingId === bookingId
+                                ? { ...p, payment_status: 'pending' }
+                                : p
+                        ),
+                    })));
                     const msg = error.response?.data?.message || 'Error al actualizar el pago';
                     showAlert('Error', msg, 'error');
                 }
