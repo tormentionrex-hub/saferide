@@ -348,7 +348,16 @@ const History = ({ navigation }) => {
             const bookings = await passengerBookingsCache.get(force);
 
             const sorted = (bookings || [])
-                .filter(b => b.ride_id && b.ride_id.fecha && (b.status === 'completed' || b.status === 'cancelled' || b.status === 'canceled'))
+                // Incluimos: bookings completados/cancelados (historial normal) y
+                // CUALQUIER booking con pago pendiente real (charged_amount > 0)
+                // sin importar el status, para que la tarjeta de "COBRO PENDIENTE"
+                // aparezca aunque la reservación nunca cambiara a 'waived'/'paid'.
+                .filter(b => b.ride_id && b.ride_id.fecha && (
+                    b.status === 'completed' ||
+                    b.status === 'cancelled' ||
+                    b.status === 'canceled' ||
+                    (b.payment_status === 'pending' && Number(b.charged_amount) > 0)
+                ))
                 .sort((a, b) => {
                     const dateA = DateTime.fromISO(a.ride_id.fecha + 'T' + a.ride_id.hora);
                     const dateB = DateTime.fromISO(b.ride_id.fecha + 'T' + b.ride_id.hora);
@@ -377,8 +386,10 @@ const History = ({ navigation }) => {
     useEffect(() => { allHistoryRef.current = allHistory; }, [allHistory]);
 
     const hasPendingPayments = useCallback(() => {
+        // Una deuda es pago pendiente con monto > 0, independientemente del
+        // status del booking. Mientras payment_status no sea 'paid' ni 'waived',
+        // sigue siendo una cuenta por cobrar.
         return allHistoryRef.current.some(b =>
-            b.status === 'completed' &&
             b.payment_status === 'pending' &&
             Number(b.charged_amount) > 0
         );
@@ -584,8 +595,10 @@ const History = ({ navigation }) => {
     ), [theme, calculateArrivalTime, handleContact]);
 
     const pendingPayments = useMemo(
+        // Misma regla: mostramos como "COBRO PENDIENTE" cualquier booking con
+        // payment_status='pending' y monto > 0, sin importar el status del
+        // booking ni del ride.
         () => allHistory.filter(b =>
-            b.status === 'completed' &&
             b.payment_status === 'pending' &&
             Number(b.charged_amount) > 0
         ),

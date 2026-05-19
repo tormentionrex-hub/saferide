@@ -393,13 +393,14 @@ const TripInProgressDriver = ({ route, navigation }) => {
                     // B. Cancel the ride itself
                     await api.patch(`/rides/${rideId}/cancel`);
 
-                    // Redirect driver to dashboard
+                    // Redirigir al flujo de verificación de pago / calificación
+                    // (con las opciones deshabilitadas porque el viaje fue cancelado).
                     showAlert(
                         'Viaje cancelado',
                         'El viaje ha sido cancelado exitosamente y los pasajeros han sido notificados.',
                         'success',
-                        'Ir al inicio',
-                        navigateToDashboard
+                        'Continuar',
+                        () => navigation.replace('PaymentVerification', { rideId })
                     );
                 } catch (error) {
                     const serverMsg = error.response?.data?.message || error.message || 'Error desconocido';

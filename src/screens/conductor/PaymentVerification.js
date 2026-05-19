@@ -61,6 +61,10 @@ const PaymentVerification = ({ route, navigation }) => {
                     if (b.payment_type === 'gifted') {
                         // El viaje fue regalado, se habilita automáticamente
                         initialStatus[b._id] = 'gifted';
+                    } else if (b.status === 'cancelled' || b.status === 'canceled') {
+                        // Booking cancelado: no requiere selección de pago,
+                        // se auto-marca para permitir continuar sin acción.
+                        initialStatus[b._id] = b.payment_status || 'waived';
                     } else if (b.payment_status === 'paid') {
                         initialStatus[b._id] = 'paid';
                     }
@@ -105,6 +109,12 @@ const PaymentVerification = ({ route, navigation }) => {
             const updatePromises = bookings.map(b => {
                 if (b.payment_type === 'gifted') {
                     // Viaje regalado: NO modificar absolutamente nada del booking.
+                    return Promise.resolve();
+                }
+
+                // Booking cancelado: ya quedó con payment_status 'waived' al
+                // cancelarse, así que no enviamos ningún update.
+                if (b.status === 'cancelled' || b.status === 'canceled') {
                     return Promise.resolve();
                 }
 
@@ -182,20 +192,29 @@ const PaymentVerification = ({ route, navigation }) => {
                         {bookings.map((booking) => {
                             const passenger = booking.passenger_id;
                             const isGifted = booking.payment_type === 'gifted';
+                            const isCancelled = booking.status === 'cancelled' || booking.status === 'canceled';
                             const isPaid = paymentStatuses[booking._id] === 'paid';
                             const isUnpaid = paymentStatuses[booking._id] === 'pending';
+                            // Cuando el booking quedó cancelado (por el pasajero o por el
+                            // conductor), no se requiere acción de pago: deshabilitamos
+                            // los selectores y mostramos un badge "CANCELADO".
+                            const isLocked = isGifted || isCancelled;
 
                             return (
                                 <View key={booking._id} style={[styles.passengerCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                                     <View style={styles.passengerInfo}>
-                                        <Image 
-                                            source={{ uri: passenger?.profileImage || 'https://via.placeholder.com/150' }} 
-                                            style={styles.avatar} 
+                                        <Image
+                                            source={{ uri: passenger?.profileImage || 'https://via.placeholder.com/150' }}
+                                            style={styles.avatar}
                                         />
                                         <View style={{ flex: 1 }}>
                                             <Text style={[styles.passengerName, { color: theme.text }]}>{passenger?.name || 'Pasajero'}</Text>
                                             <View style={styles.badgeRow}>
-                                                {isPaid ? (
+                                                {isCancelled ? (
+                                                    <View style={[styles.badge, styles.badgeDanger]}>
+                                                        <Text style={styles.badgeTextDanger}>CANCELADO</Text>
+                                                    </View>
+                                                ) : isPaid ? (
                                                     <View style={[styles.badge, styles.badgeSuccess]}>
                                                         <Text style={styles.badgeTextSuccess}>VERIFICADO</Text>
                                                     </View>
@@ -227,17 +246,17 @@ const PaymentVerification = ({ route, navigation }) => {
                                                 styles.selectBtn,
                                                 styles.leftBtn,
                                                 { backgroundColor: theme.bg },
-                                                isUnpaid && styles.unpaidSelected,
-                                                isGifted && { opacity: 0.5 }
+                                                isUnpaid && !isCancelled && styles.unpaidSelected,
+                                                isLocked && { opacity: 0.5 }
                                             ]}
-                                            activeOpacity={isGifted ? 1 : 0.7}
-                                            disabled={isGifted}
+                                            activeOpacity={isLocked ? 1 : 0.7}
+                                            disabled={isLocked}
                                             onPress={() => handleSelectPayment(booking._id, 'pending')}
                                         >
                                             <Text style={[
                                                 styles.selectBtnText,
                                                 { color: theme.textSecondary },
-                                                isUnpaid && styles.unpaidSelectedText
+                                                isUnpaid && !isCancelled && styles.unpaidSelectedText
                                             ]}>No pagó</Text>
                                         </TouchableOpacity>
 
@@ -246,17 +265,17 @@ const PaymentVerification = ({ route, navigation }) => {
                                                 styles.selectBtn,
                                                 styles.rightBtn,
                                                 { backgroundColor: theme.bg },
-                                                isPaid && styles.paidSelected,
-                                                isGifted && { opacity: 0.5 }
+                                                isPaid && !isCancelled && styles.paidSelected,
+                                                isLocked && { opacity: 0.5 }
                                             ]}
-                                            activeOpacity={isGifted ? 1 : 0.7}
-                                            disabled={isGifted}
+                                            activeOpacity={isLocked ? 1 : 0.7}
+                                            disabled={isLocked}
                                             onPress={() => handleSelectPayment(booking._id, 'paid')}
                                         >
                                             <Text style={[
                                                 styles.selectBtnText,
                                                 { color: theme.textSecondary },
-                                                isPaid && styles.paidSelectedText
+                                                isPaid && !isCancelled && styles.paidSelectedText
                                             ]}>Pagó</Text>
                                         </TouchableOpacity>
                                     </View>

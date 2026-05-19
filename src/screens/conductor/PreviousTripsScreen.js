@@ -143,8 +143,14 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handl
                     <View style={styles.passengerFullList}>
                         {item.passengers.map((p, idx) => {
                             const isPaid = p.payment_status === 'paid';
-                            const isWaived = p.payment_status === 'waived';
-                            const showPayBtn = item.status === 'completed' && !isPaid && !isWaived;
+                            // "Regalado" se reserva para viajes que el conductor
+                            // marcó explícitamente como obsequio (payment_type='gifted'),
+                            // no para bookings 'waived' por una cancelación: en ese
+                            // caso queremos seguir ofreciendo el toggle "No pagado"
+                            // para que el conductor pueda cobrar si el pasajero
+                            // termina pagando de todos modos.
+                            const isGifted = p.payment_type === 'gifted';
+                            const showPayBtn = !isPaid && !isGifted;
                             return (
                                 <View key={idx} style={styles.passengerContactRow}>
                                     <View style={styles.passengerInfoMain}>
@@ -171,7 +177,7 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handl
                                                 <Ionicons name="checkmark-circle" size={16} color="#4CD964" />
                                                 <Text style={[styles.paymentBadgeText, { color: '#4CD964' }]}>Pagado</Text>
                                             </View>
-                                        ) : isWaived ? (
+                                        ) : isGifted ? (
                                             <View style={[styles.paymentBadge, { backgroundColor: '#FF9F0A20' }]}>
                                                 <Ionicons name="gift-outline" size={16} color="#FF9F0A" />
                                                 <Text style={[styles.paymentBadgeText, { color: '#FF9F0A' }]}>Regalado</Text>
@@ -244,19 +250,32 @@ export default function PreviousTripsScreen() {
             const tripsWithPassengers = await Promise.all(tripsFromApi.map(async (trip) => {
                 try {
                     const bookingsRes = await rideService.getBookingsByRide(trip._id);
-                    const passengers = bookingsRes.data
-                        ?.filter(b => b.status === 'confirmed' || b.status === 'completed')
-                        ?.map(b => ({
-                            bookingId: b._id,
-                            name: b.passenger_id?.name || 'Pasajero',
-                            image: b.passenger_id?.profileImage,
-                            phone: b.passenger_id?.phone,
-                            payment_status: b.payment_status || 'pending',
-                            charged_amount: b.charged_amount,
-                        }));
-                    
+                    // Aceptamos cualquier shape razonable que devuelva el endpoint:
+                    // { success, data: [...] }, o directamente un array.
+                    const rawBookings = Array.isArray(bookingsRes?.data)
+                        ? bookingsRes.data
+                        : Array.isArray(bookingsRes)
+                            ? bookingsRes
+                            : [];
+
+                    // Mostramos a TODOS los pasajeros del ride sin filtrar por
+                    // status — incluso bookings cancelados deben aparecer en el
+                    // historial. Si payment_status='paid' o payment_type='gifted',
+                    // el render decide el badge; en otro caso muestra el toggle
+                    // "No pagado" (misma funcionalidad reutilizada).
+                    const passengers = rawBookings.map(b => ({
+                        bookingId: b._id,
+                        name: b.passenger_id?.name || 'Pasajero',
+                        image: b.passenger_id?.profileImage,
+                        phone: b.passenger_id?.phone,
+                        payment_status: b.payment_status || 'pending',
+                        payment_type: b.payment_type,
+                        charged_amount: b.charged_amount,
+                    }));
+
                     return { ...trip, passengers };
                 } catch (error) {
+                    console.log('[PreviousTrips] bookings fetch failed for', trip._id, error?.message);
                     return { ...trip, passengers: [] };
                 }
             }));
