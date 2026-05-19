@@ -12,12 +12,13 @@ import {
     Image,
     DeviceEventEmitter,
     ScrollView,
+    InteractionManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
-import { rideService } from '../../services/rideService';
+import passengerBookingsCache from '../../services/passengerBookingsCache';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
 // Obtenemos dimensiones de la pantalla para garantizar responsividad
@@ -44,87 +45,94 @@ const DashboardPasajero = ({ navigation, route }) => {
 
     useFocusEffect(
         useCallback(() => {
-            const loadData = async () => {
+            // 1) Hidratación inmediata desde AsyncStorage — pinta el header sin
+            //    esperar red. Si hay datos cacheados de un foco anterior, el
+            //    usuario ve "Hola, <nombre>" y su foto al instante.
+            (async () => {
+                try {
+                    const [cachedName, cachedPhoto, cachedCompany] = await Promise.all([
+                        AsyncStorage.getItem('userName'),
+                        AsyncStorage.getItem('userPhoto'),
+                        AsyncStorage.getItem('userCompany'),
+                    ]);
+                    if (cachedName) setUserName(cachedName);
+                    if (cachedPhoto && (cachedPhoto.startsWith('http') || cachedPhoto.startsWith('file'))) {
+                        setUserPhoto(cachedPhoto);
+                    }
+                    if (cachedCompany) setUserCompany(cachedCompany);
+                } catch (_) { }
+            })();
+
+            // 2) Trabajo pesado (red + rutas frecuentes) diferido hasta que las
+            //    animaciones del tab terminen, para no robarle frames a la
+            //    transición de pantalla.
+            const task = InteractionManager.runAfterInteractions(async () => {
+                // Refrescar perfil desde el backend
                 try {
                     const meRes = await api.get('/auth/me');
                     if (meRes.data.success) {
                         const user = meRes.data.data;
                         if (user.name) {
                             setUserName(user.name);
-                            await AsyncStorage.setItem('userName', user.name);
+                            AsyncStorage.setItem('userName', user.name).catch(() => { });
                         }
                         if (user.profileImage) {
                             setUserPhoto(user.profileImage);
-                            await AsyncStorage.setItem('userPhoto', user.profileImage);
+                            AsyncStorage.setItem('userPhoto', user.profileImage).catch(() => { });
                         } else {
                             setUserPhoto(null);
                         }
                         if (user.company) {
                             setUserCompany(user.company);
-                            await AsyncStorage.setItem('userCompany', user.company);
+                            AsyncStorage.setItem('userCompany', user.company).catch(() => { });
                         }
                     }
-                } catch (error) {
-                    const name = await AsyncStorage.getItem('userName');
-                    if (name) setUserName(name);
-
-                    const photo = await AsyncStorage.getItem('userPhoto');
-                    if (photo && (photo.startsWith('http') || photo.startsWith('file'))) {
-                        setUserPhoto(photo);
-                    }
-
-                    const company = await AsyncStorage.getItem('userCompany');
-                    if (company) setUserCompany(company);
+                } catch (_) {
+                    // Si falla la red, los valores hidratados desde AsyncStorage
+                    // ya están en pantalla — no es necesario re-leerlos.
                 }
 
                 // ── Cargar rutas frecuentes ──
                 try {
-                    let userId = await AsyncStorage.getItem('userId');
-                    if (!userId) {
-                        const meRes2 = await api.get('/auth/me');
-                        userId = meRes2.data?.data?._id;
-                    }
-                    if (userId) {
-                        const res = await rideService.getBookingsByPassenger(userId);
-                        if (res.success && res.data) {
-                            const completed = res.data.filter(
-                                b => b.status === 'completed' && b.ride_id?.origin && b.ride_id?.destination
-                            );
-                            // Agrupar por par origen→destino (por nombre)
-                            const routeMap = {};
-                            completed.forEach(b => {
-                                const ride = b.ride_id;
-                                const key = `${ride.origin.name}|||${ride.destination.name}`;
-                                if (!routeMap[key]) {
-                                    routeMap[key] = {
-                                        count: 0,
-                                        origin: {
-                                            name: ride.origin.name,
-                                            lat: ride.origin.coordinates?.lat,
-                                            lng: ride.origin.coordinates?.lng,
-                                        },
-                                        destination: {
-                                            name: ride.destination.name,
-                                            lat: ride.destination.coordinates?.lat,
-                                            lng: ride.destination.coordinates?.lng,
-                                        },
-                                    };
-                                }
-                                routeMap[key].count += 1;
-                            });
-                            // Ordenar y tomar top 2 (solo rutas con 4+ viajes)
-                            const sorted = Object.values(routeMap)
-                                .filter(r => r.count >= 4)
-                                .sort((a, b) => b.count - a.count)
-                                .slice(0, 2);
-                            setFrequentRoutes(sorted);
-                        }
+                    const bookings = await passengerBookingsCache.get();
+                    if (bookings && bookings.length > 0) {
+                        const completed = bookings.filter(
+                            b => b.status === 'completed' && b.ride_id?.origin && b.ride_id?.destination
+                        );
+                        // Agrupar por par origen→destino (por nombre)
+                        const routeMap = {};
+                        completed.forEach(b => {
+                            const ride = b.ride_id;
+                            const key = `${ride.origin.name}|||${ride.destination.name}`;
+                            if (!routeMap[key]) {
+                                routeMap[key] = {
+                                    count: 0,
+                                    origin: {
+                                        name: ride.origin.name,
+                                        lat: ride.origin.coordinates?.lat,
+                                        lng: ride.origin.coordinates?.lng,
+                                    },
+                                    destination: {
+                                        name: ride.destination.name,
+                                        lat: ride.destination.coordinates?.lat,
+                                        lng: ride.destination.coordinates?.lng,
+                                    },
+                                };
+                            }
+                            routeMap[key].count += 1;
+                        });
+                        // Ordenar y tomar top 2 (solo rutas con 4+ viajes)
+                        const sorted = Object.values(routeMap)
+                            .filter(r => r.count >= 4)
+                            .sort((a, b) => b.count - a.count)
+                            .slice(0, 2);
+                        setFrequentRoutes(sorted);
                     }
                 } catch (e) {
                     console.log('Frequent routes load error:', e);
                 }
-            };
-            loadData();
+            });
+            return () => task.cancel();
         }, [])
     );
 

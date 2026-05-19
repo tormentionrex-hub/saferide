@@ -1,13 +1,14 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
-    StatusBar, Platform, ActivityIndicator, Image, Modal
+    StatusBar, Platform, ActivityIndicator, Image, Modal, Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import api from '../../services/api';
+import sessionCache from '../../services/sessionCache';
 
 // ── Utilidad de Distancia Haversine ──────────────────────────────────────────
 const getHaversineDistance = (lat1, lon1, lat2, lon2) => {
@@ -46,7 +47,10 @@ const projectionT = (px, py, ax, ay, bx, by) => {
 };
 
 // ── Tarjeta de conductor ──────────────────────────────────────────────────────
-const DriverCard = ({ item, onPress, onImagePress, theme }) => {
+// Memoizada: evita re-renderizar todas las tarjetas cuando el padre re-renderiza
+// (ej. cambio de loading, modal de imagen abierto, etc.). Solo cambia cuando
+// cambia el id del ride o el theme.dark (que afecta colores).
+const DriverCard = React.memo(({ item, onPress, onImagePress, theme }) => {
     const driverName = item.driver_id?.name || 'Conductor Desconocido';
     const rating = item.driver_id?.rating ?? null;
     const originName = item.origin?.name || 'Origen';
@@ -149,7 +153,11 @@ const DriverCard = ({ item, onPress, onImagePress, theme }) => {
             </View>
         </TouchableOpacity>
     );
-};
+}, (prev, next) =>
+    prev.item._id === next.item._id &&
+    prev.item.available_seats === next.item.available_seats &&
+    prev.theme.dark === next.theme.dark
+);
 
 // ── Pantalla principal ────────────────────────────────────────────────────────
 const ListOfDrivers = ({ route, navigation }) => {
@@ -163,18 +171,16 @@ const ListOfDrivers = ({ route, navigation }) => {
     const [loading, setLoading] = useState(!initialRides);
     const [selectedImage, setSelectedImage] = useState(null);
 
-    const searchTime = route.params?.searchTime ? new Date(route.params.searchTime) : new Date();
+    // Estabilizar searchTime para que no se reinstancie en cada render
+    // (afecta a la dependency list del useMemo de filtrado).
+    const searchTime = useMemo(
+        () => (route.params?.searchTime ? new Date(route.params.searchTime) : new Date()),
+        [route.params?.searchTime]
+    );
     const searchOrigin = route.params?.searchOrigin;
     const searchDestination = route.params?.searchDestination;
 
-    useEffect(() => {
-        // Solo cargar si no se pasaron rides por parámetros
-        if (!initialRides) {
-            fetchRides();
-        }
-    }, [initialRides]);
-
-    const fetchRides = async () => {
+    const fetchRides = useCallback(async () => {
         setLoading(true);
         try {
             const response = await api.get('/rides');
@@ -186,7 +192,14 @@ const ListOfDrivers = ({ route, navigation }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        // Solo cargar si no se pasaron rides por parámetros
+        if (!initialRides) {
+            fetchRides();
+        }
+    }, [initialRides, fetchRides]);
 
     // ── Filtrado y Ordenamiento ──────────────────────────────────────────────
     const processedRides = useMemo(() => {
@@ -262,14 +275,13 @@ const ListOfDrivers = ({ route, navigation }) => {
         return filtered;
     }, [ridesData, searchTime, searchOrigin, searchDestination]);
 
-    const handleRideSelection = async (ride) => {
+    const handleRideSelection = useCallback(async (ride) => {
         try {
-            const meRes = await api.get('/auth/me');
-            if (meRes.data.success) {
-                const passengerId = meRes.data.data._id;
+            const passengerId = await sessionCache.getPassengerId();
+            if (passengerId) {
                 const bookingsRes = await api.get(`/bookings/passenger/${passengerId}`);
                 if (bookingsRes.data.success) {
-                    const activeBooking = bookingsRes.data.data.find(b => 
+                    const activeBooking = bookingsRes.data.data.find(b =>
                         b.status === 'pending' || b.status === 'confirmed'
                     );
                     if (activeBooking) {
@@ -287,7 +299,26 @@ const ListOfDrivers = ({ route, navigation }) => {
             // Si hay error en la validación, permitimos pasar al detalle pero fallará al intentar reservar
             navigation.navigate('RideDetail', { ride, searchOrigin, searchDestination });
         }
-    };
+    }, [navigation, searchOrigin, searchDestination]);
+
+    const handleImagePress = useCallback((img) => setSelectedImage(img), []);
+
+    const keyExtractor = useCallback(
+        (item, index) => (item._id ? item._id.toString() : `ride-${index}`),
+        []
+    );
+
+    const renderItem = useCallback(
+        ({ item }) => (
+            <DriverCard
+                item={item}
+                onPress={handleRideSelection}
+                onImagePress={handleImagePress}
+                theme={theme}
+            />
+        ),
+        [handleRideSelection, handleImagePress, theme]
+    );
 
     return (
         <View style={[styles.container, { backgroundColor: theme.bg }]}>
@@ -365,10 +396,8 @@ const ListOfDrivers = ({ route, navigation }) => {
                 <View style={styles.listWrapper}>
                     <FlatList
                         data={processedRides}
-                        keyExtractor={(item) => item._id?.toString() ?? Math.random().toString()}
-                        renderItem={({ item }) => (
-                            <DriverCard item={item} onPress={handleRideSelection} onImagePress={setSelectedImage} theme={theme} />
-                        )}
+                        keyExtractor={keyExtractor}
+                        renderItem={renderItem}
                         contentContainerStyle={[
                             styles.listContent,
                             { paddingBottom: insets.bottom + 100 },
@@ -377,6 +406,10 @@ const ListOfDrivers = ({ route, navigation }) => {
                         {...si.scrollProps}
                         onRefresh={initialRides ? undefined : fetchRides}
                         refreshing={loading}
+                        removeClippedSubviews
+                        initialNumToRender={6}
+                        maxToRenderPerBatch={4}
+                        windowSize={7}
                     />
                     <ScrollIndicator si={si} thumbColor={theme.accent} />
                 </View>
