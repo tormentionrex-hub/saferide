@@ -20,18 +20,12 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useDriverTheme } from '../../context/DriverThemeContext';
-import { rideService } from '../../services/rideService';
-import api from '../../services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import passengerBookingsCache from '../../services/passengerBookingsCache';
 import { darkMapStyle } from '../../utils/mapStyle';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DateTime } from 'luxon';
 import { Image } from 'expo-image';
 import DateTimePicker from '@react-native-community/datetimepicker';
-
-// Cache en memoria para evitar refetch en cada useFocusEffect (navegación entre tabs)
-let historyCache = { data: null, lastCheck: 0 };
-const HISTORY_CACHE_TTL = 60000; // 60 segundos
 
 const { width } = Dimensions.get('window');
 
@@ -348,62 +342,30 @@ const History = ({ navigation }) => {
     const [tempDate, setTempDate] = useState(new Date());
 
     const fetchHistory = useCallback(async (isSilent = false, force = false) => {
-        const now = Date.now();
-
-        // Saltar fetch si el cache está fresco y no es un refresh manual
-        if (!force && historyCache.data && (now - historyCache.lastCheck < HISTORY_CACHE_TTL)) {
-            if (historyCache.data.length > 0 || allHistory.length === 0) {
-                // Hidratar estado desde cache sin tocar la API
-                setAllHistory(historyCache.data);
-            }
-            setLoading(false);
-            setRefreshing(false);
-            return;
-        }
-
         if (!isSilent) setLoading(true);
         try {
-            // Leer userId directo de AsyncStorage (guardado en login) para evitar
-            // el cache stale de sessionCache que causaba el 403
-            let userId = await AsyncStorage.getItem('userId');
-            if (!userId) {
-                // Fallback: consultar /auth/me si el userId no está aún en AsyncStorage
-                const meRes = await api.get('/auth/me');
-                userId = meRes.data?.data?._id;
-            }
-            if (!userId) return; // sin userId no tiene sentido continuar
+            // Cache compartida con DashboardPasajero (rutas frecuentes) y Metrics:
+            // un solo fetch por ventana de 60s alimenta a las 3 pantallas.
+            const bookings = await passengerBookingsCache.get(force);
 
-            const response = await rideService.getBookingsByPassenger(userId);
+            const sorted = (bookings || [])
+                .filter(b => b.ride_id && b.ride_id.fecha && (b.status === 'completed' || b.status === 'cancelled' || b.status === 'canceled'))
+                .sort((a, b) => {
+                    const dateA = DateTime.fromISO(a.ride_id.fecha + 'T' + a.ride_id.hora);
+                    const dateB = DateTime.fromISO(b.ride_id.fecha + 'T' + b.ride_id.hora);
+                    return dateB - dateA;
+                });
 
-            if (response.success) {
-                const sorted = response.data
-                    .filter(b => b.ride_id && b.ride_id.fecha && (b.status === 'completed' || b.status === 'cancelled' || b.status === 'canceled'))
-                    .sort((a, b) => {
-                        const dateA = DateTime.fromISO(a.ride_id.fecha + 'T' + a.ride_id.hora);
-                        const dateB = DateTime.fromISO(b.ride_id.fecha + 'T' + b.ride_id.hora);
-                        return dateB - dateA;
-                    });
+            setAllHistory(sorted);
 
-                historyCache = { data: sorted, lastCheck: Date.now() };
-                setAllHistory(sorted);
+            const months = sorted.reduce((acc, b) => {
+                const ym = DateTime.fromISO(b.ride_id.fecha).toFormat('yyyy-MM');
+                if (!acc.includes(ym)) acc.push(ym);
+                return acc;
+            }, []);
 
-                // Extract months
-                const months = sorted.reduce((acc, b) => {
-                    const ym = DateTime.fromISO(b.ride_id.fecha).toFormat('yyyy-MM');
-                    if (!acc.includes(ym)) acc.push(ym);
-                    return acc;
-                }, []);
-
-                setAvailableMonths(months);
-
-                // Set initial month filter
-                setSelectedMonth(prev => (months.length > 0 && !prev) ? months[0] : prev);
-            }
-        } catch (error) {
-            // En 403 marcar cache con lista vacía para evitar retry infinito en cada focus
-            if (error?.response?.status === 403) {
-                historyCache = { data: [], lastCheck: Date.now() };
-            }
+            setAvailableMonths(months);
+            setSelectedMonth(prev => (months.length > 0 && !prev) ? months[0] : prev);
         } finally {
             setLoading(false);
             setRefreshing(false);
