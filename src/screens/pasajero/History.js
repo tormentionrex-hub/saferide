@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, memo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
 import {
     View,
     Text,
@@ -371,11 +371,43 @@ const History = ({ navigation }) => {
         }
     }, []);
 
+    // Ref para que el polling vea siempre el último allHistory sin re-suscribir
+    // el intervalo cada vez que la lista cambia.
+    const allHistoryRef = useRef([]);
+    useEffect(() => { allHistoryRef.current = allHistory; }, [allHistory]);
+
+    const hasPendingPayments = useCallback(() => {
+        return allHistoryRef.current.some(b =>
+            b.status === 'completed' &&
+            b.payment_status === 'pending' &&
+            Number(b.charged_amount) > 0
+        );
+    }, []);
+
     useFocusEffect(
         useCallback(() => {
             setDisplayLimit(3);
-            fetchHistory(false, false); // usa cache si está fresco
-        }, [fetchHistory])
+            // Si quedaron pagos pendientes visibles en el último focus, forzamos
+            // refresh del cache. Esto detecta que el conductor ya marcó como
+            // 'paid' el booking desde su dispositivo y hace que el banner
+            // "Tienes X pagos pendientes" desaparezca al volver al tab.
+            const shouldForce = hasPendingPayments();
+            fetchHistory(false, shouldForce);
+        }, [fetchHistory, hasPendingPayments])
+    );
+
+    // Polling silencioso mientras la pantalla está enfocada Y hay pendientes.
+    // Garantiza que el banner se actualice aunque el pasajero no salga del tab.
+    // Se autodestruye cuando ya no hay pendientes para no gastar peticiones.
+    useFocusEffect(
+        useCallback(() => {
+            const intervalId = setInterval(() => {
+                if (hasPendingPayments()) {
+                    fetchHistory(true, true); // silent + force
+                }
+            }, 15000);
+            return () => clearInterval(intervalId);
+        }, [fetchHistory, hasPendingPayments])
     );
 
     // Derivado directo: se calcula en el mismo render que dispara el cambio,
