@@ -75,6 +75,14 @@ const sessionCache = {
     },
 
     /**
+     * Obtiene el ID del usuario actual (pasajero).
+     * Alias semántico de getDriverId — internamente comparten el mismo cache,
+     * porque el userId es el mismo independientemente del rol y nunca cambia
+     * dentro de una sesión.
+     */
+    getPassengerId: async () => sessionCache.getDriverId(),
+
+    /**
      * Verifica si el conductor tiene vehículo (cache de 5 min).
      * Deduplica peticiones simultáneas igual que getDriverId.
      */

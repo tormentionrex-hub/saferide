@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
     View,
     Text,
@@ -17,6 +17,8 @@ import { LineChart } from 'react-native-chart-kit';
 import { useFocusEffect } from '@react-navigation/native';
 
 import api from '../../services/api';
+import sessionCache from '../../services/sessionCache';
+import passengerBookingsCache from '../../services/passengerBookingsCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import SettingsGearButton from '../../components/SettingsGearButton';
@@ -27,13 +29,14 @@ const screenWidth = Dimensions.get('window').width;
 // rebota entre tabs. Se invalida con pull-to-refresh o tras 60s.
 const METRICS_CACHE_TTL = 60 * 1000;
 let passengerMetricsCache = { userId: null, stats: null, details: null, ts: 0 };
-// Cache del userId: no cambia durante la sesión, evita un /auth/me por fetch
-let cachedUserId = null;
 
 const Metrics = ({ navigation }) => {
     const { theme } = useDriverTheme(); // El pasajero y conductor usan el mismo context de tema en la app actual
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    // Lazy mount del LineChart: react-native-chart-kit es pesado al montar por
+    // primera vez. Esperamos al primer paint para no bloquear la entrada al tab.
+    const [chartReady, setChartReady] = useState(false);
     const si = useScrollIndicator();
     
     const [stats, setStats] = useState({
@@ -48,12 +51,8 @@ const Metrics = ({ navigation }) => {
 
     const fetchMetrics = useCallback(async (forceRefresh = false) => {
         try {
-            let userId = cachedUserId;
-            if (!userId) {
-                const meResponse = await api.get('/auth/me');
-                userId = meResponse.data.data._id;
-                cachedUserId = userId;
-            }
+            const userId = await sessionCache.getPassengerId();
+            if (!userId) throw new Error('No se pudo obtener información del usuario');
 
             // Si hay cache fresca para este usuario, salir temprano.
             if (
@@ -69,17 +68,47 @@ const Metrics = ({ navigation }) => {
             }
 
             // 1. Totales precalculados (Metrics, rol=pasajero) + detalle histórico (bookings)
-            //    Los bookings se siguen necesitando para el gráfico mensual y el listado por mes,
-            //    ya que la colección Metrics solo guarda agregados totales.
-            const [mResponse, bResponse] = await Promise.allSettled([
+            //    Los bookings vienen de la cache compartida (DashboardPasajero + History
+            //    también la usan), evitando un segundo request si ya están en memoria.
+            //    El forceRefresh del pull-to-refresh también limpia la cache compartida.
+            const [mResponse, bookingsResult] = await Promise.allSettled([
                 api.get(`/metrics/user/${userId}?role=pasajero`),
-                api.get(`/bookings/passenger/${userId}?limit=200&status=completed`)
+                passengerBookingsCache.get(forceRefresh)
             ]);
 
             let metricsData = mResponse.status === 'fulfilled' ? mResponse.value.data.data : null;
-            const allBookings = bResponse.status === 'fulfilled' ? bResponse.value.data.data : [];
+            const allBookings = bookingsResult.status === 'fulfilled' ? (bookingsResult.value || []) : [];
 
-            // 2. Preparar contenedores de tiempo (Últimos 6 meses)
+            // 2. Totales: vienen directos del endpoint Metrics. Los seteamos
+            //    PRIMERO para que el paint inicial muestre las tarjetas
+            //    superiores sin esperar el parseo del array de bookings.
+            const km = metricsData?.kilometers_driven ?? 0;
+            const rides = metricsData?.total_rides ?? 0;
+            const co2 = metricsData?.carbon_footprint ?? 0;
+            const kmStr = km.toLocaleString(undefined, { minimumFractionDigits: 1 });
+            const viajesStr = rides.toString();
+            const co2Str = co2.toFixed(1);
+            setStats(prev => ({
+                ...prev,
+                kmTotal: kmStr,
+                viajesTotal: viajesStr,
+                co2Total: co2Str,
+            }));
+            // Apagar el spinner: las tarjetas superiores ya tienen datos.
+            // El gráfico y el historial entran en un segundo paint.
+            setLoading(false);
+            setRefreshing(false);
+
+            // 3. Cedemos el thread para que el primer paint ocurra ANTES de
+            //    parsear el array de bookings (puede ser grande). Sin este
+            //    yield, el forEach bloquea el JS thread durante la transición.
+            await new Promise(resolve => setTimeout(resolve, 0));
+
+            // 4. Pre-filtramos UNA vez para no chequear status dentro del loop.
+            const relevantBookings = (allBookings || []).filter(
+                b => b.status === 'completed' && b.ride_id && b.ride_id.fecha
+            );
+
             const now = new Date();
             const last6Months = Array.from({ length: 6 }, (_, i) => {
                 const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
@@ -93,14 +122,9 @@ const Metrics = ({ navigation }) => {
 
             const monthlyObj = {};
 
-            // 3. Bookings: solo para el desglose mensual (gráfico + historial),
-            //    NO para los totales — esos vienen del endpoint de Metrics.
-            allBookings.forEach(booking => {
-                if (booking.status !== 'completed' || !booking.ride_id || !booking.ride_id.fecha) return;
-
+            relevantBookings.forEach(booking => {
                 const ride = booking.ride_id;
-                const [y, m, d] = ride.fecha.split('-').map(Number);
-                const rDate = new Date(y, m - 1, d);
+                const [y, m] = ride.fecha.split('-').map(Number);
                 const dist = ride.distance_km || 0;
 
                 // Para la lista histórica
@@ -111,28 +135,18 @@ const Metrics = ({ navigation }) => {
                 monthlyObj[monthKey].km += dist;
                 monthlyObj[monthKey].rides += 1;
 
-                // Para la gráfica (si cae en el rango de los últimos 6 meses)
-                last6Months.forEach(mSlot => {
-                    if (rDate.getFullYear() === mSlot.year && rDate.getMonth() === mSlot.month) {
-                        mSlot.km += dist;
+                // Para la gráfica: comparamos índices, no construimos Date por booking.
+                for (let i = 0; i < last6Months.length; i++) {
+                    if (last6Months[i].year === y && last6Months[i].month === m - 1) {
+                        last6Months[i].km += dist;
+                        break;
                     }
-                });
+                }
             });
 
-            // 4. Totales: fuente única es el endpoint de Metrics (rol=pasajero)
-            const km = metricsData?.kilometers_driven ?? 0;
-            const rides = metricsData?.total_rides ?? 0;
-            const co2 = metricsData?.carbon_footprint ?? 0;
-            const newStats = {
-                kmTotal: km.toLocaleString(undefined, { minimumFractionDigits: 1 }),
-                viajesTotal: rides.toString(),
-                co2Total: co2.toFixed(1),
-                dataKm: last6Months.map(m => m.km),
-                labels: last6Months.map(m => m.label)
-            };
-            setStats(newStats);
+            const dataKm = last6Months.map(m => m.km);
+            const labels = last6Months.map(m => m.label);
 
-            // 5. Historial detallado
             const monthNames = { '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril', '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto', '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre' };
             const sortedDetails = Object.keys(monthlyObj)
                 .sort((a, b) => b.localeCompare(a))
@@ -144,6 +158,15 @@ const Metrics = ({ navigation }) => {
                     co2: (monthlyObj[key].km * 0.12 * 0.6).toFixed(1)
                 }));
 
+            // 5. Setear gráfico + historial — el segundo paint.
+            const newStats = {
+                kmTotal: kmStr,
+                viajesTotal: viajesStr,
+                co2Total: co2Str,
+                dataKm,
+                labels,
+            };
+            setStats(newStats);
             setMonthlyDetails(sortedDetails);
 
             // Guardar en cache para los próximos focuses dentro del TTL
@@ -167,6 +190,16 @@ const Metrics = ({ navigation }) => {
         const task = InteractionManager.runAfterInteractions(() => fetchMetrics());
         return () => task.cancel();
     }, [fetchMetrics]));
+
+    // Montar el LineChart sólo después del primer paint con datos.
+    // La libreria es pesada en el primer mount y bloquea el JS thread si entra
+    // al mismo tiempo que las animaciones de transición.
+    useEffect(() => {
+        if (!loading && !chartReady) {
+            const t = InteractionManager.runAfterInteractions(() => setChartReady(true));
+            return () => t.cancel();
+        }
+    }, [loading, chartReady]);
 
     const chartData = useMemo(
         () => ({ labels: stats.labels, datasets: [{ data: stats.dataKm }] }),
@@ -216,17 +249,23 @@ const Metrics = ({ navigation }) => {
                             <StatCard label="CO₂ ahorrado" value={`${stats.co2Total} kg`} theme={theme} />
                         </View>
 
-                        {/* Gráfico */}
+                        {/* Gráfico — lazy mount para no bloquear el primer paint */}
                         <View style={[styles.chartContainer, { backgroundColor: theme.surface, borderColor: theme.divider }]}>
                             <Text style={[styles.chartHeaderTitle, { color: theme.text }]}>Kilómetros por mes</Text>
-                            <LineChart
-                                data={chartData}
-                                width={screenWidth - 70}
-                                height={180}
-                                chartConfig={chartConfig}
-                                bezier
-                                style={styles.chartStyle}
-                            />
+                            {chartReady ? (
+                                <LineChart
+                                    data={chartData}
+                                    width={screenWidth - 70}
+                                    height={180}
+                                    chartConfig={chartConfig}
+                                    bezier
+                                    style={styles.chartStyle}
+                                />
+                            ) : (
+                                <View style={[styles.chartStyle, styles.chartPlaceholder]}>
+                                    <ActivityIndicator size="small" color={theme.accent} />
+                                </View>
+                            )}
                         </View>
 
                         {/* Lista Histórica */}
@@ -299,6 +338,7 @@ const styles = StyleSheet.create({
     chartContainer: { borderRadius: 20, padding: 15, borderWidth: 1, marginBottom: 20 },
     chartHeaderTitle: { fontSize: 13, fontWeight: 'bold' },
     chartStyle: { marginVertical: 8, borderRadius: 16, marginLeft: -10 },
+    chartPlaceholder: { height: 180, alignItems: 'center', justifyContent: 'center' },
     monthRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
     monthLeft: { flexDirection: 'row', alignItems: 'center' },
     monthIconBg: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
