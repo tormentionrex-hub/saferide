@@ -74,12 +74,6 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
     }, []);
 
     const goToRate = (extra = {}) => {
-        if (resolved) return;
-        setResolved(true);
-        if (pollRef.current) {
-            clearInterval(pollRef.current);
-            pollRef.current = null;
-        }
         navigation.replace('RateDriver', {
             rideId,
             driverId,
@@ -87,6 +81,13 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
             driverImage,
             ...extra,
         });
+    };
+
+    const stopPolling = () => {
+        if (pollRef.current) {
+            clearInterval(pollRef.current);
+            pollRef.current = null;
+        }
     };
 
     useEffect(() => {
@@ -100,6 +101,16 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
                 if (!mountedRef.current || resolved) return;
                 if (res.data?.success) {
                     const b = res.data.data;
+
+                    // Viaje regalado: nunca debe esperar confirmación del conductor.
+                    // Saltar directamente a calificar.
+                    if (b?.payment_type === 'gifted') {
+                        setResolved(true);
+                        stopPolling();
+                        goToRate({ paidConfirmed: true, gifted: true });
+                        return;
+                    }
+
                     if (b?.charged_amount && amount == null) {
                         setAmount(b.charged_amount);
                     }
@@ -115,17 +126,21 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
                         new Date(currentUpdated).getTime() > new Date(baselineUpdatedRef.current).getTime();
 
                     if (b.payment_status === 'paid') {
+                        setResolved(true);
+                        stopPolling();
                         showAlert(
-                            '¡Pago confirmado!',
-                            'El conductor ha confirmado tu pago. Ahora puedes calificar su servicio.',
+                            '¡Pago realizado correctamente!',
+                            'Gracias por viajar usando SafeRide.',
                             'success',
-                            'Calificar',
+                            'Continuar',
                             () => goToRate({ paidConfirmed: true })
                         );
                     } else if (wasUpdated && b.payment_status === 'pending') {
+                        setResolved(true);
+                        stopPolling();
                         showAlert(
-                            'Pago marcado como pendiente',
-                            'El conductor indicó que el pago aún no se ha realizado. Tendrás un cobro pendiente, pero ya puedes calificar el viaje.',
+                            'El pago no fue realizado',
+                            'Por favor ve al historial a realizar el pago antes de recibir una amonestación.',
                             'warning',
                             'Entendido',
                             () => goToRate({ paidConfirmed: false, hasUnpaidCharge: true })

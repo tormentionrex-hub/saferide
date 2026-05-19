@@ -17,6 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import { useCustomAlert } from '../../context/CustomAlertContext';
 import api from '../../services/api';
 import passengerBookingsCache from '../../services/passengerBookingsCache';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
@@ -28,6 +29,7 @@ const DashboardPasajero = ({ navigation, route }) => {
     const { theme } = useDriverTheme();
     const isDark = theme.dark;
     const si = useScrollIndicator();
+    const { showAlert } = useCustomAlert();
 
     // Nombre del usuario: primero intenta route.params (viene del login directo),
     // si está vacío lo lee de AsyncStorage (guardado al hacer login en SignInScreen).
@@ -35,6 +37,7 @@ const DashboardPasajero = ({ navigation, route }) => {
     const [userPhoto, setUserPhoto] = useState(null);
     const [userCompany, setUserCompany] = useState('');
     const [frequentRoutes, setFrequentRoutes] = useState([]);
+    const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
 
     React.useEffect(() => {
         const subscription = DeviceEventEmitter.addListener('profileUpdated', (newPhoto) => {
@@ -92,7 +95,7 @@ const DashboardPasajero = ({ navigation, route }) => {
                     // ya están en pantalla — no es necesario re-leerlos.
                 }
 
-                // ── Cargar rutas frecuentes ──
+                // ── Cargar rutas frecuentes y pagos pendientes ──
                 try {
                     const bookings = await passengerBookingsCache.get();
                     if (bookings && bookings.length > 0) {
@@ -183,11 +186,42 @@ const DashboardPasajero = ({ navigation, route }) => {
                 {/* Saludo dinámico al usuario */}
                 <Text style={[styles.greeting, { color: theme.text }]}>Hola, {userName}</Text>
 
+                {/* Banner rojo de pago pendiente */}
+                {pendingPaymentsCount > 0 && (
+                    <TouchableOpacity
+                        style={styles.pendingBanner}
+                        activeOpacity={0.85}
+                        onPress={() => navigation.navigate('History')}
+                    >
+                        <View style={styles.pendingBannerIcon}>
+                            <Ionicons name="warning" size={20} color="#fff" />
+                        </View>
+                        <View style={styles.pendingBannerTextWrap}>
+                            <Text style={styles.pendingBannerTitle}>
+                                Recuerda pagar tu viaje pendiente
+                            </Text>
+                            <Text style={styles.pendingBannerSub}>
+                                Si no lo haces no podrás seguir solicitando viajes. Toca para pagar.
+                            </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#fff" />
+                    </TouchableOpacity>
+                )}
+
                 {/* Tarjeta de búsqueda de viajes (Acceso directo principal) */}
-                <TouchableOpacity 
-                    style={[styles.searchCard, { backgroundColor: theme.accent || '#2563EB' }]}
+                <TouchableOpacity
+                    style={[styles.searchCard, { backgroundColor: theme.accent || '#2563EB' }, pendingPaymentsCount > 0 && { opacity: 0.55 }]}
                     onPress={() => {
-                        // Navega hacia la pantalla de búsqueda de viajes 'SearchRide'
+                        if (pendingPaymentsCount > 0) {
+                            showAlert(
+                                'Tienes un pago pendiente',
+                                'No puedes solicitar nuevos viajes hasta que pagues tu viaje pendiente. Ve al historial para completar el pago.',
+                                'warning',
+                                'Ir al historial',
+                                () => navigation.navigate('History')
+                            );
+                            return;
+                        }
                         navigation.navigate('BuscarViaje');
                     }}
                     activeOpacity={0.9}
@@ -430,7 +464,46 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontFamily: 'Poppins-Regular',
         lineHeight: 18,
-    }
+    },
+    pendingBanner: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        backgroundColor: '#FF3B30',
+        borderRadius: 14,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        marginBottom: 18,
+        shadowColor: '#FF3B30',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+        elevation: 5,
+    },
+    pendingBannerIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    pendingBannerTextWrap: {
+        flex: 1,
+    },
+    pendingBannerTitle: {
+        color: '#fff',
+        fontFamily: 'Poppins-Bold',
+        fontSize: 14,
+        marginBottom: 2,
+    },
+    pendingBannerSub: {
+        color: 'rgba(255,255,255,0.92)',
+        fontFamily: 'Poppins-Regular',
+        fontSize: 11.5,
+        lineHeight: 15,
+    },
 });
 
 
