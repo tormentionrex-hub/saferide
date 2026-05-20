@@ -223,11 +223,12 @@ const RatingScreen = ({
                     )}
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                    style={styles.skipBtn} 
+                <TouchableOpacity
+                    style={[styles.skipBtn, { borderColor: theme.border, backgroundColor: theme.surface }]}
                     onPress={() => triggerSuccessModal(onSkip)}
+                    activeOpacity={0.7}
                 >
-                    <Text style={[styles.skipBtnText, { color: theme.textSecondary }]}>
+                    <Text style={[styles.skipBtnText, { color: theme.text }]}>
                         Omitir
                     </Text>
                 </TouchableOpacity>
@@ -343,11 +344,18 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     skipBtn: {
-        padding: 12,
+        width: '100%',
+        height: 50,
+        borderRadius: 14,
+        borderWidth: 1.5,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 4,
     },
     skipBtnText: {
-        fontSize: 15,
-        fontWeight: '500',
+        fontSize: 16,
+        fontWeight: '700',
+        letterSpacing: 0.3,
     },
     successOverlay: {
         flex: 1,
