@@ -28,6 +28,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
+        // Cuenta limitada por trustScore=0 (Opción A de la spec):
+        // la sesión sigue siendo válida, NO se debe redirigir al login.
+        // Simplemente dejamos pasar el error con su code para que la
+        // pantalla específica muestre el mensaje al usuario.
+        if (
+            error.response?.status === 403 &&
+            error.response?.data?.code === 'ACCOUNT_INACTIVE'
+        ) {
+            return Promise.reject(error);
+        }
+
         if (error.response?.status === 401) {
             // Token expirado o inválido — limpiar sesión y redirigir al login
             await AsyncStorage.multiRemove(['userToken', 'userRole', 'userName']);

@@ -391,17 +391,38 @@ const TripInProgressDriver = ({ route, navigation }) => {
                     }
 
                     // B. Cancel the ride itself
-                    await api.patch(`/rides/${rideId}/cancel`);
+                    const rideRes = await api.patch(`/rides/${rideId}/cancel`);
 
-                    // Redirigir al flujo de verificación de pago / calificación
-                    // (con las opciones deshabilitadas porque el viaje fue cancelado).
-                    showAlert(
-                        'Viaje cancelado',
-                        'El viaje ha sido cancelado exitosamente y los pasajeros han sido notificados.',
-                        'success',
-                        'Continuar',
-                        () => navigation.replace('PaymentVerification', { rideId })
-                    );
+                    // El backend decrementa trustScore solo si la ride estaba
+                    // en 'in progress' al cancelarse. Si decremented=true,
+                    // mostramos el alert específico antes de navegar.
+                    const trust = rideRes.data?.trust;
+                    if (trust?.decremented) {
+                        const reachedZero = trust.newScore === 0;
+                        showAlert(
+                            'Has perdido una oportunidad',
+                            reachedZero
+                                ? 'Tu trust score bajó a 0 de 4. Tu cuenta ha sido limitada: no podrás publicar nuevos viajes hasta que un administrador la reactive.'
+                                : `Tu trust score bajó a ${trust.newScore} de 4. ${
+                                    trust.newScore === 1
+                                        ? 'Te queda 1 oportunidad antes de que tu cuenta sea limitada.'
+                                        : `Te quedan ${trust.newScore} oportunidades antes de que tu cuenta sea limitada.`
+                                }`,
+                            'warning',
+                            'Entendido',
+                            () => navigation.replace('PaymentVerification', { rideId })
+                        );
+                    } else {
+                        // Redirigir al flujo de verificación de pago / calificación
+                        // (con las opciones deshabilitadas porque el viaje fue cancelado).
+                        showAlert(
+                            'Viaje cancelado',
+                            'El viaje ha sido cancelado exitosamente y los pasajeros han sido notificados.',
+                            'success',
+                            'Continuar',
+                            () => navigation.replace('PaymentVerification', { rideId })
+                        );
+                    }
                 } catch (error) {
                     const serverMsg = error.response?.data?.message || error.message || 'Error desconocido';
                     console.error('Error cancelling trip:', serverMsg);

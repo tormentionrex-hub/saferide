@@ -506,13 +506,34 @@ const TripInProgress = ({ route, navigation }) => {
                                 });
 
                                 if (res.data?.success) {
-                                    showAlert(
-                                        'Cancelación exitosa',
-                                        'Tu viaje ha sido cancelado correctamente.',
-                                        'success',
-                                        'OK',
-                                        () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })
-                                    );
+                                    const trust = res.data?.trust;
+                                    // El backend decrementa trustScore solo en este escenario
+                                    // (gifted + ride in progress + pasajero cancela). Mostramos
+                                    // alert específico que reemplaza el de "Cancelación exitosa".
+                                    if (trust?.decremented) {
+                                        const reachedZero = trust.newScore === 0;
+                                        showAlert(
+                                            'Has perdido una oportunidad',
+                                            reachedZero
+                                                ? 'Tu trust score bajó a 0 de 4. Tu cuenta ha sido limitada: no podrás crear nuevas reservas hasta que un administrador la reactive.'
+                                                : `Tu trust score bajó a ${trust.newScore} de 4. ${
+                                                    trust.newScore === 1
+                                                        ? 'Te queda 1 oportunidad antes de que tu cuenta sea limitada.'
+                                                        : `Te quedan ${trust.newScore} oportunidades antes de que tu cuenta sea limitada.`
+                                                }`,
+                                            'warning',
+                                            'Entendido',
+                                            () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })
+                                        );
+                                    } else {
+                                        showAlert(
+                                            'Cancelación exitosa',
+                                            'Tu viaje ha sido cancelado correctamente.',
+                                            'success',
+                                            'OK',
+                                            () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })
+                                        );
+                                    }
                                 } else {
                                     showAlert('Aviso', res.data?.message || 'No se pudo cancelar la reserva.', 'warning');
                                 }
