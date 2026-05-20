@@ -38,6 +38,7 @@ import CustomizeApp from './src/screens/pasajero/CustomizeApp';
 import PaymentMethodScreen from './src/screens/pasajero/PaymentMethodScreen';
 import PayPalCheckoutScreen from './src/screens/pasajero/PayPalCheckoutScreen';
 import PendingPayment from './src/screens/pasajero/PendingPayment';
+import PayForTravel from './src/screens/pasajero/PayForTravel';
 import RideDetail from './src/screens/pasajero/RideDetail';
 import ScreenSaver from './src/screens/pasajero/ScreenSaver';
 import WaitingForTheStart from './src/screens/pasajero/WaitingForTheStart';
@@ -234,6 +235,12 @@ export default function App() {
               name="PendingPayment"
               component={PendingPayment}
               options={{ headerShown: false, animation: 'slide_from_right' }}
+            />
+
+            <Stack.Screen
+              name="PayForTravel"
+              component={PayForTravel}
+              options={{ headerShown: false, gestureEnabled: false, animation: 'slide_from_right' }}
             />
 
             <Stack.Screen

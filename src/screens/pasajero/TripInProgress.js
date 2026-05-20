@@ -314,16 +314,13 @@ const TripInProgress = ({ route, navigation }) => {
                                     driverImage: driverImageStr,
                                     paidConfirmed: true,
                                 });
-                            } else if (paymentMethod === 'paypal') {
-                                navigation.replace('PayPalCheckout', {
-                                    bookingId: data._id,
-                                    rideId: rideIdStr,
-                                    driverId: driverIdStr,
-                                    driverName: driverNameStr,
-                                    driverImage: driverImageStr,
-                                });
                             } else {
-                                navigation.replace('WaitingPaymentConfirmation', {
+                                // payment_status === 'pending' (no gifted, no paid):
+                                // pasa por PayForTravel sin importar el método guardado.
+                                // Desde ahí el usuario decide Continuar (→ PayPalCheckout
+                                // o WaitingPaymentConfirmation) u Omitir (→ RateDriver
+                                // dejando el booking pendiente en su historial).
+                                navigation.replace('PayForTravel', {
                                     bookingId: data._id,
                                     rideId: rideIdStr,
                                     driverId: driverIdStr,
