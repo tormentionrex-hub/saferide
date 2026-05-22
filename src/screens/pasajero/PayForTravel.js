@@ -63,9 +63,16 @@ const PayForTravel = ({ route, navigation }) => {
     const destName = ride?.destination?.name || 'Destino';
 
     const handlePayPalDirect = () => {
+        // Flujo post-viaje (NO es lateCharge). Pasamos los datos del conductor
+        // para que después del capture, PayPalCheckout pueda redirigir a
+        // WaitingPaymentConfirmation con todo lo necesario.
         navigation.navigate('PayPalCheckout', {
             bookingId,
-            mode: 'lateCharge',
+            rideId,
+            driverId,
+            driverName,
+            driverImage,
+            chargedAmount: amount,
         });
     };
 
