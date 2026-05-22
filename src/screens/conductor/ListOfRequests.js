@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View, Text, StyleSheet, FlatList, Image, TouchableOpacity,
-    ActivityIndicator, SafeAreaView, StatusBar, Alert, Platform, Modal, Animated, Dimensions, ScrollView
+    ActivityIndicator, SafeAreaView, StatusBar, Alert, Platform, Modal, Animated, Dimensions, ScrollView, AppState
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -542,10 +542,19 @@ const ListOfRequests = ({ route, navigation }) => {
     const [passengerDetailVisible, setPassengerDetailVisible] = useState(false);
     const [rideDetailData, setRideDetailData] = useState(null);
     const intervalRef = useRef(null);
+    // Anti-solapamiento: si el backend tarda más que el intervalo (8 s) no
+    // queremos que se acumulen requests en vuelo. Esta bandera asegura
+    // que solo haya una llamada activa de fetchRequests a la vez.
+    const isFetchingRef = useRef(false);
 
     const specificRideId = route.params?.rideId;
 
     const fetchRequests = async (isRefresh = false) => {
+        // Si una llamada anterior sigue activa, saltamos este tick.
+        // (Solo cuando NO es refresh manual: si el usuario tira para refrescar
+        //  queremos respetar su acción.)
+        if (!isRefresh && isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
             if (isRefresh) {
                 setRefreshing(true);
@@ -631,6 +640,8 @@ const ListOfRequests = ({ route, navigation }) => {
         } finally {
             setLoading(false);
             setRefreshing(false);
+            // Liberar bandera SIEMPRE, también en caso de error.
+            isFetchingRef.current = false;
         }
     };
 
@@ -639,12 +650,39 @@ const ListOfRequests = ({ route, navigation }) => {
     };
 
     useEffect(() => {
+        // Fase 1: bajado de 15 s a 8 s. La carga extra se compensa con
+        // la pausa por AppState y el anti-solapamiento (isFetchingRef),
+        // que impide que se apilen requests si el backend va lento.
+        const POLL_MS = 8000;
+
+        const startPolling = () => {
+            if (intervalRef.current) return;
+            intervalRef.current = setInterval(() => fetchRequests(true), POLL_MS);
+        };
+
+        const stopPolling = () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+        };
+
         fetchRequests();
-        // Iniciar polling automático cada 15 segundos
-        intervalRef.current = setInterval(() => fetchRequests(true), 15000);
+        startPolling();
+
+        const appStateSub = AppState.addEventListener('change', (next) => {
+            if (next === 'active') {
+                fetchRequests(true); // refresh inmediato al volver
+                startPolling();
+            } else {
+                stopPolling();
+            }
+        });
 
         return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
+            stopPolling();
+            appStateSub.remove();
+            isFetchingRef.current = false;
         };
     }, [specificRideId]);
 
