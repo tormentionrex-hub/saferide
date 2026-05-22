@@ -42,6 +42,42 @@ const getShortMonthNameES = (dt) => {
     return MONTHS_SHORT_ES[dt.month - 1] || '---';
 };
 
+// Determina si un booking debe mostrarse al pasajero como "cobro pendiente".
+//
+// Reglas (alineadas con la lógica del backend):
+// 1. Tiene que estar payment_status='pending' con charged_amount > 0.
+// 2. Solo aplica cobro real cuando:
+//    - El ride se completó (cobro normal por viaje cumplido), o
+//    - El booking fue cancelado por el pasajero (booking cancelled +
+//      ride NO cancelled → penalización).
+// 3. Si el ride completo fue cancelado por el conductor (ride.status
+//    'cancelled'/'canceled'), no hay cobro al pasajero aunque quede
+//    payment_status='pending' por residuo de datos.
+// 4. Si el ride aún está scheduled / in progress, el viaje no terminó y
+//    no debe figurar como deuda en el historial.
+const isPendingPayment = (b) => {
+    if (!b) return false;
+    if (b.payment_status !== 'pending') return false;
+    if (Number(b.charged_amount) <= 0) return false;
+
+    const rideStatus = b.ride_id?.status;
+    const bookingStatus = b.status;
+    const rideCancelled = rideStatus === 'cancelled' || rideStatus === 'canceled';
+    const bookingCancelled = bookingStatus === 'cancelled' || bookingStatus === 'canceled';
+
+    // Conductor canceló el ride → no hay cobro al pasajero.
+    if (rideCancelled) return false;
+
+    // Viaje completado → cobro normal aplica.
+    if (rideStatus === 'completed') return true;
+
+    // Pasajero canceló su booking sobre un ride no cancelado → penalización.
+    if (bookingCancelled) return true;
+
+    // Resto (ride scheduled / in progress, etc.) → no es deuda visible aún.
+    return false;
+};
+
 // Tarjeta de urgencia para pagos pendientes
 const PendingPaymentCard = memo(({ item, theme, navigation }) => {
     const ride = item.ride_id;
@@ -348,15 +384,16 @@ const History = ({ navigation }) => {
             const bookings = await passengerBookingsCache.get(force);
 
             const sorted = (bookings || [])
-                // Incluimos: bookings completados/cancelados (historial normal) y
-                // CUALQUIER booking con pago pendiente real (charged_amount > 0)
-                // sin importar el status, para que la tarjeta de "COBRO PENDIENTE"
-                // aparezca aunque la reservación nunca cambiara a 'waived'/'paid'.
+                // Incluimos: bookings completados/cancelados (historial normal)
+                // y bookings con pago realmente pendiente según las reglas
+                // del helper (no cualquier 'pending' suelto — si el ride no
+                // está completado ni el pasajero canceló su booking, no es
+                // una deuda visible aún).
                 .filter(b => b.ride_id && b.ride_id.fecha && (
                     b.status === 'completed' ||
                     b.status === 'cancelled' ||
                     b.status === 'canceled' ||
-                    (b.payment_status === 'pending' && Number(b.charged_amount) > 0)
+                    isPendingPayment(b)
                 ))
                 .sort((a, b) => {
                     const dateA = DateTime.fromISO(a.ride_id.fecha + 'T' + a.ride_id.hora);
@@ -386,13 +423,11 @@ const History = ({ navigation }) => {
     useEffect(() => { allHistoryRef.current = allHistory; }, [allHistory]);
 
     const hasPendingPayments = useCallback(() => {
-        // Una deuda es pago pendiente con monto > 0, independientemente del
-        // status del booking. Mientras payment_status no sea 'paid' ni 'waived',
-        // sigue siendo una cuenta por cobrar.
-        return allHistoryRef.current.some(b =>
-            b.payment_status === 'pending' &&
-            Number(b.charged_amount) > 0
-        );
+        // Solo contamos como deuda real las que pasan el helper:
+        // ride completado, o booking cancelado por el pasajero (con ride
+        // no cancelado). Cualquier 'pending' residual sobre rides
+        // cancelados por el conductor o aún en curso queda excluido.
+        return allHistoryRef.current.some(isPendingPayment);
     }, []);
 
     useFocusEffect(
@@ -620,13 +655,12 @@ const History = ({ navigation }) => {
     }, [selectedMonth, theme.text, theme.textSecondary]);
 
     const pendingPayments = useMemo(
-        // Misma regla: mostramos como "COBRO PENDIENTE" cualquier booking con
-        // payment_status='pending' y monto > 0, sin importar el status del
-        // booking ni del ride.
-        () => allHistory.filter(b =>
-            b.payment_status === 'pending' &&
-            Number(b.charged_amount) > 0
-        ),
+        // Reglas:
+        //  - Conductor canceló el ride entero → NO aparece como pendiente.
+        //  - Ride completado con pago aún pending → SÍ aparece.
+        //  - Pasajero canceló su booking (ride no cancelado) → SÍ aparece
+        //    (penalización por cancelar).
+        () => allHistory.filter(isPendingPayment),
         [allHistory]
     );
 
