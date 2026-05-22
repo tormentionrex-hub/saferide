@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import sessionStorage from '../../services/sessionStorage';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import api from '../../services/api';
@@ -120,20 +121,10 @@ const DashboardPasajero = ({ navigation, route }) => {
                     const meRes = await api.get('/auth/me');
                     if (meRes.data.success) {
                         const user = meRes.data.data;
-                        if (user.name) {
-                            setUserName(user.name);
-                            AsyncStorage.setItem('userName', user.name).catch(() => { });
-                        }
-                        if (user.profileImage) {
-                            setUserPhoto(user.profileImage);
-                            AsyncStorage.setItem('userPhoto', user.profileImage).catch(() => { });
-                        } else {
-                            setUserPhoto(null);
-                        }
-                        if (user.company) {
-                            setUserCompany(user.company);
-                            AsyncStorage.setItem('userCompany', user.company).catch(() => { });
-                        }
+                        if (user.name) setUserName(user.name);
+                        setUserPhoto(user.profileImage || null);
+                        if (user.company) setUserCompany(user.company);
+                        sessionStorage.setSession(user).catch(() => { });
                     }
                 } catch (_) {
                     // Si falla la red, los valores hidratados desde AsyncStorage

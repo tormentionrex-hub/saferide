@@ -9,7 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
-import sessionCache from '../../services/sessionCache';
+import { authService } from '../../services/authService';
 
 const PAYMENT_LABELS = { efectivo: 'Efectivo', sinpe: 'SINPE Móvil', tarjeta: 'Tarjeta' };
 const PAYMENT_ICONS  = { efectivo: 'cash-outline', sinpe: 'phone-portrait-outline', tarjeta: 'card-outline' };
@@ -74,8 +74,7 @@ const CustomizeApp = ({ navigation }) => {
 
     const handleConfirmLogout = () => {
         modal.close(async () => {
-            sessionCache.clear();
-            await AsyncStorage.multiRemove(['userToken', 'userRole', 'userName']);
+            await authService.logout();
             navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
         });
     };

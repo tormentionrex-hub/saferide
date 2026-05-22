@@ -7,9 +7,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
-import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
-import { API_URL } from '../../config.js';
+import api from '../../services/api';
 
 const CODE_LENGTH = 6;
 
@@ -72,7 +71,7 @@ export default function ForgotPasswordCode({ navigation, route }) {
     const handleResend = async () => {
         setResendLoading(true);
         try {
-            await axios.post(`${API_URL}/auth/send-verification-code`, { email });
+            await api.post('/auth/send-verification-code', { email });
             setCode('');
             setCodeError('');
             setResendCooldown(60);

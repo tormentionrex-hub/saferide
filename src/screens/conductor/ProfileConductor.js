@@ -15,12 +15,12 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import sessionStorage from '../../services/sessionStorage';
+import { authService } from '../../services/authService';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 
 import api from '../../services/api';
-import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { uploadToCloudinary } from '../../Cloudinary/Cloudinary';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
@@ -107,7 +107,7 @@ const ProfileConductor = ({ navigation, route }) => {
             if (resUser.data.success) {
                 const user = resUser.data.data;
                 setUserData(user);
-                await AsyncStorage.setItem('userPhoto', user.profileImage || '');
+                await sessionStorage.setSession(user);
                 setEditForm({
                     name: user.name || '',
                     phone: user.phone || '',
@@ -235,9 +235,12 @@ const ProfileConductor = ({ navigation, route }) => {
                 company: editForm.company,
                 profileImage: profileImageUrl,
             });
-            if (profileImageUrl) {
-                await AsyncStorage.setItem('userPhoto', profileImageUrl);
-            }
+            await sessionStorage.updateSession({
+                name: editForm.name,
+                phone: editForm.phone,
+                company: editForm.company,
+                profileImage: profileImageUrl,
+            });
             showAlert('¡Listo!', 'Perfil actualizado correctamente', 'success');
             setModalVisible(false);
             loadProfile();
@@ -320,8 +323,7 @@ const ProfileConductor = ({ navigation, route }) => {
             null,
             'Cancelar',
             async () => {
-                await AsyncStorage.clear();
-                sessionCache.clear();
+                await authService.logout();
                 navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
             }
         );

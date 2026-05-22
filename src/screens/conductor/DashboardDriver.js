@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import sessionCache from '../../services/sessionCache';
+import sessionStorage from '../../services/sessionStorage';
 import api from '../../services/api';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
@@ -94,16 +95,9 @@ export default function DashboardConductor({ route, navigation }) {
                 const meRes = await api.get('/auth/me');
                 if (meRes.data.success) {
                     const user = meRes.data.data;
-                    if (user.name) {
-                        setUserName(user.name);
-                        await AsyncStorage.setItem('userName', user.name);
-                    }
-                    if (user.profileImage) {
-                        setUserPhoto(user.profileImage);
-                        await AsyncStorage.setItem('userPhoto', user.profileImage);
-                    } else {
-                        setUserPhoto(null);
-                    }
+                    if (user.name) setUserName(user.name);
+                    setUserPhoto(user.profileImage || null);
+                    await sessionStorage.setSession(user);
                 }
             } catch (apiErr) {
                 const name = await AsyncStorage.getItem('userName');

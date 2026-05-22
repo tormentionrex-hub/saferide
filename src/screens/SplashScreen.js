@@ -12,6 +12,8 @@ import {
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
+import api from '../services/api';
+import tokenStorage from '../services/tokenStorage';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -43,8 +45,6 @@ export default function SplashScreen({ navigation }) {
 
     const bounceLoop = useRef(null);
     const pulseLoop = useRef(null);
-    const routeData = useRef(null);
-
     const [fontsLoaded] = useFonts({
         'Poppins-Bold': require('../fonts/Poppins_700Bold.ttf'),
     });
@@ -63,12 +63,16 @@ export default function SplashScreen({ navigation }) {
             useNativeDriver: true,
         }).start();
         
-        // Precargar datos de sesión
-        AsyncStorage.multiGet(['userRole', 'userName']).then((values) => {
-            const userRole = values[0][1];
-            const userName = values[1][1];
-            routeData.current = { userRole, userName };
-        });
+        // Validar la sesión contra el backend en paralelo a la animación.
+        // _skipRedirect evita que el interceptor de 401 nos saque a SignIn por
+        // su cuenta — esta pantalla decide la ruta al final de la animación.
+        // Timeout absoluto de 5s: si la red va lenta, caemos al fallback local.
+        const sessionCheckPromise = Promise.race([
+            api.get('/auth/me', { _skipRedirect: true })
+                .then((res) => ({ ok: true, user: res.data?.data }))
+                .catch(() => ({ ok: false })),
+            new Promise((resolve) => setTimeout(() => resolve({ ok: false }), 5000)),
+        ]);
 
         // 🏎️ Secuencia de movimiento realista acelerada
         Animated.sequence([
@@ -195,18 +199,46 @@ export default function SplashScreen({ navigation }) {
                 duration: 400, // Salida rápida
                 easing: Easing.out(Easing.quad),
                 useNativeDriver: true,
-            }).start(() => {
+            }).start(async () => {
                 bounceLoop.current?.stop();
                 pulseLoop.current?.stop();
-                const data = routeData.current;
 
-                if (data && data.userRole && data.userName) {
-                    const route = data.userRole === 'conductor' ? 'MainTabsDriver' : 'MainTabsPasajero';
+                // 1) Si /auth/me respondió OK, usamos sus datos como autoridad.
+                // 2) Si falló (red caída o timeout), caemos a la cache local actual
+                //    — leemos AsyncStorage *aquí* y no antes, porque si el
+                //    refresh falló el interceptor ya limpió tokens y perfil.
+                // 3) Si tampoco hay cache local, vamos a SignIn.
+                const sessionResult = await sessionCheckPromise;
+
+                let userRole, userName;
+                if (sessionResult.ok && sessionResult.user) {
+                    userRole = sessionResult.user.type;
+                    userName = sessionResult.user.name;
+                } else {
+                    // Solo aceptar la cache local si todavía hay un access token.
+                    // Si el refresh falló en background, authService.logout() ya
+                    // habrá limpiado tokens y storage — leer aquí garantiza que
+                    // no entremos al dashboard con sesión muerta.
+                    const token = await tokenStorage.getAccessToken();
+                    if (token) {
+                        const [[, cachedRole], [, cachedName]] = await AsyncStorage.multiGet([
+                            'userRole',
+                            'userName',
+                        ]);
+                        if (cachedRole && cachedName) {
+                            userRole = cachedRole;
+                            userName = cachedName;
+                        }
+                    }
+                }
+
+                if (userRole && userName) {
+                    const route = userRole === 'conductor' ? 'MainTabsDriver' : 'MainTabsPasajero';
                     navigation.reset({
                         index: 1,
                         routes: [
                             { name: 'SignIn' },
-                            { name: route, params: { userName: data.userName } },
+                            { name: route, params: { userName } },
                         ],
                     });
                 } else {

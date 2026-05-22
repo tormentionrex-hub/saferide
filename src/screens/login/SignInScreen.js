@@ -17,11 +17,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_URL } from '../../config.js';
+import { authService } from '../../services/authService';
 import { registerForPushNotifications } from '../../services/pushNotificationService';
-import sessionCache from '../../services/sessionCache';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const ICON = require('../../images/IconSafeRide.png');
@@ -189,61 +186,30 @@ export default function SignInScreen({ navigation }) {
         if (!validate()) return;
         setLoading(true);
         try {
-            // Enviamos las credenciales al endpoint público de autenticación (/auth/login),
-            // ya que /users/ requiere un token JWT y aún no tenemos uno al iniciar sesión
-            const response = await axios.post(`${API_URL}/auth/login`, {
-                email: email.trim(),
-                password: password.trim(),
-            });
-            // Si la respuesta es exitosa (200 o 201)
-            if (response.status === 200 || response.status === 201) {
-                // Obtenemos los datos del usuario desde la respuesta del backend
-                const userData = response.data.data.user;
-                const userRole = userData.type; // Puede ser 'pasajero' o 'conductor'
-                const userName = userData.name; // Nombre del usuario logueado
+            const data = await authService.login(email.trim(), password.trim());
+            const { name: userName, type: userRole } = data.data.user;
 
-                // Persistir sesión para que el Splash redirija correctamente al reabrir la app
-                const accessToken = response.data.data.accessToken;
-                // Limpiar cache de sesión anterior antes de guardar la nueva
-                sessionCache.clear();
+            registerForPushNotifications().catch(() => {});
 
-                await AsyncStorage.setItem('userToken', accessToken);
-                await AsyncStorage.setItem('userRole', userRole);
-                await AsyncStorage.setItem('userName', userName);
-                await AsyncStorage.setItem('userId', userData._id || '');
-                await AsyncStorage.setItem('userEmail', userData.email || '');
-                await AsyncStorage.setItem('userPhone', userData.phone || '');
-                await AsyncStorage.setItem('userPhoto', userData.profileImage || '');
+            showSuccessAnimation();
 
-                // Registrar push token en background (no bloquea el flujo de login)
-                registerForPushNotifications().catch(() => {});
+            setTimeout(() => {
+                setShowSuccess(false);
 
-                showSuccessAnimation();
-
-
-                // Esperamos 2.5 segundos para mostrar la animación de éxito antes de redirigir
-                setTimeout(() => {
-                    setShowSuccess(false);
-
-                    // Lógica de redirección basada en el tipo de usuario (rol)
-                    // Se usa reset() para limpiar todo el historial de registro del stack.
-                    // El stack queda [SignIn, Dashboard], así el botón atrás del Dashboard
-                    // lleva al Login y nunca a pantallas de registro.
-                    let dashboardRoute = 'Home';
-                    if (userRole === 'pasajero') {
-                        dashboardRoute = 'MainTabsPasajero';
-                    } else if (userRole === 'conductor') {
-                        dashboardRoute = 'MainTabsDriver';
-                    }
-                    navigation.reset({
-                        index: 1,
-                        routes: [
-                            { name: 'SignIn' },
-                            { name: dashboardRoute, params: { userName } },
-                        ],
-                    });
-                }, 2500);
-            }
+                let dashboardRoute = 'Home';
+                if (userRole === 'pasajero') {
+                    dashboardRoute = 'MainTabsPasajero';
+                } else if (userRole === 'conductor') {
+                    dashboardRoute = 'MainTabsDriver';
+                }
+                navigation.reset({
+                    index: 1,
+                    routes: [
+                        { name: 'SignIn' },
+                        { name: dashboardRoute, params: { userName } },
+                    ],
+                });
+            }, 2500);
         } catch (error) {
             const msg = error.response?.data?.message || 'Correo o contraseña incorrectos.';
             setEmailError(msg);
