@@ -594,6 +594,31 @@ const History = ({ navigation }) => {
         />
     ), [theme, calculateArrivalTime, handleContact]);
 
+    // Empty/Footer extraídos a referencias estables: antes se pasaban como
+    // arrow functions inline en el JSX del FlatList, lo que provocaba que el
+    // FlatList recreara el slot vacío/pie en cada render del padre y rompía
+    // la memoización interna.
+    const ListEmptyComponentMemo = useCallback(() => {
+        const isFiltered = !!selectedMonth;
+        return (
+            <View style={styles.emptyContainer}>
+                <Ionicons
+                    name={isFiltered ? 'calendar-outline' : 'car-outline'}
+                    size={72}
+                    color={theme.textSecondary + '35'}
+                />
+                <Text style={[styles.emptyTitle, { color: theme.text }]}>
+                    {isFiltered ? 'Sin viajes en este período' : '¡Aún no tienes viajes!'}
+                </Text>
+                <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                    {isFiltered
+                        ? 'No encontramos viajes para la fecha seleccionada. Prueba con otro filtro.'
+                        : 'Cuando realices tu primer viaje con SafeRide, aparecerá aquí tu historial.'}
+                </Text>
+            </View>
+        );
+    }, [selectedMonth, theme.text, theme.textSecondary]);
+
     const pendingPayments = useMemo(
         // Misma regla: mostramos como "COBRO PENDIENTE" cualquier booking con
         // payment_status='pending' y monto > 0, sin importar el status del
@@ -660,26 +685,7 @@ const History = ({ navigation }) => {
                         windowSize={5}
                         ListHeaderComponent={renderListHeader}
                         ListFooterComponent={renderFooter}
-                        ListEmptyComponent={() => {
-                                const isFiltered = !!selectedMonth;
-                                return (
-                                    <View style={styles.emptyContainer}>
-                                        <Ionicons
-                                            name={isFiltered ? 'calendar-outline' : 'car-outline'}
-                                            size={72}
-                                            color={theme.textSecondary + '35'}
-                                        />
-                                        <Text style={[styles.emptyTitle, { color: theme.text }]}>
-                                            {isFiltered ? 'Sin viajes en este período' : '¡Aún no tienes viajes!'}
-                                        </Text>
-                                        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                                            {isFiltered
-                                                ? 'No encontramos viajes para la fecha seleccionada. Prueba con otro filtro.'
-                                                : 'Cuando realices tu primer viaje con SafeRide, aparecerá aquí tu historial.'}
-                                        </Text>
-                                    </View>
-                                );
-                            }}
+                        ListEmptyComponent={ListEmptyComponentMemo}
                         refreshControl={
                             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} colors={[theme.accent]} />
                         }

@@ -572,12 +572,6 @@ const ListOfRequests = ({ route, navigation }) => {
                         activeBookings.push(b);
                     }
 
-                    if (__DEV__) {
-                        activeBookings.forEach(b => {
-                            const p = b.passenger_id;
-                            console.log('[ListOfRequests] passenger:', p?._id, '| profileImage:', p?.profileImage ?? 'NULL');
-                        });
-                    }
                     setRequests(activeBookings);
                     const confirmed = activeBookings.filter(b => b.status === 'confirmed').length;
                     setConfirmedCount(confirmed);
