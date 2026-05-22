@@ -4,7 +4,7 @@ import {
     Text,
     StyleSheet,
     Modal,
-    FlatList,
+    SectionList,
     TouchableOpacity,
     ActivityIndicator,
     Platform,
@@ -21,37 +21,24 @@ import { useDriverTheme } from '../context/DriverThemeContext';
  * Recibe los datos ya cargados (provienen del hook useNotifications del padre,
  * que mantiene polling activo). Este componente sólo renderiza y delega
  * acciones (mark as read, navegar al recurso) al padre.
- *
- * Props:
- * - visible {boolean}
- * - onClose {function}
- * - notifications {Array}      — última lista del hook
- * - loading {boolean}
- * - markAsRead {function(id)}  — del hook
- * - markAllAsRead {function()} — del hook
- * - onNotificationPress {function(notification)} — el padre decide a dónde
- *   navegar según el tipo (ride/booking/etc.). Permite mantener navegación
- *   centralizada y sin que este modal toque navigation directamente.
  */
 
+// Cada tipo trae un título legible y una paleta. El título se renderiza en
+// negrita arriba del mensaje del backend para dar jerarquía visual.
 const TYPE_META = {
-    booking_pending:        { icon: 'person-add-outline',   color: '#F59E0B' },
-    booking_confirmed:      { icon: 'checkmark-circle',     color: '#10B981' },
-    booking_cancelled:      { icon: 'close-circle',         color: '#EF4444' },
-    booking_denied:         { icon: 'remove-circle',        color: '#EF4444' },
-    ride_reminder:          { icon: 'time-outline',         color: '#2563EB' },
-    ride_started:           { icon: 'car-sport',            color: '#2563EB' },
-    ride_completed:         { icon: 'flag',                 color: '#10B981' },
-    ride_cancelled:         { icon: 'ban',                  color: '#EF4444' },
-    review_request:         { icon: 'star-outline',         color: '#F59E0B' },
-    trust_score_updated:    { icon: 'shield-half-outline',  color: '#7C3AED' },
-    system:                 { icon: 'information-circle',   color: '#2563EB' },
+    booking_pending:     { icon: 'person-add',          color: '#F59E0B', title: 'Nueva reserva' },
+    booking_confirmed:   { icon: 'checkmark-circle',    color: '#10B981', title: 'Reserva confirmada' },
+    booking_cancelled:   { icon: 'close-circle',        color: '#EF4444', title: 'Reserva cancelada' },
+    booking_denied:      { icon: 'remove-circle',       color: '#EF4444', title: 'Reserva rechazada' },
+    ride_reminder:       { icon: 'time',                color: '#2563EB', title: 'Recordatorio de viaje' },
+    ride_started:        { icon: 'car-sport',           color: '#2563EB', title: 'Viaje iniciado' },
+    ride_completed:      { icon: 'flag',                color: '#10B981', title: 'Viaje completado' },
+    ride_cancelled:      { icon: 'ban',                 color: '#EF4444', title: 'Viaje cancelado' },
+    review_request:      { icon: 'star',                color: '#F59E0B', title: 'Calificación pendiente' },
+    trust_score_updated: { icon: 'shield-half',         color: '#7C3AED', title: 'Puntaje actualizado' },
+    system:              { icon: 'information-circle',  color: '#2563EB', title: 'Notificación' },
 };
 
-/**
- * Convierte una fecha ISO en texto relativo corto en español.
- * Ej: "hace 2 min", "hace 3 h", "ayer", "hace 5 d".
- */
 const formatRelative = (iso) => {
     if (!iso) return '';
     const date = new Date(iso);
@@ -71,6 +58,41 @@ const formatRelative = (iso) => {
     return date.toLocaleDateString();
 };
 
+const isSameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+// Agrupa por antigüedad para mostrar headers Hoy / Ayer / Esta semana /
+// Anteriores. Se mantiene el orden de entrada dentro de cada grupo, que
+// asume que el backend ya manda las notificaciones en orden descendente.
+const groupByDate = (notifications) => {
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+
+    const today = [];
+    const yest = [];
+    const week = [];
+    const older = [];
+
+    for (const n of notifications) {
+        const d = new Date(n.date || n.createdAt);
+        if (isNaN(d.getTime())) { older.push(n); continue; }
+        if (isSameDay(d, now)) today.push(n);
+        else if (isSameDay(d, yesterday)) yest.push(n);
+        else if ((now - d) / 86400000 < 7) week.push(n);
+        else older.push(n);
+    }
+
+    const sections = [];
+    if (today.length) sections.push({ title: 'Hoy', data: today });
+    if (yest.length)  sections.push({ title: 'Ayer', data: yest });
+    if (week.length)  sections.push({ title: 'Esta semana', data: week });
+    if (older.length) sections.push({ title: 'Anteriores', data: older });
+    return sections;
+};
+
 const NotificationItem = React.memo(({ item, theme, onPress }) => {
     const meta = TYPE_META[item.type] || TYPE_META.system;
     const unread = item.status === 'unread';
@@ -80,23 +102,53 @@ const NotificationItem = React.memo(({ item, theme, onPress }) => {
         <TouchableOpacity
             style={[
                 styles.item,
-                { backgroundColor: theme.surface, borderColor: theme.border },
-                unread && { backgroundColor: theme.surfaceVariant },
+                {
+                    backgroundColor: theme.surface,
+                    borderColor: unread ? meta.color + '33' : theme.border,
+                    shadowColor: theme.dark ? '#000' : meta.color,
+                },
+                unread && styles.itemUnread,
             ]}
-            activeOpacity={0.7}
+            activeOpacity={0.75}
             onPress={handlePress}
         >
-            <View style={[styles.iconCircle, { backgroundColor: meta.color + '22' }]}>
+            {/* Barra de acento izquierda — sólo visible cuando está sin leer */}
+            <View
+                style={[
+                    styles.accentBar,
+                    { backgroundColor: unread ? meta.color : 'transparent' },
+                ]}
+            />
+
+            {/* Círculo con ícono, fondo tintado al color del tipo */}
+            <View
+                style={[
+                    styles.iconCircle,
+                    {
+                        backgroundColor: meta.color + '1A',
+                        borderColor: meta.color + '33',
+                    },
+                ]}
+            >
                 <Ionicons name={meta.icon} size={20} color={meta.color} />
             </View>
+
+            {/* Contenido: título derivado del tipo + mensaje + fecha */}
             <View style={styles.itemBody}>
+                <View style={styles.itemTopRow}>
+                    <Text
+                        style={[styles.itemTitle, { color: theme.text }]}
+                        numberOfLines={1}
+                    >
+                        {meta.title}
+                    </Text>
+                    {unread && (
+                        <View style={[styles.unreadDot, { backgroundColor: meta.color }]} />
+                    )}
+                </View>
                 <Text
-                    style={[
-                        styles.itemMessage,
-                        { color: theme.text },
-                        unread && styles.itemMessageUnread,
-                    ]}
-                    numberOfLines={3}
+                    style={[styles.itemMessage, { color: theme.textSecondary }]}
+                    numberOfLines={2}
                 >
                     {item.message}
                 </Text>
@@ -104,7 +156,13 @@ const NotificationItem = React.memo(({ item, theme, onPress }) => {
                     {formatRelative(item.date || item.createdAt)}
                 </Text>
             </View>
-            {unread && <View style={[styles.unreadDot, { backgroundColor: theme.accent }]} />}
+
+            <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={theme.textSecondary + '88'}
+                style={styles.chevron}
+            />
         </TouchableOpacity>
     );
 });
@@ -120,10 +178,13 @@ const NotificationCenterModal = ({
     const { theme } = useDriverTheme();
     const insets = useSafeAreaInsets();
 
-    const hasUnread = useMemo(
-        () => notifications.some((n) => n.status === 'unread'),
+    const unreadCount = useMemo(
+        () => notifications.filter((n) => n.status === 'unread').length,
         [notifications]
     );
+    const hasUnread = unreadCount > 0;
+
+    const sections = useMemo(() => groupByDate(notifications), [notifications]);
 
     const renderItem = useCallback(
         ({ item }) => (
@@ -134,6 +195,17 @@ const NotificationCenterModal = ({
             />
         ),
         [theme, onNotificationPress]
+    );
+
+    const renderSectionHeader = useCallback(
+        ({ section }) => (
+            <View style={[styles.sectionHeader, { backgroundColor: theme.bg }]}>
+                <Text style={[styles.sectionHeaderText, { color: theme.textSecondary }]}>
+                    {section.title.toUpperCase()}
+                </Text>
+            </View>
+        ),
+        [theme]
     );
 
     const keyExtractor = useCallback((item) => item._id, []);
@@ -147,33 +219,60 @@ const NotificationCenterModal = ({
         >
             <View style={[styles.container, { backgroundColor: theme.bg }]}>
                 <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
+
                 <View
                     style={[
                         styles.header,
                         {
                             paddingTop:
                                 Platform.OS === 'android'
-                                    ? (StatusBar.currentHeight || 24) + 12
-                                    : insets.top + 12,
+                                    ? (StatusBar.currentHeight || 24) + 10
+                                    : insets.top + 10,
                             backgroundColor: theme.bg,
                             borderBottomColor: theme.divider,
                         },
                     ]}
                 >
-                    <TouchableOpacity onPress={onClose} style={styles.headerBtn} accessibilityLabel="Cerrar">
+                    <TouchableOpacity
+                        onPress={onClose}
+                        style={styles.headerBackBtn}
+                        accessibilityLabel="Cerrar"
+                    >
                         <Ionicons name="chevron-back" size={26} color={theme.text} />
                     </TouchableOpacity>
-                    <Text style={[styles.headerTitle, { color: theme.text }]}>
-                        Notificaciones
-                    </Text>
+
+                    <View style={styles.headerTitleBlock}>
+                        <Text style={[styles.headerTitle, { color: theme.text }]}>
+                            Notificaciones
+                        </Text>
+                        <Text
+                            style={[styles.headerSubtitle, { color: theme.textSecondary }]}
+                        >
+                            {hasUnread
+                                ? `${unreadCount} sin leer`
+                                : 'Estás al día'}
+                        </Text>
+                    </View>
+
                     {hasUnread ? (
-                        <TouchableOpacity onPress={markAllAsRead} style={styles.headerBtn}>
+                        <TouchableOpacity
+                            onPress={markAllAsRead}
+                            style={[
+                                styles.markAllPill,
+                                {
+                                    backgroundColor: theme.accent + '15',
+                                    borderColor: theme.accent + '40',
+                                },
+                            ]}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="checkmark-done" size={14} color={theme.accent} />
                             <Text style={[styles.markAllText, { color: theme.accent }]}>
                                 Leer todas
                             </Text>
                         </TouchableOpacity>
                     ) : (
-                        <View style={styles.headerBtn} />
+                        <View style={styles.headerSpacer} />
                     )}
                 </View>
 
@@ -183,11 +282,21 @@ const NotificationCenterModal = ({
                     </View>
                 ) : notifications.length === 0 ? (
                     <View style={styles.center}>
-                        <Ionicons
-                            name="notifications-off-outline"
-                            size={64}
-                            color={theme.textSecondary + '55'}
-                        />
+                        <View
+                            style={[
+                                styles.emptyCircle,
+                                {
+                                    backgroundColor: theme.surfaceVariant,
+                                    borderColor: theme.border,
+                                },
+                            ]}
+                        >
+                            <Ionicons
+                                name="notifications-off-outline"
+                                size={48}
+                                color={theme.textSecondary + 'AA'}
+                            />
+                        </View>
                         <Text style={[styles.emptyTitle, { color: theme.text }]}>
                             Sin notificaciones
                         </Text>
@@ -196,10 +305,12 @@ const NotificationCenterModal = ({
                         </Text>
                     </View>
                 ) : (
-                    <FlatList
-                        data={notifications}
+                    <SectionList
+                        sections={sections}
                         keyExtractor={keyExtractor}
                         renderItem={renderItem}
+                        renderSectionHeader={renderSectionHeader}
+                        stickySectionHeadersEnabled={false}
                         contentContainerStyle={[
                             styles.listContent,
                             { paddingBottom: insets.bottom + 24 },
@@ -214,85 +325,177 @@ const NotificationCenterModal = ({
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
+
+    // Header
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingBottom: 14,
-        borderBottomWidth: 1,
+        paddingHorizontal: 10,
+        paddingBottom: 16,
+        gap: 2,
     },
-    headerBtn: {
-        minWidth: 80,
-        height: 40,
+    headerBackBtn: {
+        width: 44,
+        height: 44,
         justifyContent: 'center',
-        alignItems: 'flex-start',
+        alignItems: 'center',
+        borderRadius: 22,
+    },
+    headerTitleBlock: {
+        flex: 1,
+        marginLeft: 4,
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 22,
         fontFamily: 'Poppins-Bold',
+        letterSpacing: -0.5,
+    },
+    headerSubtitle: {
+        fontSize: 12,
+        fontFamily: 'Poppins-Regular',
+        marginTop: 1,
+    },
+    markAllPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingHorizontal: 12,
+        paddingVertical: 7,
+        borderRadius: 20,
+        borderWidth: 1,
+        marginRight: 8,
     },
     markAllText: {
-        fontSize: 13,
+        fontSize: 12,
         fontFamily: 'Poppins-SemiBold',
-        textAlign: 'right',
-        alignSelf: 'flex-end',
     },
+    headerSpacer: {
+        width: 12,
+    },
+
+    // Lista
     listContent: {
         paddingHorizontal: 16,
-        paddingTop: 12,
+        paddingTop: 4,
     },
+
+    // Section header
+    sectionHeader: {
+        paddingTop: 14,
+        paddingBottom: 8,
+    },
+    sectionHeaderText: {
+        fontSize: 11,
+        fontFamily: 'Poppins-Bold',
+        letterSpacing: 1.4,
+    },
+
+    // Card
     item: {
         flexDirection: 'row',
         alignItems: 'flex-start',
         gap: 12,
-        padding: 14,
-        borderRadius: 14,
+        paddingVertical: 13,
+        paddingRight: 12,
+        paddingLeft: 14,
+        borderRadius: 16,
         borderWidth: 1,
         marginBottom: 10,
+        position: 'relative',
+        // Sombra (iOS) + elevation (Android)
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+        elevation: 2,
+        overflow: 'hidden',
+    },
+    itemUnread: {
+        shadowOpacity: 0.14,
+        elevation: 4,
+    },
+    accentBar: {
+        position: 'absolute',
+        left: 0,
+        top: 12,
+        bottom: 12,
+        width: 3,
+        borderTopRightRadius: 3,
+        borderBottomRightRadius: 3,
     },
     iconCircle: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 42,
+        height: 42,
+        borderRadius: 21,
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 1,
         flexShrink: 0,
     },
-    itemBody: { flex: 1, gap: 4 },
-    itemMessage: {
-        fontSize: 14,
-        fontFamily: 'Poppins-Regular',
-        lineHeight: 19,
+    itemBody: {
+        flex: 1,
+        gap: 2,
     },
-    itemMessageUnread: { fontFamily: 'Poppins-SemiBold' },
+    itemTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    itemTitle: {
+        flex: 1,
+        fontSize: 14,
+        fontFamily: 'Poppins-Bold',
+        letterSpacing: -0.2,
+    },
+    itemMessage: {
+        fontSize: 13,
+        fontFamily: 'Poppins-Regular',
+        lineHeight: 18,
+        marginTop: 2,
+    },
     itemDate: {
         fontSize: 11,
         fontFamily: 'Poppins-Regular',
+        marginTop: 5,
+        letterSpacing: 0.1,
     },
     unreadDot: {
         width: 8,
         height: 8,
         borderRadius: 4,
-        marginTop: 6,
-        flexShrink: 0,
     },
+    chevron: {
+        alignSelf: 'center',
+        marginLeft: 2,
+    },
+
+    // Empty / loading
     center: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 40,
-        gap: 8,
+        gap: 4,
+    },
+    emptyCircle: {
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 14,
+        borderWidth: 1,
     },
     emptyTitle: {
-        fontSize: 17,
+        fontSize: 18,
         fontFamily: 'Poppins-Bold',
-        marginTop: 8,
+        marginTop: 4,
     },
     emptySub: {
         fontSize: 13,
         fontFamily: 'Poppins-Regular',
         textAlign: 'center',
+        lineHeight: 19,
+        marginTop: 4,
     },
 });
 
