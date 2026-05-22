@@ -15,7 +15,10 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import api from '../../services/api';
 import { authService } from '../../services/authService';
+import notificationService from '../../services/notificationService';
+import { registerForPushNotifications } from '../../services/pushNotificationService';
 
 const useLogoutModal = () => {
     const [visible, setVisible] = useState(false);
