@@ -296,8 +296,13 @@ export default function PreviousTripsScreen() {
             
             setAvailableMonths(months);
 
-            if (!selectedMonth && months.length > 0) {
-                setSelectedMonth(months[0]);
+            // Updater funcional: si ya hay un mes seleccionado lo respetamos,
+            // si no, tomamos el primero disponible. Antes leíamos `selectedMonth`
+            // del closure → era una dependencia de useCallback → cada vez que
+            // el usuario cambiaba el filtro, `fetchTrips` se recreaba y
+            // `useFocusEffect` disparaba un refetch a la red sin necesidad.
+            if (months.length > 0) {
+                setSelectedMonth(prev => prev || months[0]);
             }
 
         } catch (error) {
@@ -306,7 +311,7 @@ export default function PreviousTripsScreen() {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [selectedMonth]);
+    }, []);
 
     // Refresh data when screen gains focus
     useFocusEffect(

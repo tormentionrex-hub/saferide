@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = 'driverTheme';
@@ -61,18 +61,28 @@ export const DriverThemeProvider = ({ children }) => {
     useEffect(() => {
         AsyncStorage.getItem(STORAGE_KEY).then((saved) => {
             if (saved === 'dark') setTheme(darkTheme);
-        });
+        }).catch(() => {});
     }, []);
 
-    // toDark: true → modo oscuro, false → modo claro
-    const toggleTheme = async (toDark) => {
+    // toDark: true → modo oscuro, false → modo claro.
+    // useCallback estabiliza la referencia: junto con el useMemo del value,
+    // evita que consumers que sólo necesitan `toggleTheme` se re-rendericen
+    // cuando el tema cambia.
+    const toggleTheme = useCallback(async (toDark) => {
         const next = toDark ? darkTheme : lightTheme;
         setTheme(next);
-        await AsyncStorage.setItem(STORAGE_KEY, toDark ? 'dark' : 'light');
-    };
+        try {
+            await AsyncStorage.setItem(STORAGE_KEY, toDark ? 'dark' : 'light');
+        } catch (_) {}
+    }, []);
+
+    // El objeto value solo cambia cuando el tema realmente cambia, no en cada
+    // render del provider. Sin esto, cualquier re-render aguas arriba forzaría
+    // a TODOS los consumers (prácticamente toda la app) a re-renderizar.
+    const contextValue = useMemo(() => ({ theme, toggleTheme }), [theme, toggleTheme]);
 
     return (
-        <DriverThemeContext.Provider value={{ theme, toggleTheme }}>
+        <DriverThemeContext.Provider value={contextValue}>
             {children}
         </DriverThemeContext.Provider>
     );
