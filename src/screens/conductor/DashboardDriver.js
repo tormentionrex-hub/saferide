@@ -152,7 +152,7 @@ export default function DashboardConductor({ route, navigation }) {
                     setFrequentRoutes(sorted);
                 }
             } catch (e) {
-                console.log('Driver frequent routes error:', e);
+                console.log('Driver frequent routes error:', e?.response?.data?.message || e?.message || 'unknown error');
             }
         } catch (err) {
             setHasVehicle(false);
@@ -388,7 +388,7 @@ export default function DashboardConductor({ route, navigation }) {
                                         }
                                         navigation.navigate('ManageRides');
                                     } catch (error) {
-                                        console.error('Error navigating from driver dashboard:', error);
+                                        console.error('Error navigating from driver dashboard:', error?.response?.data?.message || error?.message || 'unknown error');
                                         navigation.navigate('ManageRides');
                                     }
                                 }}

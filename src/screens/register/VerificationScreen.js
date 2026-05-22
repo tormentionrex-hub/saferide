@@ -103,7 +103,7 @@ export default function VerificationScreen({ route, navigation }) {
                 });
             }
         } catch (err) {
-            console.error('Verify error:', err);
+            console.error('Verify error:', err?.response?.data?.message || err?.message || 'unknown error');
             const msg = err.response?.data?.message || 'El código es incorrecto o ha expirado.';
             showAlert('Error', msg, 'error');
             setCode(['', '', '', '', '', '']);

@@ -38,7 +38,7 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                         setHasVehicleRegistered(hasVehicle);
                     }
                 } catch (e) {
-                    console.error('[BottomNav] Error in vehicle check:', e);
+                    console.error('[BottomNav] Error in vehicle check:', e?.response?.data?.message || e?.message || 'unknown error');
                     if (active) setHasVehicleRegistered(false);
                 } finally {
                     if (active) setLoadingVehicle(false);

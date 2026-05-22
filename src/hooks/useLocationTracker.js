@@ -37,7 +37,7 @@ export const useLocationTracker = (inTrip = false) => {
                             
                             // 3. Ping Backend in background
                             api.post('/location/update', { ...coords, inTrip: true })
-                               .catch(err => console.log('Error enviando GPS al server:', err));
+                               .catch(err => console.log('Error enviando GPS al server:', err?.response?.data?.message || err?.message || 'unknown error'));
                         }
                     );
                 }

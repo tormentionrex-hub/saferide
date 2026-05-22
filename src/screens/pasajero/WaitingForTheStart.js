@@ -422,7 +422,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                     }
                 }
             } catch (e) {
-                console.error('Error al verificar estado del viaje:', e);
+                console.error('Error al verificar estado del viaje:', e?.response?.data?.message || e?.message || 'unknown error');
             } finally {
                 // Liberar bandera siempre, sobrevive a excepciones
                 isFetchingRef.current = false;

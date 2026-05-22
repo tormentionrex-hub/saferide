@@ -85,7 +85,7 @@ const PublishRide = ({ navigation, route }) => {
                     const details = await getRouteDetails(origin, destination);
                     setRouteInfo(details);
                 } catch (error) {
-                    console.error('Error calculando ruta:', error);
+                    console.error('Error calculando ruta:', error?.response?.data?.message || error?.message || 'unknown error');
                     showSweetAlert('error', 'Error de ruta', 'No se pudo calcular la distancia de la ruta.');
                 } finally {
                     setCalculatingRoute(false);

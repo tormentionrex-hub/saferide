@@ -177,7 +177,7 @@ const Metrics = ({ navigation }) => {
                 ts: Date.now(),
             };
         } catch (error) {
-            console.error("Error metrics:", error);
+            console.error("Error metrics:", error?.response?.data?.message || error?.message || 'unknown error');
         } finally {
             setLoading(false);
             setRefreshing(false);

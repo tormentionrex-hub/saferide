@@ -306,7 +306,7 @@ export default function PreviousTripsScreen() {
             }
 
         } catch (error) {
-            console.error('Error fetching previous trips:', error);
+            console.error('Error fetching previous trips:', error?.response?.data?.message || error?.message || 'unknown error');
         } finally {
             setLoading(false);
             setRefreshing(false);

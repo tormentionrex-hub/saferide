@@ -193,7 +193,7 @@ const ManageRides = ({ navigation }) => {
 
             setRides(filtered);
         } catch (error) {
-            console.error('Error fetching rides in ManageRides:', error);
+            console.error('Error fetching rides in ManageRides:', error?.response?.data?.message || error?.message || 'unknown error');
         } finally {
             setLoading(false);
         }
@@ -226,7 +226,7 @@ const ManageRides = ({ navigation }) => {
             setSelectedRide(null);
             setSuccessModalVisible(true);
         } catch (error) {
-            console.error('Error cancelando viaje:', error);
+            console.error('Error cancelando viaje:', error?.response?.data?.message || error?.message || 'unknown error');
             Alert.alert('Error', 'No se pudo cancelar el viaje. Inténtalo de nuevo.');
         } finally {
             setCancellingId(null);

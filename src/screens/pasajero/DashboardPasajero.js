@@ -168,7 +168,7 @@ const DashboardPasajero = ({ navigation, route }) => {
                         setFrequentRoutes(sorted);
                     }
                 } catch (e) {
-                    console.log('Frequent routes load error:', e);
+                    console.log('Frequent routes load error:', e?.response?.data?.message || e?.message || 'unknown error');
                 }
             });
             return () => task.cancel();

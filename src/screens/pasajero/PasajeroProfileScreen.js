@@ -292,8 +292,8 @@ const PasajeroProfileScreen = ({ navigation }) => {
                         profileImage: server.profileImage || '',
                     });
                 }
-            } catch (e) { console.log('API sync error:', e); }
-        } catch (e) { console.log('Load error:', e); }
+            } catch (e) { console.log('API sync error:', e?.response?.data?.message || e?.message || 'unknown error'); }
+        } catch (e) { console.log('Load error:', e?.response?.data?.message || e?.message || 'unknown error'); }
         finally { setLoading(false); }
     };
 
@@ -396,7 +396,7 @@ const PasajeroProfileScreen = ({ navigation }) => {
             loadProfile();
             setTimeout(() => successAlert.show(), 320);
         } catch (e) {
-            console.error('Update error:', e);
+            console.error('Update error:', e?.response?.data?.message || e?.message || 'unknown error');
             showAlert('Error', 'No se pudo actualizar el perfil.', 'error');
         } finally { setUpdating(false); }
     };

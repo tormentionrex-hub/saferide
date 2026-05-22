@@ -141,7 +141,7 @@ const PaymentVerification = ({ route, navigation }) => {
             });
 
         } catch (error) {
-            console.error('Error saving payments:', error);
+            console.error('Error saving payments:', error?.response?.data?.message || error?.message || 'unknown error');
             showAlert('Error', 'No se pudieron guardar los estados de pago.', 'error');
         } finally {
             setSubmitting(false);

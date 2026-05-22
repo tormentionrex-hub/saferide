@@ -188,7 +188,7 @@ const ListOfDrivers = ({ route, navigation }) => {
                 setRidesData(response.data.data);
             }
         } catch (error) {
-            console.error('Error fetching rides:', error);
+            console.error('Error fetching rides:', error?.response?.data?.message || error?.message || 'unknown error');
         } finally {
             setLoading(false);
         }
@@ -295,7 +295,7 @@ const ListOfDrivers = ({ route, navigation }) => {
             }
             navigation.navigate('RideDetail', { ride, searchOrigin, searchDestination });
         } catch (error) {
-            console.error('Error verificando estado del pasajero:', error);
+            console.error('Error verificando estado del pasajero:', error?.response?.data?.message || error?.message || 'unknown error');
             // Si hay error en la validación, permitimos pasar al detalle pero fallará al intentar reservar
             navigation.navigate('RideDetail', { ride, searchOrigin, searchDestination });
         }
