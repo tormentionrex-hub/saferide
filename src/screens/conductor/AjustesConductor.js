@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import { useCustomAlert } from '../../context/CustomAlertContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import { authService } from '../../services/authService';
 
@@ -58,8 +59,51 @@ const AjustesConductor = ({ navigation }) => {
     const modal  = useLogoutModal();
 
     const [ubicacion,      setUbicacion]      = useState(true);
+    // `notificaciones` ahora refleja el campo optIn del backend.
+    // - true  → el backend envía push del SO cuando se crea una notificación
+    // - false → solo guarda en la campana (centro de notificaciones in-app)
     const [notificaciones, setNotificaciones] = useState(true);
     const [camara,         setCamara]         = useState(false);
+    const { showAlert }                       = useCustomAlert();
+
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                const res = await api.get('/auth/me');
+                if (!mounted) return;
+                if (res.data?.success) {
+                    const optIn = res.data.data?.optIn;
+                    if (typeof optIn === 'boolean') setNotificaciones(optIn);
+                }
+            } catch (_) {}
+        })();
+        return () => { mounted = false; };
+    }, []);
+
+    const handleToggleNotificaciones = async (val) => {
+        setNotificaciones(val);
+        const ok = await notificationService.setOptIn(val);
+        if (!ok) {
+            setNotificaciones(!val);
+            showAlert(
+                'Error',
+                'No se pudo actualizar tu preferencia. Inténtalo de nuevo.',
+                'error'
+            );
+            return;
+        }
+        if (val) {
+            const token = await registerForPushNotifications();
+            if (!token) {
+                showAlert(
+                    'Permisos del sistema',
+                    'Activaste las notificaciones en SafeRide, pero el sistema operativo tiene los permisos desactivados. Habilítalos en Configuración → Notificaciones → SafeRide para recibirlas en tu celular.',
+                    'warning'
+                );
+            }
+        }
+    };
 
     const handleConfirmLogout = () => {
         modal.close(async () => {
@@ -157,9 +201,9 @@ const AjustesConductor = ({ navigation }) => {
                             iconName="notifications-outline"
                             iconColor={theme.accent}
                             title="Notificaciones"
-                            subtitle="Alertas de rutas y nuevas solicitudes"
+                            subtitle="Alertas de solicitudes en el celular (la campana del Dashboard siempre las guarda)"
                             value={notificaciones}
-                            onToggle={setNotificaciones}
+                            onToggle={handleToggleNotificaciones}
                             theme={theme}
                         />
                         <View style={[styles.divider, { backgroundColor: theme.divider }]} />

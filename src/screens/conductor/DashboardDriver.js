@@ -27,6 +27,9 @@ import { rideService } from '../../services/rideService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePaidNotices } from '../../hooks/usePaidNotices';
 import PaidNoticeBanner from '../../components/PaidNoticeBanner';
+import NotificationBell from '../../components/NotificationBell';
+import NotificationCenterModal from '../../components/NotificationCenterModal';
+import { useNotifications } from '../../hooks/useNotifications';
 
 export default function DashboardConductor({ route, navigation }) {
     const { theme } = useDriverTheme();
@@ -40,6 +43,51 @@ export default function DashboardConductor({ route, navigation }) {
     const si = useScrollIndicator();
     const { notices, dismissNotice } = usePaidNotices(true);
     const currentNotice = notices[0] || null;
+
+    // ── Centro de notificaciones (campana) ──
+    const [notifCenterVisible, setNotifCenterVisible] = useState(false);
+    const {
+        notifications,
+        unreadCount,
+        loading: notifLoading,
+        markAsRead,
+        markAllAsRead,
+    } = useNotifications(true);
+
+    const handleNotificationPress = useCallback((notification) => {
+        if (notification.status === 'unread') {
+            markAsRead(notification._id);
+        }
+        setNotifCenterVisible(false);
+
+        // Mapeo de tipos del backend a destinos del conductor.
+        const rideId = notification.relatedEntity?.entityType === 'ride'
+            ? notification.relatedEntity?.entityId
+            : null;
+        switch (notification.type) {
+            case 'booking_pending':
+            case 'booking_cancelled':
+                // Solicitudes nuevas o cancelaciones de pasajero → Gestionar.
+                navigation.navigate('ManageRides');
+                break;
+            case 'ride_started':
+                // Viaje arrancado → CurrentTrip si tenemos el rideId.
+                if (rideId) {
+                    navigation.navigate('CurrentTrip', { rideId });
+                } else {
+                    navigation.navigate('ManageRides');
+                }
+                break;
+            case 'ride_completed':
+            case 'ride_cancelled':
+                // Histórico → PreviousTrips
+                navigation.navigate('MainTabsDriver', { screen: 'PreviousTrips' });
+                break;
+            default:
+                // ride_reminder / trust_score_updated / system: solo cerrar
+                break;
+        }
+    }, [navigation, markAsRead]);
 
     const loadData = async () => {
         try {
@@ -188,17 +236,24 @@ export default function DashboardConductor({ route, navigation }) {
                         <Ionicons name="settings-sharp" size={24} color={theme.text} />
                     </TouchableOpacity>
                     <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Conductor</Text>
-                    <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('ProfileConductor')}>
-                        {userPhoto ? (
-                            <Image source={{ uri: userPhoto }} style={styles.profileImg} />
-                        ) : (
-                            <View style={[styles.profileFallback, { backgroundColor: theme.surfaceVariant || '#EDF2F7' }]}>
-                                <Text style={[styles.initialsText, { color: theme.navActive || '#005BBF' }]}>
-                                    {userName ? userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '?'}
-                                </Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
+                    <View style={styles.headerRight}>
+                        <NotificationBell
+                            unreadCount={unreadCount}
+                            color={theme.text}
+                            onPress={() => setNotifCenterVisible(true)}
+                        />
+                        <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('ProfileConductor')}>
+                            {userPhoto ? (
+                                <Image source={{ uri: userPhoto }} style={styles.profileImg} />
+                            ) : (
+                                <View style={[styles.profileFallback, { backgroundColor: theme.surfaceVariant || '#EDF2F7' }]}>
+                                    <Text style={[styles.initialsText, { color: theme.navActive || '#005BBF' }]}>
+                                        {userName ? userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '?'}
+                                    </Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <View style={{ flex: 1 }}>
@@ -362,6 +417,15 @@ export default function DashboardConductor({ route, navigation }) {
                     <ScrollIndicator si={si} thumbColor={theme.accent} />
                 </View>
 
+                <NotificationCenterModal
+                    visible={notifCenterVisible}
+                    onClose={() => setNotifCenterVisible(false)}
+                    notifications={notifications}
+                    loading={notifLoading}
+                    markAllAsRead={markAllAsRead}
+                    onNotificationPress={handleNotificationPress}
+                />
+
             </SafeAreaView>
         </Animated.View>
     );
@@ -385,6 +449,7 @@ const styles = StyleSheet.create({
     },
     headerIconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
     headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     profileButton: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 1.5, borderColor: '#E2E8F0' },
     profileImg: { width: '100%', height: '100%' },
     profileFallback: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
