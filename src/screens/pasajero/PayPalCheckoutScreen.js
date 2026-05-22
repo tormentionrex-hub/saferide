@@ -5,6 +5,7 @@ import api from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCustomAlert } from '../../context/CustomAlertContext';
+import { useDriverTheme } from '../../context/DriverThemeContext';
 
 const PAYPAL_BLUE = '#003087';
 const PAYPAL_YELLOW = '#FFC439';
@@ -22,6 +23,7 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
   const isLateCharge = mode === 'lateCharge';
   const insets = useSafeAreaInsets();
   const { showAlert } = useCustomAlert();
+  const { theme } = useDriverTheme();
 
   const [approvalUrl, setApprovalUrl] = useState(null);
   const [orderId, setOrderId] = useState(null);
@@ -118,7 +120,7 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
 
   if (error) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <View style={[styles.container, styles.center, { backgroundColor: theme.bg }]}>
         <Ionicons name="warning-outline" size={60} color="#EF4444" />
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryBtn} onPress={() => { setError(null); }}>
@@ -130,7 +132,7 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
 
   if (capturing) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <View style={[styles.container, styles.center, { backgroundColor: theme.bg }]}>
         <ActivityIndicator size="large" color={PAYPAL_BLUE} />
         <Text style={styles.loadingText}>Procesando pago seguro...</Text>
       </View>
@@ -140,7 +142,7 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
   // Pantalla intermedia: invitación a pagar con PayPal
   if (!approvalUrl) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.bg }]}>
         <View style={[styles.header, { paddingTop: insets.top || 40 }]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="close" size={24} color="#333" />
@@ -191,7 +193,7 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
 
   // WebView de PayPal
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <View style={[styles.header, { paddingTop: insets.top || 40 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="close" size={24} color="#333" />
@@ -215,7 +217,7 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
+    // backgroundColor lo aplica el JSX desde theme.bg.
   },
   center: {
     justifyContent: 'center',
@@ -238,8 +240,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 16,
-    fontFamily: 'Poppins-SemiBold',
+    fontSize: 22,
+    fontFamily: 'Poppins-Bold',
     color: '#111827',
   },
   loadingText: {

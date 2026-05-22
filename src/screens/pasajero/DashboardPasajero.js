@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
     cardTitle: {
         color: '#ffffff',
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: 'Poppins-Bold',
         marginBottom: 5,
     },
     cardSubtitle: {

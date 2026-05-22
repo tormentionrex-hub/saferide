@@ -217,8 +217,8 @@ const Metrics = ({ navigation }) => {
     }), [theme.surface, theme.dark]);
 
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.surface }]}>
-            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
+            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <Ionicons name="chevron-back" size={24} color={theme.text} />
@@ -328,24 +328,24 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15 },
     backBtn: { position: 'absolute', left: 20 },
     gearBtn: { position: 'absolute', right: 20 },
-    innerTitle: { fontSize: 18, fontWeight: 'bold', fontFamily: 'Poppins-Bold' },
+    innerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
     loadingContainer: { flex: 1, justifyContent: 'center' },
     scrollBody: { padding: 20, paddingBottom: 50 },
     statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
     statBox: { width: '31%', borderRadius: 12, padding: 12, alignItems: 'center' },
     statLabel: { fontSize: 10, textAlign: 'center', marginBottom: 4 },
-    statValue: { fontSize: 14, fontWeight: 'bold' },
+    statValue: { fontSize: 14, fontFamily: 'Poppins-Bold' },
     chartContainer: { borderRadius: 20, padding: 15, borderWidth: 1, marginBottom: 20 },
-    chartHeaderTitle: { fontSize: 13, fontWeight: 'bold' },
+    chartHeaderTitle: { fontSize: 13, fontFamily: 'Poppins-Bold' },
     chartStyle: { marginVertical: 8, borderRadius: 16, marginLeft: -10 },
     chartPlaceholder: { height: 180, alignItems: 'center', justifyContent: 'center' },
     monthRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
     monthLeft: { flexDirection: 'row', alignItems: 'center' },
     monthIconBg: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-    monthName: { fontSize: 16, fontWeight: 'bold', textTransform: 'capitalize' },
+    monthName: { fontSize: 16, fontFamily: 'Poppins-Bold', textTransform: 'capitalize' },
     monthRight: { alignItems: 'flex-end' },
     monthStatLabel: { fontSize: 11, marginBottom: 4 },
-    monthStatKm: { fontSize: 15, fontWeight: 'bold' }
+    monthStatKm: { fontSize: 15, fontFamily: 'Poppins-Bold' }
 });
 
 export default Metrics;

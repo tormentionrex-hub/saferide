@@ -619,8 +619,8 @@ const styles = StyleSheet.create({
         paddingVertical: 15,
     },
     title: {
-        fontSize: 28,
-        fontWeight: 'bold',
+        fontSize: 22,
+        fontFamily: 'Poppins-Bold',
     },
     selectorWrapper: {
         paddingHorizontal: 20,
@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
     selectorLabel: {
         flex: 1,
         fontSize: 15,
-        fontWeight: '600',
+        fontFamily: 'Poppins-SemiBold',
     },
     modalOverlay: {
         flex: 1,
@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
     },
     modalTitle: {
         fontSize: 20,
-        fontWeight: 'bold',
+        fontFamily: 'Poppins-Bold',
     },
     modalBody: {
         padding: 16,
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
     },
     optionText: {
         fontSize: 16,
-        fontWeight: '600',
+        fontFamily: 'Poppins-SemiBold',
     },
     sectionDivider: {
         height: 1,
@@ -690,7 +690,7 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 12,
-        fontWeight: '800',
+        fontFamily: 'Poppins-Bold',
         textTransform: 'uppercase',
         marginBottom: 12,
         marginLeft: 8,
@@ -724,11 +724,11 @@ const styles = StyleSheet.create({
     },
     dateDay: {
         fontSize: 28,
-        fontWeight: '900',
+        fontFamily: 'Poppins-Bold',
     },
     dateMonth: {
         fontSize: 12,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
         letterSpacing: 0.5,
         textTransform: 'uppercase',
     },
@@ -739,7 +739,7 @@ const styles = StyleSheet.create({
     },
     statusText: {
         fontSize: 12,
-        fontWeight: '800',
+        fontFamily: 'Poppins-Bold',
         textTransform: 'uppercase',
     },
     mapSection: {
@@ -757,7 +757,7 @@ const styles = StyleSheet.create({
     },
     mapSectionLabel: {
         fontSize: 11,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
@@ -804,7 +804,7 @@ const styles = StyleSheet.create({
     },
     locationText: {
         fontSize: 14,
-        fontWeight: '500',
+        fontFamily: 'Poppins-SemiBold',
         flex: 1,
     },
     footer: {
@@ -823,19 +823,19 @@ const styles = StyleSheet.create({
     timeLabel: {
         fontSize: 9,
         textTransform: 'uppercase',
-        fontWeight: '600',
+        fontFamily: 'Poppins-SemiBold',
         marginBottom: 2,
     },
     timeValue: {
         fontSize: 18,
-        fontWeight: '800',
+        fontFamily: 'Poppins-Bold',
     },
     priceContainer: {
         alignItems: 'flex-end',
     },
     priceText: {
         fontSize: 22,
-        fontWeight: '900',
+        fontFamily: 'Poppins-Bold',
     },
     passengerSection: {
         paddingTop: 16,
@@ -843,7 +843,7 @@ const styles = StyleSheet.create({
     },
     passengerLabel: {
         fontSize: 11,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
         textTransform: 'uppercase',
         marginBottom: 12,
     },
@@ -872,7 +872,7 @@ const styles = StyleSheet.create({
     },
     passengerNameText: {
         fontSize: 15,
-        fontWeight: '600',
+        fontFamily: 'Poppins-SemiBold',
     },
     contactButtons: {
         flexDirection: 'row',
@@ -888,11 +888,11 @@ const styles = StyleSheet.create({
     },
     paymentBadgeText: {
         fontSize: 11,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
     },
     passengerAmountText: {
         fontSize: 12,
-        fontWeight: '600',
+        fontFamily: 'Poppins-SemiBold',
         marginTop: 1,
     },
     contactBtn: {
@@ -916,7 +916,7 @@ const styles = StyleSheet.create({
     },
     loadMoreText: {
         fontSize: 15,
-        fontWeight: 'bold',
+        fontFamily: 'Poppins-Bold',
     },
     centerContainer: {
         flex: 1,
@@ -932,7 +932,7 @@ const styles = StyleSheet.create({
     },
     emptyTitle: {
         fontSize: 18,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
         textAlign: 'center',
     },
     emptyText: {

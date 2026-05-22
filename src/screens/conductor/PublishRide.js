@@ -600,8 +600,8 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.04)',
     },
     headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
+        fontSize: 22,
+        fontFamily: 'Poppins-Bold',
         color: '#005bbf',
         letterSpacing: -0.3,
     },
@@ -666,7 +666,7 @@ const styles = StyleSheet.create({
     },
     inputLabel: {
         fontSize: 10,
-        fontWeight: '800',
+        fontFamily: 'Poppins-Bold',
         color: '#9ca3af',
         letterSpacing: 1.5,
         textTransform: 'uppercase',
@@ -684,7 +684,7 @@ const styles = StyleSheet.create({
     },
     locationCardPrimary: {
         fontSize: 12,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
         color: '#005bbf',
         letterSpacing: 0.2,
         marginBottom: 4,
@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
     },
     dateValue: {
         fontSize: 18,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
         color: '#191c1e',
         marginTop: 2,
     },
@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
     },
     timeValue: {
         fontSize: 20,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
         color: '#191c1e',
         marginTop: 2,
     },
@@ -783,7 +783,7 @@ const styles = StyleSheet.create({
     },
     seatsNumber: {
         fontSize: 42,
-        fontWeight: '800',
+        fontFamily: 'Poppins-Bold',
         color: '#191c1e',
         lineHeight: 50,
         textAlign: 'center',
@@ -806,7 +806,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#727785',
         fontStyle: 'italic',
-        fontWeight: '500',
+        fontFamily: 'Poppins-SemiBold',
     },
 
     // ── Summary Card ──────────────────────────────────────────
@@ -839,7 +839,7 @@ const styles = StyleSheet.create({
     },
     summaryValue: {
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
         color: '#191c1e',
     },
 
@@ -861,7 +861,7 @@ const styles = StyleSheet.create({
     publishBtnText: {
         color: '#fff',
         fontSize: 15,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
         letterSpacing: 0.8,
     },
 
@@ -876,7 +876,7 @@ const styles = StyleSheet.create({
     iosConfirmText: {
         color: '#FFF',
         textAlign: 'center',
-        fontWeight: 'bold',
+        fontFamily: 'Poppins-Bold',
     },
 
     // ── Modals ────────────────────────────────────────────────
@@ -907,7 +907,7 @@ const styles = StyleSheet.create({
     },
     alertTitle: {
         fontSize: 20,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
         marginBottom: 8,
         textAlign: 'center',
     },
@@ -929,7 +929,7 @@ const styles = StyleSheet.create({
     alertConfirmText: {
         color: '#fff',
         fontSize: 15,
-        fontWeight: '600',
+        fontFamily: 'Poppins-SemiBold',
     },
 
     // ── Sweet Alert ───────────────────────────────────────────
@@ -956,7 +956,7 @@ const styles = StyleSheet.create({
     },
     sweetAlertTitle: {
         fontSize: 20,
-        fontWeight: '800',
+        fontFamily: 'Poppins-Bold',
         color: '#191c1e',
         textAlign: 'center',
         marginBottom: 10,
@@ -978,7 +978,7 @@ const styles = StyleSheet.create({
     sweetAlertBtnText: {
         color: '#fff',
         fontSize: 15,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
         letterSpacing: 0.3,
     },
 });

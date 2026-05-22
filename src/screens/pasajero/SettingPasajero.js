@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
     },
     backBtn:     { position: 'absolute', left: 16 },
-    headerTitle: { fontSize: 18, fontFamily: 'Poppins-Bold' },
+    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
 
     sectionLabel: { fontSize: 11, fontFamily: 'Poppins-Bold', letterSpacing: 0.8, marginBottom: 8, marginLeft: 4 },
 

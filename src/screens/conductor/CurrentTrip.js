@@ -717,14 +717,14 @@ const TripInProgressDriver = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#FFFFFF' },
+    container: { flex: 1 },
     header: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 16, paddingBottom: 10, backgroundColor: '#FFFFFF',
+        paddingHorizontal: 16, paddingBottom: 10,
         zIndex: 10,
     },
     headerBackBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
-    headerTitle: { fontSize: 16, fontFamily: 'Poppins-SemiBold', color: '#191C1E', letterSpacing: -0.2 },
+    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold', color: '#191C1E', letterSpacing: -0.2 },
     headerMenuBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
     scrollContent: { paddingBottom: 260 },
 
@@ -810,12 +810,12 @@ const modalStyles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 25 },
     card: { width: '100%', borderRadius: 30, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 15 },
     iconCircle: { width: 90, height: 90, borderRadius: 45, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-    title: { fontSize: 24, fontWeight: '800', marginBottom: 10, textAlign: 'center' },
+    title: { fontSize: 24, fontFamily: 'Poppins-Bold', marginBottom: 10, textAlign: 'center' },
     subtitle: { fontSize: 15, textAlign: 'center', marginBottom: 25, lineHeight: 22 },
     confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', paddingVertical: 16, borderRadius: 16, elevation: 2 },
-    confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    confirmBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Poppins-Bold' },
     cancelBtn: { width: '100%', paddingVertical: 16, borderRadius: 16, alignItems: 'center', borderWidth: 1, marginTop: 4 },
-    cancelBtnText: { fontSize: 16, fontWeight: '600' },
+    cancelBtnText: { fontSize: 16, fontFamily: 'Poppins-SemiBold' },
 });
 
 export default TripInProgressDriver;

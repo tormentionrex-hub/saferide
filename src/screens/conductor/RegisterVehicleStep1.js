@@ -189,7 +189,7 @@ export default function RegisterVehicleStep1({ navigation }) {
         navigation.navigate('RegisterVehicleStep2', { brand, model, plate, color, year: parseInt(year), capacity });
     };
 
-    const surfBg = theme.surface;
+    const surfBg = theme.bg;
     const cardBg = theme.surfaceVariant;
     const border = theme.dark ? theme.border : 'rgba(75,104,255,0.15)';
 
@@ -391,19 +391,19 @@ const styles = StyleSheet.create({
         paddingVertical: 20, borderBottomWidth: 1,
     },
     backBtn: { position: 'absolute', left: 20 },
-    innerTitle: { fontSize: 18, fontWeight: 'bold' },
+    innerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
     scrollBody: { padding: 20, paddingBottom: 100 },
 
     progressRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-    stepLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
-    pct: { fontSize: 13, fontWeight: '800' },
+    stepLabel: { fontSize: 11, fontFamily: 'Poppins-Bold', letterSpacing: 0.8 },
+    pct: { fontSize: 13, fontFamily: 'Poppins-Bold' },
     progressTrack: { height: 5, borderRadius: 3, marginBottom: 20, overflow: 'hidden' },
     progressFill: { height: '100%', borderRadius: 3 },
 
-    sectionTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 6 },
+    sectionTitle: { fontSize: 20, fontFamily: 'Poppins-Bold', marginBottom: 6 },
     sectionSub: { fontSize: 12, lineHeight: 18, marginBottom: 20 },
 
-    label: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 5 },
+    label: { fontSize: 11, fontFamily: 'Poppins-Bold', letterSpacing: 0.8, marginBottom: 5 },
     input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, fontSize: 14, marginBottom: 16 },
     row: { flexDirection: 'row', marginBottom: 16 },
 
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1,
     },
-    modalTitle: { fontSize: 15, fontWeight: '700' },
+    modalTitle: { fontSize: 15, fontFamily: 'Poppins-Bold' },
     optionItem: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1,
@@ -437,14 +437,14 @@ const styles = StyleSheet.create({
     optionText: { fontSize: 14 },
 
     seatsCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderRadius: 15, padding: 14, marginBottom: 24 },
-    seatsTitle: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
+    seatsTitle: { fontSize: 11, fontFamily: 'Poppins-Bold', letterSpacing: 0.5 },
     seatsHint: { fontSize: 10, marginTop: 2 },
     counter: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     counterBtn: { width: 34, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-    counterVal: { fontSize: 18, fontWeight: '800', minWidth: 24, textAlign: 'center' },
+    counterVal: { fontSize: 18, fontFamily: 'Poppins-Bold', minWidth: 24, textAlign: 'center' },
 
     nextBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, borderRadius: 14, elevation: 4, shadowColor: '#748FFF', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8 },
-    nextBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    nextBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Poppins-Bold' },
 
     // ── MODAL AESTHETIC ALERT ──
     alertBackdrop: {
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     },
     alertTitle: {
         fontSize: 22,
-        fontWeight: '900',
+        fontFamily: 'Poppins-Bold',
         marginBottom: 12,
         letterSpacing: 0.2,
     },
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     alertBtnText: {
         color: '#fff',
         fontSize: 16,
-        fontWeight: '800',
+        fontFamily: 'Poppins-Bold',
         letterSpacing: 1,
     },
 });
