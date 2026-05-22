@@ -21,6 +21,9 @@ import { useCustomAlert } from '../../context/CustomAlertContext';
 import api from '../../services/api';
 import passengerBookingsCache from '../../services/passengerBookingsCache';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import NotificationBell from '../../components/NotificationBell';
+import NotificationCenterModal from '../../components/NotificationCenterModal';
+import { useNotifications } from '../../hooks/useNotifications';
 
 // Obtenemos dimensiones de la pantalla para garantizar responsividad
 const { height, width } = Dimensions.get('window');
@@ -38,6 +41,48 @@ const DashboardPasajero = ({ navigation, route }) => {
     const [userCompany, setUserCompany] = useState('');
     const [frequentRoutes, setFrequentRoutes] = useState([]);
     const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
+
+    // ── Centro de notificaciones (campana) ──
+    const [notifCenterVisible, setNotifCenterVisible] = useState(false);
+    const {
+        notifications,
+        unreadCount,
+        loading: notifLoading,
+        markAsRead,
+        markAllAsRead,
+    } = useNotifications(true);
+
+    // Routing al tap sobre una notificación. Mantenemos la navegación
+    // centralizada aquí: el modal NO toca navigation, solo nos avisa.
+    const handleNotificationPress = useCallback((notification) => {
+        if (notification.status === 'unread') {
+            markAsRead(notification._id);
+        }
+        setNotifCenterVisible(false);
+
+        // Mapeamos tipos del backend a destinos del pasajero.
+        switch (notification.type) {
+            case 'booking_confirmed':
+                // Confirmación recién aceptada → pantalla de espera.
+                navigation.navigate('MainTabsPasajero', { screen: 'SearchRide' });
+                break;
+            case 'ride_started':
+                // Viaje arrancó → TripInProgress (sin bookingId; la pantalla
+                // tiene fallback que busca el booking activo automáticamente).
+                navigation.navigate('TripInProgress');
+                break;
+            case 'ride_completed':
+            case 'booking_cancelled':
+            case 'booking_denied':
+            case 'ride_cancelled':
+                navigation.navigate('History');
+                break;
+            default:
+                // system / ride_reminder / trust_score_updated / review_request
+                // No navegamos: solo cerramos el modal.
+                break;
+        }
+    }, [navigation, markAsRead]);
 
     React.useEffect(() => {
         const subscription = DeviceEventEmitter.addListener('profileUpdated', (newPhoto) => {
@@ -157,22 +202,29 @@ const DashboardPasajero = ({ navigation, route }) => {
                     adjustsFontSizeToFit
                     minimumFontScale={0.7}
                 >Pasajero</Text>
-                
-                <TouchableOpacity 
-                    style={styles.profileButton}
-                    onPress={() => navigation.navigate('PasajeroProfileScreen')}
-                    activeOpacity={0.7}
-                >
-                    {userPhoto ? (
-                        <Image source={{ uri: userPhoto }} style={styles.profileImg} />
-                    ) : (
-                        <View style={[styles.profileImg, { backgroundColor: theme.accent + '22', justifyContent: 'center', alignItems: 'center' }]}>
-                            <Text style={{ color: theme.accent, fontSize: 20, fontFamily: 'Poppins-Bold' }}>
-                                {userName ? userName.charAt(0).toUpperCase() : '?'}
-                            </Text>
-                        </View>
-                    )}
-                </TouchableOpacity>
+
+                <View style={styles.headerRight}>
+                    <NotificationBell
+                        unreadCount={unreadCount}
+                        color={theme.text}
+                        onPress={() => setNotifCenterVisible(true)}
+                    />
+                    <TouchableOpacity
+                        style={styles.profileButton}
+                        onPress={() => navigation.navigate('PasajeroProfileScreen')}
+                        activeOpacity={0.7}
+                    >
+                        {userPhoto ? (
+                            <Image source={{ uri: userPhoto }} style={styles.profileImg} />
+                        ) : (
+                            <View style={[styles.profileImg, { backgroundColor: theme.accent + '22', justifyContent: 'center', alignItems: 'center' }]}>
+                                <Text style={{ color: theme.accent, fontSize: 20, fontFamily: 'Poppins-Bold' }}>
+                                    {userName ? userName.charAt(0).toUpperCase() : '?'}
+                                </Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                </View>
             </View>
 
             {/* Contenido principal del Dashboard */}
@@ -293,6 +345,15 @@ const DashboardPasajero = ({ navigation, route }) => {
                 <ScrollIndicator si={si} thumbColor={theme.accent} />
             </View>
 
+            <NotificationCenterModal
+                visible={notifCenterVisible}
+                onClose={() => setNotifCenterVisible(false)}
+                notifications={notifications}
+                loading={notifLoading}
+                markAllAsRead={markAllAsRead}
+                onNotificationPress={handleNotificationPress}
+            />
+
         </SafeAreaView>
         </View>
     );
@@ -322,6 +383,11 @@ const styles = StyleSheet.create({
         height: 40,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
     },
     profileButton: {
         width: 40,
