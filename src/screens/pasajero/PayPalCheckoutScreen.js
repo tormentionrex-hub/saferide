@@ -10,7 +10,15 @@ const PAYPAL_BLUE = '#003087';
 const PAYPAL_YELLOW = '#FFC439';
 
 const PayPalCheckoutScreen = ({ navigation, route }) => {
-  const { bookingId, rideId, driverId, driverName, driverImage, mode } = route.params;
+  const {
+    bookingId,
+    rideId,
+    driverId,
+    driverName,
+    driverImage,
+    chargedAmount,
+    mode,
+  } = route.params;
   const isLateCharge = mode === 'lateCharge';
   const insets = useSafeAreaInsets();
   const { showAlert } = useCustomAlert();
@@ -23,14 +31,22 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
 
   const goToNext = () => {
     if (isLateCharge) {
-      // Cobro pendiente desde el historial: volver al historial
+      // Cobro pendiente desde el historial: el booking sigue pending hasta
+      // que el conductor confirme. Lo regresamos al historial para que el
+      // usuario vea ahí el estado.
       navigation.navigate('MainTabsPasajero', { screen: 'History' });
     } else {
-      navigation.replace('RateDriver', {
+      // Flujo post-viaje: el pago queda pending. Lo llevamos a la pantalla
+      // de espera donde verá una animación mientras el conductor confirma
+      // la recepción desde PaymentVerification.
+      navigation.replace('WaitingPaymentConfirmation', {
+        bookingId,
         rideId,
         driverId,
         driverName,
         driverImage,
+        paymentMethod: 'tarjeta',
+        chargedAmount,
       });
     }
   };
@@ -70,15 +86,22 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
         });
 
         if (response.data.success) {
-          showAlert(
-            'Pago exitoso',
-            isLateCharge
-              ? 'Tu cuota pendiente ha sido pagada. Ya puedes volver a unirte a viajes.'
-              : 'Tu pago se ha procesado correctamente. Ahora puedes calificar a tu conductor.',
-            'success',
-            'Continuar',
-            goToNext
-          );
+          if (isLateCharge) {
+            // Volvemos al historial; ahí el usuario verá que su cuota
+            // sigue pending hasta que el conductor la confirme.
+            showAlert(
+              'Pago enviado',
+              'Tu pago fue enviado por PayPal. Tu conductor deberá confirmar la recepción para que tu cuota pendiente se actualice.',
+              'success',
+              'Entendido',
+              goToNext
+            );
+          } else {
+            // Sin alert intermedio: la pantalla de espera muestra el
+            // estado visualmente y disparará su propio alert final
+            // cuando el conductor confirme (o niegue) el pago.
+            goToNext();
+          }
         } else {
           setError('El pago fue autorizado pero no se pudo capturar');
           setCapturing(false);
@@ -131,10 +154,11 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
             <Ionicons name="logo-paypal" size={56} color={PAYPAL_BLUE} />
           </View>
 
-          <Text style={styles.introTitle}>Realiza su pago con PayPal por favor</Text>
+          <Text style={styles.introTitle}>Pagar con PayPal</Text>
           <Text style={styles.introSubtitle}>
-            Tu viaje ha finalizado. Para continuar y calificar a tu conductor,
-            completa el pago de forma rápida y segura con PayPal.
+            {isLateCharge
+              ? 'Tienes una cuota pendiente. Completa el pago aquí; tu conductor deberá confirmar la recepción para que se actualice tu estado.'
+              : 'Tu viaje ha finalizado. Completa el pago para pasar a la pantalla de espera, donde tu conductor confirmará la recepción.'}
           </Text>
 
           <TouchableOpacity
