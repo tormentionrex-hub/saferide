@@ -245,6 +245,10 @@ const ScreenSaver = ({ route, navigation }) => {
     // Refs de control de ciclo de vida y anti-solapamiento
     const mountedRef = useRef(true);
     const isFetchingRef = useRef(false);
+    // Idempotencia: una vez disparado el modal de rechazo/cancelación para
+    // este booking, no se vuelve a disparar. Cubre el caso en que el polling
+    // (o un re-mount con el mismo bookingId ya en 'deny') intente reabrirlo.
+    const alertedRef = useRef(false);
 
     // Cleanup global de montaje: bloquea setStates tardíos tras desmontar
     useEffect(() => {
@@ -278,7 +282,10 @@ const ScreenSaver = ({ route, navigation }) => {
                                     try { await api.delete(`/bookings/${bookingId}`); } catch (err) {}
                                     if (!mountedRef.current) return;
                                     setStatus('deny');
-                                    setShowRejectionModal(true);
+                                    if (!alertedRef.current) {
+                                        alertedRef.current = true;
+                                        setShowRejectionModal(true);
+                                    }
                                     return;
                                 }
                             }
@@ -293,11 +300,17 @@ const ScreenSaver = ({ route, navigation }) => {
                         if (newStatus === 'deny') {
                             clearInterval(intervalRef.current);
                             intervalRef.current = null;
-                            setShowRejectionModal(true);
+                            if (!alertedRef.current) {
+                                alertedRef.current = true;
+                                setShowRejectionModal(true);
+                            }
                         } else if (newStatus === 'cancelled' && !isCancellingRef.current) {
                             clearInterval(intervalRef.current);
                             intervalRef.current = null;
-                            setShowRejectionModal(true); // Reutilizamos RejectionModal para informar cancelación externa
+                            if (!alertedRef.current) {
+                                alertedRef.current = true;
+                                setShowRejectionModal(true); // Reutilizamos RejectionModal para informar cancelación externa
+                            }
                         } else if (newStatus === 'confirmed') {
                             clearInterval(intervalRef.current);
                             intervalRef.current = null;
@@ -342,7 +355,10 @@ const ScreenSaver = ({ route, navigation }) => {
                         clearInterval(intervalRef.current);
                         intervalRef.current = null;
                         setStatus(newStatus);
-                        if (newStatus === 'deny') setShowRejectionModal(true);
+                        if (newStatus === 'deny' && !alertedRef.current) {
+                            alertedRef.current = true;
+                            setShowRejectionModal(true);
+                        }
                     } else {
                         setStatus(newStatus);
                     }
@@ -499,13 +515,23 @@ const ScreenSaver = ({ route, navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            <RejectionModal 
-                visible={showRejectionModal} 
+            <RejectionModal
+                visible={showRejectionModal}
                 theme={theme}
                 status={status}
                 onConfirm={() => {
                     setShowRejectionModal(false);
-                    navigation.navigate('BuscarViaje');
+                    // Reset del stack: dejamos Dashboard como base y BuscarViaje
+                    // encima. Así, al tocar atrás en BuscarViaje el usuario va
+                    // al Dashboard (flujo normal) en vez de volver a ScreenSaver
+                    // que mostraría de nuevo la pantalla de rechazo.
+                    navigation.reset({
+                        index: 1,
+                        routes: [
+                            { name: 'MainTabsPasajero', params: { screen: 'DashboardPasajero' } },
+                            { name: 'BuscarViaje' },
+                        ],
+                    });
                 }}
             />
 

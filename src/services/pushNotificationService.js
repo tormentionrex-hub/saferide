@@ -1,18 +1,35 @@
 import { Platform } from 'react-native';
 import { isRunningInExpoGo } from 'expo';
 import api from './api';
+import { navigationRef } from './navigationRef';
 
 // Si estamos en Expo Go, no importar el módulo en absoluto.
 // El simple import estático ya dispara el warning interno del SDK 53+ en Android.
 const Notifications = isRunningInExpoGo() ? null : require('expo-notifications');
 
+// Pantallas que YA muestran su propia alerta/modal cuando el booking cambia
+// de estado (vía polling). Cuando el pasajero está en una de estas pantallas,
+// suprimimos el banner del SO para no duplicar la notificación visualmente.
+// En cualquier otra pantalla, el banner del SO sigue saliendo normal.
+const SCREENS_WITH_IN_APP_HANDLING = new Set([
+    'ScreenSaver',
+    'WaitingForTheStart',
+    'TripInProgress',
+]);
+
 if (Notifications) {
     Notifications.setNotificationHandler({
-        handleNotification: async () => ({
-            shouldShowAlert: true,
-            shouldPlaySound: true,
-            shouldSetBadge: true,
-        }),
+        handleNotification: async () => {
+            const currentRoute = navigationRef.current?.getCurrentRoute?.()?.name;
+            const handledInApp = currentRoute && SCREENS_WITH_IN_APP_HANDLING.has(currentRoute);
+            return {
+                shouldShowAlert: !handledInApp,
+                shouldShowBanner: !handledInApp,
+                shouldShowList: !handledInApp,
+                shouldPlaySound: !handledInApp,
+                shouldSetBadge: true,
+            };
+        },
     });
 }
 
