@@ -7,9 +7,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
-import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
-import { API_URL } from '../../config.js';
+import api from '../../services/api';
 
 const PASSWORD_RULES = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
@@ -99,7 +98,7 @@ export default function ForgotPasswordNewPassword({ navigation, route }) {
         if (!validate()) return;
         setLoading(true);
         try {
-            await axios.post(`${API_URL}/auth/reset-password`, {
+            await api.post('/auth/reset-password', {
                 email,
                 code,
                 newPassword: password,

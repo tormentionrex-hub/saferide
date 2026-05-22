@@ -12,11 +12,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
-import sessionCache from '../../services/sessionCache';
+import { authService } from '../../services/authService';
 
 const useLogoutModal = () => {
     const [visible, setVisible] = useState(false);
@@ -63,8 +61,7 @@ const SettingPasajero = ({ navigation }) => {
 
     const handleConfirmLogout = () => {
         modal.close(async () => {
-            sessionCache.clear();
-            await AsyncStorage.multiRemove(['userToken', 'userRole', 'userName']);
+            await authService.logout();
             navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
         });
     };

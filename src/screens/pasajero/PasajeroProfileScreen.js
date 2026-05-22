@@ -7,6 +7,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import sessionStorage from '../../services/sessionStorage';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 
@@ -14,6 +15,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { uploadToCloudinary } from '../../Cloudinary/Cloudinary';
 import { userService } from '../../services/userService';
+import { authService } from '../../services/authService';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import StarRating from '../../components/StarRating';
 
@@ -282,11 +284,13 @@ const PasajeroProfileScreen = ({ navigation }) => {
                     };
                     setUserData(server);
                     setEditForm({ ...server });
-                    await AsyncStorage.setItem('userName',    server.name);
-                    await AsyncStorage.setItem('userEmail',   server.email);
-                    await AsyncStorage.setItem('userPhone',   server.phone);
-                    await AsyncStorage.setItem('userCompany', server.company);
-                    await AsyncStorage.setItem('userPhoto', server.profileImage || '');
+                    await sessionStorage.updateSession({
+                        name: server.name,
+                        email: server.email,
+                        phone: server.phone,
+                        company: server.company,
+                        profileImage: server.profileImage || '',
+                    });
                 }
             } catch (e) { console.log('API sync error:', e); }
         } catch (e) { console.log('Load error:', e); }
@@ -377,11 +381,13 @@ const PasajeroProfileScreen = ({ navigation }) => {
                 profileImage: profileImageUrl,
             });
 
-            await AsyncStorage.setItem('userName',    editForm.name);
-            await AsyncStorage.setItem('userEmail',   editForm.email);
-            await AsyncStorage.setItem('userPhone',   editForm.phone);
-            await AsyncStorage.setItem('userCompany', editForm.company);
-            if (profileImageUrl?.startsWith('http')) await AsyncStorage.setItem('userPhoto', profileImageUrl);
+            await sessionStorage.updateSession({
+                name: editForm.name,
+                email: editForm.email,
+                phone: editForm.phone,
+                company: editForm.company,
+                ...(profileImageUrl?.startsWith('http') && { profileImage: profileImageUrl }),
+            });
             
             // Emitir evento para actualizar en tiempo real en otras pantallas
             DeviceEventEmitter.emit('profileUpdated', profileImageUrl);
@@ -397,8 +403,7 @@ const PasajeroProfileScreen = ({ navigation }) => {
 
     const handleConfirmLogout = () => {
         logoutModal.close(async () => {
-            const keys = await AsyncStorage.getAllKeys();
-            await AsyncStorage.multiRemove(keys);
+            await authService.logout();
             navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
         });
     };

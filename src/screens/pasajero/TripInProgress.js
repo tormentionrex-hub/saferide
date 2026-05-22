@@ -5,6 +5,7 @@ import {
     Modal, Image, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import sessionStorage from '../../services/sessionStorage';
 import { userService } from '../../services/userService';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -191,13 +192,13 @@ const TripInProgress = ({ route, navigation }) => {
             try {
                 const res = await userService.getProfile();
                 const u = res?.data;
-                if (u?.profileImage) {
-                    setPassengerPhoto(u.profileImage);
-                    await AsyncStorage.setItem('userPhoto', u.profileImage);
-                }
-                if (u?.name) {
-                    setPassengerName(u.name);
-                    await AsyncStorage.setItem('userName', u.name);
+                if (u?.profileImage) setPassengerPhoto(u.profileImage);
+                if (u?.name) setPassengerName(u.name);
+                if (u) {
+                    await sessionStorage.updateSession({
+                        name: u.name,
+                        profileImage: u.profileImage,
+                    });
                 }
             } catch (e) {
                 // Si falla el servidor, quedamos con lo del cache
