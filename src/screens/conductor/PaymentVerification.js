@@ -234,7 +234,7 @@ const PaymentVerification = ({ route, navigation }) => {
                                             </View>
                                         </View>
                                         <View style={{ justifyContent: 'center', alignItems: 'flex-end', marginLeft: 10 }}>
-                                            <Text style={{ fontSize: 18, fontWeight: '700', color: theme.text }}>
+                                            <Text style={{ fontSize: 18, fontFamily: 'Poppins-Bold', color: theme.text }}>
                                                 ₡{booking.charged_amount ?? 0}
                                             </Text>
                                         </View>
@@ -343,11 +343,11 @@ const styles = StyleSheet.create({
         paddingTop: 6,
         paddingBottom: 12,
     },
-    headerTitle: { fontSize: 18, fontWeight: '700' },
+    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
     scrollContent: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 },
     topIconContainer: { alignItems: 'center', marginBottom: 14 },
     moneyIconCircle: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center' },
-    mainTitle: { fontSize: 26, fontWeight: '800', textAlign: 'center', marginBottom: 8, letterSpacing: -0.5 },
+    mainTitle: { fontSize: 26, fontFamily: 'Poppins-Bold', textAlign: 'center', marginBottom: 8, letterSpacing: -0.5 },
     subtitle: { fontSize: 15, textAlign: 'center', lineHeight: 22, paddingHorizontal: 10, marginBottom: 22 },
     passengersContainer: { gap: 16, marginBottom: 32 },
     passengerCard: {
@@ -356,25 +356,25 @@ const styles = StyleSheet.create({
     },
     passengerInfo: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
     avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 16 },
-    passengerName: { fontSize: 17, fontWeight: '700', marginBottom: 4 },
+    passengerName: { fontSize: 17, fontFamily: 'Poppins-Bold', marginBottom: 4 },
     badgeRow: { flexDirection: 'row' },
     badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
     badgeSuccess: { backgroundColor: 'rgba(52,199,89,0.1)' },
     badgeDanger: { backgroundColor: 'rgba(255,59,48,0.1)' },
-    badgeTextSuccess: { color: '#34C759', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
-    badgeTextDanger: { color: '#FF3B30', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+    badgeTextSuccess: { color: '#34C759', fontSize: 11, fontFamily: 'Poppins-Bold', letterSpacing: 0.5 },
+    badgeTextDanger: { color: '#FF3B30', fontSize: 11, fontFamily: 'Poppins-Bold', letterSpacing: 0.5 },
     selectorContainer: { flexDirection: 'row', borderRadius: 99, overflow: 'hidden', borderWidth: 1, borderColor: '#EAECF0' },
     selectBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
     leftBtn: { borderRightWidth: 1, borderRightColor: '#EAECF0' },
     rightBtn: { },
-    selectBtnText: { fontSize: 15, fontWeight: '600' },
+    selectBtnText: { fontSize: 15, fontFamily: 'Poppins-SemiBold' },
     unpaidSelected: { backgroundColor: '#FFEEED' },
     unpaidSelectedText: { color: '#FF3B30' },
     paidSelected: { backgroundColor: '#E8F5E9' },
     paidSelectedText: { color: '#34C759' },
     supportBox: { flexDirection: 'row', padding: 20, borderRadius: 20, alignItems: 'center', gap: 16 },
     supportIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-    supportTitle: { fontSize: 16, fontWeight: '700', marginBottom: 6 },
+    supportTitle: { fontSize: 16, fontFamily: 'Poppins-Bold', marginBottom: 6 },
     supportText: { fontSize: 13, lineHeight: 18, marginBottom: 10 },
     emailBtn: {
         flexDirection: 'row',
@@ -386,14 +386,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 6,
     },
-    emailBtnText: { fontSize: 12, fontWeight: '600' },
+    emailBtnText: { fontSize: 12, fontFamily: 'Poppins-SemiBold' },
     footer: { paddingHorizontal: 24, paddingTop: 20, borderTopWidth: 1 },
     continueBtn: {
         backgroundColor: '#1A73E8', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         paddingVertical: 18, borderRadius: 99, gap: 8,
     },
     continueBtnDisabled: { backgroundColor: '#B0C6FF' },
-    continueBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    continueBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Poppins-Bold' },
 });
 
 export default PaymentVerification;

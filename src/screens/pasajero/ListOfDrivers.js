@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
     refreshBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
     headerCenter: { flex: 1, alignItems: 'center' },
-    headerTitle: { fontSize: 18, fontFamily: 'Poppins-Bold' },
+    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
     headerSub: { fontSize: 12, fontFamily: 'Poppins-Regular', marginTop: 1 },
 
     // Lista

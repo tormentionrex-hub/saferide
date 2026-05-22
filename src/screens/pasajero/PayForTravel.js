@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingBottom: 14,
     },
-    headerTitle: { fontSize: 18, fontFamily: 'Poppins-Bold', letterSpacing: -0.3 },
+    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold', letterSpacing: -0.3 },
 
     introBlock: {
         alignItems: 'center',

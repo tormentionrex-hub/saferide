@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
     frequentSection: { marginBottom: 16 },
     frequentTitle: {
         fontSize: 12,
-        fontWeight: '800',
+        fontFamily: 'Poppins-Bold',
         textTransform: 'uppercase',
         letterSpacing: 1,
         marginBottom: 10,
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
     },
     titleModal: {
         fontSize: 22,
-        fontWeight: '800',
+        fontFamily: 'Poppins-Bold',
         marginBottom: 10,
         letterSpacing: 0.3,
     },
@@ -621,7 +621,7 @@ const styles = StyleSheet.create({
     primaryBtnTextModal: {
         color: '#fff',
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
         letterSpacing: 0.3,
     },
     cancelBtnModal: {
@@ -633,6 +633,6 @@ const styles = StyleSheet.create({
     },
     cancelBtnTextModal: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: 'Poppins-SemiBold',
     },
 });

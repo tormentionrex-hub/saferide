@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20, paddingBottom: 14, borderBottomWidth: 1,
     },
     headerIconBtn: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center' },
-    headerTitle:   { fontSize: 18, fontFamily: 'Poppins-Bold' },
+    headerTitle:   { fontSize: 22, fontFamily: 'Poppins-Bold' },
 
     content: { flex: 1, paddingHorizontal: 20, paddingTop: 28 },
 

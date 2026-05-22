@@ -978,7 +978,8 @@ const TripInProgress = ({ route, navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F7F9FB',
+        // El backgroundColor lo aplica el componente desde theme.bg para
+        // que coincida con el resto de la app (DashboardPasajero).
     },
 
     /* Header */
@@ -997,7 +998,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     headerTitle: {
-        fontSize: 17,
+        fontSize: 22,
         fontFamily: 'Poppins-Bold',
         color: '#191C1E',
         letterSpacing: -0.3,

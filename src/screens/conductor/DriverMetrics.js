@@ -255,8 +255,8 @@ const DriverMetrics = ({ navigation }) => {
     }), [theme.surface, theme.dark, theme.accent]);
 
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.surface }]}>
-            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
+            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
             <View style={[styles.mainCard, { backgroundColor: theme.surface }]}>
                 <View style={[styles.header, { borderBottomColor: theme.divider }]}>
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     },
     backBtn: { position: 'absolute', left: 20 },
     gearBtn: { position: 'absolute', right: 20 },
-    innerTitle: { fontSize: 18, fontWeight: 'bold' },
+    innerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     loadingText: { marginTop: 10, fontSize: 16 },
     scrollBody: { padding: 20, paddingBottom: 100 },
@@ -402,25 +402,25 @@ const styles = StyleSheet.create({
     statBoxPrimary: { width: '100%', padding: 16, marginBottom: 12 },
     statBoxHalf: { width: '48%', padding: 12 },
     statLabel: { fontSize: 10, textAlign: 'center', marginBottom: 5 },
-    statValue: { fontSize: 15, fontWeight: 'bold' },
-    statValuePrimary: { fontSize: 26, fontWeight: 'bold', marginTop: 2 },
+    statValue: { fontSize: 15, fontFamily: 'Poppins-Bold' },
+    statValuePrimary: { fontSize: 26, fontFamily: 'Poppins-Bold', marginTop: 2 },
     chartContainer: {
         borderRadius: 20, padding: 15,
         marginBottom: 20, borderWidth: 1,
     },
-    chartHeaderTitle: { fontSize: 13, fontWeight: 'bold' },
+    chartHeaderTitle: { fontSize: 13, fontFamily: 'Poppins-Bold' },
     valRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 5 },
-    mainValText: { fontSize: 18, fontWeight: 'bold' },
-    percentText: { fontSize: 11, fontWeight: 'bold', color: '#4CAF50', marginLeft: 8 },
+    mainValText: { fontSize: 18, fontFamily: 'Poppins-Bold' },
+    percentText: { fontSize: 11, fontFamily: 'Poppins-Bold', color: '#4CAF50', marginLeft: 8 },
     timeLabel: { fontSize: 10, marginBottom: 10 },
     chartStyle: { marginLeft: -15, marginTop: 10 },
     monthRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
     monthLeft: { flexDirection: 'row', alignItems: 'center' },
     monthIconBg: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-    monthName: { fontSize: 16, fontWeight: 'bold', textTransform: 'capitalize' },
+    monthName: { fontSize: 16, fontFamily: 'Poppins-Bold', textTransform: 'capitalize' },
     monthRight: { alignItems: 'flex-end' },
     monthStatLabel: { fontSize: 11, marginBottom: 4 },
-    monthStatKm: { fontSize: 15, fontWeight: 'bold' }
+    monthStatKm: { fontSize: 15, fontFamily: 'Poppins-Bold' }
 });
 
 export default DriverMetrics;

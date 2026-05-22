@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 26,
-        fontWeight: '800',
+        fontFamily: 'Poppins-Bold',
         textAlign: 'center',
         marginBottom: 8,
     },
@@ -284,18 +284,18 @@ const styles = StyleSheet.create({
     },
     personName: {
         fontSize: 18,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
         marginBottom: 4,
     },
     personRole: {
         fontSize: 13,
-        fontWeight: '500',
+        fontFamily: 'Poppins-SemiBold',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
     ratingLabel: {
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
         color: '#FFC107',
         marginTop: 10,
         marginBottom: 4,
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginTop: 6,
         marginBottom: 16,
-        fontWeight: '500',
+        fontFamily: 'Poppins-SemiBold',
     },
     errorBox: {
         flexDirection: 'row',
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     submitBtnText: {
         color: '#FFF',
         fontSize: 17,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
     },
     skipBtn: {
         width: '100%',
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     },
     skipBtnText: {
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: 'Poppins-Bold',
         letterSpacing: 0.3,
     },
     successOverlay: {
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     },
     successTitle: {
         fontSize: 26,
-        fontWeight: '800',
+        fontFamily: 'Poppins-Bold',
         color: '#1A1A1A',
         marginBottom: 10,
     },

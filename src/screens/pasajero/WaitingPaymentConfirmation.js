@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center', alignItems: 'center',
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 22,
         fontFamily: 'Poppins-Bold',
         letterSpacing: -0.3,
     },

@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'flex-start',
     },
-    headerTitle: { fontSize: 18, fontFamily: 'Poppins-Bold', letterSpacing: -0.3 },
+    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold', letterSpacing: -0.3 },
 
     summaryCard: {
         marginHorizontal: 20,

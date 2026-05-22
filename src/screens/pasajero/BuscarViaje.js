@@ -420,8 +420,8 @@ const BuscarViaje = ({ navigation, route }) => {
     };
 
     return (
-        <View style={styles.safeArea}>
-            <StatusBar barStyle="dark-content" backgroundColor="#F2F4F8" />
+        <View style={[styles.safeArea, { backgroundColor: theme.bg }]}>
+            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
             <ScrollView
                 style={styles.scrollView}
@@ -633,7 +633,7 @@ const BuscarViaje = ({ navigation, route }) => {
                     style={[styles.iosConfirm, { backgroundColor: ACCENT }]}
                     onPress={() => setMostrarCalendario(false)}
                 >
-                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Confirmar</Text>
+                    <Text style={{ color: '#fff', fontFamily: 'Poppins-Bold' }}>Confirmar</Text>
                 </TouchableOpacity>
             )}
 
@@ -671,7 +671,7 @@ const BuscarViaje = ({ navigation, route }) => {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#F2F4F8',
+        // El backgroundColor lo aplica el componente desde theme.bg.
     },
     scrollView: { flex: 1 },
     scrollContent: {
@@ -697,7 +697,7 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 22,
         fontFamily: 'Poppins-Bold',
         color: '#1A1A2E',
     },
