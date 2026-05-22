@@ -216,6 +216,25 @@ const TripInProgress = ({ route, navigation }) => {
         return () => { mountedRef.current = false; };
     }, []);
 
+    // Interceptar el back / swipe-back del usuario: el stack anterior (Waiting
+    // ForTheStart o ScreenSaver con "ya fuiste aceptado") ya no corresponde
+    // porque el viaje está en curso. Lo llevamos al Dashboard, que es el flujo
+    // natural. Solo interceptamos GO_BACK/POP — REPLACE/NAVIGATE/RESET que
+    // dispara el polling (a PayForTravel, RateDriver, etc.) se dejan pasar.
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            const actionType = e.data?.action?.type;
+            if (actionType === 'GO_BACK' || actionType === 'POP') {
+                e.preventDefault();
+                navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'MainTabsPasajero', params: { screen: 'DashboardPasajero' } }],
+                });
+            }
+        });
+        return unsubscribe;
+    }, [navigation]);
+
     // Si no hay bookingId en params, buscamos el booking activo del usuario
     useEffect(() => {
         if (!bookingId) {
