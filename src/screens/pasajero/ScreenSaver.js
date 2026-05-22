@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert, Platform, Modal, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert, Platform, Modal, Animated, AppState } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
@@ -355,14 +355,43 @@ const ScreenSaver = ({ route, navigation }) => {
             }
         };
 
-        checkStatus();
-        intervalRef.current = setInterval(checkStatus, 12000); // Aumentado de 5s a 12s para evitar error 429
+        // Fase 1: bajamos a 6s (la mitad) para que el pasajero vea la
+        // aceptación/rechazo del conductor más rápido. La salvaguarda
+        // contra 429 son `isFetchingRef` (ya estaba) y la pausa por
+        // AppState — no se hacen requests cuando la app está en
+        // segundo plano.
+        const POLL_MS = 6000;
 
-        return () => {
+        const startPolling = () => {
+            if (intervalRef.current) return;
+            intervalRef.current = setInterval(checkStatus, POLL_MS);
+        };
+
+        const stopPolling = () => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
             }
+        };
+
+        checkStatus();
+        startPolling();
+
+        const appStateSub = AppState.addEventListener('change', (next) => {
+            if (next === 'active') {
+                // Al volver al foreground: fetch inmediato + reanudar ciclo
+                checkStatus();
+                startPolling();
+            } else {
+                // 'background' / 'inactive': cortamos el polling para no
+                // gastar batería ni datos del usuario.
+                stopPolling();
+            }
+        });
+
+        return () => {
+            stopPolling();
+            appStateSub.remove();
             isFetchingRef.current = false;
         };
     }, [bookingId]);

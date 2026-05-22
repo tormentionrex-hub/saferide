@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, ScrollView, ActivityIndicator, Image, Linking, Animated, Modal, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, ScrollView, ActivityIndicator, Image, Linking, Animated, Modal, BackHandler, AppState } from 'react-native';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
@@ -125,6 +125,10 @@ const TripInProgressDriver = ({ route, navigation }) => {
     const prevConfirmedIdsRef = useRef([]);
     const isCancellingRef = useRef(false);
     const intervalIdRef = useRef(null);
+    // Anti-solapamiento: con el intervalo bajado a 10 s, si el backend va
+    // lento (2 requests por tick: /rides/:id y /bookings/ride/:id) podrían
+    // apilarse llamadas. Esta bandera asegura una sola en vuelo.
+    const tripFetchingRef = useRef(false);
     // ── INTERCEPTAR BOTÓN BACK (hardware Android) ──
     // Redirige siempre a DashboardDriver y reemplaza el stack
     // para que el usuario no pueda volver a CurrentTrip con back.
@@ -154,6 +158,9 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 setLoading(false);
                 return;
             }
+            // Anti-solapamiento: si la cascada anterior sigue corriendo, saltar tick
+            if (tripFetchingRef.current) return;
+            tripFetchingRef.current = true;
             try {
                 // 1. Traemos los datos del ride (origen, destino, etc.)
                 const rideRes = await api.get(`/rides/${rideId}`);
@@ -223,7 +230,8 @@ const TripInProgressDriver = ({ route, navigation }) => {
                                         null
                                     );
                                     // Reiniciar polling después de mostrar alerta
-                                    intervalIdRef.current = setInterval(fetchTripDetails, 30000);
+                                    // (usa el mismo intervalo de la Fase 1: 10 s)
+                                    intervalIdRef.current = setInterval(fetchTripDetails, 10000);
                                 } else {
                                     // No quedan pasajeros confirmados → auto-cancelar el viaje y redirigir
                                     try {
@@ -256,16 +264,44 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 console.log('Error fetching trip:', error.message);
             } finally {
                 setLoading(false);
+                // Liberar bandera SIEMPRE, también si hubo error.
+                tripFetchingRef.current = false;
             }
         };
 
-        fetchTripDetails();
-        intervalIdRef.current = setInterval(fetchTripDetails, 30000);
-        return () => {
+        // Fase 1: bajado de 30 s a 10 s para que el conductor detecte
+        // cancelaciones del pasajero más rápido. Anti-solapamiento + pausa
+        // en background son las salvaguardas para no saturar.
+        const POLL_MS = 10000;
+
+        const startPolling = () => {
+            if (intervalIdRef.current) return;
+            intervalIdRef.current = setInterval(fetchTripDetails, POLL_MS);
+        };
+
+        const stopPolling = () => {
             if (intervalIdRef.current) {
                 clearInterval(intervalIdRef.current);
                 intervalIdRef.current = null;
             }
+        };
+
+        fetchTripDetails();
+        startPolling();
+
+        const appStateSub = AppState.addEventListener('change', (next) => {
+            if (next === 'active') {
+                fetchTripDetails();
+                startPolling();
+            } else {
+                stopPolling();
+            }
+        });
+
+        return () => {
+            stopPolling();
+            appStateSub.remove();
+            tripFetchingRef.current = false;
         };
     }, [rideId]);
 
