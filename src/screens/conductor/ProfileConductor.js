@@ -134,7 +134,7 @@ const ProfileConductor = ({ navigation, route }) => {
                 }
             }
         } catch (error) {
-            console.error('Error al obtener perfil:', error);
+            console.error('Error al obtener perfil:', error?.response?.data?.message || error?.message || 'unknown error');
         } finally {
             setLoading(false);
         }
@@ -246,7 +246,7 @@ const ProfileConductor = ({ navigation, route }) => {
             loadProfile();
 
         } catch (error) {
-            console.error('Error al actualizar perfil:', error);
+            console.error('Error al actualizar perfil:', error?.response?.data?.message || error?.message || 'unknown error');
             const msg = error.response?.data?.message || error.message || 'No se pudo actualizar el perfil. Revisa tu conexión.';
             showAlert('Actualización Fallida', msg, 'error');
         } finally {
@@ -306,7 +306,7 @@ const ProfileConductor = ({ navigation, route }) => {
             setVehicleModalVisible(false);
             loadProfile(); // Recargamos para refrescar la vista principal
         } catch (error) {
-            console.error('Error al actualizar vehículo:', error);
+            console.error('Error al actualizar vehículo:', error?.response?.data?.message || error?.message || 'unknown error');
             const msg = error.response?.data?.message || error.message || 'No se pudo actualizar la información del vehículo.';
             showAlert('Actualización Fallida', msg, 'error');
         } finally {

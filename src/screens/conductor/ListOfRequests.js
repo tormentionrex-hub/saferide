@@ -636,7 +636,7 @@ const ListOfRequests = ({ route, navigation }) => {
                 }
             }
         } catch (error) {
-            console.error('Error fetching requests:', error);
+            console.error('Error fetching requests:', error?.response?.data?.message || error?.message || 'unknown error');
         } finally {
             setLoading(false);
             setRefreshing(false);

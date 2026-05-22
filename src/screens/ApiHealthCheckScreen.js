@@ -31,7 +31,7 @@ export default function ApiHealthCheckScreen() {
             const response = await api.get('/health');
             setHealthStatus(response.data);
         } catch (error) {
-            console.error('API Error:', error);
+            console.error('API Error:', error?.response?.data?.message || error?.message || 'unknown error');
             setHealthStatus({ error: error.message });
         } finally {
             setLoading(false);

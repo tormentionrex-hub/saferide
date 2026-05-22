@@ -184,7 +184,7 @@ export default function CreatePasswordScreen({ route, navigation }) {
                 showAlert("Error", response.data.message || "Ocurrió un problema al enviar el código.", 'error');
             }
         } catch (err) {
-            console.error("Verification error:", err);
+            console.error("Verification error:", err?.response?.data?.message || err?.message || 'unknown error');
             const msg = err.response?.data?.message || "Ocurrió un problema al intentar enviar el correo de verificación.";
             showAlert("Error", msg, 'error');
         } finally {

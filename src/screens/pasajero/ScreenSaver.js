@@ -328,7 +328,7 @@ const ScreenSaver = ({ route, navigation }) => {
                                     setShowScheduledModal(true);
                                 }
                             } catch (error) {
-                                console.error('Error getting ride status:', error);
+                                console.error('Error getting ride status:', error?.response?.data?.message || error?.message || 'unknown error');
                                 if (!mountedRef.current) return;
                                 navigation.navigate('WaitingForTheStart', { bookingId });
                             }
@@ -345,7 +345,7 @@ const ScreenSaver = ({ route, navigation }) => {
                                 // Borramos el booking para que el usuario pueda intentar de nuevo
                                 await api.delete(`/bookings/${bookingId}`);
                             } catch (err) {
-                                console.error('Error deleting timed out booking:', err);
+                                console.error('Error deleting timed out booking:', err?.response?.data?.message || err?.message || 'unknown error');
                             }
                             if (!mountedRef.current) return;
                             setStatus('timeout');
@@ -364,7 +364,7 @@ const ScreenSaver = ({ route, navigation }) => {
                     }
                 }
             } catch (e) {
-                console.error('Error al verificar estado del booking:', e);
+                console.error('Error al verificar estado del booking:', e?.response?.data?.message || e?.message || 'unknown error');
             } finally {
                 // Liberar bandera siempre, sobrevive a excepciones
                 isFetchingRef.current = false;

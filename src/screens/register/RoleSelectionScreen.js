@@ -96,7 +96,7 @@ export default function RoleSelectionScreen({ route, navigation }) {
             });
             navigation.navigate('AccountVerificationSucess');
         } catch (error) {
-            console.error('Registration Error:', error.response?.data || error);
+            console.error('Registration Error:', error?.response?.data?.message || error?.message || 'unknown error');
             showAlert(
                 'Error en el Registro',
                 error.response?.data?.message || 'Hubo un problema procesando tu registro. Inténtalo más tarde.',

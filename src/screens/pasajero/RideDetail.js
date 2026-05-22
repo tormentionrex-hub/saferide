@@ -87,7 +87,7 @@ const RideDetail = ({ route, navigation }) => {
                     }
                 }
             } catch (error) {
-                console.error('Error checking active booking in RideDetail:', error);
+                console.error('Error checking active booking in RideDetail:', error?.response?.data?.message || error?.message || 'unknown error');
             }
         };
         checkActiveBooking();

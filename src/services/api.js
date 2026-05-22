@@ -17,10 +17,14 @@ const PUBLIC_AUTH_ENDPOINTS = [
 const isPublicAuthRequest = (url = '') =>
     PUBLIC_AUTH_ENDPOINTS.some((endpoint) => url.includes(endpoint));
 
+const REQUEST_TIMEOUT_MS = 10000;
+
 const api = axios.create({
     baseURL: API_URL,
+    timeout: REQUEST_TIMEOUT_MS,
     headers: {
         'Content-Type': 'application/json',
+        'X-Client-Type': 'mobile',
     },
 });
 
@@ -38,7 +42,19 @@ const refreshAccessToken = async () => {
         if (!refreshToken) throw new Error('No refresh token available');
 
         // axios directo (no `api`) para no pasar por este propio interceptor.
-        const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+        // Replicamos timeout y X-Client-Type a mano para que el backend siga viendo
+        // la petición como originada por el cliente móvil.
+        const response = await axios.post(
+            `${API_URL}/auth/refresh`,
+            { refreshToken },
+            {
+                timeout: REQUEST_TIMEOUT_MS,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Client-Type': 'mobile',
+                },
+            }
+        );
         const { accessToken, refreshToken: newRefreshToken } = response.data.data;
         await tokenStorage.setTokens({ accessToken, refreshToken: newRefreshToken });
         return accessToken;

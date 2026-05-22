@@ -59,7 +59,7 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
             }
             onClose();
         } catch (error) {
-            console.error('Error confirmando ubicación:', error);
+            console.error('Error confirmando ubicación:', error?.response?.data?.message || error?.message || 'unknown error');
         } finally {
             setLoading(false);
         }

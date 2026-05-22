@@ -205,7 +205,7 @@ const DriverMetrics = ({ navigation }) => {
             };
 
         } catch (error) {
-            console.error("Error al traer datos de Mongo:", error);
+            console.error("Error al traer datos de Mongo:", error?.response?.data?.message || error?.message || 'unknown error');
         } finally {
             setLoading(false);
         }
