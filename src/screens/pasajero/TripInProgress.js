@@ -148,6 +148,9 @@ const TripInProgress = ({ route, navigation }) => {
     const findFetchingRef = useRef(false);
     const tripFetchingRef = useRef(false);
     const locationFetchingRef = useRef(false);
+    // Idempotencia: una vez disparado el alert de cancelación/rechazo del
+    // viaje, no se vuelve a disparar aunque el polling lo vuelva a detectar.
+    const alertedRef = useRef(false);
 
     const [loading, setLoading] = useState(true);
     const [bookingData, setBookingData] = useState(null);
@@ -332,6 +335,8 @@ const TripInProgress = ({ route, navigation }) => {
                                 });
                             }
                         } else {
+                            if (alertedRef.current) return;
+                            alertedRef.current = true;
                             showAlert(
                                 'Viaje Cancelado',
                                 'El conductor ha cancelado el viaje.',

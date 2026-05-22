@@ -339,6 +339,9 @@ const WaitingForTheStart = ({ route, navigation }) => {
     // Refs de control de ciclo de vida y anti-solapamiento
     const mountedRef = useRef(true);
     const isFetchingRef = useRef(false);
+    // Idempotencia: una vez disparado el alert de cancelación/rechazo del
+    // viaje, no se vuelve a disparar aunque el polling vuelva a evaluarlo.
+    const alertedRef = useRef(false);
 
     // Cleanup global de montaje: bloquea setStates tardíos tras desmontar
     useEffect(() => {
@@ -362,6 +365,8 @@ const WaitingForTheStart = ({ route, navigation }) => {
                     if ((bookingStatus === 'cancelled' || bookingStatus === 'deny') && !isCancellingRef.current) {
                         clearInterval(intervalRef.current);
                         intervalRef.current = null;
+                        if (alertedRef.current) return;
+                        alertedRef.current = true;
                         showAlert(
                             'Viaje Cancelado',
                             'El conductor ha cancelado el viaje.',
