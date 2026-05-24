@@ -15,12 +15,13 @@ import {
     Linking,
     Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import api from '../../services/api';
@@ -32,6 +33,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 const { width } = Dimensions.get('window');
 
+const MONTHS_SHORT_ES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+const getShortMonthNameES = (dt) => {
+    if (!dt || !dt.isValid) return '---';
+    return MONTHS_SHORT_ES[dt.month - 1] || '---';
+};
+
 // Memoized Trip Item for better performance
 const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handlePaymentToggle }) => {
     const isCancelled = item.status === 'cancelled';
@@ -41,21 +48,33 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handl
     const originCoords = item.origin?.coordinates;
     const destCoords = item.destination?.coordinates;
 
+    const dateObj = DateTime.fromISO(item.fecha).setLocale('es');
+    const day = dateObj.day || '--';
+    const month = getShortMonthNameES(dateObj);
+
     return (
-        <View style={[styles.card, { backgroundColor: theme.surface, shadowColor: theme.text }]}>
-            {/* Header: Fecha y Estado */}
+        <View style={[styles.card, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border, shadowColor: theme.text }]}>
+            {/* Header: Fecha + Estado/Tiempos + Precio */}
             <View style={styles.cardHeader}>
-                <View style={styles.dateContainer}>
-                    <Text style={[styles.dateDay, { color: theme.text }]}>
-                        {DateTime.fromISO(item.fecha).setLocale('es').toFormat('dd')}
-                    </Text>
-                    <Text style={[styles.dateMonth, { color: theme.textSecondary }]}>
-                        {DateTime.fromISO(item.fecha).setLocale('es').toFormat('MMM, yyyy').toUpperCase()}
-                    </Text>
+                <View style={styles.headerLeft}>
+                    <View style={[styles.dateBlock, { backgroundColor: theme.bg }]}>
+                        <Text style={[styles.dateDay, { color: theme.text }]}>{day}</Text>
+                        <Text style={[styles.dateMonth, { color: theme.textSecondary }]}>{month}</Text>
+                    </View>
+                    <View style={styles.statusCol}>
+                        <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
+                            <Text style={[styles.statusText, { color: statusColor }]}>
+                                {item.status === 'completed' ? 'Completado' : 'Cancelado'}
+                            </Text>
+                        </View>
+                        <Text style={[styles.timeText, { color: theme.textSecondary }]}>
+                            {item.hora} → {arrivalTime}
+                        </Text>
+                    </View>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
-                    <Text style={[styles.statusText, { color: statusColor }]}>
-                        {item.status === 'completed' ? 'Completado' : 'Cancelado'}
+                <View style={styles.headerRight}>
+                    <Text style={[styles.priceText, { color: theme.accent }]}>
+                        ₡{item.suggested_price?.toLocaleString()}
                     </Text>
                 </View>
             </View>
@@ -98,38 +117,18 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handl
             ) : null}
 
             {/* Ruta Textual */}
-            <View style={styles.routeContainer}>
+            <View style={[styles.routeContainer, { backgroundColor: theme.bg }]}>
                 <View style={styles.routePoint}>
-                    <View style={[styles.dot, { backgroundColor: theme.accent }]} />
-                    <Text style={[styles.locationText, { color: theme.text }]} numberOfLines={1}>
-                        {item.origin?.name}
+                    <Ionicons name="radio-button-on" size={14} color={theme.accent} />
+                    <Text style={[styles.routeValue, { color: theme.text }]} numberOfLines={1}>
+                        {item.origin?.name || 'Ubicación desconocida'}
                     </Text>
                 </View>
-                <View style={[styles.line, { backgroundColor: theme.border }]} />
+                <View style={[styles.routeConnector, { backgroundColor: theme.border }]} />
                 <View style={styles.routePoint}>
-                    <Ionicons name="location" size={16} color="#FF3B30" />
-                    <Text style={[styles.locationText, { color: theme.text }]} numberOfLines={1}>
-                        {item.destination?.name}
-                    </Text>
-                </View>
-            </View>
-
-            {/* Tiempos y Precio */}
-            <View style={styles.footer}>
-                <View style={styles.timeSection}>
-                    <View style={styles.timeItem}>
-                        <Text style={[styles.timeLabel, { color: theme.textSecondary }]}>Salida</Text>
-                        <Text style={[styles.timeValue, { color: theme.text }]}>{item.hora}</Text>
-                    </View>
-                    <Ionicons name="arrow-forward" size={14} color={theme.textSecondary} style={{ marginHorizontal: 12 }} />
-                    <View style={styles.timeItem}>
-                        <Text style={[styles.timeLabel, { color: theme.textSecondary }]}>Llegada</Text>
-                        <Text style={[styles.timeValue, { color: theme.text }]}>{arrivalTime}</Text>
-                    </View>
-                </View>
-                <View style={styles.priceContainer}>
-                    <Text style={[styles.priceText, { color: theme.accent }]}>
-                        ₡{item.suggested_price?.toLocaleString()}
+                    <Ionicons name="location" size={14} color="#FF5A5F" />
+                    <Text style={[styles.routeValue, { color: theme.text }]} numberOfLines={1}>
+                        {item.destination?.name || 'Ubicación desconocida'}
                     </Text>
                 </View>
             </View>
@@ -217,6 +216,7 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handl
 
 export default function PreviousTripsScreen() {
     const { theme } = useDriverTheme();
+    const insets = useSafeAreaInsets();
     const { showAlert } = useCustomAlert();
     const [allTrips, setAllTrips] = useState([]);
     const [filteredTrips, setFilteredTrips] = useState([]);
@@ -560,71 +560,77 @@ export default function PreviousTripsScreen() {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
-            <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
-            <View style={styles.header}>
-                <Text style={[styles.title, { color: theme.text }]}>Viajes Anteriores</Text>
+        <View style={[styles.container, { backgroundColor: theme.bg }]}>
+            <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
+            <LinearGradient colors={[theme.accent, theme.accent + 'CC']} style={[styles.header, { paddingTop: insets.top + 20 }]}>
+                <Text style={styles.headerTitle}>Viajes Anteriores</Text>
+                <Text style={styles.headerSubtitle}>Tu historial de viajes como conductor</Text>
+            </LinearGradient>
+
+            <View style={styles.listContainer}>
+                {!loading && availableMonths.length > 0 && renderMonthSelector()}
+
+                {loading ? (
+                    <View style={styles.centerContainer}>
+                        <ActivityIndicator size="large" color={theme.accent} />
+                    </View>
+                ) : (
+                    <FlatList
+                        data={filteredTrips.slice(0, displayLimit)}
+                        renderItem={renderTripItem}
+                        keyExtractor={item => item._id}
+                        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]}
+                        removeClippedSubviews={true}
+                        initialNumToRender={3}
+                        maxToRenderPerBatch={3}
+                        windowSize={5}
+                        refreshControl={
+                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} />
+                        }
+                        ListFooterComponent={renderFooter}
+                        ListEmptyComponent={() => {
+                            const isFiltered = !!selectedMonth;
+                            return (
+                                <View style={styles.emptyContainer}>
+                                    <Ionicons
+                                        name={isFiltered ? 'calendar-outline' : 'car-sport-outline'}
+                                        size={72}
+                                        color={theme.textSecondary + '35'}
+                                    />
+                                    <Text style={[styles.emptyTitle, { color: theme.text }]}>
+                                        {isFiltered ? 'Sin viajes en este período' : '¡Aún no tienes viajes!'}
+                                    </Text>
+                                    <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                                        {isFiltered
+                                            ? 'No encontramos viajes para la fecha seleccionada. Prueba con otro filtro.'
+                                            : 'Cuando completes tu primer viaje como conductor, aparecerá aquí tu historial.'}
+                                    </Text>
+                                </View>
+                            );
+                        }}
+                    />
+                )}
             </View>
-
-            {!loading && availableMonths.length > 0 && renderMonthSelector()}
-
-            {loading ? (
-                <View style={styles.centerContainer}>
-                    <ActivityIndicator size="large" color={theme.accent} />
-                </View>
-            ) : (
-                <FlatList
-                    data={filteredTrips.slice(0, displayLimit)}
-                    renderItem={renderTripItem}
-                    keyExtractor={item => item._id}
-                    contentContainerStyle={styles.listContent}
-                    removeClippedSubviews={true} 
-                    initialNumToRender={3}
-                    maxToRenderPerBatch={3}
-                    windowSize={5}
-                    refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} />
-                    }
-                    ListFooterComponent={renderFooter}
-                    ListEmptyComponent={() => {
-                        const isFiltered = !!selectedMonth;
-                        return (
-                            <View style={styles.emptyContainer}>
-                                <Ionicons
-                                    name={isFiltered ? 'calendar-outline' : 'car-sport-outline'}
-                                    size={72}
-                                    color={theme.textSecondary + '35'}
-                                />
-                                <Text style={[styles.emptyTitle, { color: theme.text }]}>
-                                    {isFiltered ? 'Sin viajes en este período' : '¡Aún no tienes viajes!'}
-                                </Text>
-                                <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                                    {isFiltered
-                                        ? 'No encontramos viajes para la fecha seleccionada. Prueba con otro filtro.'
-                                        : 'Cuando completes tu primer viaje como conductor, aparecerá aquí tu historial.'}
-                                </Text>
-                            </View>
-                        );
-                    }}
-                />
-            )}
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
     header: {
-        paddingHorizontal: 20,
-        paddingVertical: 15,
+        paddingHorizontal: 25,
+        paddingBottom: 45,
+        borderBottomLeftRadius: 35,
+        borderBottomRightRadius: 35,
     },
-    title: {
-        fontSize: 22,
-        fontFamily: 'Poppins-Bold',
-    },
+    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold', color: '#fff' },
+    headerSubtitle: { fontSize: 14, fontFamily: 'Poppins-Regular', color: 'rgba(255,255,255,0.9)' },
+    listContainer: { flex: 1, marginTop: -25 },
     selectorWrapper: {
         paddingHorizontal: 20,
-        marginBottom: 20,
+        marginBottom: 15,
+        marginTop: 10,
     },
     selectorButton: {
         flexDirection: 'row',
@@ -704,12 +710,11 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         padding: 16,
         marginBottom: 20,
-        elevation: 10,
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.2,
-        shadowRadius: 15,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
+        elevation: 6,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
     },
     cardHeader: {
         flexDirection: 'row',
@@ -717,31 +722,24 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 16,
     },
-    dateContainer: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        gap: 8,
-    },
-    dateDay: {
-        fontSize: 28,
-        fontFamily: 'Poppins-Bold',
-    },
-    dateMonth: {
-        fontSize: 12,
-        fontFamily: 'Poppins-Bold',
-        letterSpacing: 0.5,
-        textTransform: 'uppercase',
-    },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    headerRight: {},
+    dateBlock: { width: 54, height: 54, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+    dateDay: { fontSize: 20, fontFamily: 'Poppins-Bold' },
+    dateMonth: { fontSize: 10, fontFamily: 'Poppins-SemiBold' },
+    statusCol: { gap: 4 },
     statusBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        alignSelf: 'flex-start',
     },
     statusText: {
-        fontSize: 12,
+        fontSize: 10,
         fontFamily: 'Poppins-Bold',
         textTransform: 'uppercase',
     },
+    timeText: { fontSize: 12, fontFamily: 'Poppins-SemiBold' },
     mapSection: {
         borderRadius: 16,
         borderWidth: 1,
@@ -783,60 +781,11 @@ const styles = StyleSheet.create({
         borderRadius: 2,
         backgroundColor: '#fff',
     },
-    routeContainer: {
-        marginBottom: 16,
-    },
-    routePoint: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    dot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        marginRight: 10,
-    },
-    line: {
-        width: 1,
-        height: 12,
-        marginLeft: 3.5,
-        marginVertical: 2,
-    },
-    locationText: {
-        fontSize: 14,
-        fontFamily: 'Poppins-SemiBold',
-        flex: 1,
-    },
-    footer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        paddingBottom: 16,
-    },
-    timeSection: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    timeItem: {
-        alignItems: 'flex-start',
-    },
-    timeLabel: {
-        fontSize: 9,
-        textTransform: 'uppercase',
-        fontFamily: 'Poppins-SemiBold',
-        marginBottom: 2,
-    },
-    timeValue: {
-        fontSize: 18,
-        fontFamily: 'Poppins-Bold',
-    },
-    priceContainer: {
-        alignItems: 'flex-end',
-    },
-    priceText: {
-        fontSize: 22,
-        fontFamily: 'Poppins-Bold',
-    },
+    routeContainer: { padding: 12, borderRadius: 16, gap: 2, marginBottom: 16 },
+    routePoint: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    routeValue: { flex: 1, fontSize: 13, fontFamily: 'Poppins-SemiBold' },
+    routeConnector: { width: 1.5, height: 8, marginLeft: 6, marginVertical: 2 },
+    priceText: { fontSize: 20, fontFamily: 'Poppins-Bold' },
     passengerSection: {
         paddingTop: 16,
         borderTopWidth: 1,

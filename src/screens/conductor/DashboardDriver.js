@@ -232,11 +232,13 @@ export default function DashboardConductor({ route, navigation }) {
 
                 {/* Header */}
                 <View style={[styles.header, { backgroundColor: theme.bg, borderBottomColor: theme.divider || '#CBD5E1', borderBottomWidth: 1 }]}>
-                    <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('AjustesConductor')}>
-                        <Ionicons name="settings-sharp" size={24} color={theme.text} />
-                    </TouchableOpacity>
+                    <View style={styles.headerSide}>
+                        <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('AjustesConductor')}>
+                            <Ionicons name="settings-sharp" size={24} color={theme.text} />
+                        </TouchableOpacity>
+                    </View>
                     <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Conductor</Text>
-                    <View style={styles.headerRight}>
+                    <View style={[styles.headerSide, styles.headerRight]}>
                         <NotificationBell
                             unreadCount={unreadCount}
                             color={theme.text}
@@ -437,7 +439,6 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
         paddingHorizontal: 20,
         paddingBottom: 14,
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 44,
@@ -447,9 +448,10 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.08,
         shadowRadius: 4,
     },
+    headerSide: { flex: 1, flexDirection: 'row', alignItems: 'center' },
     headerIconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
-    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold', textAlign: 'center' },
+    headerRight: { justifyContent: 'flex-end', gap: 6 },
     profileButton: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 1.5, borderColor: '#E2E8F0' },
     profileImg: { width: '100%', height: '100%' },
     profileFallback: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },

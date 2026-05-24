@@ -184,9 +184,11 @@ const DashboardPasajero = ({ navigation, route }) => {
             
             {/* Encabezado: Texto 'Pasajero' y Tuerquita */}
             <View style={[styles.header, { borderBottomColor: theme.divider || '#CBD5E1', borderBottomWidth: 1 }]}>
-                <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('CustomizeApp')}>
-                    <Ionicons name="settings-sharp" size={24} color={theme.text} />
-                </TouchableOpacity>
+                <View style={styles.headerSide}>
+                    <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('CustomizeApp')}>
+                        <Ionicons name="settings-sharp" size={24} color={theme.text} />
+                    </TouchableOpacity>
+                </View>
                 <Text
                     style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}
                     numberOfLines={1}
@@ -194,7 +196,7 @@ const DashboardPasajero = ({ navigation, route }) => {
                     minimumFontScale={0.7}
                 >Pasajero</Text>
 
-                <View style={styles.headerRight}>
+                <View style={[styles.headerSide, styles.headerRight]}>
                     <NotificationBell
                         unreadCount={unreadCount}
                         color={theme.text}
@@ -253,7 +255,11 @@ const DashboardPasajero = ({ navigation, route }) => {
 
                 {/* Tarjeta de búsqueda de viajes (Acceso directo principal) */}
                 <TouchableOpacity
-                    style={[styles.searchCard, { backgroundColor: theme.accent || '#2563EB' }, pendingPaymentsCount > 0 && { opacity: 0.55 }]}
+                    style={[
+                        styles.searchCard,
+                        { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.divider },
+                        pendingPaymentsCount > 0 && { opacity: 0.55 },
+                    ]}
                     onPress={() => {
                         if (pendingPaymentsCount > 0) {
                             showAlert(
@@ -271,16 +277,21 @@ const DashboardPasajero = ({ navigation, route }) => {
                 >
                     {/* Contenedor interno para marca de agua sin afectar la sombra */}
                     <View style={[StyleSheet.absoluteFill, { borderRadius: 15, overflow: 'hidden' }]}>
-                        <Ionicons name="car" size={140} color="rgba(255,255,255,0.15)" style={styles.watermarkIcon} />
+                        <Ionicons
+                            name="car"
+                            size={140}
+                            color={(theme.accent || '#2563EB') + '15'}
+                            style={styles.watermarkIcon}
+                        />
                     </View>
 
-                    <View style={styles.searchIconContainer}>
-                        <Ionicons name="search" size={24} color="#ffffff" />
+                    <View style={[styles.searchIconContainer, { backgroundColor: theme.iconCircleBg || 'rgba(37, 99, 235, 0.1)' }]}>
+                        <Ionicons name="search" size={24} color={theme.accent || '#2563EB'} />
                     </View>
                     <View style={styles.searchTextContainer}>
                         {/* Título de la tarjeta informativo */}
-                        <Text style={styles.cardTitle}>Buscar viaje</Text>
-                        <Text style={styles.cardSubtitle}>Encuentra tu próximo viaje seguro</Text>
+                        <Text style={[styles.cardTitle, { color: theme.text }]}>Buscar viaje</Text>
+                        <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>Encuentra tu próximo viaje seguro</Text>
                     </View>
                 </TouchableOpacity>
 
@@ -363,11 +374,16 @@ const styles = StyleSheet.create({
         paddingVertical: 15,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+    },
+    headerSide: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     headerTitle: {
         fontFamily: 'Poppins-Bold',
         fontSize: 22,
+        textAlign: 'center',
     },
     headerIconBtn: {
         width: 40,
@@ -376,8 +392,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     headerRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        justifyContent: 'flex-end',
         gap: 6,
     },
     profileButton: {
@@ -414,30 +429,34 @@ const styles = StyleSheet.create({
         height: 120,
         padding: 20,
         borderRadius: 15,
+        borderWidth: 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 5,
-        elevation: 5,
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
         flexDirection: 'row',
-        alignItems: 'flex-start',
+        alignItems: 'center',
     },
     searchIconContainer: {
-        marginRight: 15,
-        marginTop: 2,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 14,
     },
     searchTextContainer: {
         flex: 1,
     },
     cardTitle: {
-        color: '#ffffff',
         fontSize: 18,
         fontFamily: 'Poppins-Bold',
         marginBottom: 5,
     },
     cardSubtitle: {
-        color: '#ffffff',
         fontSize: 14,
+        fontFamily: 'Poppins-Regular',
     },
     watermarkIcon: {
         position: 'absolute',

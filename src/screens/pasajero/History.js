@@ -238,7 +238,7 @@ const HistoryItem = memo(({ item, theme, calculateArrivalTime, handleContact }) 
     const statusColor = isCancelled ? '#FF3B30' : '#4CD964';
 
     return (
-        <View style={[styles.historyCard, { backgroundColor: theme.surface, borderColor: theme.border, shadowColor: theme.text }]}>
+        <View style={[styles.historyCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border, shadowColor: theme.text }]}>
             <View style={styles.cardHeader}>
                 <View style={styles.headerLeft}>
                     <View style={[styles.dateBlock, { backgroundColor: theme.bg }]}>
