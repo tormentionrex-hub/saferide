@@ -235,19 +235,39 @@ const TripInProgressDriver = ({ route, navigation }) => {
                                     // (usa el mismo intervalo de la Fase 1: 10 s)
                                     intervalIdRef.current = setInterval(fetchTripDetails, 10000);
                                 } else {
-                                    // No quedan pasajeros confirmados → auto-cancelar el viaje y redirigir
-                                    try {
-                                        await api.patch(`/rides/${rideId}/cancel`);
-                                    } catch (err) {
-                                        console.log('No se pudo auto-cancelar el viaje:', err.message);
-                                    }
+                                    // No quedan pasajeros confirmados. El backend ya
+                                    // auto-canceló el ride al recibir la cancelación
+                                    // del último pasajero (no llamamos /rides/:id/cancel
+                                    // para evitar notificación duplicada al conductor).
+                                    //
+                                    // Decidimos a dónde ir según haya penalización
+                                    // pendiente que el conductor deba procesar:
+                                    //   - Algún booking 'cancelled' con payment_status
+                                    //     'pending' + charged_amount > 0 → PaymentVerification
+                                    //   - Si no → DashboardDriver
+                                    const hasPendingPenalty = allBookings.some(b =>
+                                        (b.status === 'cancelled' || b.status === 'canceled') &&
+                                        b.payment_status === 'pending' &&
+                                        Number(b.charged_amount) > 0
+                                    );
 
                                     showAlert(
                                         'Reservación cancelada',
-                                        'El pasajero ha cancelado su reservación. El viaje ha sido cancelado automáticamente.',
+                                        hasPendingPenalty
+                                            ? 'El último pasajero canceló. El viaje fue cancelado automáticamente. Procesa la penalización pendiente.'
+                                            : 'El último pasajero canceló. El viaje fue cancelado automáticamente.',
                                         'warning',
                                         'OK',
-                                        () => navigation.replace('PaymentVerification', { rideId })
+                                        () => {
+                                            if (hasPendingPenalty) {
+                                                navigation.replace('PaymentVerification', { rideId });
+                                            } else {
+                                                navigation.reset({
+                                                    index: 0,
+                                                    routes: [{ name: 'MainTabsDriver', params: { screen: 'DashboardDriver' } }],
+                                                });
+                                            }
+                                        }
                                     );
                                 }
                                 return;
@@ -449,6 +469,15 @@ const TripInProgressDriver = ({ route, navigation }) => {
                     // B. Cancel the ride itself
                     const rideRes = await api.patch(`/rides/${rideId}/cancel`);
 
+                    // Cancelación voluntaria del conductor: no hay nada que
+                    // procesar en PaymentVerification (todos los bookings ya
+                    // quedaron 'waived') y los bookings cancelados no se
+                    // califican. Lo mandamos directo al Dashboard.
+                    const goToDashboard = () => navigation.reset({
+                        index: 0,
+                        routes: [{ name: 'MainTabsDriver', params: { screen: 'DashboardDriver' } }],
+                    });
+
                     // El backend decrementa trustScore solo si la ride estaba
                     // en 'in progress' al cancelarse. Si decremented=true,
                     // mostramos el alert específico antes de navegar.
@@ -466,17 +495,15 @@ const TripInProgressDriver = ({ route, navigation }) => {
                                 }`,
                             'warning',
                             'Entendido',
-                            () => navigation.replace('PaymentVerification', { rideId })
+                            goToDashboard
                         );
                     } else {
-                        // Redirigir al flujo de verificación de pago / calificación
-                        // (con las opciones deshabilitadas porque el viaje fue cancelado).
                         showAlert(
                             'Viaje cancelado',
                             'El viaje ha sido cancelado exitosamente y los pasajeros han sido notificados.',
                             'success',
                             'Continuar',
-                            () => navigation.replace('PaymentVerification', { rideId })
+                            goToDashboard
                         );
                     }
                 } catch (error) {
