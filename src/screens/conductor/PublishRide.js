@@ -136,7 +136,12 @@ const PublishRide = ({ navigation, route }) => {
                 const activeRidesRes = await api.get(`/rides/driver/${driverId}`);
                 if (activeRidesRes.data.success) {
                     const activeRides = activeRidesRes.data.data.filter(r =>
-                        r.status === 'scheduled' || r.status === 'in progress'
+                        r.status === 'scheduled' ||
+                        r.status === 'in progress' ||
+                        // Bloquear la creación de un nuevo viaje mientras
+                        // haya uno pendiente de verificación de pago: el
+                        // conductor debe cerrar ese flujo primero.
+                        r.status === 'awaiting_payment_verification'
                     );
                     if (activeRides.length > 0) {
                         setIsActiveRideModalVisible(true);

@@ -59,11 +59,65 @@ const SearchRide = ({ navigation }) => {
                         const bookings = resConfirmed.data.data || [];
                         activeBooking = bookings.find(b => {
                             const rideStatus = b.ride_id?.status;
-                            return rideStatus === 'in progress' || rideStatus === 'scheduled';
+                            return (
+                                rideStatus === 'in progress' ||
+                                rideStatus === 'scheduled' ||
+                                rideStatus === 'awaiting_payment_verification'
+                            );
                         });
 
                         if (activeBooking) {
                             const rideStatus = activeBooking.ride_id?.status;
+                            // Si el ride está esperando verificación de pago,
+                            // saltamos directo al paso de pago que corresponda
+                            // según payment_type / payment_status. Si seguimos
+                            // mandando al pasajero a TripInProgress, su polling
+                            // lo redirigiría igual pero con un flash de la
+                            // pantalla "Viaje en curso" antes — UX peor.
+                            if (rideStatus === 'awaiting_payment_verification') {
+                                // El conductor finalizó pero no ha tocado
+                                // Continuar en PaymentVerification. El viaje
+                                // NO está cerrado: gifted/paid esperan en
+                                // WaitingPaymentConfirmation hasta que el
+                                // conductor confirme y el booking pase a
+                                // 'completed'. Pending va a pagar.
+                                const ride = activeBooking.ride_id;
+                                const rideIdStr = ride?._id?.toString() || ride?.toString();
+                                const driverIdStr = ride?.driver_id?._id?.toString() || ride?.driver_id?.toString();
+                                const driverNameStr = ride?.driver_id?.name;
+                                const driverImageStr = ride?.driver_id?.profileImage;
+                                const storedMethod = await AsyncStorage.getItem('paymentMethod');
+
+                                if (
+                                    activeBooking.payment_type === 'gifted' ||
+                                    activeBooking.payment_status === 'paid'
+                                ) {
+                                    navigation.replace('WaitingPaymentConfirmation', {
+                                        bookingId: activeBooking._id,
+                                        rideId: rideIdStr,
+                                        driverId: driverIdStr,
+                                        driverName: driverNameStr,
+                                        driverImage: driverImageStr,
+                                        paymentMethod:
+                                            activeBooking.payment_type === 'gifted'
+                                                ? 'gifted'
+                                                : storedMethod || '',
+                                        chargedAmount: activeBooking.charged_amount ?? null,
+                                    });
+                                } else {
+                                    navigation.replace('PayForTravel', {
+                                        bookingId: activeBooking._id,
+                                        rideId: rideIdStr,
+                                        driverId: driverIdStr,
+                                        driverName: driverNameStr,
+                                        driverImage: driverImageStr,
+                                        paymentMethod: storedMethod || '',
+                                        chargedAmount: activeBooking.charged_amount ?? null,
+                                    });
+                                }
+                                return;
+                            }
+
                             const dest = rideStatus === 'in progress' ? 'TripInProgress' : 'WaitingForTheStart';
                             navigation.replace(dest, { bookingId: activeBooking._id });
                             return;

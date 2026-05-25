@@ -119,40 +119,69 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
                 if (res.data?.success) {
                     const b = res.data.data;
 
-                    // Viaje regalado: nunca debe esperar confirmación del conductor.
-                    // Saltar directamente a calificar.
-                    if (b?.payment_type === 'gifted') {
-                        setResolved(true);
-                        stopPolling();
-                        goToRate({ paidConfirmed: true, gifted: true });
-                        return;
-                    }
-
                     if (b?.charged_amount && amount == null) {
                         setAmount(b.charged_amount);
                     }
 
-                    if (baselineUpdatedRef.current == null) {
-                        baselineUpdatedRef.current = b.updatedAt || b.updated_at || null;
+                    const isCancelled = b.status === 'cancelled' || b.status === 'canceled';
+                    const isCompleted = b.status === 'completed';
+                    const rideCompleted = b.ride_id?.status === 'completed';
+
+                    // Helper para navegar tras resolver: los bookings cancelados
+                    // NO van a RateDriver (el backend rechaza calificar viajes
+                    // donde la reserva quedó cancelada). Van al Dashboard.
+                    const navigateAfter = (extra = {}) => {
+                        if (isCancelled) {
+                            navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' });
+                        } else {
+                            goToRate(extra);
+                        }
+                    };
+
+                    // Viaje regalado: no hay pago que confirmar, pero igual
+                    // esperamos a que el conductor toque "Continuar" en
+                    // PaymentVerification para no romper la lógica de cierre
+                    // del viaje. Detectamos ese momento por el cambio del
+                    // booking a 'completed' (lo hace finalize-payment-verification).
+                    if (b?.payment_type === 'gifted') {
+                        if (isCompleted) {
+                            setResolved(true);
+                            stopPolling();
+                            goToRate({ paidConfirmed: true, gifted: true });
+                        }
+                        // Si aún no está completed, seguimos esperando.
+                        return;
                     }
 
-                    const currentUpdated = b.updatedAt || b.updated_at || null;
-                    const wasUpdated =
-                        baselineUpdatedRef.current &&
-                        currentUpdated &&
-                        new Date(currentUpdated).getTime() > new Date(baselineUpdatedRef.current).getTime();
+                    // Esperamos a que el viaje quede cerrado. Dos vías:
+                    //   - Booking 'completed' (caso normal: finalize-payment-verification
+                    //     promueve los confirmed → completed).
+                    //   - Booking 'cancelled' + ride 'completed' (penalización por
+                    //     cancelación: el booking nunca pasa a completed, pero el
+                    //     conductor cerró el viaje confirmando el pago de la penalización).
+                    //   - Booking 'cancelled' + payment_status 'paid' (penalización ya
+                    //     cubierta vía PayPal antes de que el conductor confirme).
+                    const tripClosed =
+                        isCompleted ||
+                        (isCancelled && (rideCompleted || b.payment_status === 'paid'));
+
+                    if (!tripClosed) {
+                        return;
+                    }
 
                     if (b.payment_status === 'paid') {
                         setResolved(true);
                         stopPolling();
                         showAlert(
                             '¡Pago realizado correctamente!',
-                            'Gracias por viajar usando SafeRide.',
+                            isCancelled
+                                ? 'La penalización por cancelación fue cubierta. Gracias.'
+                                : 'Gracias por viajar usando SafeRide.',
                             'success',
                             'Continuar',
-                            () => goToRate({ paidConfirmed: true })
+                            () => navigateAfter({ paidConfirmed: true })
                         );
-                    } else if (wasUpdated && b.payment_status === 'pending') {
+                    } else if (b.payment_status === 'pending') {
                         setResolved(true);
                         stopPolling();
                         showAlert(
@@ -160,7 +189,7 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
                             'Por favor ve al historial a realizar el pago antes de recibir una amonestación.',
                             'warning',
                             'Entendido',
-                            () => goToRate({ paidConfirmed: false, hasUnpaidCharge: true })
+                            () => navigateAfter({ paidConfirmed: false, hasUnpaidCharge: true })
                         );
                     }
                 }

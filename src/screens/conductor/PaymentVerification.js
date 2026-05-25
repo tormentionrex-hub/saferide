@@ -62,16 +62,21 @@ const PaymentVerification = ({ route, navigation }) => {
                 // Inicializamos los estados que ya vengan de BD
                 const initialStatus = {};
                 validBookings.forEach(b => {
+                    const isCancelled = b.status === 'cancelled' || b.status === 'canceled';
                     if (b.payment_type === 'gifted') {
                         // El viaje fue regalado, se habilita automáticamente
                         initialStatus[b._id] = 'gifted';
-                    } else if (b.status === 'cancelled' || b.status === 'canceled') {
-                        // Booking cancelado: no requiere selección de pago,
-                        // se auto-marca para permitir continuar sin acción.
-                        initialStatus[b._id] = b.payment_status || 'waived';
+                    } else if (isCancelled && b.payment_status === 'waived') {
+                        // Cancelado sin penalización (no hay cobro que verificar):
+                        // auto-marca como waived para permitir continuar sin acción.
+                        initialStatus[b._id] = 'waived';
                     } else if (b.payment_status === 'paid') {
+                        // Ya pagado (PayPal previo, incluso si después se canceló
+                        // y el cobro quedó cubierto).
                         initialStatus[b._id] = 'paid';
                     }
+                    // Resto (incluido cancelado con penalización pendiente):
+                    // no se auto-marca, el conductor debe elegir Pagó / No pagó.
                 });
                 setPaymentStatuses(initialStatus);
             }
@@ -124,17 +129,41 @@ const PaymentVerification = ({ route, navigation }) => {
 
         try {
             setSubmitting(true);
-            
-            // Subimos cada estado de pago al backend
+
+            // PASO 1: cerrar el ride (awaiting_payment_verification → completed)
+            // y promover los bookings 'confirmed' a 'completed'. El endpoint es
+            // idempotente: si el ride ya estaba 'completed' devuelve 200 sin
+            // re-disparar notificaciones ni métricas.
+            try {
+                await api.patch(`/rides/${rideId}/finalize-payment-verification`);
+            } catch (finalizeErr) {
+                // Si falla el cierre del ride, NO seguimos con los pagos: dejar
+                // el ride en awaiting permite reintentar sin pisar bookings.
+                console.error(
+                    'Error finalizing ride payment verification:',
+                    finalizeErr?.response?.data?.message || finalizeErr?.message || 'unknown error'
+                );
+                showAlert('Error', 'No se pudo cerrar el viaje. Intenta de nuevo.', 'error');
+                setSubmitting(false);
+                return;
+            }
+
+            // PASO 2: subir el estado de pago de cada booking. A esta altura
+            // los bookings 'confirmed' del paso 1 ya están como 'completed',
+            // así que los PATCH /bookings/:id/payment los encuentran en el
+            // estado esperado.
             const updatePromises = bookings.map(b => {
                 if (b.payment_type === 'gifted') {
                     // Viaje regalado: NO modificar absolutamente nada del booking.
                     return Promise.resolve();
                 }
 
-                // Booking cancelado: ya quedó con payment_status 'waived' al
-                // cancelarse, así que no enviamos ningún update.
-                if (b.status === 'cancelled' || b.status === 'canceled') {
+                // Cancelado sin penalización (ya quedó como 'waived' al
+                // cancelarse): nada que actualizar. Los cancelados CON
+                // penalización pendiente SÍ se incluyen — el conductor pudo
+                // marcar "Pagó" o "No pagó" según el cobro del recargo.
+                const isCancelled = b.status === 'cancelled' || b.status === 'canceled';
+                if (isCancelled && b.payment_status === 'waived') {
                     return Promise.resolve();
                 }
 
@@ -144,9 +173,9 @@ const PaymentVerification = ({ route, navigation }) => {
                     // NO enviamos payment_type para no alterarlo
                 });
             });
-            
+
             await Promise.all(updatePromises);
-            
+
             // Navegamos al rating usando el primer pasajero activo (no cancelado)
             const primaryPassenger = bookings.find(b =>
                 b.status !== 'cancelled' && b.status !== 'canceled'
@@ -207,10 +236,14 @@ const PaymentVerification = ({ route, navigation }) => {
                             const isCancelled = booking.status === 'cancelled' || booking.status === 'canceled';
                             const isPaid = paymentStatuses[booking._id] === 'paid';
                             const isUnpaid = paymentStatuses[booking._id] === 'pending';
-                            // Cuando el booking quedó cancelado (por el pasajero o por el
-                            // conductor), no se requiere acción de pago: deshabilitamos
-                            // los selectores y mostramos un badge "CANCELADO".
-                            const isLocked = isGifted || isCancelled;
+                            // Bloqueamos selectores solo para gifted (sin cobro) y para
+                            // cancelados con payment_status 'waived' (sin penalización
+                            // que cobrar). Los cancelados con penalización pendiente
+                            // mantienen los botones activos para que el conductor
+                            // pueda registrar si el pasajero ya pagó esa penalización.
+                            const isLocked =
+                                isGifted ||
+                                (isCancelled && booking.payment_status === 'waived');
 
                             return (
                                 <View key={booking._id} style={[styles.passengerCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border }]}>

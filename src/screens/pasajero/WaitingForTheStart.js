@@ -424,7 +424,75 @@ const WaitingForTheStart = ({ route, navigation }) => {
                             intervalRef.current = null;
                             rideStartedBookingId.current = bookingId;
                             setShowRideStartedModal(true);
-                        } else if (rideStatus === 'cancelled' || rideStatus === 'completed') {
+                        } else if (rideStatus === 'awaiting_payment_verification' || rideStatus === 'completed') {
+                            // El conductor saltó WaitingForTheStart y ya
+                            // está cerrando el viaje. Diferenciamos:
+                            //  - awaiting: el viaje aún no está cerrado
+                            //    (el conductor no ha tocado Continuar). Para
+                            //    gifted/paid esperamos en WaitingPaymentConfirmation;
+                            //    para pending vamos a pagar.
+                            //  - completed: el viaje ya está cerrado, ramificamos
+                            //    al destino final directamente.
+                            clearInterval(intervalRef.current);
+                            intervalRef.current = null;
+                            const booking = bookingRes.data.data;
+                            const rideIdStr = rideObj._id?.toString();
+                            const driverIdStr = rideObj.driver_id?._id?.toString() || rideObj.driver_id?.toString();
+                            const driverNameStr = rideObj.driver_id?.name;
+                            const driverImageStr = rideObj.driver_id?.profileImage;
+                            const isAwaiting = rideStatus === 'awaiting_payment_verification';
+
+                            if (booking.payment_type === 'gifted') {
+                                if (isAwaiting) {
+                                    navigation.replace('WaitingPaymentConfirmation', {
+                                        bookingId: booking._id,
+                                        rideId: rideIdStr,
+                                        driverId: driverIdStr,
+                                        driverName: driverNameStr,
+                                        driverImage: driverImageStr,
+                                        paymentMethod: 'gifted',
+                                        chargedAmount: booking.charged_amount ?? null,
+                                    });
+                                } else {
+                                    navigation.replace('RateDriver', {
+                                        rideId: rideIdStr,
+                                        driverId: driverIdStr,
+                                        driverName: driverNameStr,
+                                        driverImage: driverImageStr,
+                                        paidConfirmed: true,
+                                        gifted: true,
+                                    });
+                                }
+                            } else if (booking.payment_status === 'paid') {
+                                if (isAwaiting) {
+                                    navigation.replace('WaitingPaymentConfirmation', {
+                                        bookingId: booking._id,
+                                        rideId: rideIdStr,
+                                        driverId: driverIdStr,
+                                        driverName: driverNameStr,
+                                        driverImage: driverImageStr,
+                                        chargedAmount: booking.charged_amount ?? null,
+                                    });
+                                } else {
+                                    navigation.replace('RateDriver', {
+                                        rideId: rideIdStr,
+                                        driverId: driverIdStr,
+                                        driverName: driverNameStr,
+                                        driverImage: driverImageStr,
+                                        paidConfirmed: true,
+                                    });
+                                }
+                            } else {
+                                navigation.replace('PayForTravel', {
+                                    bookingId: booking._id,
+                                    rideId: rideIdStr,
+                                    driverId: driverIdStr,
+                                    driverName: driverNameStr,
+                                    driverImage: driverImageStr,
+                                    chargedAmount: booking.charged_amount ?? null,
+                                });
+                            }
+                        } else if (rideStatus === 'cancelled') {
                             clearInterval(intervalRef.current);
                             intervalRef.current = null;
                             showAlert(

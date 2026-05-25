@@ -379,8 +379,19 @@ export default function DashboardConductor({ route, navigation }) {
                                     if (hasVehicle === false) { setShowModal(true); return; }
                                     if (!hasVehicle) return;
                                     try {
-                                        const activeRides = await sessionCache.getActiveRides();
+                                        // force=true para evitar cache stale tras
+                                        // tocar "Finalizar viaje" o "Continuar"
+                                        // en PaymentVerification.
+                                        const activeRides = await sessionCache.getActiveRides(true);
                                         if (activeRides && activeRides.length > 0) {
+                                            // Prioridad 1: viaje pendiente de
+                                            // verificación de pago → llevar al
+                                            // conductor a PaymentVerification.
+                                            const awaitingRide = activeRides.find(r => r.status === 'awaiting_payment_verification');
+                                            if (awaitingRide) {
+                                                navigation.navigate('PaymentVerification', { rideId: awaitingRide._id });
+                                                return;
+                                            }
                                             const inProgressRide = activeRides.find(r => r.status === 'in progress');
                                             if (inProgressRide) {
                                                 navigation.navigate('CurrentTrip', { rideId: inProgressRide._id });

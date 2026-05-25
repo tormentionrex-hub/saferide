@@ -31,8 +31,19 @@ const NAV_ITEMS = [
         label: 'Tu viaje',
         activeIcon: 'car',
         inactiveIcon: 'car-outline',
-        // Se ilumina tanto en SearchRide como en ListOfDrivers, TripInProgress, ScreenSaver, WaitingForTheStart
-        screens: ['SearchRide', 'ListOfDrivers', 'TripInProgress', 'ScreenSaver', 'WaitingForTheStart'],
+        // Se ilumina en todas las pantallas del flujo "viaje activo" del
+        // pasajero — incluye los pasos de pago tras awaiting_payment_verification:
+        // PayForTravel, PayPalCheckoutScreen y WaitingPaymentConfirmation.
+        screens: [
+            'SearchRide',
+            'ListOfDrivers',
+            'TripInProgress',
+            'ScreenSaver',
+            'WaitingForTheStart',
+            'PayForTravel',
+            'PayPalCheckout',
+            'WaitingPaymentConfirmation',
+        ],
         target: 'SearchRide',
     },
     {
