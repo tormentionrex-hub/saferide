@@ -5,6 +5,7 @@ import { useCustomAlert } from '../../context/CustomAlertContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
+import passengerBookingsCache from '../../services/passengerBookingsCache';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
 import ScreenHeader from '../../components/ScreenHeader';
 
@@ -536,10 +537,18 @@ const WaitingForTheStart = ({ route, navigation }) => {
             setShowCancelModal(false);
             const res = await api.delete(`/bookings/${bookingId}`);
             if (res.data.success) {
+                // Invalidamos el cache compartido de bookings para que
+                // History/Dashboard/Metrics traigan datos frescos en el
+                // próximo foco — sin esto se podrían quedar 60s viendo
+                // el booking como 'confirmed' aún.
+                passengerBookingsCache.invalidate();
                 setShowSuccessModal(true);
             }
         } catch (e) {
             if (e.response && (e.response.status === 400 || e.response.status === 404)) {
+                // El booking ya no existe (race con backend o cancelación previa):
+                // invalidamos igual y mostramos el éxito.
+                passengerBookingsCache.invalidate();
                 setShowSuccessModal(true);
             } else {
                 isCancellingRef.current = false;
@@ -754,7 +763,18 @@ const WaitingForTheStart = ({ route, navigation }) => {
                 buttonText="Buscar otro viaje"
                 onConfirm={() => {
                     setShowSuccessModal(false);
-                    navigation.navigate('BuscarViaje');
+                    // Reseteamos la pila: tras cancelar, el pasajero NO debe
+                    // poder volver con el botón atrás a WaitingForTheStart
+                    // (la reserva ya no existe). Dejamos Dashboard como base
+                    // para que un back posterior en BuscarViaje los lleve al
+                    // inicio natural, no a una pantalla huérfana.
+                    navigation.reset({
+                        index: 1,
+                        routes: [
+                            { name: 'MainTabsPasajero', params: { screen: 'DashboardPasajero' } },
+                            { name: 'BuscarViaje' },
+                        ],
+                    });
                 }}
             />
 
