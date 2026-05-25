@@ -314,7 +314,13 @@ const TripInProgressDriver = ({ route, navigation }) => {
             const rideCheck = await api.get(`/rides/${rideId}`);
             const currentStatus = rideCheck.data?.data?.status;
 
-            if (currentStatus === 'completed') {
+            // El "complete" ahora deja el ride en awaiting_payment_verification.
+            // Si ya pasó por ese paso (o por el cierre final 'completed' por
+            // alguna razón), saltamos directo a PaymentVerification.
+            if (
+                currentStatus === 'awaiting_payment_verification' ||
+                currentStatus === 'completed'
+            ) {
                 setFinishModalVisible(false);
                 navigation.replace('PaymentVerification', { rideId });
                 return;
@@ -325,9 +331,12 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 await api.patch(`/rides/${rideId}/start`);
             }
 
-            // 2. Ahora lo completamos (garantizado en 'in progress')
+            // 2. Ahora pedimos el "complete": el backend pasa el ride a
+            // awaiting_payment_verification (bookings siguen en 'confirmed').
+            // El cierre real (ride 'completed' + bookings 'completed' +
+            // métricas) se dispara en PaymentVerification al apretar Continuar.
             const res = await api.patch(`/rides/${rideId}/complete`);
-            
+
             if (res.data?.success) {
                 setFinishModalVisible(false);
                 navigation.replace('PaymentVerification', { rideId });
@@ -360,7 +369,14 @@ const TripInProgressDriver = ({ route, navigation }) => {
                             const rideCheck = await api.get(`/rides/${rideId}`);
                             const currentStatus = rideCheck.data?.data?.status;
 
-                            if (currentStatus === 'completed') {
+                            // /complete ahora deja el ride en
+                            // awaiting_payment_verification. Si ya pasó por ese
+                            // paso (o quedó en 'completed' por algún motivo),
+                            // saltamos directo a PaymentVerification.
+                            if (
+                                currentStatus === 'awaiting_payment_verification' ||
+                                currentStatus === 'completed'
+                            ) {
                                 navigation.replace('PaymentVerification', { rideId });
                                 return;
                             }
@@ -370,7 +386,9 @@ const TripInProgressDriver = ({ route, navigation }) => {
                                 await api.patch(`/rides/${rideId}/start`);
                             }
 
-                            // 2. Ahora lo completamos (garantizado en 'in progress')
+                            // 2. /complete pasa el ride a awaiting_payment_verification.
+                            // El cierre real lo hace PaymentVerification al
+                            // apretar Continuar (PATCH /finalize-payment-verification).
                             const res = await api.patch(`/rides/${rideId}/complete`);
 
                             if (res.data?.success) {

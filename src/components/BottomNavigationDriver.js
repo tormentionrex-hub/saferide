@@ -20,7 +20,7 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
         const routeName = state.routes[state.index].name;
         if (routeName === 'DashboardDriver') currentTab = 'Inicio';
         else if (routeName === 'PublishRide') currentTab = 'Viajes';
-        else if (routeName === 'ManageRides' || routeName === 'CurrentTrip' || routeName === 'ListOfRequests') currentTab = 'Rutas';
+        else if (routeName === 'ManageRides' || routeName === 'CurrentTrip' || routeName === 'ListOfRequests' || routeName === 'PaymentVerification') currentTab = 'Rutas';
         else if (routeName === 'PreviousTrips') currentTab = 'History';
     }
 
@@ -163,8 +163,20 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                     { label: 'Rutas', activeIcon: 'navigate', inactiveIcon: 'navigate-outline', tab: 'Rutas', locked: !hasVehicleRegistered, onPress: async () => {
                         if (!hasVehicleRegistered) { setShowModal(true); return; }
                         try {
-                            const activeRides = await sessionCache.getActiveRides();
+                            // Forzamos refresh para que justo después de
+                            // tocar "Finalizar viaje" o "Continuar" en
+                            // PaymentVerification el cache no nos dirija a
+                            // la pantalla equivocada por estar stale.
+                            const activeRides = await sessionCache.getActiveRides(true);
                             if (activeRides && activeRides.length > 0) {
+                                // Prioridad 1: ride pendiente de verificación
+                                // de pago → mandar al conductor a la pantalla
+                                // PaymentVerification para que cierre el viaje.
+                                const awaitingRide = activeRides.find(r => r.status === 'awaiting_payment_verification');
+                                if (awaitingRide) {
+                                    navigation.navigate('PaymentVerification', { rideId: awaitingRide._id });
+                                    return;
+                                }
                                 const inProgressRide = activeRides.find(r => r.status === 'in progress');
                                 if (inProgressRide) { navigation.navigate('CurrentTrip', { rideId: inProgressRide._id }); return; }
                                 navigateTo('ManageRides'); return;

@@ -249,7 +249,15 @@ const TripInProgress = ({ route, navigation }) => {
                         const bookings = res.data.data || [];
                         const active = bookings.find(b => {
                             const rideStatus = b.ride_id?.status;
-                            return rideStatus === 'in progress' || rideStatus === 'scheduled';
+                            // Incluimos awaiting_payment_verification: en ese
+                            // estado el ride aún cuenta como "activo" para el
+                            // pasajero (el polling principal lo redirige a
+                            // PayForTravel / RateDriver según corresponda).
+                            return (
+                                rideStatus === 'in progress' ||
+                                rideStatus === 'scheduled' ||
+                                rideStatus === 'awaiting_payment_verification'
+                            );
                         });
                         if (active) {
                             setResolvedBookingId(active._id);
@@ -304,39 +312,95 @@ const TripInProgress = ({ route, navigation }) => {
                 if (res.data && res.data.success) {
                     const data = res.data.data;
                     setBookingData(data);
-                    if (data.status === 'cancelled' || data.status === 'completed' || data.status === 'deny') {
+
+                    // El "fin del viaje" desde la perspectiva del pasajero ahora
+                    // puede llegar por dos vías:
+                    //   (a) ride.status === 'awaiting_payment_verification' →
+                    //       el conductor tocó "Finalizar viaje" pero todavía
+                    //       no confirmó pagos. El booking sigue 'confirmed'.
+                    //   (b) booking.status === 'completed' → el conductor ya
+                    //       confirmó los pagos en PaymentVerification. Es el
+                    //       caso "viejo" y sigue funcionando como antes.
+                    const rideStatus = data.ride_id?.status;
+                    const tripEnded =
+                        rideStatus === 'awaiting_payment_verification' ||
+                        data.status === 'completed';
+                    const tripAborted =
+                        data.status === 'cancelled' || data.status === 'deny';
+
+                    if (tripEnded || tripAborted) {
                         if (intervalIdRef.current) {
                             clearInterval(intervalIdRef.current);
                             intervalIdRef.current = null;
                         }
                         // El pasajero inició la cancelación: no disparar el alert
                         // "El conductor ha cancelado el viaje".
-                        if (data.status !== 'completed' && isCancellingRef.current) return;
-                        if (data.status === 'completed') {
+                        if (!tripEnded && isCancellingRef.current) return;
+                        if (tripEnded) {
                             const rideIdStr = data.ride_id?._id?.toString() || data.ride_id?.toString();
                             const driverIdStr = data.ride_id?.driver_id?._id?.toString() || data.ride_id?.driver_id?.toString();
                             const driverNameStr = data.ride_id?.driver_id?.name;
                             const driverImageStr = data.ride_id?.driver_id?.profileImage;
+                            // Distinguimos:
+                            //  - isAwaiting: el conductor tocó "Finalizar viaje"
+                            //    pero todavía no ha confirmado pagos en
+                            //    PaymentVerification. El viaje NO está cerrado
+                            //    aún. El pasajero debe esperar (gifted/paid)
+                            //    o pagar (pending) hasta que el conductor
+                            //    toque "Continuar".
+                            //  - !isAwaiting: booking.status === 'completed'
+                            //    significa que el conductor ya cerró todo.
+                            const isAwaiting = rideStatus === 'awaiting_payment_verification';
 
                             if (data.payment_type === 'gifted') {
-                                // Viaje regalado: el conductor no confirma pago, pasajero pasa directo a calificar
-                                navigation.replace('RateDriver', {
-                                    rideId: rideIdStr,
-                                    driverId: driverIdStr,
-                                    driverName: driverNameStr,
-                                    driverImage: driverImageStr,
-                                    paidConfirmed: true,
-                                    gifted: true,
-                                });
+                                if (isAwaiting) {
+                                    // Gifted durante awaiting: no calificar
+                                    // todavía. Esperar en WaitingPaymentConfirmation
+                                    // hasta que el conductor toque Continuar
+                                    // y el booking pase a 'completed'.
+                                    navigation.replace('WaitingPaymentConfirmation', {
+                                        bookingId: data._id,
+                                        rideId: rideIdStr,
+                                        driverId: driverIdStr,
+                                        driverName: driverNameStr,
+                                        driverImage: driverImageStr,
+                                        paymentMethod: 'gifted',
+                                        chargedAmount: data.charged_amount ?? null,
+                                    });
+                                } else {
+                                    // Viaje ya cerrado, calificar directo.
+                                    navigation.replace('RateDriver', {
+                                        rideId: rideIdStr,
+                                        driverId: driverIdStr,
+                                        driverName: driverNameStr,
+                                        driverImage: driverImageStr,
+                                        paidConfirmed: true,
+                                        gifted: true,
+                                    });
+                                }
                             } else if (data.payment_status === 'paid') {
-                                // Ya está pagado (PayPal previo o conductor lo marcó)
-                                navigation.replace('RateDriver', {
-                                    rideId: rideIdStr,
-                                    driverId: driverIdStr,
-                                    driverName: driverNameStr,
-                                    driverImage: driverImageStr,
-                                    paidConfirmed: true,
-                                });
+                                if (isAwaiting) {
+                                    // Ya pagó (PayPal previo) pero el conductor
+                                    // aún no cierra: esperar para no romper
+                                    // la regla "el viaje se completa con Continuar".
+                                    navigation.replace('WaitingPaymentConfirmation', {
+                                        bookingId: data._id,
+                                        rideId: rideIdStr,
+                                        driverId: driverIdStr,
+                                        driverName: driverNameStr,
+                                        driverImage: driverImageStr,
+                                        paymentMethod,
+                                        chargedAmount: data.charged_amount ?? null,
+                                    });
+                                } else {
+                                    navigation.replace('RateDriver', {
+                                        rideId: rideIdStr,
+                                        driverId: driverIdStr,
+                                        driverName: driverNameStr,
+                                        driverImage: driverImageStr,
+                                        paidConfirmed: true,
+                                    });
+                                }
                             } else {
                                 // payment_status === 'pending' (no gifted, no paid):
                                 // pasa por PayForTravel sin importar el método guardado.
@@ -571,12 +635,30 @@ const TripInProgress = ({ route, navigation }) => {
                                     const penaltyApplied = updatedBooking.charged_amount !== updatedBooking.offered_amount;
 
                                     if (penaltyApplied) {
+                                        // Si hay penalización, llevamos al pasajero
+                                        // directamente al flujo de pago para que la
+                                        // cancele en el momento (PayPal, efectivo u
+                                        // omitir si quiere pagar luego).
+                                        const ride = bookingData?.ride_id;
+                                        const rideIdStr = ride?._id?.toString() || ride?.toString();
+                                        const driverIdStr = ride?.driver_id?._id?.toString() || ride?.driver_id?.toString();
+                                        const driverNameStr = ride?.driver_id?.name;
+                                        const driverImageStr = ride?.driver_id?.profileImage;
+
                                         showAlert(
                                             'Cancelación con penalización',
                                             `Se te cobrará un monto debido a la cancelación.\nPor favor realiza el pago correspondiente.\n\nMonto a pagar: ₡${updatedBooking.charged_amount}`,
                                             'warning',
                                             'OK',
-                                            () => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })
+                                            () => navigation.replace('PayForTravel', {
+                                                bookingId: updatedBooking._id,
+                                                rideId: rideIdStr,
+                                                driverId: driverIdStr,
+                                                driverName: driverNameStr,
+                                                driverImage: driverImageStr,
+                                                paymentMethod,
+                                                chargedAmount: updatedBooking.charged_amount,
+                                            })
                                         );
                                     } else {
                                         showAlert(

@@ -277,7 +277,11 @@ const ScreenSaver = ({ route, navigation }) => {
                             if (rideId) {
                                 const rideRes = await api.get(`/rides/${rideId}`);
                                 const rideStatus = rideRes.data?.data?.status;
-                                if (rideStatus === 'in progress' || rideStatus === 'completed') {
+                                if (
+                                    rideStatus === 'in progress' ||
+                                    rideStatus === 'awaiting_payment_verification' ||
+                                    rideStatus === 'completed'
+                                ) {
                                     clearInterval(intervalRef.current);
                                     intervalRef.current = null;
                                     try { await api.delete(`/bookings/${bookingId}`); } catch (err) {}

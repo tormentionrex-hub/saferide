@@ -278,6 +278,56 @@ const BuscarViaje = ({ navigation, route }) => {
                     return;
                 }
 
+                // 0.5 Ride en awaiting_payment_verification → el viaje ya
+                // terminó físicamente pero el conductor todavía no confirma
+                // los pagos en PaymentVerification. Mandamos al pasajero a
+                // PayForTravel (o RateDriver si el pago ya está cubierto).
+                const awaitingBooking = bookings.find(b =>
+                    b.status === 'confirmed' &&
+                    b.ride_id?.status === 'awaiting_payment_verification'
+                );
+                if (awaitingBooking) {
+                    setLoading(false);
+                    const ride = awaitingBooking.ride_id;
+                    const rideIdStr = ride?._id?.toString() || ride?.toString();
+                    const driverIdStr = ride?.driver_id?._id?.toString() || ride?.driver_id?.toString();
+                    const driverNameStr = ride?.driver_id?.name;
+                    const driverImageStr = ride?.driver_id?.profileImage;
+                    const storedMethod = await AsyncStorage.getItem('paymentMethod');
+
+                    if (
+                        awaitingBooking.payment_type === 'gifted' ||
+                        awaitingBooking.payment_status === 'paid'
+                    ) {
+                        // Gifted o ya pagado: esperar en WaitingPaymentConfirmation
+                        // hasta que el conductor toque Continuar y el booking
+                        // pase a 'completed' (recién ahí pasa a RateDriver).
+                        navigation.navigate('WaitingPaymentConfirmation', {
+                            bookingId: awaitingBooking._id,
+                            rideId: rideIdStr,
+                            driverId: driverIdStr,
+                            driverName: driverNameStr,
+                            driverImage: driverImageStr,
+                            paymentMethod:
+                                awaitingBooking.payment_type === 'gifted'
+                                    ? 'gifted'
+                                    : storedMethod || '',
+                            chargedAmount: awaitingBooking.charged_amount ?? null,
+                        });
+                    } else {
+                        navigation.navigate('PayForTravel', {
+                            bookingId: awaitingBooking._id,
+                            rideId: rideIdStr,
+                            driverId: driverIdStr,
+                            driverName: driverNameStr,
+                            driverImage: driverImageStr,
+                            paymentMethod: storedMethod || '',
+                            chargedAmount: awaitingBooking.charged_amount ?? null,
+                        });
+                    }
+                    return;
+                }
+
                 // 1. Booking confirmed → máxima prioridad (ignorar las demás validaciones)
                 const confirmedBooking = bookings.find(b => b.status === 'confirmed');
                 if (confirmedBooking) {
