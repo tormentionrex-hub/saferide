@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Platform, ScrollView, Image, Linking, Modal, Animated } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Platform, ScrollView, Image, Linking, Modal, Animated, BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
@@ -351,6 +352,19 @@ const WaitingForTheStart = ({ route, navigation }) => {
         return () => { mountedRef.current = false; };
     }, []);
 
+    // Back hardware (Android) → DashboardPasajero, igual que el botón del header.
+    const navigateToDashboard = useCallback(() => {
+        navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' });
+    }, [navigation]);
+
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => { navigateToDashboard(); return true; };
+            const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => sub.remove();
+        }, [navigateToDashboard])
+    );
+
     useEffect(() => {
         if (!bookingId) return;
 
@@ -500,7 +514,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
 
             <ScreenHeader
                 title="Viaje Confirmado"
-                onBack={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
+                onBack={navigateToDashboard}
                 useInsets
             />
 

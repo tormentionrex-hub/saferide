@@ -495,7 +495,7 @@ const BuscarViaje = ({ navigation, route }) => {
                 </View>
 
                 {/* TARJETA DE BÚSQUEDA */}
-                <View style={styles.searchCard}>
+                <View style={[styles.searchCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.divider }]}>
                     {/* FROM */}
                     <TouchableOpacity style={styles.fieldRow} onPress={() => handleOpenPicker('origen')}>
                         <View style={[styles.fieldIconWrap, { backgroundColor: '#EBF0FF' }]}>
@@ -588,7 +588,7 @@ const BuscarViaje = ({ navigation, route }) => {
                     <View style={styles.recentSection}>
                         <Text style={styles.recentLabel}>BÚSQUEDAS RECIENTES</Text>
                         {recentSearches.map((item, index) => (
-                            <TouchableOpacity key={index} style={styles.recentItem} activeOpacity={0.7} onPress={() => handleRecentSearchPress(item)}>
+                            <TouchableOpacity key={index} style={[styles.recentItem, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.divider }]} activeOpacity={0.7} onPress={() => handleRecentSearchPress(item)}>
                                 <View style={styles.recentIconWrap}>
                                     <Ionicons name="time-outline" size={20} color={ACCENT} />
                                 </View>
@@ -718,8 +718,8 @@ const styles = StyleSheet.create({
     },
     map: { flex: 1 },
     searchCard: {
-        backgroundColor: '#fff',
         borderRadius: 20,
+        borderWidth: 1,
         padding: 20,
         marginBottom: 24,
         elevation: 4,
@@ -804,8 +804,8 @@ const styles = StyleSheet.create({
     recentItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
         borderRadius: 14,
+        borderWidth: 1,
         padding: 14,
         marginBottom: 10,
         elevation: 1,
