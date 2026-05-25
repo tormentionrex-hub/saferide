@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
-    View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity,
-    StatusBar, ActivityIndicator,
+    View, Text, StyleSheet, ScrollView, TouchableOpacity,
+    StatusBar, ActivityIndicator, BackHandler,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
@@ -28,6 +30,19 @@ const PayForTravel = ({ route, navigation }) => {
 
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    // Back (header + hardware) → DashboardPasajero siempre.
+    const navigateToDashboard = useCallback(() => {
+        navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' });
+    }, [navigation]);
+
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => { navigateToDashboard(); return true; };
+            const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => sub.remove();
+        }, [navigateToDashboard])
+    );
 
     useEffect(() => {
         if (!bookingId) {
@@ -123,11 +138,7 @@ const PayForTravel = ({ route, navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
-            <ScreenHeader
-                title="Realizar el pago"
-                onBack={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
-                useInsets
-            />
+            <ScreenHeader title="Realizar el pago" onBack={navigateToDashboard} />
 
             <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
                 <View style={styles.introBlock}>
