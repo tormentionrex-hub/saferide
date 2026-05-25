@@ -9,6 +9,7 @@ import { useCustomAlert } from '../../context/CustomAlertContext';
 import api from '../../services/api';
 import PaymentMethodCards from '../../components/PaymentMethodCards';
 import ScreenHeader from '../../components/ScreenHeader';
+import BottomNavigationBar from '../../components/BottomNavigationBar';
 
 import { moderateScale } from '../../utils/responsive';
 const PayForTravel = ({ route, navigation }) => {
@@ -122,9 +123,13 @@ const PayForTravel = ({ route, navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
-            <ScreenHeader title="Realizar el pago" useInsets />
+            <ScreenHeader
+                title="Realizar el pago"
+                onBack={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
+                useInsets
+            />
 
-            <ScrollView contentContainerStyle={{ paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
                 <View style={styles.introBlock}>
                     <View style={[styles.introIcon, { backgroundColor: theme.accent + '18' }]}>
                         <Ionicons name="card" size={30} color={theme.accent} />
@@ -139,7 +144,7 @@ const PayForTravel = ({ route, navigation }) => {
 
                 {/* Resumen del viaje */}
                 {booking && (
-                    <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                    <View style={[styles.summaryCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border }]}>
                         <Text style={[styles.amountLabel, { color: theme.textSecondary }]}>MONTO A PAGAR</Text>
                         <Text style={[styles.amountValue, { color: theme.text }]}>
                             ₡{Number(amount).toLocaleString('es-CR')}
@@ -200,6 +205,8 @@ const PayForTravel = ({ route, navigation }) => {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+
+            <BottomNavigationBar navigation={navigation} />
         </SafeAreaView>
     );
 };

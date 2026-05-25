@@ -515,7 +515,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                 </View>
 
                 {/* ── ESTADO DE ESPERA ── */}
-                <View style={[styles.waitingCard, { backgroundColor: theme.surface }]}>
+                <View style={[styles.waitingCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}>
                     <View style={styles.waitingIconCircle}>
                         <Ionicons name="hourglass-outline" size={32} color="#005BBF" />
                     </View>
@@ -531,7 +531,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                         {/* ── BENTO GRID: Conductor + Horario ── */}
                         <View style={styles.bentoGrid}>
                             {/* Conductor */}
-                            <View style={[styles.bentoCard, { backgroundColor: theme.surface }]}>
+                            <View style={[styles.bentoCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}>
                                 {rideData?.driver_id?.profileImage ? (
                                     <Image source={{ uri: rideData.driver_id.profileImage }} style={styles.bentoAvatar} />
                                 ) : (
@@ -560,7 +560,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                             </View>
 
                             {/* Horario */}
-                            <View style={[styles.bentoCard, { backgroundColor: theme.surface }]}>
+                            <View style={[styles.bentoCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}>
                                 <View style={styles.bentoRow}>
                                     <Ionicons name="time-outline" size={26} color={theme.navActive} />
                                     <Text style={[styles.bentoValue, { color: theme.text }]}>{formatTime(rideData?.hora)}</Text>
@@ -576,7 +576,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                         </View>
 
                         {/* ── RUTA ── */}
-                        <View style={[styles.routeCard, { backgroundColor: theme.surface }]}>
+                        <View style={[styles.routeCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}>
                             <Text style={styles.routeCardLabel}>RUTA DEL VIAJE</Text>
                             <View style={styles.routeRow}>
                                 <Ionicons name="location" size={20} color={theme.navActive} />
@@ -596,7 +596,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                         </View>
 
                         {/* ── VEHÍCULO ── */}
-                        <View style={[styles.routeCard, { backgroundColor: theme.surface }]}>
+                        <View style={[styles.routeCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}>
                             <Text style={styles.routeCardLabel}>VEHÍCULO</Text>
                             <View style={styles.vehicleRow}>
                                 <View style={styles.vehicleItem}>
