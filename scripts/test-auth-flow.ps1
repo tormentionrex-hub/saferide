@@ -25,7 +25,7 @@
     Password del usuario de testing.
 
 .PARAMETER ApiUrl
-    URL base del backend. Default: http://192.168.100.19:8080/api/v1
+    URL base del backend. Default: http://192.168.0.7:8080/api/v1
 
 .EXAMPLE
     .\test-auth-flow.ps1 -Email test@intel.com -Password "Demo1234"
@@ -38,7 +38,7 @@
 param(
     [Parameter(Mandatory=$true)][string]$Email,
     [Parameter(Mandatory=$true)][string]$Password,
-    [string]$ApiUrl = "http://192.168.100.19:8080/api/v1"
+    [string]$ApiUrl = "http://192.168.0.7:8080/api/v1"
 )
 
 # Detalles operativos
