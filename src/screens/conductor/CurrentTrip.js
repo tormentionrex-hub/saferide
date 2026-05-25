@@ -517,11 +517,6 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 title="Viaje en curso"
                 onBack={navigateToDashboard}
                 useInsets
-                right={
-                    <TouchableOpacity style={{ width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' }}>
-                        <Ionicons name="ellipsis-vertical" size={20} color={theme.text} />
-                    </TouchableOpacity>
-                }
             />
 
             <ScrollView

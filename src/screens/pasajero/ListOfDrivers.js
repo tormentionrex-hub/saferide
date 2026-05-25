@@ -73,7 +73,7 @@ const DriverCard = React.memo(({ item, onPress, onImagePress, theme }) => {
 
     return (
         <TouchableOpacity
-            style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            style={[styles.card, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border }]}
             onPress={() => onPress(item)}
             activeOpacity={0.85}
         >

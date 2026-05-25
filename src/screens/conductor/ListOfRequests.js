@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View, Text, StyleSheet, FlatList, Image, TouchableOpacity,
-    ActivityIndicator, SafeAreaView, StatusBar, Alert, Platform, Modal, Animated, Dimensions, ScrollView, AppState
+    ActivityIndicator, SafeAreaView, StatusBar, Alert, Platform, Modal, Animated, Dimensions, ScrollView, AppState, BackHandler
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
@@ -549,6 +550,22 @@ const ListOfRequests = ({ route, navigation }) => {
 
     const specificRideId = route.params?.rideId;
 
+    // Back (header + hardware) → DashboardDriver siempre.
+    const navigateToDashboard = useCallback(() => {
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainTabsDriver', params: { screen: 'DashboardDriver' } }],
+        });
+    }, [navigation]);
+
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => { navigateToDashboard(); return true; };
+            const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => sub.remove();
+        }, [navigateToDashboard])
+    );
+
     const fetchRequests = async (isRefresh = false) => {
         // Si una llamada anterior sigue activa, saltamos este tick.
         // (Solo cuando NO es refresh manual: si el usuario tira para refrescar
@@ -938,13 +955,7 @@ const ListOfRequests = ({ route, navigation }) => {
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             <ScreenHeader
                 title={`Solicitudes ${specificRideId ? 'del Viaje' : 'de Pasajeros'}`}
-                onBack={() => {
-                    if (specificRideId) {
-                        navigation.navigate('MainTabsDriver', { screen: 'ManageRides' });
-                    } else {
-                        navigation.goBack();
-                    }
-                }}
+                onBack={navigateToDashboard}
                 right={
                     <TouchableOpacity onPress={handleRefresh}>
                         <Ionicons name="refresh" size={24} color={theme.text} />

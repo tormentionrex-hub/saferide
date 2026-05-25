@@ -900,7 +900,7 @@ const TripInProgress = ({ route, navigation }) => {
                     </Text>
                     <View style={styles.driverActionsRow}>
                         <TouchableOpacity
-                            style={[styles.msgBtnWide, { backgroundColor: theme.surfaceVariant }]}
+                            style={[styles.msgBtnWide, { backgroundColor: theme.bg, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}
                             onPress={() => handleMessage(driver?.phone)}
                             activeOpacity={0.85}
                         >
@@ -910,14 +910,14 @@ const TripInProgress = ({ route, navigation }) => {
                             </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.actionBtnSquare, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }]}
+                            style={[styles.actionBtnSquare, { backgroundColor: theme.bg, borderColor: theme.cardBorder || theme.border }]}
                             onPress={() => handleCall(driver?.phone)}
                             activeOpacity={0.85}
                         >
                             <Ionicons name="call" size={20} color={theme.text} />
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.actionBtnSquare, { backgroundColor: theme.surfaceVariant, borderColor: theme.border }]}
+                            style={[styles.actionBtnSquare, { backgroundColor: theme.bg, borderColor: theme.cardBorder || theme.border }]}
                             onPress={handleDriverMoreOptions}
                             activeOpacity={0.85}
                         >

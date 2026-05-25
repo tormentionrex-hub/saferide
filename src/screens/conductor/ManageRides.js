@@ -258,7 +258,7 @@ const ManageRides = ({ navigation }) => {
         const isCancelling = cancellingId === item._id;
 
         return (
-            <View style={[styles.rideCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={[styles.rideCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border }]}>
                 <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
                     <View style={[styles.statusDot, { backgroundColor: statusInfo.color }]} />
                     <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>

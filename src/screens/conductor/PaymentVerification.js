@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, ScrollView, ActivityIndicator, Image, Alert, Linking } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, ScrollView, ActivityIndicator, Image, Alert, Linking, BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
@@ -90,6 +91,22 @@ const PaymentVerification = ({ route, navigation }) => {
         fetchBookings();
     }, [rideId]);
 
+    // Hardware back (Android) → DashboardDriver, ignorando el stack normal.
+    const navigateToDashboard = useCallback(() => {
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainTabsDriver', params: { screen: 'DashboardDriver' } }],
+        });
+    }, [navigation]);
+
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => { navigateToDashboard(); return true; };
+            const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => sub.remove();
+        }, [navigateToDashboard])
+    );
+
     const handleSelectPayment = (bookingId, status) => {
         setPaymentStatuses(prev => ({
             ...prev,
@@ -167,7 +184,7 @@ const PaymentVerification = ({ route, navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             
-            <ScreenHeader title="Trip Details" onBack={() => navigation.goBack()} />
+            <ScreenHeader title="Trip Details" onBack={navigateToDashboard} />
 
             <View style={{ flex: 1 }}>
                 <ScrollView contentContainerStyle={styles.scrollContent} {...si.scrollProps}>

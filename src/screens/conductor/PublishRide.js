@@ -224,7 +224,7 @@ const PublishRide = ({ navigation, route }) => {
                 <ScrollView contentContainerStyle={styles.content} {...si.scrollProps}>
 
                     {/* ── SECCIÓN RUTA ─────────────────────────────────── */}
-                    <View style={[styles.routeCard, { backgroundColor: theme.surface }]}>
+                    <View style={[styles.routeCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}>
                         <View style={styles.routeRow}>
 
                             {/* Timeline gráfico */}
@@ -306,7 +306,7 @@ const PublishRide = ({ navigation, route }) => {
                     </View>
 
                     {/* ── ASIENTOS ─────────────────────────────────── */}
-                    <View style={[styles.seatsCard, { backgroundColor: theme.surface }]}>
+                    <View style={[styles.seatsCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}>
                         <Text style={[styles.inputLabel, { color: theme.textSecondary, textAlign: 'center', marginBottom: 20 }]}>
                             ASIENTOS DISPONIBLES
                         </Text>
