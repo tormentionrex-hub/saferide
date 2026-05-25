@@ -16,6 +16,7 @@ import LocationPicker from '../../components/LocationPicker';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { darkMapStyle } from '../../utils/mapStyle';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
+import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
 const { width } = Dimensions.get('window');
@@ -435,13 +436,8 @@ const BuscarViaje = ({ navigation, route }) => {
                 ]}
                 showsVerticalScrollIndicator={false}
             >
-                {/* HEADER */}
-                <View style={styles.header}>
-                    <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                        <Ionicons name="arrow-back" size={22} color="#1A1A2E" />
-                    </TouchableOpacity>
-                    <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Tu Viaje</Text>
-                    <View style={{ width: 40 }} />
+                <View style={{ marginHorizontal: -20, marginBottom: 20 }}>
+                    <ScreenHeader title="Tu Viaje" onBack={() => navigation.goBack()} />
                 </View>
 
                 {/* SUBTÍTULO Y TÍTULO */}
@@ -677,30 +673,6 @@ const styles = StyleSheet.create({
     scrollView: { flex: 1 },
     scrollContent: {
         paddingHorizontal: 20,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 20,
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#fff',
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-    },
-    headerTitle: {
-        fontSize: moderateScale(22),
-        fontFamily: 'Poppins-Bold',
-        color: '#1A1A2E',
     },
     subLabel: {
         fontSize: moderateScale(11),

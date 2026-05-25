@@ -3,6 +3,7 @@ import {
     View, Text, StyleSheet, StatusBar, TouchableOpacity, Animated,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import ScreenHeader from '../../components/ScreenHeader';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDriverTheme } from '../../context/DriverThemeContext';
@@ -118,16 +119,7 @@ const PaymentMethodScreen = ({ navigation }) => {
                 backgroundColor={theme.bg}
             />
 
-            {/* Header */}
-            <View style={[styles.header, { paddingTop: insets.top > 0 ? 0 : 16, borderBottomColor: theme.divider }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <View style={[styles.headerIconBtn, { backgroundColor: iconCircleBg }]}>
-                        <Ionicons name="arrow-back" size={20} color={theme.accent} />
-                    </View>
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Método de Pago</Text>
-                <View style={styles.headerIconBtn} />
-            </View>
+            <ScreenHeader title="Método de Pago" onBack={() => navigation.goBack()} />
 
             <View style={styles.content}>
                 <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
@@ -277,13 +269,6 @@ const PaymentMethodScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
     safe: { flex: 1 },
-
-    header: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 20, paddingBottom: 14, borderBottomWidth: 1,
-    },
-    headerIconBtn: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center' },
-    headerTitle:   { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
 
     content: { flex: 1, paddingHorizontal: 20, paddingTop: 28 },
 

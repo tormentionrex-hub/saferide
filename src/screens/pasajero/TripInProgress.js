@@ -10,9 +10,9 @@ import { userService } from '../../services/userService';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../services/api';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
+import ScreenHeader from '../../components/ScreenHeader';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { darkMapStyle } from '../../utils/mapStyle';
 
@@ -136,7 +136,6 @@ const DriverAvatar = ({ profileImage, name, size = 44 }) => {
 const TripInProgress = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const { showAlert } = useCustomAlert();
-    const insets = useSafeAreaInsets();
 
     const bookingId = route?.params?.bookingId;
     const mapRef = useRef(null);
@@ -687,19 +686,18 @@ const TripInProgress = ({ route, navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor="transparent" translucent />
 
-            {/* ── HEADER ───────────────────────────────────────────── */}
-            <View style={[styles.header, { paddingTop: insets.top > 0 ? insets.top + 4 : 28, backgroundColor: theme.bg }]}>
-                <View style={styles.headerLeft}>
-                    <Ionicons name="location" size={22} color={theme.navActive} />
-                    <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Viaje en Curso</Text>
-                </View>
-                <TouchableOpacity
-                    style={styles.avatarWrapper}
-                    onPress={() => navigation.navigate('PasajeroProfileScreen')}
-                >
-                    <DriverAvatar profileImage={passengerPhoto} name={passengerName} size={36} />
-                </TouchableOpacity>
-            </View>
+            <ScreenHeader
+                title="Viaje en Curso"
+                useInsets
+                right={
+                    <TouchableOpacity
+                        style={styles.avatarWrapper}
+                        onPress={() => navigation.navigate('PasajeroProfileScreen')}
+                    >
+                        <DriverAvatar profileImage={passengerPhoto} name={passengerName} size={36} />
+                    </TouchableOpacity>
+                }
+            />
 
             <ScrollView
                 style={{ flex: 1 }}
@@ -983,39 +981,6 @@ const styles = StyleSheet.create({
         // que coincida con el resto de la app (DashboardPasajero).
     },
 
-    /* Header */
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingBottom: 12,
-        backgroundColor: 'rgba(247,249,251,0.92)',
-        zIndex: 10,
-    },
-    headerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    headerTitle: {
-        fontSize: moderateScale(22),
-        fontFamily: 'Poppins-Bold',
-        color: '#191C1E',
-        letterSpacing: -0.3,
-    },
-    headerRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    headerIconBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
     avatarWrapper: {
         width: 36,
         height: 36,

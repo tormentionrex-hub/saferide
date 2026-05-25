@@ -7,15 +7,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDriverTheme } from '../../context/DriverThemeContext';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../services/api';
+import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
 const { width } = Dimensions.get('window');
 
 const SearchRide = ({ navigation }) => {
     const { theme } = useDriverTheme();
-    const insets = useSafeAreaInsets();
     const [userPhoto, setUserPhoto] = useState(null);
     const [userName, setUserName] = useState('');
     const [isChecking, setIsChecking] = useState(true);
@@ -113,36 +112,25 @@ const SearchRide = ({ navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             
-            {/* HEADER CUSTOM */}
-            <View style={[
-                styles.header, 
-                { 
-                    paddingTop: insets.top > 0 ? insets.top + 10 : 25,
-                    backgroundColor: theme.bg,
-                    borderBottomColor: theme.divider || '#CBD5E1',
-                    borderBottomWidth: 1,
-                    elevation: 4, // Añadido para dar profundidad
+            <ScreenHeader
+                title="Viajes"
+                right={
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate('PasajeroProfileScreen')}
+                        style={styles.profileButton}
+                    >
+                        {userPhoto ? (
+                            <Image source={{ uri: userPhoto }} style={styles.profileImg} />
+                        ) : (
+                            <View style={[styles.profileFallback, { backgroundColor: theme.surfaceVariant }]}>
+                                <Text style={[styles.initialsText, { color: theme.navActive }]}>
+                                    {getInitials(userName)}
+                                </Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
                 }
-            ]}>
-                <View style={{ width: 40 }} />
-
-                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Viajes</Text>
-                
-                <TouchableOpacity 
-                    onPress={() => navigation.navigate('PasajeroProfileScreen')}
-                    style={styles.profileButton}
-                >
-                    {userPhoto ? (
-                        <Image source={{ uri: userPhoto }} style={styles.profileImg} />
-                    ) : (
-                        <View style={[styles.profileFallback, { backgroundColor: theme.surfaceVariant }]}>
-                            <Text style={[styles.initialsText, { color: theme.navActive }]}>
-                                {getInitials(userName)}
-                            </Text>
-                        </View>
-                    )}
-                </TouchableOpacity>
-            </View>
+            />
 
             {/* CONTENIDO SCROLLABLE O LOADER */}
             {isChecking ? (
@@ -189,27 +177,6 @@ const SearchRide = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingBottom: 15,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-    },
-    headerIcon: {
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    headerTitle: {
-        fontSize: moderateScale(22),
-        fontFamily: 'Poppins-Bold',
     },
     profileButton: {
         width: 44,

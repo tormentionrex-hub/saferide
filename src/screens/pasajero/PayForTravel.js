@@ -4,17 +4,16 @@ import {
     StatusBar, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import api from '../../services/api';
 import PaymentMethodCards from '../../components/PaymentMethodCards';
+import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
 const PayForTravel = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const { showAlert } = useCustomAlert();
-    const insets = useSafeAreaInsets();
 
     const {
         bookingId,
@@ -123,11 +122,7 @@ const PayForTravel = ({ route, navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
-            <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-                <View style={{ width: 40 }} />
-                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Realizar el pago</Text>
-                <View style={{ width: 40 }} />
-            </View>
+            <ScreenHeader title="Realizar el pago" useInsets />
 
             <ScrollView contentContainerStyle={{ paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
                 <View style={styles.introBlock}>
@@ -211,15 +206,6 @@ const PayForTravel = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingBottom: 14,
-    },
-    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold', letterSpacing: -0.3 },
 
     introBlock: {
         alignItems: 'center',

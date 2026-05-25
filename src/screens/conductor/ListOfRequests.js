@@ -4,12 +4,12 @@ import {
     ActivityIndicator, SafeAreaView, StatusBar, Alert, Platform, Modal, Animated, Dimensions, ScrollView, AppState
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
+import ScreenHeader from '../../components/ScreenHeader';
 import TripCompletedOverlay from '../../components/TripCompletedOverlay';
 import { darkMapStyle } from '../../utils/mapStyle';
 
@@ -288,7 +288,6 @@ const PassengerDetailModal = ({ visible, onClose, booking, rideData, theme }) =>
     const scaleAnim = useRef(new Animated.Value(0.92)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
     const mapRef = useRef(null);
-    const insets = useSafeAreaInsets();
 
     useEffect(() => {
         if (visible) {
@@ -937,27 +936,21 @@ const ListOfRequests = ({ route, navigation }) => {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
-            <View style={[styles.header, { borderBottomColor: theme.divider }]}>
-                <TouchableOpacity 
-                    onPress={() => {
-                        if (specificRideId) {
-                            navigation.navigate('MainTabsDriver', { screen: 'ManageRides' });
-                        } else {
-                            navigation.goBack();
-                        }
-                    }} 
-                    style={styles.backBtn}
-                >
-                    <Ionicons name="arrow-back" size={24} color={theme.text} />
-                </TouchableOpacity>
-                <Text style={[styles.title, { color: theme.navActive || '#005BBF' }]}>Solicitudes {specificRideId ? 'del Viaje' : 'de Pasajeros'}</Text>
-                <TouchableOpacity 
-                    onPress={handleRefresh} 
-                    style={styles.refreshBtn}
-                >
-                    <Ionicons name="refresh" size={24} color={theme.text} />
-                </TouchableOpacity>
-            </View>
+            <ScreenHeader
+                title={`Solicitudes ${specificRideId ? 'del Viaje' : 'de Pasajeros'}`}
+                onBack={() => {
+                    if (specificRideId) {
+                        navigation.navigate('MainTabsDriver', { screen: 'ManageRides' });
+                    } else {
+                        navigation.goBack();
+                    }
+                }}
+                right={
+                    <TouchableOpacity onPress={handleRefresh}>
+                        <Ionicons name="refresh" size={24} color={theme.text} />
+                    </TouchableOpacity>
+                }
+            />
             
             {loading ? (
                 <ActivityIndicator size="large" color={theme.accent} style={{ marginTop: 50 }}/>
@@ -1061,10 +1054,6 @@ const ListOfRequests = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0 },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 20, borderBottomWidth: 1 },
-    backBtn: { position: 'absolute', left: 20 },
-    refreshBtn: { position: 'absolute', right: 20 },
-    title: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
     passengerCard: { padding: 14, borderRadius: 15, borderWidth: 1, marginBottom: 15, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
     cardTopRow: { flexDirection: 'row', alignItems: 'center' },
     avatar: { width: 44, height: 44, borderRadius: 22 },

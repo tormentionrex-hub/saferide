@@ -20,6 +20,7 @@ import api from '../../services/api';
 import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import ScreenHeader from '../../components/ScreenHeader';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 
 import { moderateScale } from '../../utils/responsive';
@@ -259,13 +260,7 @@ const DriverMetrics = ({ navigation }) => {
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
             <View style={[styles.mainCard, { backgroundColor: theme.surface }]}>
-                <View style={[styles.header, { borderBottomColor: theme.divider }]}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                        <Ionicons name="arrow-back" size={24} color={theme.text} />
-                    </TouchableOpacity>
-                    <Text style={[styles.innerTitle, { color: theme.navActive || '#005BBF' }]}>Estadísticas</Text>
-                    <View style={styles.gearBtn} />
-                </View>
+                <ScreenHeader title="Estadísticas" onBack={() => navigation.goBack()} />
 
                 {loading ? (
                     <View style={styles.loadingContainer}>
@@ -384,13 +379,6 @@ const styles = StyleSheet.create({
     mainCard: {
         flex: 1,
     },
-    header: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        paddingVertical: 20, borderBottomWidth: 1,
-    },
-    backBtn: { position: 'absolute', left: 20 },
-    gearBtn: { position: 'absolute', right: 20 },
-    innerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     loadingText: { marginTop: 10, fontSize: moderateScale(16) },
     scrollBody: { padding: 20, paddingBottom: 100 },

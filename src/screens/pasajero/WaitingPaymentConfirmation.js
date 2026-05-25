@@ -7,6 +7,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../services/api';
+import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
 const POLL_INTERVAL_MS = 3000;
@@ -179,12 +180,15 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
-            <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-                <View style={[styles.headerIcon, { backgroundColor: theme.surfaceVariant }]}>
-                    <Ionicons name={methodIcon} size={20} color={theme.accent} />
-                </View>
-                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Confirmando pago</Text>
-            </View>
+            <ScreenHeader
+                title="Confirmando pago"
+                useInsets
+                right={
+                    <View style={[styles.headerIcon, { backgroundColor: theme.surfaceVariant }]}>
+                        <Ionicons name={methodIcon} size={20} color={theme.accent} />
+                    </View>
+                }
+            />
 
             <View style={styles.center}>
                 <View style={styles.avatarWrap}>
@@ -248,21 +252,9 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        paddingHorizontal: 22,
-        paddingBottom: 18,
-    },
     headerIcon: {
         width: 38, height: 38, borderRadius: 19,
         justifyContent: 'center', alignItems: 'center',
-    },
-    headerTitle: {
-        fontSize: moderateScale(22),
-        fontFamily: 'Poppins-Bold',
-        letterSpacing: -0.3,
     },
 
     center: {
