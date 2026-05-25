@@ -291,7 +291,12 @@ const PaymentVerification = ({ route, navigation }) => {
                                                 styles.selectBtn,
                                                 styles.leftBtn,
                                                 { backgroundColor: theme.bg },
-                                                isUnpaid && !isCancelled && styles.unpaidSelected,
+                                                // Mostrar feedback de selección siempre que el botón
+                                                // sea tocable. Antes usábamos `!isCancelled` aquí, lo
+                                                // que impedía que un booking cancelado con penalización
+                                                // pendiente mostrara la opción elegida — los botones
+                                                // se veían apagados aunque el conductor los hubiera tocado.
+                                                isUnpaid && !isLocked && styles.unpaidSelected,
                                                 isLocked && { opacity: 0.5 }
                                             ]}
                                             activeOpacity={isLocked ? 1 : 0.7}
@@ -301,7 +306,7 @@ const PaymentVerification = ({ route, navigation }) => {
                                             <Text style={[
                                                 styles.selectBtnText,
                                                 { color: theme.textSecondary },
-                                                isUnpaid && !isCancelled && styles.unpaidSelectedText
+                                                isUnpaid && !isLocked && styles.unpaidSelectedText
                                             ]}>No pagó</Text>
                                         </TouchableOpacity>
 
@@ -310,7 +315,7 @@ const PaymentVerification = ({ route, navigation }) => {
                                                 styles.selectBtn,
                                                 styles.rightBtn,
                                                 { backgroundColor: theme.bg },
-                                                isPaid && !isCancelled && styles.paidSelected,
+                                                isPaid && !isLocked && styles.paidSelected,
                                                 isLocked && { opacity: 0.5 }
                                             ]}
                                             activeOpacity={isLocked ? 1 : 0.7}
@@ -320,7 +325,7 @@ const PaymentVerification = ({ route, navigation }) => {
                                             <Text style={[
                                                 styles.selectBtnText,
                                                 { color: theme.textSecondary },
-                                                isPaid && !isCancelled && styles.paidSelectedText
+                                                isPaid && !isLocked && styles.paidSelectedText
                                             ]}>Pagó</Text>
                                         </TouchableOpacity>
                                     </View>
