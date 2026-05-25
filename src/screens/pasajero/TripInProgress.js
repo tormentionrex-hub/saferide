@@ -928,25 +928,27 @@ const TripInProgress = ({ route, navigation }) => {
 
                 {/* ── TARJETA RUTA ────────────────────────────────── */}
                 <View style={[styles.infoCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}>
-                    <View style={styles.routeRow}>
-                        <View style={styles.routeIconCol}>
-                            <View style={[styles.routeDotOrigin, { backgroundColor: theme.navActive }]} />
-                            <View style={styles.routeLine} />
-                            <View style={[styles.routeDotDest, { backgroundColor: theme.text }]} />
-                        </View>
-                        <View style={styles.routeTextCol}>
-                            <View style={styles.routeItem}>
-                                <Text style={[styles.routeItemLabel, { color: theme.textSecondary }]}>RECOGIDA</Text>
-                                <Text style={[styles.routeItemValue, { color: theme.text }]} numberOfLines={2}>
-                                    {ride_id?.origin?.name || '---'}
-                                </Text>
+                    <View style={{ backgroundColor: theme.surface, borderColor: theme.cardBorder || theme.border, borderWidth: 1, borderRadius: 12, padding: 12 }}>
+                        <View style={styles.routeRow}>
+                            <View style={styles.routeIconCol}>
+                                <View style={[styles.routeDotOrigin, { backgroundColor: theme.navActive }]} />
+                                <View style={styles.routeLine} />
+                                <View style={[styles.routeDotDest, { backgroundColor: theme.text }]} />
                             </View>
-                            <View style={[styles.routeItemDivider, { backgroundColor: theme.surfaceVariant }]} />
-                            <View style={styles.routeItem}>
-                                <Text style={[styles.routeItemLabel, { color: theme.textSecondary }]}>DESTINO</Text>
-                                <Text style={[styles.routeItemValue, { color: theme.text }]} numberOfLines={2}>
-                                    {ride_id?.destination?.name || '---'}
-                                </Text>
+                            <View style={styles.routeTextCol}>
+                                <View style={styles.routeItem}>
+                                    <Text style={[styles.routeItemLabel, { color: theme.textSecondary }]}>RECOGIDA</Text>
+                                    <Text style={[styles.routeItemValue, { color: theme.text }]} numberOfLines={2}>
+                                        {ride_id?.origin?.name || '---'}
+                                    </Text>
+                                </View>
+                                <View style={[styles.routeItemDivider, { backgroundColor: theme.surfaceVariant }]} />
+                                <View style={styles.routeItem}>
+                                    <Text style={[styles.routeItemLabel, { color: theme.textSecondary }]}>DESTINO</Text>
+                                    <Text style={[styles.routeItemValue, { color: theme.text }]} numberOfLines={2}>
+                                        {ride_id?.destination?.name || '---'}
+                                    </Text>
+                                </View>
                             </View>
                         </View>
                     </View>

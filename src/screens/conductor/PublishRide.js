@@ -240,7 +240,7 @@ const PublishRide = ({ navigation, route }) => {
                                 <View>
                                     <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>SALIDA DE</Text>
                                     <TouchableOpacity
-                                        style={[styles.locationCard, { backgroundColor: theme.surfaceVariant }, errors.origen && styles.cardError]}
+                                        style={[styles.locationCard, { backgroundColor: theme.surface, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }, errors.origen && styles.cardError]}
                                         onPress={() => handleOpenPicker('origin')}
                                         activeOpacity={0.75}
                                     >
@@ -257,7 +257,7 @@ const PublishRide = ({ navigation, route }) => {
                                 <View>
                                     <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>DESTINO FINAL</Text>
                                     <TouchableOpacity
-                                        style={[styles.locationCard, { backgroundColor: theme.surfaceVariant }, errors.destino && styles.cardError]}
+                                        style={[styles.locationCard, { backgroundColor: theme.surface, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }, errors.destino && styles.cardError]}
                                         onPress={() => handleOpenPicker('destination')}
                                         activeOpacity={0.75}
                                     >

@@ -592,19 +592,21 @@ const WaitingForTheStart = ({ route, navigation }) => {
                         {/* ── RUTA ── */}
                         <View style={[styles.routeCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}>
                             <Text style={styles.routeCardLabel}>RUTA DEL VIAJE</Text>
-                            <View style={styles.routeRow}>
-                                <Ionicons name="location" size={20} color={theme.navActive} />
-                                <View style={{ flex: 1, marginLeft: 10 }}>
-                                    <Text style={[styles.routeSubLabel, { color: theme.textSecondary }]}>Origen</Text>
-                                    <Text style={[styles.routeValue, { color: theme.text }]} numberOfLines={1}>{rideData?.origin?.name || '---'}</Text>
+                            <View style={{ backgroundColor: theme.surface, borderColor: theme.cardBorder || theme.border, borderWidth: 1, borderRadius: 12, padding: 12 }}>
+                                <View style={styles.routeRow}>
+                                    <Ionicons name="location" size={20} color={theme.navActive} />
+                                    <View style={{ flex: 1, marginLeft: 10 }}>
+                                        <Text style={[styles.routeSubLabel, { color: theme.textSecondary }]}>Origen</Text>
+                                        <Text style={[styles.routeValue, { color: theme.text }]} numberOfLines={1}>{rideData?.origin?.name || '---'}</Text>
+                                    </View>
                                 </View>
-                            </View>
-                            <View style={[styles.routeDivider, { backgroundColor: theme.divider }]} />
-                            <View style={styles.routeRow}>
-                                <Ionicons name="flag" size={20} color="#EF4444" />
-                                <View style={{ flex: 1, marginLeft: 10 }}>
-                                    <Text style={[styles.routeSubLabel, { color: theme.textSecondary }]}>Destino</Text>
-                                    <Text style={[styles.routeValue, { color: theme.text }]} numberOfLines={1}>{rideData?.destination?.name || '---'}</Text>
+                                <View style={[styles.routeDivider, { backgroundColor: theme.divider }]} />
+                                <View style={styles.routeRow}>
+                                    <Ionicons name="flag" size={20} color="#EF4444" />
+                                    <View style={{ flex: 1, marginLeft: 10 }}>
+                                        <Text style={[styles.routeSubLabel, { color: theme.textSecondary }]}>Destino</Text>
+                                        <Text style={[styles.routeValue, { color: theme.text }]} numberOfLines={1}>{rideData?.destination?.name || '---'}</Text>
+                                    </View>
                                 </View>
                             </View>
                         </View>
