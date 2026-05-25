@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import ScreenHeader from '../../components/ScreenHeader';
 import api from '../../services/api';
 import sessionCache from '../../services/sessionCache';
 
@@ -325,35 +326,21 @@ const ListOfDrivers = ({ route, navigation }) => {
         <View style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
-            {/* ── HEADER ── */}
-            <View style={[
-                styles.header,
-                {
-                    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 24 : insets.top + 16,
-                    borderBottomColor: theme.divider,
-                    backgroundColor: theme.bg,
-                },
-            ]}>
-                <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-                    <Ionicons name="arrow-back" size={24} color={theme.text} />
-                </TouchableOpacity>
-                <View style={styles.headerCenter}>
-                    <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Viajes Disponibles</Text>
-                    {processedRides.length > 0 && (
-                        <Text style={[styles.headerSub, { color: theme.textSecondary }]}>
-                            {processedRides.length} {processedRides.length === 1 ? 'viaje encontrado' : 'viajes encontrados'}
-                        </Text>
-                    )}
-                </View>
-                <TouchableOpacity 
-                    style={styles.refreshBtn} 
-                    onPress={fetchRides} 
-                    activeOpacity={0.7}
-                    disabled={loading}
-                >
-                    <Ionicons name="refresh" size={24} color={theme.text} />
-                </TouchableOpacity>
-            </View>
+            <ScreenHeader
+                title="Viajes Disponibles"
+                subtitle={
+                    processedRides.length > 0
+                        ? `${processedRides.length} ${processedRides.length === 1 ? 'viaje encontrado' : 'viajes encontrados'}`
+                        : undefined
+                }
+                onBack={() => navigation.goBack()}
+                useInsets
+                right={
+                    <TouchableOpacity onPress={fetchRides} activeOpacity={0.7} disabled={loading}>
+                        <Ionicons name="refresh" size={24} color={theme.text} />
+                    </TouchableOpacity>
+                }
+            />
             {searchOrigin && searchDestination && (
                 <View style={[styles.routeSummary, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
                     <View style={styles.routeSummaryRow}>
@@ -453,19 +440,6 @@ const styles = StyleSheet.create({
         borderRadius: 20,
     },
 
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingBottom: 14,
-        borderBottomWidth: 1,
-    },
-    backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-    refreshBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-    headerCenter: { flex: 1, alignItems: 'center' },
-    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
-    headerSub: { fontSize: moderateScale(12), fontFamily: 'Poppins-Regular', marginTop: 1 },
 
     // Lista
     listWrapper: { flex: 1 },

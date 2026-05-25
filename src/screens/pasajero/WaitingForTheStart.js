@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
+import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
 const CancelConfirmationModal = ({ visible, onConfirm, onCancel, theme }) => {
@@ -497,17 +498,11 @@ const WaitingForTheStart = ({ route, navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor="transparent" translucent />
 
-            {/* ── HEADER ── */}
-            <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : 44, backgroundColor: theme.bg }]}>
-                <TouchableOpacity style={styles.headerBackBtn} onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}>
-                    <Ionicons name="arrow-back" size={26} color={theme.text} />
-                </TouchableOpacity>
-                <View style={styles.headerCenter}>
-                    <Ionicons name="time" size={18} color={theme.navActive} />
-                    <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Viaje Confirmado</Text>
-                </View>
-                <View style={{ width: 40 }} />
-            </View>
+            <ScreenHeader
+                title="Viaje Confirmado"
+                onBack={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
+                useInsets
+            />
 
             <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
@@ -686,14 +681,6 @@ const WaitingForTheStart = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    header: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 20, paddingBottom: 12, backgroundColor: 'rgba(247,249,251,0.95)',
-        zIndex: 10,
-    },
-    headerBackBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
-    headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold', color: '#191C1E', letterSpacing: -0.3 },
     scrollContent: { paddingBottom: 120 },
 
     // Destino

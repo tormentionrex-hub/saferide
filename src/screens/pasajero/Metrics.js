@@ -21,6 +21,7 @@ import sessionCache from '../../services/sessionCache';
 import passengerBookingsCache from '../../services/passengerBookingsCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
 const screenWidth = Dimensions.get('window').width;
@@ -219,13 +220,7 @@ const Metrics = ({ navigation }) => {
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color={theme.text} />
-                </TouchableOpacity>
-                <Text style={[styles.innerTitle, { color: theme.navActive || '#005BBF' }]}>Estadísticas</Text>
-                <View style={styles.gearBtn} />
-            </View>
+            <ScreenHeader title="Estadísticas" onBack={() => navigation.goBack()} />
 
             {loading ? (
                 <View style={styles.loadingContainer}><ActivityIndicator size="large" color={theme.accent} /></View>
@@ -319,10 +314,6 @@ const MonthRow = React.memo(({ item, theme, isLast }) => (
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1 },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15 },
-    backBtn: { position: 'absolute', left: 20 },
-    gearBtn: { position: 'absolute', right: 20 },
-    innerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
     loadingContainer: { flex: 1, justifyContent: 'center' },
     scrollBody: { padding: 20, paddingBottom: 50 },
     statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },

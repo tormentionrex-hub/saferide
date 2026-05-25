@@ -4,7 +4,8 @@ import {
     Image, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView,
     Platform, PanResponder, Animated, DeviceEventEmitter,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenHeader from '../../components/ScreenHeader';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import sessionStorage from '../../services/sessionStorage';
@@ -200,7 +201,6 @@ const useLogoutModal = () => {
 };
 
 const PasajeroProfileScreen = ({ navigation }) => {
-    const insets = useSafeAreaInsets();
     const { theme } = useDriverTheme();
     const si = useScrollIndicator();
     const logoutModal  = useLogoutModal();
@@ -425,16 +425,7 @@ const PasajeroProfileScreen = ({ navigation }) => {
         <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg || '#0A0A18' }]}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg || '#0A0A18'} />
 
-            {/* Header */}
-            <View style={[styles.header, { paddingTop: insets.top > 0 ? 0 : 16, borderBottomColor: theme.divider }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <View style={[styles.headerIconBtn, { backgroundColor: theme.iconCircleBg || '#1C1C40' }]}>
-                        <Ionicons name="arrow-back" size={20} color={theme.accent} />
-                    </View>
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Mi Perfil</Text>
-                <View style={styles.headerIconBtn} />
-            </View>
+            <ScreenHeader title="Mi Perfil" onBack={() => navigation.goBack()} />
 
             <View style={{ flex: 1 }}>
                 <ScrollView {...si.scrollProps} contentContainerStyle={styles.scrollContent}>
@@ -763,12 +754,6 @@ const ModalInput = ({ label, icon, theme, locked, ...props }) => (
 const styles = StyleSheet.create({
     safe: { flex: 1 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    header: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 20, paddingBottom: 14, borderBottomWidth: 1,
-    },
-    headerIconBtn: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center' },
-    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
     scrollContent: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 48 },
 
     heroCard: {

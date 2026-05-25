@@ -4,17 +4,16 @@ import {
     StatusBar, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import api from '../../services/api';
 import PaymentMethodCards from '../../components/PaymentMethodCards';
+import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
 const PendingPayment = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const { showAlert } = useCustomAlert();
-    const insets = useSafeAreaInsets();
 
     const { bookingId } = route.params || {};
     const [booking, setBooking] = useState(null);
@@ -100,13 +99,7 @@ const PendingPayment = ({ route, navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
-            <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={22} color={theme.text} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Pagar viaje</Text>
-                <View style={{ width: 40 }} />
-            </View>
+            <ScreenHeader title="Pagar viaje" onBack={() => navigation.goBack()} useInsets />
 
             <ScrollView contentContainerStyle={{ paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
                 {/* Resumen del viaje */}
@@ -166,21 +159,6 @@ const styles = StyleSheet.create({
     paidIcon: { width: 110, height: 110, borderRadius: 55, justifyContent: 'center', alignItems: 'center' },
     primaryBtn: { paddingVertical: 14, paddingHorizontal: 28, borderRadius: 12 },
     primaryBtnText: { color: '#fff', fontFamily: 'Poppins-Bold', fontSize: moderateScale(15) },
-
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingBottom: 14,
-    },
-    backBtn: {
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'flex-start',
-    },
-    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold', letterSpacing: -0.3 },
 
     summaryCard: {
         marginHorizontal: 20,

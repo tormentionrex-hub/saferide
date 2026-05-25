@@ -98,6 +98,7 @@ const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
 import { useLocationTracker } from '../../hooks/useLocationTracker';
 import { useScrollIndicator } from '../../components/ScrollIndicator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ScreenHeader from '../../components/ScreenHeader';
 import { useFocusEffect } from '@react-navigation/native';
 import BottomNavigationBarAlt from '../../components/BottomNavigationDriver';
 
@@ -512,16 +513,16 @@ const TripInProgressDriver = ({ route, navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor="transparent" translucent />
 
-            {/* ── HEADER ── */}
-            <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : 44, backgroundColor: theme.bg }]}>
-                <TouchableOpacity style={styles.headerBackBtn} onPress={navigateToDashboard}>
-                    <Ionicons name="arrow-back" size={26} color={theme.text} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Viaje en curso</Text>
-                <TouchableOpacity style={styles.headerMenuBtn}>
-                    <Ionicons name="ellipsis-vertical" size={20} color={theme.text} />
-                </TouchableOpacity>
-            </View>
+            <ScreenHeader
+                title="Viaje en curso"
+                onBack={navigateToDashboard}
+                useInsets
+                right={
+                    <TouchableOpacity style={{ width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' }}>
+                        <Ionicons name="ellipsis-vertical" size={20} color={theme.text} />
+                    </TouchableOpacity>
+                }
+            />
 
             <ScrollView
                 style={{ flex: 1 }}
@@ -719,14 +720,6 @@ const TripInProgressDriver = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    header: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 16, paddingBottom: 10,
-        zIndex: 10,
-    },
-    headerBackBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
-    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold', color: '#191C1E', letterSpacing: -0.2 },
-    headerMenuBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
     scrollContent: { paddingBottom: 260 },
 
     // Mapa

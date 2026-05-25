@@ -15,6 +15,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 
 import LocationPicker from '../../components/LocationPicker';
+import ScreenHeader from '../../components/ScreenHeader';
 import api from '../../services/api';
 import { getRouteDetails } from '../../services/locationService';
 import { useDriverTheme } from '../../context/DriverThemeContext';
@@ -217,14 +218,7 @@ const PublishRide = ({ navigation, route }) => {
         <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
-            {/* ── GLASS HEADER ─────────────────────────────────── */}
-            <View style={[styles.header, { backgroundColor: theme.surface }]}>
-                <TouchableOpacity style={[styles.headerBtn, { backgroundColor: theme.surfaceVariant }]} onPress={() => navigation.goBack()}>
-                    <Ionicons name="arrow-back" size={22} color={theme.textSecondary} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Itinerario de Viaje</Text>
-                <View style={[styles.headerBtn, { backgroundColor: 'transparent' }]} />
-            </View>
+            <ScreenHeader title="Itinerario de Viaje" onBack={() => navigation.goBack()} />
 
             <View style={{ flex: 1 }}>
                 <ScrollView contentContainerStyle={styles.content} {...si.scrollProps}>
@@ -577,34 +571,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#f7f9fb',
     },
 
-    // ── Header ────────────────────────────────────────────────
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 24,
-        height: 64,
-        backgroundColor: 'rgba(247,249,251,0.92)',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.04,
-        shadowRadius: 24,
-        elevation: 3,
-    },
-    headerBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.04)',
-    },
-    headerTitle: {
-        fontSize: moderateScale(22),
-        fontFamily: 'Poppins-Bold',
-        color: '#005bbf',
-        letterSpacing: -0.3,
-    },
 
     // ── ScrollView ────────────────────────────────────────────
     content: {

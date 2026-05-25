@@ -10,6 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import ScreenHeader from '../../components/ScreenHeader';
 import api from '../../services/api';
 import sessionCache from '../../services/sessionCache';
 import { uploadToCloudinary } from '../../Cloudinary/Cloudinary';
@@ -151,13 +152,7 @@ export default function RegisterVehicleStep2({ route, navigation }) {
             <StatusBar barStyle={theme.statusBar} backgroundColor={surfBg} />
 
             <View style={[styles.mainContainer, { backgroundColor: surfBg }]}>
-                {/* Header */}
-                <View style={[styles.header, { borderBottomColor: theme.divider }]}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                        <Ionicons name="arrow-back" size={24} color={theme.text} />
-                    </TouchableOpacity>
-                    <Text style={[styles.innerTitle, { color: theme.navActive || '#005BBF' }]}>Registro de Vehículo</Text>
-                </View>
+                <ScreenHeader title="Registro de Vehículo" onBack={() => navigation.goBack()} />
 
                 <View style={{ flex: 1 }}>
                     <ScrollView contentContainerStyle={styles.scrollBody} showsVerticalScrollIndicator={false} {...si.scrollProps}>
@@ -359,12 +354,6 @@ export default function RegisterVehicleStep2({ route, navigation }) {
 const styles = StyleSheet.create({
     safeArea:      { flex: 1 },
     mainContainer: { flex: 1 },
-    header: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        paddingVertical: 20, borderBottomWidth: 1,
-    },
-    backBtn:    { position: 'absolute', left: 20 },
-    innerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
     scrollBody: { padding: 20, paddingBottom: 100 },
 
     progressRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },

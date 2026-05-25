@@ -3,9 +3,9 @@ import { View, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from 'rea
 import { WebView } from 'react-native-webview';
 import api from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
 const PAYPAL_BLUE = '#003087';
@@ -22,7 +22,6 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
     mode,
   } = route.params;
   const isLateCharge = mode === 'lateCharge';
-  const insets = useSafeAreaInsets();
   const { showAlert } = useCustomAlert();
   const { theme } = useDriverTheme();
 
@@ -144,13 +143,7 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
   if (!approvalUrl) {
     return (
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
-        <View style={[styles.header, { paddingTop: insets.top || 40 }]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color={theme.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Pago del Viaje</Text>
-          <View style={{ width: 40 }} />
-        </View>
+        <ScreenHeader title="Pago del Viaje" onBack={() => navigation.goBack()} useInsets />
 
         <View style={styles.introWrap}>
           <View style={styles.paypalLogoCircle}>
@@ -195,13 +188,7 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
   // WebView de PayPal
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <View style={[styles.header, { paddingTop: insets.top || 40 }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="close" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Pagar con PayPal</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader title="Pagar con PayPal" onBack={() => navigation.goBack()} useInsets />
 
       <WebView
         source={{ uri: approvalUrl }}
@@ -224,26 +211,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: moderateScale(22),
-    fontFamily: 'Poppins-Bold',
-    color: '#111827',
   },
   loadingText: {
     marginTop: 15,

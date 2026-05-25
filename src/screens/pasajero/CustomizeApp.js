@@ -4,11 +4,12 @@ import {
     TouchableOpacity, StatusBar, Modal, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import ScreenHeader from '../../components/ScreenHeader';
 import { authService } from '../../services/authService';
 
 import { moderateScale } from '../../utils/responsive';
@@ -50,7 +51,6 @@ const useLogoutModal = () => {
 
 // ── Pantalla ──────────────────────────────────────────────────────────────────
 const CustomizeApp = ({ navigation }) => {
-    const insets = useSafeAreaInsets();
     const { theme, toggleTheme } = useDriverTheme();
     const isDark = theme.dark;
     const si     = useScrollIndicator();
@@ -87,13 +87,7 @@ const CustomizeApp = ({ navigation }) => {
         <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
-            {/* Header */}
-            <View style={[styles.header, { paddingTop: insets.top > 0 ? insets.top : 16, borderBottomColor: theme.divider }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color={theme.text} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Ajustes</Text>
-            </View>
+            <ScreenHeader title="Ajustes" onBack={() => navigation.goBack()} />
 
             <View style={styles.scrollWrapper}>
                 <ScrollView
@@ -245,13 +239,6 @@ const styles = StyleSheet.create({
     safe:          { flex: 1 },
     scrollWrapper: { flex: 1 },
     scroll:        { flex: 1 },
-
-    header: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        paddingBottom: 14, borderBottomWidth: 1,
-    },
-    backBtn:     { position: 'absolute', left: 16 },
-    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
 
     sectionLabel: { fontSize: moderateScale(11), fontFamily: 'Poppins-Bold', letterSpacing: 0.8, marginBottom: 8, marginLeft: 4 },
 

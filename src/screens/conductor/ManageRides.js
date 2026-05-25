@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
+import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
 /* ─── Modal de cancelación ────────────────────────────────────────── */
@@ -327,16 +328,10 @@ const ManageRides = ({ navigation }) => {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
-            <View style={[styles.header, { borderBottomColor: theme.divider }]}>
-                <TouchableOpacity
-                    onPress={() => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })}
-                    style={styles.backBtn}
-                >
-                    <Ionicons name="arrow-back" size={24} color={theme.text} />
-                </TouchableOpacity>
-                <Text style={[styles.title, { color: theme.navActive || '#005BBF' }]}>Mis Viajes Publicados</Text>
-                <View style={styles.gearBtn} />
-            </View>
+            <ScreenHeader
+                title="Mis Viajes Publicados"
+                onBack={() => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })}
+            />
 
             {loading ? (
                 <ActivityIndicator size="large" color={theme.accent} style={{ marginTop: 50 }} />
@@ -376,10 +371,6 @@ const ManageRides = ({ navigation }) => {
 /* ─── Estilos ─────────────────────────────────────────────────────── */
 const styles = StyleSheet.create({
     container: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0 },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 20, borderBottomWidth: 1 },
-    backBtn: { position: 'absolute', left: 20 },
-    gearBtn: { position: 'absolute', right: 20 },
-    title: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
     rideCard: { padding: 15, borderRadius: 15, borderWidth: 1, marginBottom: 15, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
     statusBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 12, gap: 6 },
     statusDot: { width: 7, height: 7, borderRadius: 4 },

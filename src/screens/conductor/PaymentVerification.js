@@ -4,6 +4,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
+import ScreenHeader from '../../components/ScreenHeader';
 import api from '../../services/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -165,15 +166,15 @@ const PaymentVerification = ({ route, navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             
-            <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border, borderBottomWidth: 1 }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Ionicons name="arrow-back" size={24} color={theme.accent} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Trip Details</Text>
-                <TouchableOpacity>
-                    <Ionicons name="ellipsis-vertical" size={24} color={theme.accent} />
-                </TouchableOpacity>
-            </View>
+            <ScreenHeader
+                title="Trip Details"
+                onBack={() => navigation.goBack()}
+                right={
+                    <TouchableOpacity>
+                        <Ionicons name="ellipsis-vertical" size={24} color={theme.accent} />
+                    </TouchableOpacity>
+                }
+            />
 
             <View style={{ flex: 1 }}>
                 <ScrollView contentContainerStyle={styles.scrollContent} {...si.scrollProps}>
@@ -336,15 +337,6 @@ const PaymentVerification = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingTop: 6,
-        paddingBottom: 12,
-    },
-    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
     scrollContent: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 },
     topIconContainer: { alignItems: 'center', marginBottom: 14 },
     moneyIconCircle: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center' },
