@@ -6,6 +6,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
 
+import { moderateScale } from '../../utils/responsive';
 const CancelConfirmationModal = ({ visible, onConfirm, onCancel, theme }) => {
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -290,14 +291,14 @@ const rideStartedStyles = StyleSheet.create({
         shadowRadius: 10,
     },
     title: {
-        fontSize: 22,
+        fontSize: moderateScale(22),
         fontFamily: 'Poppins-Bold',
         color: '#111827',
         textAlign: 'center',
         marginBottom: 8,
     },
     subtitle: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         color: '#6B7280',
         textAlign: 'center',
         lineHeight: 20,
@@ -316,7 +317,7 @@ const rideStartedStyles = StyleSheet.create({
     },
     btnText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-Bold',
     },
 });
@@ -499,11 +500,11 @@ const WaitingForTheStart = ({ route, navigation }) => {
             {/* ── HEADER ── */}
             <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : 44, backgroundColor: theme.bg }]}>
                 <TouchableOpacity style={styles.headerBackBtn} onPress={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}>
-                    <Ionicons name="chevron-back" size={26} color={theme.text} />
+                    <Ionicons name="arrow-back" size={26} color={theme.text} />
                 </TouchableOpacity>
                 <View style={styles.headerCenter}>
                     <Ionicons name="time" size={18} color={theme.navActive} />
-                    <Text style={[styles.headerTitle, { color: theme.text }]}>Viaje Confirmado</Text>
+                    <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Viaje Confirmado</Text>
                 </View>
                 <View style={{ width: 40 }} />
             </View>
@@ -692,13 +693,13 @@ const styles = StyleSheet.create({
     },
     headerBackBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
     headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold', color: '#191C1E', letterSpacing: -0.3 },
+    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold', color: '#191C1E', letterSpacing: -0.3 },
     scrollContent: { paddingBottom: 120 },
 
     // Destino
     destinationSection: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
-    destinationLabel: { fontSize: 11, fontFamily: 'Poppins-SemiBold', color: '#2B5BB5', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
-    destinationName: { fontSize: 26, fontFamily: 'Poppins-Bold', color: '#191C1E', letterSpacing: -0.5 },
+    destinationLabel: { fontSize: moderateScale(11), fontFamily: 'Poppins-SemiBold', color: '#2B5BB5', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
+    destinationName: { fontSize: moderateScale(26), fontFamily: 'Poppins-Bold', color: '#191C1E', letterSpacing: -0.5 },
 
     // Espera
     waitingCard: {
@@ -709,37 +710,37 @@ const styles = StyleSheet.create({
         width: 52, height: 52, borderRadius: 26, backgroundColor: '#D8E2FF',
         justifyContent: 'center', alignItems: 'center', flexShrink: 0,
     },
-    waitingTitle: { fontSize: 15, fontFamily: 'Poppins-Bold', color: '#191C1E' },
-    waitingMeta: { fontSize: 12, fontFamily: 'Poppins-Regular', color: '#727785', marginTop: 2 },
+    waitingTitle: { fontSize: moderateScale(15), fontFamily: 'Poppins-Bold', color: '#191C1E' },
+    waitingMeta: { fontSize: moderateScale(12), fontFamily: 'Poppins-Regular', color: '#727785', marginTop: 2 },
 
     // Bento
     bentoGrid: { flexDirection: 'row', marginHorizontal: 16, gap: 12, marginBottom: 12 },
     bentoCard: { flex: 1, backgroundColor: '#EDF2F7', borderRadius: 16, padding: 16, gap: 4 },
     bentoAvatar: { width: 44, height: 44, borderRadius: 22, flexShrink: 0, marginBottom: 6 },
     bentoAvatarFallback: { backgroundColor: '#D8E2FF', justifyContent: 'center', alignItems: 'center' },
-    bentoAvatarInitials: { fontSize: 15, fontFamily: 'Poppins-Bold', color: '#005BBF' },
+    bentoAvatarInitials: { fontSize: moderateScale(15), fontFamily: 'Poppins-Bold', color: '#005BBF' },
     bentoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    bentoValue: { fontSize: 18, fontFamily: 'Poppins-Bold', color: '#191C1E', flexShrink: 1, marginLeft: 6 },
+    bentoValue: { fontSize: moderateScale(18), fontFamily: 'Poppins-Bold', color: '#191C1E', flexShrink: 1, marginLeft: 6 },
     bentoRatingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    bentoRating: { fontSize: 13, fontFamily: 'Poppins-SemiBold', color: '#414754' },
-    bentoMeta: { fontSize: 12, fontFamily: 'Poppins-Regular', color: '#414754' },
-    bentoLabel: { fontSize: 10, fontFamily: 'Poppins-Bold', color: '#727785', letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 },
+    bentoRating: { fontSize: moderateScale(13), fontFamily: 'Poppins-SemiBold', color: '#414754' },
+    bentoMeta: { fontSize: moderateScale(12), fontFamily: 'Poppins-Regular', color: '#414754' },
+    bentoLabel: { fontSize: moderateScale(10), fontFamily: 'Poppins-Bold', color: '#727785', letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 },
     bentoWhatsappBtn: {
         backgroundColor: '#25D366', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14,
         flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginBottom: 4,
     },
-    bentoWhatsappText: { fontSize: 11, fontFamily: 'Poppins-Bold', color: '#fff' },
+    bentoWhatsappText: { fontSize: moderateScale(11), fontFamily: 'Poppins-Bold', color: '#fff' },
 
     // Ruta + Vehículo
     routeCard: {
         marginHorizontal: 16, marginBottom: 12, backgroundColor: '#EDF2F7',
         borderRadius: 16, padding: 16,
     },
-    routeCardLabel: { fontSize: 10, fontFamily: 'Poppins-Bold', color: '#727785', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 },
+    routeCardLabel: { fontSize: moderateScale(10), fontFamily: 'Poppins-Bold', color: '#727785', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 },
     routeRow: { flexDirection: 'row', alignItems: 'center' },
     routeDivider: { height: 1, backgroundColor: 'rgba(0,0,0,0.06)', marginVertical: 10 },
-    routeSubLabel: { fontSize: 11, fontFamily: 'Poppins-Regular', color: '#727785' },
-    routeValue: { fontSize: 14, fontFamily: 'Poppins-SemiBold', color: '#191C1E', marginTop: 1 },
+    routeSubLabel: { fontSize: moderateScale(11), fontFamily: 'Poppins-Regular', color: '#727785' },
+    routeValue: { fontSize: moderateScale(14), fontFamily: 'Poppins-SemiBold', color: '#191C1E', marginTop: 1 },
     vehicleRow: { flexDirection: 'row', justifyContent: 'space-between' },
     vehicleItem: { flex: 1 },
 
@@ -751,25 +752,25 @@ const styles = StyleSheet.create({
         elevation: 4, shadowColor: '#1A73E8', shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.28, shadowRadius: 8,
     },
-    homeBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Poppins-Bold' },
+    homeBtnText: { color: '#fff', fontSize: moderateScale(16), fontFamily: 'Poppins-Bold' },
     cancelBtn: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         paddingVertical: 16, borderRadius: 14, borderWidth: 1.5, borderColor: '#EF4444',
         backgroundColor: 'transparent',
     },
-    cancelBtnText: { color: '#EF4444', fontSize: 16, fontFamily: 'Poppins-Bold' },
+    cancelBtnText: { color: '#EF4444', fontSize: moderateScale(16), fontFamily: 'Poppins-Bold' },
 });
 
 const modalStyles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 25 },
     card: { width: '100%', borderRadius: 30, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 15 },
     iconCircle: { width: 90, height: 90, borderRadius: 45, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-    title: { fontSize: 24, fontFamily: 'Poppins-Bold', marginBottom: 10, textAlign: 'center' },
-    subtitle: { fontSize: 15, textAlign: 'center', marginBottom: 25, lineHeight: 22 },
+    title: { fontSize: moderateScale(24), fontFamily: 'Poppins-Bold', marginBottom: 10, textAlign: 'center' },
+    subtitle: { fontSize: moderateScale(15), textAlign: 'center', marginBottom: 25, lineHeight: 22 },
     confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', paddingVertical: 16, borderRadius: 16, elevation: 2 },
-    confirmBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Poppins-Bold' },
+    confirmBtnText: { color: '#fff', fontSize: moderateScale(16), fontFamily: 'Poppins-Bold' },
     cancelBtn: { width: '100%', paddingVertical: 16, borderRadius: 16, alignItems: 'center', borderWidth: 1, marginTop: 4 },
-    cancelBtnText: { fontSize: 16, fontFamily: 'Poppins-SemiBold' },
+    cancelBtnText: { fontSize: moderateScale(16), fontFamily: 'Poppins-SemiBold' },
 });
 
 export default WaitingForTheStart;

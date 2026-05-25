@@ -10,6 +10,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../services/api';
 
+import { moderateScale } from '../../utils/responsive';
 const { width } = Dimensions.get('window');
 
 const SearchRide = ({ navigation }) => {
@@ -123,14 +124,9 @@ const SearchRide = ({ navigation }) => {
                     elevation: 4, // Añadido para dar profundidad
                 }
             ]}>
-                <TouchableOpacity 
-                    onPress={() => navigation.navigate('CustomizeApp')}
-                    style={styles.headerIcon}
-                >
-                    <Ionicons name="settings-sharp" size={24} color={theme.text} />
-                </TouchableOpacity>
-                
-                <Text style={[styles.headerTitle, { color: theme.navActive }]}>Viajes</Text>
+                <View style={{ width: 40 }} />
+
+                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Viajes</Text>
                 
                 <TouchableOpacity 
                     onPress={() => navigation.navigate('PasajeroProfileScreen')}
@@ -212,7 +208,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     headerTitle: {
-        fontSize: 22,
+        fontSize: moderateScale(22),
         fontFamily: 'Poppins-Bold',
     },
     profileButton: {
@@ -234,7 +230,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     initialsText: {
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-Bold',
     },
     scrollContent: {
@@ -249,14 +245,14 @@ const styles = StyleSheet.create({
         paddingVertical: 40,
     },
     mainTitle: {
-        fontSize: 32,
+        fontSize: moderateScale(32),
         fontFamily: 'Poppins-Bold',
         textAlign: 'center',
         lineHeight: 40,
         marginBottom: 16,
     },
     subTitle: {
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-Regular',
         textAlign: 'center',
         marginBottom: 40,
@@ -293,7 +289,7 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         color: '#fff',
-        fontSize: 18,
+        fontSize: moderateScale(18),
         fontFamily: 'Poppins-Bold',
     },
 });

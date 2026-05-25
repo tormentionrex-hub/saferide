@@ -10,6 +10,7 @@ import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndi
 import api from '../../services/api';
 import sessionCache from '../../services/sessionCache';
 
+import { moderateScale } from '../../utils/responsive';
 // ── Utilidad de Distancia Haversine ──────────────────────────────────────────
 const getHaversineDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371;
@@ -334,10 +335,10 @@ const ListOfDrivers = ({ route, navigation }) => {
                 },
             ]}>
                 <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-                    <Ionicons name="chevron-back" size={24} color={theme.text} />
+                    <Ionicons name="arrow-back" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <View style={styles.headerCenter}>
-                    <Text style={[styles.headerTitle, { color: theme.text }]}>Viajes Disponibles</Text>
+                    <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Viajes Disponibles</Text>
                     {processedRides.length > 0 && (
                         <Text style={[styles.headerSub, { color: theme.textSecondary }]}>
                             {processedRides.length} {processedRides.length === 1 ? 'viaje encontrado' : 'viajes encontrados'}
@@ -463,8 +464,8 @@ const styles = StyleSheet.create({
     backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
     refreshBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
     headerCenter: { flex: 1, alignItems: 'center' },
-    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
-    headerSub: { fontSize: 12, fontFamily: 'Poppins-Regular', marginTop: 1 },
+    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
+    headerSub: { fontSize: moderateScale(12), fontFamily: 'Poppins-Regular', marginTop: 1 },
 
     // Lista
     listWrapper: { flex: 1 },
@@ -487,25 +488,25 @@ const styles = StyleSheet.create({
         width: 46, height: 46, borderRadius: 23,
         justifyContent: 'center', alignItems: 'center',
     },
-    avatarText: { fontSize: 16, fontFamily: 'Poppins-Bold' },
-    driverName: { fontSize: 15, fontFamily: 'Poppins-Bold' },
+    avatarText: { fontSize: moderateScale(16), fontFamily: 'Poppins-Bold' },
+    driverName: { fontSize: moderateScale(15), fontFamily: 'Poppins-Bold' },
     ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
-    ratingText: { fontSize: 12, fontFamily: 'Poppins-Regular' },
-    price: { fontSize: 16, fontFamily: 'Poppins-Bold' },
+    ratingText: { fontSize: moderateScale(12), fontFamily: 'Poppins-Regular' },
+    price: { fontSize: moderateScale(16), fontFamily: 'Poppins-Bold' },
 
     routeBox: { borderRadius: 12, padding: 12, marginBottom: 12 },
     routeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     routeDivider: { height: 1, marginVertical: 8, marginLeft: 22 },
-    routeText: { flex: 1, fontSize: 13, fontFamily: 'Poppins-Regular' },
+    routeText: { flex: 1, fontSize: moderateScale(13), fontFamily: 'Poppins-Regular' },
 
     cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     footerChip: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    footerChipText: { fontSize: 12, fontFamily: 'Poppins-Regular' },
+    footerChipText: { fontSize: moderateScale(12), fontFamily: 'Poppins-Regular' },
     verBtn: {
         marginLeft: 'auto', flexDirection: 'row', alignItems: 'center',
         paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10, gap: 2,
     },
-    verBtnText: { color: '#fff', fontSize: 13, fontFamily: 'Poppins-Bold' },
+    verBtnText: { color: '#fff', fontSize: moderateScale(13), fontFamily: 'Poppins-Bold' },
 
     // Estado vacío
     emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
@@ -513,14 +514,14 @@ const styles = StyleSheet.create({
         width: 100, height: 100, borderRadius: 50,
         justifyContent: 'center', alignItems: 'center', marginBottom: 24,
     },
-    emptyTitle: { fontSize: 20, fontFamily: 'Poppins-Bold', marginBottom: 10, textAlign: 'center' },
-    emptySubtitle: { fontSize: 14, fontFamily: 'Poppins-Regular', textAlign: 'center', lineHeight: 22, marginBottom: 32 },
+    emptyTitle: { fontSize: moderateScale(20), fontFamily: 'Poppins-Bold', marginBottom: 10, textAlign: 'center' },
+    emptySubtitle: { fontSize: moderateScale(14), fontFamily: 'Poppins-Regular', textAlign: 'center', lineHeight: 22, marginBottom: 32 },
     retryBtn: {
         flexDirection: 'row', alignItems: 'center',
         paddingHorizontal: 24, paddingVertical: 14,
         borderRadius: 14,
     },
-    retryBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Poppins-Bold' },
+    retryBtnText: { color: '#fff', fontSize: moderateScale(15), fontFamily: 'Poppins-Bold' },
 
     // Resumen de ruta
     routeSummary: {
@@ -534,7 +535,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     routeSummaryText: {
-        fontSize: 13,
+        fontSize: moderateScale(13),
         fontFamily: 'Poppins-Medium',
         flex: 1,
     },

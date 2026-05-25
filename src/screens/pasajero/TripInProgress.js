@@ -16,6 +16,7 @@ import BottomNavigationBar from '../../components/BottomNavigationBar';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { darkMapStyle } from '../../utils/mapStyle';
 
+import { moderateScale } from '../../utils/responsive';
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBjX1C4jk1I2E5MB2FnABjTZC0uXt0ullA';
 
 // Decodifica el polyline codificado de Google Maps en array de coordenadas
@@ -646,10 +647,10 @@ const TripInProgress = ({ route, navigation }) => {
                 <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
                     <Ionicons name="car-sport-outline" size={80} color={theme.textSecondary} style={{ opacity: 0.4, marginBottom: 20 }} />
-                    <Text style={{ fontSize: 22, fontFamily: 'Poppins-Bold', color: theme.text, textAlign: 'center', marginBottom: 10 }}>
+                    <Text style={{ fontSize: moderateScale(22), fontFamily: 'Poppins-Bold', color: theme.text, textAlign: 'center', marginBottom: 10 }}>
                         No tienes ningún viaje activo
                     </Text>
-                    <Text style={{ fontSize: 15, fontFamily: 'Poppins-Regular', color: theme.textSecondary, textAlign: 'center', marginBottom: 40, paddingHorizontal: 20 }}>
+                    <Text style={{ fontSize: moderateScale(15), fontFamily: 'Poppins-Regular', color: theme.textSecondary, textAlign: 'center', marginBottom: 40, paddingHorizontal: 20 }}>
                         Actualmente no estás a bordo de ningún viaje ni esperando a ser recogido.
                     </Text>
                     <TouchableOpacity
@@ -690,7 +691,7 @@ const TripInProgress = ({ route, navigation }) => {
             <View style={[styles.header, { paddingTop: insets.top > 0 ? insets.top + 4 : 28, backgroundColor: theme.bg }]}>
                 <View style={styles.headerLeft}>
                     <Ionicons name="location" size={22} color={theme.navActive} />
-                    <Text style={[styles.headerTitle, { color: theme.text }]}>Viaje en Curso</Text>
+                    <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Viaje en Curso</Text>
                 </View>
                 <TouchableOpacity
                     style={styles.avatarWrapper}
@@ -998,7 +999,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     headerTitle: {
-        fontSize: 22,
+        fontSize: moderateScale(22),
         fontFamily: 'Poppins-Bold',
         color: '#191C1E',
         letterSpacing: -0.3,
@@ -1033,7 +1034,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     avatarInitials: {
-        fontSize: 13,
+        fontSize: moderateScale(13),
         fontFamily: 'Poppins-Bold',
         color: '#005BBF',
     },
@@ -1050,7 +1051,7 @@ const styles = StyleSheet.create({
         paddingBottom: 12,
     },
     destinationLabel: {
-        fontSize: 11,
+        fontSize: moderateScale(11),
         fontFamily: 'Poppins-SemiBold',
         color: '#2B5BB5',
         letterSpacing: 1.5,
@@ -1058,7 +1059,7 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     destinationName: {
-        fontSize: 26,
+        fontSize: moderateScale(26),
         fontFamily: 'Poppins-Bold',
         color: '#191C1E',
         letterSpacing: -0.5,
@@ -1094,7 +1095,7 @@ const styles = StyleSheet.create({
     },
     mapUnavailableText: {
         marginTop: 10,
-        fontSize: 15,
+        fontSize: moderateScale(15),
         fontFamily: 'Poppins-SemiBold',
         color: '#727785',
     },
@@ -1158,12 +1159,12 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     journeyTime: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         fontFamily: 'Poppins-Bold',
         color: '#191C1E',
     },
     journeyMeta: {
-        fontSize: 12,
+        fontSize: moderateScale(12),
         fontFamily: 'Poppins-Regular',
         color: '#727785',
         marginTop: 2,
@@ -1184,7 +1185,7 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     journeyStopText: {
-        fontSize: 13,
+        fontSize: moderateScale(13),
         fontFamily: 'Poppins-Bold',
         color: '#fff',
         letterSpacing: 0.2,
@@ -1221,7 +1222,7 @@ const styles = StyleSheet.create({
         marginTop: 6,
     },
     ratingUnderAvatarText: {
-        fontSize: 13,
+        fontSize: moderateScale(13),
         fontFamily: 'Poppins-SemiBold',
     },
     vehicleSummaryCol: {
@@ -1231,13 +1232,13 @@ const styles = StyleSheet.create({
         paddingRight: 4,
     },
     vehiclePlate: {
-        fontSize: 22,
+        fontSize: moderateScale(22),
         fontFamily: 'Poppins-Bold',
         letterSpacing: 0.5,
         textAlign: 'right',
     },
     vehicleColorModel: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         fontFamily: 'Poppins-Medium',
         textAlign: 'right',
         marginTop: 4,
@@ -1251,7 +1252,7 @@ const styles = StyleSheet.create({
         borderWidth: StyleSheet.hairlineWidth,
     },
     driverNameHero: {
-        fontSize: 20,
+        fontSize: moderateScale(20),
         fontFamily: 'Poppins-Bold',
         letterSpacing: 0.3,
         marginTop: 14,
@@ -1274,7 +1275,7 @@ const styles = StyleSheet.create({
         minHeight: 48,
     },
     msgBtnWideText: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         fontFamily: 'Poppins-SemiBold',
         flexShrink: 1,
     },
@@ -1328,7 +1329,7 @@ const styles = StyleSheet.create({
         marginVertical: 2,
     },
     routeItemLabel: {
-        fontSize: 10,
+        fontSize: moderateScale(10),
         fontFamily: 'Poppins-Bold',
         color: '#727785',
         letterSpacing: 1.2,
@@ -1336,7 +1337,7 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     routeItemValue: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         fontFamily: 'Poppins-SemiBold',
         color: '#191C1E',
         lineHeight: 20,
@@ -1354,7 +1355,7 @@ const styles = StyleSheet.create({
     },
     searchBtnText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-Bold',
     },
 });
@@ -1363,10 +1364,10 @@ const modalStyles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 25 },
     card: { width: '100%', borderRadius: 30, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 15 },
     iconCircle: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-    title: { fontSize: 24, fontFamily: 'Poppins-Bold', marginBottom: 10, textAlign: 'center' },
-    subtitle: { fontSize: 15, fontFamily: 'Poppins-Regular', textAlign: 'center', marginBottom: 25, lineHeight: 22 },
+    title: { fontSize: moderateScale(24), fontFamily: 'Poppins-Bold', marginBottom: 10, textAlign: 'center' },
+    subtitle: { fontSize: moderateScale(15), fontFamily: 'Poppins-Regular', textAlign: 'center', marginBottom: 25, lineHeight: 22 },
     confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', paddingVertical: 16, borderRadius: 16, elevation: 2 },
-    confirmBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Poppins-Bold' },
+    confirmBtnText: { color: '#fff', fontSize: moderateScale(16), fontFamily: 'Poppins-Bold' },
 });
 
 export default TripInProgress;

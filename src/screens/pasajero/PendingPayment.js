@@ -10,6 +10,7 @@ import { useCustomAlert } from '../../context/CustomAlertContext';
 import api from '../../services/api';
 import PaymentMethodCards from '../../components/PaymentMethodCards';
 
+import { moderateScale } from '../../utils/responsive';
 const PendingPayment = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const { showAlert } = useCustomAlert();
@@ -103,7 +104,7 @@ const PendingPayment = ({ route, navigation }) => {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <Ionicons name="arrow-back" size={22} color={theme.text} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Pagar viaje</Text>
+                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Pagar viaje</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -161,10 +162,10 @@ const PendingPayment = ({ route, navigation }) => {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30, gap: 18 },
-    errorText: { fontSize: 16, fontFamily: 'Poppins-SemiBold', textAlign: 'center' },
+    errorText: { fontSize: moderateScale(16), fontFamily: 'Poppins-SemiBold', textAlign: 'center' },
     paidIcon: { width: 110, height: 110, borderRadius: 55, justifyContent: 'center', alignItems: 'center' },
     primaryBtn: { paddingVertical: 14, paddingHorizontal: 28, borderRadius: 12 },
-    primaryBtnText: { color: '#fff', fontFamily: 'Poppins-Bold', fontSize: 15 },
+    primaryBtnText: { color: '#fff', fontFamily: 'Poppins-Bold', fontSize: moderateScale(15) },
 
     header: {
         flexDirection: 'row',
@@ -179,7 +180,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'flex-start',
     },
-    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold', letterSpacing: -0.3 },
+    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold', letterSpacing: -0.3 },
 
     summaryCard: {
         marginHorizontal: 20,
@@ -196,13 +197,13 @@ const styles = StyleSheet.create({
     summaryHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
     urgentDot: { width: 8, height: 8, borderRadius: 4 },
     urgentLabel: {
-        fontSize: 10,
+        fontSize: moderateScale(10),
         fontFamily: 'Poppins-Bold',
         color: '#FF3B30',
         letterSpacing: 1.5,
     },
-    amountLabel: { fontSize: 10, fontFamily: 'Poppins-Bold', letterSpacing: 1.2, marginBottom: 4 },
-    amountValue: { fontSize: 34, fontFamily: 'Poppins-Bold', letterSpacing: -1 },
+    amountLabel: { fontSize: moderateScale(10), fontFamily: 'Poppins-Bold', letterSpacing: 1.2, marginBottom: 4 },
+    amountValue: { fontSize: moderateScale(34), fontFamily: 'Poppins-Bold', letterSpacing: -1 },
     divider: { height: 1, marginVertical: 16 },
 
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
@@ -210,13 +211,13 @@ const styles = StyleSheet.create({
         width: 38, height: 38, borderRadius: 12,
         justifyContent: 'center', alignItems: 'center',
     },
-    metaLabel: { fontSize: 10, fontFamily: 'Poppins-Bold', letterSpacing: 1.1, marginBottom: 2 },
-    metaValue: { fontSize: 14, fontFamily: 'Poppins-SemiBold' },
+    metaLabel: { fontSize: moderateScale(10), fontFamily: 'Poppins-Bold', letterSpacing: 1.1, marginBottom: 2 },
+    metaValue: { fontSize: moderateScale(14), fontFamily: 'Poppins-SemiBold' },
 
     routeRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
     routeIconCol: { alignItems: 'center' },
     routeLine: { width: 2, height: 18, marginVertical: 3 },
-    routeText: { fontSize: 13, fontFamily: 'Poppins-SemiBold' },
+    routeText: { fontSize: moderateScale(13), fontFamily: 'Poppins-SemiBold' },
 });
 
 export default PendingPayment;

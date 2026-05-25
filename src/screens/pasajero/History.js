@@ -27,6 +27,7 @@ import { DateTime } from 'luxon';
 import { Image } from 'expo-image';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
+import { moderateScale } from '../../utils/responsive';
 const { width } = Dimensions.get('window');
 
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -167,25 +168,25 @@ const pendingStyles = StyleSheet.create({
         elevation: 4,
     },
     badge: {
-        fontSize: 10,
+        fontSize: moderateScale(10),
         fontFamily: 'Poppins-Bold',
         color: '#FF3B30',
         letterSpacing: 1.2,
         marginBottom: 2,
     },
     title: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         fontFamily: 'Poppins-Bold',
         color: '#7A0F1A',
     },
     amount: {
-        fontSize: 18,
+        fontSize: moderateScale(18),
         fontFamily: 'Poppins-Bold',
         color: '#FF3B30',
     },
     body: { gap: 8, paddingHorizontal: 4, marginBottom: 14 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    rowText: { fontSize: 13, fontFamily: 'Poppins-SemiBold', color: '#7A0F1A', flex: 1 },
+    rowText: { fontSize: moderateScale(13), fontFamily: 'Poppins-SemiBold', color: '#7A0F1A', flex: 1 },
     routeMini: {
         marginTop: 6,
         paddingTop: 10,
@@ -195,7 +196,7 @@ const pendingStyles = StyleSheet.create({
     routePoint: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     dot: { width: 8, height: 8, borderRadius: 4 },
     routeLine: { width: 1.5, height: 10, backgroundColor: '#FFC5C0', marginLeft: 3.5, marginVertical: 2 },
-    routeText: { fontSize: 12, fontFamily: 'Poppins-SemiBold', color: '#7A0F1A', flex: 1 },
+    routeText: { fontSize: moderateScale(12), fontFamily: 'Poppins-SemiBold', color: '#7A0F1A', flex: 1 },
     payBtn: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -213,7 +214,7 @@ const pendingStyles = StyleSheet.create({
     payBtnText: {
         flex: 1,
         textAlign: 'center',
-        fontSize: 15,
+        fontSize: moderateScale(15),
         fontFamily: 'Poppins-Bold',
         color: '#fff',
         letterSpacing: 0.3,
@@ -326,7 +327,7 @@ const HistoryItem = memo(({ item, theme, calculateArrivalTime, handleContact }) 
                         />
                     ) : (
                         <View style={[styles.avatarMini, { backgroundColor: theme.accent + '22', justifyContent: 'center', alignItems: 'center' }]}>
-                            <Text style={{ color: theme.accent, fontSize: 14, fontFamily: 'Poppins-Bold' }}>
+                            <Text style={{ color: theme.accent, fontSize: moderateScale(14), fontFamily: 'Poppins-Bold' }}>
                                 {(ride.driver_id?.name || '?').charAt(0).toUpperCase()}
                             </Text>
                         </View>
@@ -738,8 +739,8 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: 35,
         borderBottomRightRadius: 35,
     },
-    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold', color: '#fff' },
-    headerSubtitle: { fontSize: 14, fontFamily: 'Poppins-Regular', color: 'rgba(255,255,255,0.9)' },
+    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold', color: '#fff' },
+    headerSubtitle: { fontSize: moderateScale(14), fontFamily: 'Poppins-Regular', color: 'rgba(255,255,255,0.9)' },
     listContainer: { flex: 1, marginTop: -25 },
     listContent: { paddingHorizontal: 20 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 },
@@ -756,51 +757,51 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
     },
-    selectorLabel: { flex: 1, fontSize: 15, fontFamily: 'Poppins-SemiBold' },
+    selectorLabel: { flex: 1, fontSize: moderateScale(15), fontFamily: 'Poppins-SemiBold' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
     modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, maxHeight: '80%', paddingBottom: 40 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderBottomWidth: 1 },
-    modalTitle: { fontSize: 20, fontFamily: 'Poppins-Bold' },
+    modalTitle: { fontSize: moderateScale(20), fontFamily: 'Poppins-Bold' },
     modalBody: { padding: 16 },
     monthOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderRadius: 16, marginBottom: 8 },
     optionRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    optionText: { fontSize: 16, fontFamily: 'Poppins-SemiBold' },
+    optionText: { fontSize: moderateScale(16), fontFamily: 'Poppins-SemiBold' },
     sectionDivider: { height: 1, marginVertical: 16, opacity: 0.1 },
-    sectionTitle: { fontSize: 12, fontFamily: 'Poppins-Bold', textTransform: 'uppercase', marginBottom: 12, marginLeft: 8, letterSpacing: 1 },
+    sectionTitle: { fontSize: moderateScale(12), fontFamily: 'Poppins-Bold', textTransform: 'uppercase', marginBottom: 12, marginLeft: 8, letterSpacing: 1 },
     historyCard: { borderRadius: 24, padding: 16, marginBottom: 20, borderWidth: 1, elevation: 6, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 12 },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     dateBlock: { width: 54, height: 54, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-    dateDay: { fontSize: 20, fontFamily: 'Poppins-Bold' },
-    dateMonth: { fontSize: 10, fontFamily: 'Poppins-SemiBold' },
+    dateDay: { fontSize: moderateScale(20), fontFamily: 'Poppins-Bold' },
+    dateMonth: { fontSize: moderateScale(10), fontFamily: 'Poppins-SemiBold' },
     statusCol: { gap: 4 },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignSelf: 'flex-start' },
-    statusText: { fontSize: 10, fontFamily: 'Poppins-Bold', textTransform: 'uppercase' },
-    timeText: { fontSize: 12, fontFamily: 'Poppins-SemiBold' },
-    priceText: { fontSize: 20, fontFamily: 'Poppins-Bold' },
+    statusText: { fontSize: moderateScale(10), fontFamily: 'Poppins-Bold', textTransform: 'uppercase' },
+    timeText: { fontSize: moderateScale(12), fontFamily: 'Poppins-SemiBold' },
+    priceText: { fontSize: moderateScale(20), fontFamily: 'Poppins-Bold' },
     mapSection: { borderRadius: 16, borderWidth: 1, overflow: 'hidden', marginBottom: 16 },
     mapSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8 },
-    mapSectionLabel: { fontSize: 11, fontFamily: 'Poppins-Bold', textTransform: 'uppercase', letterSpacing: 0.5 },
+    mapSectionLabel: { fontSize: moderateScale(11), fontFamily: 'Poppins-Bold', textTransform: 'uppercase', letterSpacing: 0.5 },
     mapContainer: { height: 110, overflow: 'hidden' },
     map: { ...StyleSheet.absoluteFillObject },
     markerIcon: { width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: '#fff', justifyContent: 'center', alignItems: 'center' },
     markerInner: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#fff' },
     routeContainer: { padding: 12, borderRadius: 16, gap: 2, marginBottom: 16 },
     routePoint: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    routeValue: { flex: 1, fontSize: 13, fontFamily: 'Poppins-SemiBold' },
+    routeValue: { flex: 1, fontSize: moderateScale(13), fontFamily: 'Poppins-SemiBold' },
     routeConnector: { width: 1.5, height: 8, marginLeft: 6, marginVertical: 2 },
     cardFooter: { paddingTop: 12, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     driverInfoMain: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
     avatarMini: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)' },
-    driverNameText: { fontSize: 14, fontFamily: 'Poppins-Bold' },
-    seatsInfoMini: { fontSize: 11, fontFamily: 'Poppins-Regular' },
+    driverNameText: { fontSize: moderateScale(14), fontFamily: 'Poppins-Bold' },
+    seatsInfoMini: { fontSize: moderateScale(11), fontFamily: 'Poppins-Regular' },
     contactActions: { flexDirection: 'row', gap: 8 },
     contactBtn: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
     loadMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 16, borderWidth: 1, borderStyle: 'dashed', marginTop: 10, marginBottom: 30, gap: 8 },
-    loadMoreText: { fontSize: 15, fontFamily: 'Poppins-Bold' },
+    loadMoreText: { fontSize: moderateScale(15), fontFamily: 'Poppins-Bold' },
     emptyContainer: { marginTop: 80, alignItems: 'center', paddingHorizontal: 40, gap: 12 },
-    emptyTitle: { fontSize: 18, fontFamily: 'Poppins-Bold', textAlign: 'center' },
-    emptyText: { fontSize: 14, fontFamily: 'Poppins-Regular', textAlign: 'center', lineHeight: 22 },
+    emptyTitle: { fontSize: moderateScale(18), fontFamily: 'Poppins-Bold', textAlign: 'center' },
+    emptyText: { fontSize: moderateScale(14), fontFamily: 'Poppins-Regular', textAlign: 'center', lineHeight: 22 },
     pendingHeader: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -809,7 +810,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
     },
     pendingHeaderText: {
-        fontSize: 12,
+        fontSize: moderateScale(12),
         fontFamily: 'Poppins-Bold',
         color: '#FF3B30',
         letterSpacing: 0.8,

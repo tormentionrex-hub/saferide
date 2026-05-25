@@ -13,6 +13,7 @@ import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 import TripCompletedOverlay from '../../components/TripCompletedOverlay';
 import { darkMapStyle } from '../../utils/mapStyle';
 
+import { moderateScale } from '../../utils/responsive';
 /* ─── Modal de inicio de viaje ───────────────────────────────────── */
 const StartRideModal = ({ visible, onClose, onConfirm, loading, confirmedCount, theme }) => {
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
@@ -389,7 +390,7 @@ const PassengerDetailModal = ({ visible, onClose, booking, rideData, theme }) =>
                         ) : (
                             <View style={[detailModalStyles.map, { justifyContent: 'center', alignItems: 'center', backgroundColor: theme.surfaceVariant || '#F1F5F9' }]}>
                                 <Ionicons name="map-outline" size={50} color={theme.border} />
-                                <Text style={{ color: theme.textSecondary, marginTop: 8, fontSize: 13 }}>Mapa no disponible</Text>
+                                <Text style={{ color: theme.textSecondary, marginTop: 8, fontSize: moderateScale(13) }}>Mapa no disponible</Text>
                             </View>
                         )}
                     </View>
@@ -488,7 +489,7 @@ const detailModalStyles = StyleSheet.create({
     container: { flex: 1 },
     mapWrapper: { width: '100%', flex: 1 },
     mapHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
-    mapHeaderText: { fontSize: 16, fontFamily: 'Poppins-Bold', letterSpacing: 0.3 },
+    mapHeaderText: { fontSize: moderateScale(16), fontFamily: 'Poppins-Bold', letterSpacing: 0.3 },
     map: { width: '100%', flex: 1 },
     closeBtn: { position: 'absolute', top: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight || 24) + 8, right: 16, width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 5, zIndex: 10 },
     markerRound: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#2563EB', borderWidth: 2, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', elevation: 4 },
@@ -496,31 +497,31 @@ const detailModalStyles = StyleSheet.create({
     dragBar: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 15 },
     profileRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
     profileImg: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: '#E5E7EB' },
-    profileName: { fontSize: 17, fontFamily: 'Poppins-Bold', marginBottom: 4 },
+    profileName: { fontSize: moderateScale(17), fontFamily: 'Poppins-Bold', marginBottom: 4 },
     starsRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-    ratingText: { fontSize: 13, fontFamily: 'Poppins-SemiBold', marginLeft: 6 },
+    ratingText: { fontSize: moderateScale(13), fontFamily: 'Poppins-SemiBold', marginLeft: 6 },
     statusBadge: (status) => ({
         paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
         backgroundColor: status === 'confirmed' ? '#ECFDF5' : status === 'pending' ? '#FEF3C7' : '#FEE2E2',
     }),
     statusText: (status) => ({
-        fontSize: 11, fontFamily: 'Poppins-Bold',
+        fontSize: moderateScale(11), fontFamily: 'Poppins-Bold',
         color: status === 'confirmed' ? '#10B981' : status === 'pending' ? '#D97706' : '#EF4444',
     }),
     divider: { height: 1, marginBottom: 14 },
     routeSection: { marginBottom: 14 },
-    sectionLabel: { fontSize: 10, fontFamily: 'Poppins-Bold', letterSpacing: 1.2, marginBottom: 10 },
+    sectionLabel: { fontSize: moderateScale(10), fontFamily: 'Poppins-Bold', letterSpacing: 1.2, marginBottom: 10 },
     routeBox: { flexDirection: 'row' },
     iconCol: { alignItems: 'center', marginRight: 12, paddingVertical: 4 },
     dotLine: { width: 2, flex: 1, marginVertical: 3 },
-    routeText: { fontSize: 14, fontFamily: 'Poppins-SemiBold' },
+    routeText: { fontSize: moderateScale(14), fontFamily: 'Poppins-SemiBold' },
     metricsRow: { flexDirection: 'row', gap: 10 },
     metricItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 12 },
-    metricText: { fontSize: 12, fontFamily: 'Poppins-SemiBold' },
+    metricText: { fontSize: moderateScale(12), fontFamily: 'Poppins-SemiBold' },
     offerCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, marginTop: 10 },
     offerIconCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#25C46015', justifyContent: 'center', alignItems: 'center' },
-    offerLabel: { fontSize: 9, fontFamily: 'Poppins-Bold', letterSpacing: 1, marginBottom: 2 },
-    offerValue: { fontSize: 18, fontFamily: 'Poppins-Bold' },
+    offerLabel: { fontSize: moderateScale(9), fontFamily: 'Poppins-Bold', letterSpacing: 1, marginBottom: 2 },
+    offerValue: { fontSize: moderateScale(18), fontFamily: 'Poppins-Bold' },
 });
 
 const ListOfRequests = ({ route, navigation }) => {
@@ -893,7 +894,7 @@ const ListOfRequests = ({ route, navigation }) => {
                                 </View>
                             )}
                         </View>
-                        <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 3 }}>
+                        <Text style={{ color: theme.textSecondary, fontSize: moderateScale(12), marginTop: 3 }}>
                             {item.seats_booked} asiento/s solicitado/s
                         </Text>
                         <View style={styles.offeredRow}>
@@ -947,9 +948,9 @@ const ListOfRequests = ({ route, navigation }) => {
                     }} 
                     style={styles.backBtn}
                 >
-                    <Ionicons name="chevron-back" size={24} color={theme.text} />
+                    <Ionicons name="arrow-back" size={24} color={theme.text} />
                 </TouchableOpacity>
-                <Text style={[styles.title, { color: theme.text }]}>Solicitudes {specificRideId ? 'del Viaje' : 'de Pasajeros'}</Text>
+                <Text style={[styles.title, { color: theme.navActive || '#005BBF' }]}>Solicitudes {specificRideId ? 'del Viaje' : 'de Pasajeros'}</Text>
                 <TouchableOpacity 
                     onPress={handleRefresh} 
                     style={styles.refreshBtn}
@@ -1063,46 +1064,46 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 20, borderBottomWidth: 1 },
     backBtn: { position: 'absolute', left: 20 },
     refreshBtn: { position: 'absolute', right: 20 },
-    title: { fontSize: 22, fontFamily: 'Poppins-Bold' },
+    title: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
     passengerCard: { padding: 14, borderRadius: 15, borderWidth: 1, marginBottom: 15, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
     cardTopRow: { flexDirection: 'row', alignItems: 'center' },
     avatar: { width: 44, height: 44, borderRadius: 22 },
     infoContainer: { flex: 1, marginLeft: 12 },
     nameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
-    nameText: { fontSize: 15, fontFamily: 'Poppins-Bold', maxWidth: '60%' },
+    nameText: { fontSize: moderateScale(15), fontFamily: 'Poppins-Bold', maxWidth: '60%' },
     confirmedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#ECFDF5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
-    confirmedText: { fontSize: 10, color: '#10B981', fontFamily: 'Poppins-Bold' },
+    confirmedText: { fontSize: moderateScale(10), color: '#10B981', fontFamily: 'Poppins-Bold' },
     offeredRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-    offeredText: { fontSize: 12, fontFamily: 'Poppins-Bold', color: '#25C460' },
+    offeredText: { fontSize: moderateScale(12), fontFamily: 'Poppins-Bold', color: '#25C460' },
     btnGroup: { flexDirection: 'column', gap: 5 },
     acceptBtn: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: 10, alignItems: 'center' },
     denyBtn: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: 10, backgroundColor: '#EF4444', alignItems: 'center' },
-    btnText: { color: '#fff', fontFamily: 'Poppins-Bold', fontSize: 12 },
+    btnText: { color: '#fff', fontFamily: 'Poppins-Bold', fontSize: moderateScale(12) },
     detailBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1, marginTop: 10, alignSelf: 'flex-start', marginLeft: 56 },
-    detailBtnText: { fontSize: 12, fontFamily: 'Poppins-SemiBold' },
+    detailBtnText: { fontSize: moderateScale(12), fontFamily: 'Poppins-SemiBold' },
     startRideContainer: { position: 'absolute', bottom: 120, left: 20, right: 20, padding: 15, borderRadius: 20, alignItems: 'center', elevation: 12, shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.15, shadowRadius: 8, borderWidth: 1, borderColor: '#F3F4F6' },
-    startRideText: { fontSize: 13, marginBottom: 10, fontFamily: 'Poppins-SemiBold' },
+    startRideText: { fontSize: moderateScale(13), marginBottom: 10, fontFamily: 'Poppins-SemiBold' },
     startRideBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', paddingVertical: 14, borderRadius: 14, gap: 10, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2 },
-    startRideBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Poppins-Bold' },
+    startRideBtnText: { color: '#fff', fontSize: moderateScale(16), fontFamily: 'Poppins-Bold' },
     cancelRideBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', paddingVertical: 12, borderRadius: 14, gap: 8, marginTop: 8, borderWidth: 1.5, borderColor: '#EF4444', backgroundColor: 'transparent' },
-    cancelRideBtnText: { color: '#EF4444', fontSize: 15, fontFamily: 'Poppins-Bold' },
+    cancelRideBtnText: { color: '#EF4444', fontSize: moderateScale(15), fontFamily: 'Poppins-Bold' },
 });
 
 const modalStyles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 25 },
     card: { width: '100%', backgroundColor: '#fff', borderRadius: 30, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 15 },
     iconCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-    title: { fontSize: 24, fontFamily: 'Poppins-Bold', color: '#111827', marginBottom: 10, textAlign: 'center' },
-    subtitle: { fontSize: 15, color: '#6B7280', textAlign: 'center', marginBottom: 25, lineHeight: 22 },
+    title: { fontSize: moderateScale(24), fontFamily: 'Poppins-Bold', color: '#111827', marginBottom: 10, textAlign: 'center' },
+    subtitle: { fontSize: moderateScale(15), color: '#6B7280', textAlign: 'center', marginBottom: 25, lineHeight: 22 },
     infoBox: { width: '100%', backgroundColor: '#F9FAFB', borderRadius: 20, padding: 20, marginBottom: 20, gap: 12, borderWidth: 1, borderColor: '#F3F4F6' },
     infoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    infoText: { fontSize: 14, fontFamily: 'Poppins-SemiBold', color: '#374151' },
-    warningText: { fontSize: 12, color: '#EF4444', fontFamily: 'Poppins-Bold', textAlign: 'center', marginBottom: 30, paddingHorizontal: 10 },
+    infoText: { fontSize: moderateScale(14), fontFamily: 'Poppins-SemiBold', color: '#374151' },
+    warningText: { fontSize: moderateScale(12), color: '#EF4444', fontFamily: 'Poppins-Bold', textAlign: 'center', marginBottom: 30, paddingHorizontal: 10 },
     buttonContainer: { width: '100%', gap: 12 },
     confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: '#2563EB', paddingVertical: 16, borderRadius: 16, elevation: 2 },
-    confirmBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Poppins-Bold' },
+    confirmBtnText: { color: '#fff', fontSize: moderateScale(16), fontFamily: 'Poppins-Bold' },
     cancelBtn: { paddingVertical: 12, alignItems: 'center' },
-    cancelBtnText: { color: '#6B7280', fontSize: 15, fontFamily: 'Poppins-SemiBold' },
+    cancelBtnText: { color: '#6B7280', fontSize: moderateScale(15), fontFamily: 'Poppins-SemiBold' },
     btnDisabled: { opacity: 0.6 }
 });
 

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 
+import { moderateScale } from '../../utils/responsive';
 const PAYPAL_BLUE = '#003087';
 const PAYPAL_YELLOW = '#FFC439';
 
@@ -145,9 +146,9 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
         <View style={[styles.header, { paddingTop: insets.top || 40 }]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="close" size={24} color="#333" />
+            <Ionicons name="arrow-back" size={22} color={theme.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Pago del Viaje</Text>
+          <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Pago del Viaje</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -198,7 +199,7 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="close" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pagar con PayPal</Text>
+        <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Pagar con PayPal</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -240,20 +241,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: moderateScale(22),
     fontFamily: 'Poppins-Bold',
     color: '#111827',
   },
   loadingText: {
     marginTop: 15,
-    fontSize: 15,
+    fontSize: moderateScale(15),
     fontFamily: 'Poppins-Regular',
     color: '#6B7280',
   },
   errorText: {
     marginTop: 15,
     marginBottom: 30,
-    fontSize: 15,
+    fontSize: moderateScale(15),
     fontFamily: 'Poppins-Regular',
     color: '#111827',
     textAlign: 'center',
@@ -267,7 +268,7 @@ const styles = StyleSheet.create({
   retryBtnText: {
     color: '#FFF',
     fontFamily: 'Poppins-SemiBold',
-    fontSize: 15,
+    fontSize: moderateScale(15),
   },
   webviewLoader: {
     position: 'absolute',
@@ -297,7 +298,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   introTitle: {
-    fontSize: 22,
+    fontSize: moderateScale(22),
     fontFamily: 'Poppins-Bold',
     color: '#111827',
     textAlign: 'center',
@@ -305,7 +306,7 @@ const styles = StyleSheet.create({
     lineHeight: 30,
   },
   introSubtitle: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     fontFamily: 'Poppins-Regular',
     color: '#6B7280',
     textAlign: 'center',
@@ -331,7 +332,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   paypalBtnText: {
-    fontSize: 17,
+    fontSize: moderateScale(17),
     letterSpacing: 0.3,
   },
   secureRow: {
@@ -341,7 +342,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   secureText: {
-    fontSize: 12,
+    fontSize: moderateScale(12),
     fontFamily: 'Poppins-Regular',
     color: '#6B7280',
   },

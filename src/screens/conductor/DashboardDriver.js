@@ -31,6 +31,7 @@ import NotificationBell from '../../components/NotificationBell';
 import NotificationCenterModal from '../../components/NotificationCenterModal';
 import { useNotifications } from '../../hooks/useNotifications';
 
+import { moderateScale } from '../../utils/responsive';
 export default function DashboardConductor({ route, navigation }) {
     const { theme } = useDriverTheme();
     const insets = useSafeAreaInsets();
@@ -450,13 +451,13 @@ const styles = StyleSheet.create({
     },
     headerSide: { flex: 1, flexDirection: 'row', alignItems: 'center' },
     headerIconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold', textAlign: 'center' },
+    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold', textAlign: 'center' },
     headerRight: { justifyContent: 'flex-end', gap: 6 },
     profileButton: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 1.5, borderColor: '#E2E8F0' },
     profileImg: { width: '100%', height: '100%' },
     profileFallback: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
-    initialsText: { fontSize: 16, fontFamily: 'Poppins-Bold' },
-    welcomeText: { fontSize: 24, fontFamily: 'Poppins-Bold' },
+    initialsText: { fontSize: moderateScale(16), fontFamily: 'Poppins-Bold' },
+    welcomeText: { fontSize: moderateScale(24), fontFamily: 'Poppins-Bold' },
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     mainCard: {
         borderRadius: 20,
@@ -475,8 +476,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center', alignItems: 'center',
         marginBottom: 14, elevation: 3,
     },
-    mainCardTitle: { fontSize: 20, fontFamily: 'Poppins-Bold', marginBottom: 6, textAlign: 'center' },
-    mainCardDescription: { fontSize: 13, fontFamily: 'Poppins-Regular', textAlign: 'center', lineHeight: 20 },
+    mainCardTitle: { fontSize: moderateScale(20), fontFamily: 'Poppins-Bold', marginBottom: 6, textAlign: 'center' },
+    mainCardDescription: { fontSize: moderateScale(13), fontFamily: 'Poppins-Regular', textAlign: 'center', lineHeight: 20 },
     row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
     smallCard: {
         borderRadius: 20, padding: 18, flex: 1, alignItems: 'center',
@@ -489,19 +490,19 @@ const styles = StyleSheet.create({
         justifyContent: 'center', alignItems: 'center',
         marginBottom: 10, elevation: 2,
     },
-    smallCardTitle: { fontSize: 13, fontFamily: 'Poppins-Bold', textAlign: 'center' },
+    smallCardTitle: { fontSize: moderateScale(13), fontFamily: 'Poppins-Bold', textAlign: 'center' },
     cardLocked: { opacity: 0.45 },
     loadingContainer: { paddingVertical: 40, alignItems: 'center' },
     lockBanner: { borderRadius: 20, borderWidth: 1.5, padding: 24, alignItems: 'center', marginBottom: 16, gap: 8 },
     lockIconCircle: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-    lockTitle: { fontSize: 18, fontFamily: 'Poppins-Bold', textAlign: 'center' },
-    lockSub: { fontSize: 13, fontFamily: 'Poppins-Regular', textAlign: 'center', lineHeight: 19, marginBottom: 8 },
+    lockTitle: { fontSize: moderateScale(18), fontFamily: 'Poppins-Bold', textAlign: 'center' },
+    lockSub: { fontSize: moderateScale(13), fontFamily: 'Poppins-Regular', textAlign: 'center', lineHeight: 19, marginBottom: 8 },
     lockBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 14, marginTop: 4 },
-    lockBtnText: { color: '#fff', fontSize: 14, fontFamily: 'Poppins-Bold' },
+    lockBtnText: { color: '#fff', fontSize: moderateScale(14), fontFamily: 'Poppins-Bold' },
     // ── Frequent Routes ──
     frequentSection: { marginBottom: 16 },
     frequentTitle: {
-        fontSize: 12,
+        fontSize: moderateScale(12),
         fontFamily: 'Poppins-Bold',
         textTransform: 'uppercase',
         letterSpacing: 1,
@@ -530,13 +531,13 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     frequentCardTitle: {
-        fontSize: 13,
+        fontSize: moderateScale(13),
         fontFamily: 'Poppins-Bold',
         textAlign: 'center',
         marginBottom: 2,
     },
     frequentCardSub: {
-        fontSize: 11,
+        fontSize: moderateScale(11),
         fontFamily: 'Poppins-Regular',
     },
     // ── Modal Styles ──
@@ -590,13 +591,13 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
     titleModal: {
-        fontSize: 22,
+        fontSize: moderateScale(22),
         fontFamily: 'Poppins-Bold',
         marginBottom: 10,
         letterSpacing: 0.3,
     },
     subtitleModal: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         textAlign: 'center',
         lineHeight: 21,
         paddingHorizontal: 8,
@@ -622,7 +623,7 @@ const styles = StyleSheet.create({
     },
     primaryBtnTextModal: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-Bold',
         letterSpacing: 0.3,
     },
@@ -634,7 +635,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     cancelBtnTextModal: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         fontFamily: 'Poppins-SemiBold',
     },
 });

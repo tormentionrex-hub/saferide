@@ -10,6 +10,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import CustomAlert from '../../components/CustomAlert';
 
+import { moderateScale } from '../../utils/responsive';
 const CAR_DATA = { //ESTOS SON LOS QUE VAN A IR EN EL ProfileConductor, para cuando este esa Feature.
     Acura: ['MDX', 'RDX', 'TLX', 'TSX', 'Integra'],
     Audi: ['A3', 'A4', 'Q3', 'Q5', 'Q7'],
@@ -201,9 +202,9 @@ export default function RegisterVehicleStep1({ navigation }) {
                 {/* Header */}
                 <View style={[styles.header, { borderBottomColor: theme.divider }]}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                        <Ionicons name="chevron-back" size={24} color={theme.text} />
+                        <Ionicons name="arrow-back" size={24} color={theme.text} />
                     </TouchableOpacity>
-                    <Text style={[styles.innerTitle, { color: theme.text }]}>Registro de Vehículo</Text>
+                    <Text style={[styles.innerTitle, { color: theme.navActive || '#005BBF' }]}>Registro de Vehículo</Text>
                 </View>
 
                 <View style={{ flex: 1 }}>
@@ -391,20 +392,20 @@ const styles = StyleSheet.create({
         paddingVertical: 20, borderBottomWidth: 1,
     },
     backBtn: { position: 'absolute', left: 20 },
-    innerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
+    innerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
     scrollBody: { padding: 20, paddingBottom: 100 },
 
     progressRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-    stepLabel: { fontSize: 11, fontFamily: 'Poppins-Bold', letterSpacing: 0.8 },
-    pct: { fontSize: 13, fontFamily: 'Poppins-Bold' },
+    stepLabel: { fontSize: moderateScale(11), fontFamily: 'Poppins-Bold', letterSpacing: 0.8 },
+    pct: { fontSize: moderateScale(13), fontFamily: 'Poppins-Bold' },
     progressTrack: { height: 5, borderRadius: 3, marginBottom: 20, overflow: 'hidden' },
     progressFill: { height: '100%', borderRadius: 3 },
 
-    sectionTitle: { fontSize: 20, fontFamily: 'Poppins-Bold', marginBottom: 6 },
-    sectionSub: { fontSize: 12, lineHeight: 18, marginBottom: 20 },
+    sectionTitle: { fontSize: moderateScale(20), fontFamily: 'Poppins-Bold', marginBottom: 6 },
+    sectionSub: { fontSize: moderateScale(12), lineHeight: 18, marginBottom: 20 },
 
-    label: { fontSize: 11, fontFamily: 'Poppins-Bold', letterSpacing: 0.8, marginBottom: 5 },
-    input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, fontSize: 14, marginBottom: 16 },
+    label: { fontSize: moderateScale(11), fontFamily: 'Poppins-Bold', letterSpacing: 0.8, marginBottom: 5 },
+    input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, fontSize: moderateScale(14), marginBottom: 16 },
     row: { flexDirection: 'row', marginBottom: 16 },
 
     // Custom select
@@ -413,7 +414,7 @@ const styles = StyleSheet.create({
         borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 14,
         marginBottom: 16,
     },
-    selectTriggerText: { fontSize: 14, flex: 1, marginRight: 8 },
+    selectTriggerText: { fontSize: moderateScale(14), flex: 1, marginRight: 8 },
 
     // Modal
     modalBackdrop: {
@@ -429,22 +430,22 @@ const styles = StyleSheet.create({
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1,
     },
-    modalTitle: { fontSize: 15, fontFamily: 'Poppins-Bold' },
+    modalTitle: { fontSize: moderateScale(15), fontFamily: 'Poppins-Bold' },
     optionItem: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1,
     },
-    optionText: { fontSize: 14 },
+    optionText: { fontSize: moderateScale(14) },
 
     seatsCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderRadius: 15, padding: 14, marginBottom: 24 },
-    seatsTitle: { fontSize: 11, fontFamily: 'Poppins-Bold', letterSpacing: 0.5 },
-    seatsHint: { fontSize: 10, marginTop: 2 },
+    seatsTitle: { fontSize: moderateScale(11), fontFamily: 'Poppins-Bold', letterSpacing: 0.5 },
+    seatsHint: { fontSize: moderateScale(10), marginTop: 2 },
     counter: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     counterBtn: { width: 34, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-    counterVal: { fontSize: 18, fontFamily: 'Poppins-Bold', minWidth: 24, textAlign: 'center' },
+    counterVal: { fontSize: moderateScale(18), fontFamily: 'Poppins-Bold', minWidth: 24, textAlign: 'center' },
 
     nextBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, borderRadius: 14, elevation: 4, shadowColor: '#748FFF', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8 },
-    nextBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Poppins-Bold' },
+    nextBtnText: { color: '#fff', fontSize: moderateScale(15), fontFamily: 'Poppins-Bold' },
 
     // ── MODAL AESTHETIC ALERT ──
     alertBackdrop: {
@@ -486,13 +487,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     alertTitle: {
-        fontSize: 22,
+        fontSize: moderateScale(22),
         fontFamily: 'Poppins-Bold',
         marginBottom: 12,
         letterSpacing: 0.2,
     },
     alertSubtitle: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         textAlign: 'center',
         lineHeight: 22,
         paddingHorizontal: 10,
@@ -516,7 +517,7 @@ const styles = StyleSheet.create({
     },
     alertBtnText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-Bold',
         letterSpacing: 1,
     },

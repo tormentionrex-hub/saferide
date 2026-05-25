@@ -19,8 +19,8 @@ import api from '../../services/api';
 import { getRouteDetails } from '../../services/locationService';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
-import SettingsGearButton from '../../components/SettingsGearButton';
 
+import { moderateScale } from '../../utils/responsive';
 /**
  * Pantalla para que los conductores publiquen un nuevo viaje con geolocalización avanzada.
  */
@@ -220,10 +220,10 @@ const PublishRide = ({ navigation, route }) => {
             {/* ── GLASS HEADER ─────────────────────────────────── */}
             <View style={[styles.header, { backgroundColor: theme.surface }]}>
                 <TouchableOpacity style={[styles.headerBtn, { backgroundColor: theme.surfaceVariant }]} onPress={() => navigation.goBack()}>
-                    <Ionicons name="chevron-back" size={22} color={theme.textSecondary} />
+                    <Ionicons name="arrow-back" size={22} color={theme.textSecondary} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Itinerario de Viaje</Text>
-                <SettingsGearButton navigation={navigation} color={theme.textSecondary} style={[styles.headerBtn, { backgroundColor: theme.surfaceVariant }]} />
+                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Itinerario de Viaje</Text>
+                <View style={[styles.headerBtn, { backgroundColor: 'transparent' }]} />
             </View>
 
             <View style={{ flex: 1 }}>
@@ -600,7 +600,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.04)',
     },
     headerTitle: {
-        fontSize: 22,
+        fontSize: moderateScale(22),
         fontFamily: 'Poppins-Bold',
         color: '#005bbf',
         letterSpacing: -0.3,
@@ -665,7 +665,7 @@ const styles = StyleSheet.create({
         gap: 24,
     },
     inputLabel: {
-        fontSize: 10,
+        fontSize: moderateScale(10),
         fontFamily: 'Poppins-Bold',
         color: '#9ca3af',
         letterSpacing: 1.5,
@@ -683,14 +683,14 @@ const styles = StyleSheet.create({
         elevation: 1,
     },
     locationCardPrimary: {
-        fontSize: 12,
+        fontSize: moderateScale(12),
         fontFamily: 'Poppins-Bold',
         color: '#005bbf',
         letterSpacing: 0.2,
         marginBottom: 4,
     },
     locationCardSecondary: {
-        fontSize: 13,
+        fontSize: moderateScale(13),
         color: '#9ca3af',
     },
     cardError: {
@@ -714,7 +714,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     dateValue: {
-        fontSize: 18,
+        fontSize: moderateScale(18),
         fontFamily: 'Poppins-Bold',
         color: '#191c1e',
         marginTop: 2,
@@ -740,7 +740,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     timeValue: {
-        fontSize: 20,
+        fontSize: moderateScale(20),
         fontFamily: 'Poppins-Bold',
         color: '#191c1e',
         marginTop: 2,
@@ -782,7 +782,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     seatsNumber: {
-        fontSize: 42,
+        fontSize: moderateScale(42),
         fontFamily: 'Poppins-Bold',
         color: '#191c1e',
         lineHeight: 50,
@@ -803,7 +803,7 @@ const styles = StyleSheet.create({
         elevation: 6,
     },
     seatsNote: {
-        fontSize: 12,
+        fontSize: moderateScale(12),
         color: '#727785',
         fontStyle: 'italic',
         fontFamily: 'Poppins-SemiBold',
@@ -831,14 +831,14 @@ const styles = StyleSheet.create({
         backgroundColor: '#d1d5db',
     },
     summaryLabel: {
-        fontSize: 11,
+        fontSize: moderateScale(11),
         textTransform: 'uppercase',
         letterSpacing: 0.5,
         color: '#727785',
         marginBottom: 4,
     },
     summaryValue: {
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-Bold',
         color: '#191c1e',
     },
@@ -860,7 +860,7 @@ const styles = StyleSheet.create({
     },
     publishBtnText: {
         color: '#fff',
-        fontSize: 15,
+        fontSize: moderateScale(15),
         fontFamily: 'Poppins-Bold',
         letterSpacing: 0.8,
     },
@@ -906,13 +906,13 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     alertTitle: {
-        fontSize: 20,
+        fontSize: moderateScale(20),
         fontFamily: 'Poppins-Bold',
         marginBottom: 8,
         textAlign: 'center',
     },
     alertMessage: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         textAlign: 'center',
         marginBottom: 24,
         lineHeight: 20,
@@ -928,7 +928,7 @@ const styles = StyleSheet.create({
     },
     alertConfirmText: {
         color: '#fff',
-        fontSize: 15,
+        fontSize: moderateScale(15),
         fontFamily: 'Poppins-SemiBold',
     },
 
@@ -955,7 +955,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     sweetAlertTitle: {
-        fontSize: 20,
+        fontSize: moderateScale(20),
         fontFamily: 'Poppins-Bold',
         color: '#191c1e',
         textAlign: 'center',
@@ -963,7 +963,7 @@ const styles = StyleSheet.create({
         letterSpacing: -0.3,
     },
     sweetAlertMessage: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         color: '#727785',
         textAlign: 'center',
         lineHeight: 21,
@@ -977,7 +977,7 @@ const styles = StyleSheet.create({
     },
     sweetAlertBtnText: {
         color: '#fff',
-        fontSize: 15,
+        fontSize: moderateScale(15),
         fontFamily: 'Poppins-Bold',
         letterSpacing: 0.3,
     },

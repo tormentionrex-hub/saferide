@@ -26,6 +26,7 @@ import NotificationBell from '../../components/NotificationBell';
 import NotificationCenterModal from '../../components/NotificationCenterModal';
 import { useNotifications } from '../../hooks/useNotifications';
 
+import { moderateScale } from '../../utils/responsive';
 // Obtenemos dimensiones de la pantalla para garantizar responsividad
 const { height, width } = Dimensions.get('window');
 
@@ -211,7 +212,7 @@ const DashboardPasajero = ({ navigation, route }) => {
                             <Image source={{ uri: userPhoto }} style={styles.profileImg} />
                         ) : (
                             <View style={[styles.profileImg, { backgroundColor: theme.accent + '22', justifyContent: 'center', alignItems: 'center' }]}>
-                                <Text style={{ color: theme.accent, fontSize: 20, fontFamily: 'Poppins-Bold' }}>
+                                <Text style={{ color: theme.accent, fontSize: moderateScale(20), fontFamily: 'Poppins-Bold' }}>
                                     {userName ? userName.charAt(0).toUpperCase() : '?'}
                                 </Text>
                             </View>
@@ -382,7 +383,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontFamily: 'Poppins-Bold',
-        fontSize: 22,
+        fontSize: moderateScale(22),
         textAlign: 'center',
     },
     headerIconBtn: {
@@ -419,7 +420,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     greeting: {
-        fontSize: 22,
+        fontSize: moderateScale(22),
         marginBottom: 30,
         fontFamily: 'Poppins-Bold',
         alignSelf: 'flex-start',
@@ -450,12 +451,12 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     cardTitle: {
-        fontSize: 18,
+        fontSize: moderateScale(18),
         fontFamily: 'Poppins-Bold',
         marginBottom: 5,
     },
     cardSubtitle: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         fontFamily: 'Poppins-Regular',
     },
     watermarkIcon: {
@@ -470,7 +471,7 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontFamily: 'Poppins-Bold',
-        fontSize: 14,
+        fontSize: moderateScale(14),
         marginBottom: 14,
         letterSpacing: 0.5,
         alignSelf: 'flex-start',
@@ -501,12 +502,12 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     quickCardTitle: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         fontFamily: 'Poppins-Bold',
         textAlign: 'center',
     },
     quickCardSub: {
-        fontSize: 12,
+        fontSize: moderateScale(12),
         fontFamily: 'Poppins-Regular',
         textAlign: 'center',
         marginTop: 2,
@@ -532,12 +533,12 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     ecoTitle: {
-        fontSize: 15,
+        fontSize: moderateScale(15),
         fontFamily: 'Poppins-Bold',
         marginBottom: 4,
     },
     ecoSub: {
-        fontSize: 12,
+        fontSize: moderateScale(12),
         fontFamily: 'Poppins-Regular',
         lineHeight: 18,
     },
@@ -571,13 +572,13 @@ const styles = StyleSheet.create({
     pendingBannerTitle: {
         color: '#fff',
         fontFamily: 'Poppins-Bold',
-        fontSize: 14,
+        fontSize: moderateScale(14),
         marginBottom: 2,
     },
     pendingBannerSub: {
         color: 'rgba(255,255,255,0.92)',
         fontFamily: 'Poppins-Regular',
-        fontSize: 11.5,
+        fontSize: moderateScale(11.5),
         lineHeight: 15,
     },
 });

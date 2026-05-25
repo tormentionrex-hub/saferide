@@ -10,6 +10,7 @@ import { useCustomAlert } from '../../context/CustomAlertContext';
 import api from '../../services/api';
 import PaymentMethodCards from '../../components/PaymentMethodCards';
 
+import { moderateScale } from '../../utils/responsive';
 const PayForTravel = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const { showAlert } = useCustomAlert();
@@ -124,7 +125,7 @@ const PayForTravel = ({ route, navigation }) => {
 
             <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
                 <View style={{ width: 40 }} />
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Realizar el pago</Text>
+                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Realizar el pago</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -218,7 +219,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingBottom: 14,
     },
-    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold', letterSpacing: -0.3 },
+    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold', letterSpacing: -0.3 },
 
     introBlock: {
         alignItems: 'center',
@@ -232,14 +233,14 @@ const styles = StyleSheet.create({
         marginBottom: 14,
     },
     introTitle: {
-        fontSize: 20,
+        fontSize: moderateScale(20),
         fontFamily: 'Poppins-Bold',
         textAlign: 'center',
         letterSpacing: -0.4,
         marginBottom: 6,
     },
     introParagraph: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         fontFamily: 'Poppins-Regular',
         textAlign: 'center',
         lineHeight: 20,
@@ -257,8 +258,8 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 3,
     },
-    amountLabel: { fontSize: 10, fontFamily: 'Poppins-Bold', letterSpacing: 1.2, marginBottom: 4 },
-    amountValue: { fontSize: 34, fontFamily: 'Poppins-Bold', letterSpacing: -1 },
+    amountLabel: { fontSize: moderateScale(10), fontFamily: 'Poppins-Bold', letterSpacing: 1.2, marginBottom: 4 },
+    amountValue: { fontSize: moderateScale(34), fontFamily: 'Poppins-Bold', letterSpacing: -1 },
     divider: { height: 1, marginVertical: 16 },
 
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
@@ -266,13 +267,13 @@ const styles = StyleSheet.create({
         width: 38, height: 38, borderRadius: 12,
         justifyContent: 'center', alignItems: 'center',
     },
-    metaLabel: { fontSize: 10, fontFamily: 'Poppins-Bold', letterSpacing: 1.1, marginBottom: 2 },
-    metaValue: { fontSize: 14, fontFamily: 'Poppins-SemiBold' },
+    metaLabel: { fontSize: moderateScale(10), fontFamily: 'Poppins-Bold', letterSpacing: 1.1, marginBottom: 2 },
+    metaValue: { fontSize: moderateScale(14), fontFamily: 'Poppins-SemiBold' },
 
     routeRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
     routeIconCol: { alignItems: 'center' },
     routeLine: { width: 2, height: 18, marginVertical: 3 },
-    routeText: { fontSize: 13, fontFamily: 'Poppins-SemiBold' },
+    routeText: { fontSize: moderateScale(13), fontFamily: 'Poppins-SemiBold' },
 
     actionsBlock: {
         paddingHorizontal: 20,
@@ -289,7 +290,7 @@ const styles = StyleSheet.create({
     },
     continueBtnText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-Bold',
         letterSpacing: 0.3,
     },
@@ -301,7 +302,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     skipBtnText: {
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-Bold',
         letterSpacing: 0.3,
     },
