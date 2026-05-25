@@ -483,10 +483,10 @@ const BuscarViaje = ({ navigation, route }) => {
     };
 
     return (
-        <View style={[styles.safeArea, { backgroundColor: theme.bg }]}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
-            <ScreenHeader title="Tu Viaje" onBack={() => navigation.goBack()} useInsets />
+            <ScreenHeader title="Tu Viaje" onBack={() => navigation.goBack()} />
 
             <ScrollView
                 style={styles.scrollView}
@@ -721,7 +721,7 @@ const BuscarViaje = ({ navigation, route }) => {
 
             {/* BOTTOM NAV */}
             <BottomNavigationBar navigation={navigation} />
-        </View>
+        </SafeAreaView>
     );
 };
 
