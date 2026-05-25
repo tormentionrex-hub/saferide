@@ -123,13 +123,30 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
                         setAmount(b.charged_amount);
                     }
 
-                    const isCancelled = b.status === 'cancelled' || b.status === 'canceled';
-                    const isCompleted = b.status === 'completed';
-                    const rideCompleted = b.ride_id?.status === 'completed';
+                    // Una sola señal para liberar al pasajero: el conductor
+                    // seteó payment_reviewed_at al tocar "Continuar" en
+                    // PaymentVerification (o el toggle de pago en
+                    // PreviousTripsScreen). Es independiente del veredicto
+                    // Pagó/No pagó — eso se lee después de payment_status.
+                    //
+                    // Por qué este enfoque: el caso "auto-cancel del ride
+                    // + conductor marca No pagó" no genera cambios en
+                    // ride.status (queda cancelled) ni en payment_status
+                    // (queda pending), así que sin un campo dedicado el
+                    // polling no tendría manera de saber que el conductor
+                    // ya tomó su decisión.
+                    if (!b.payment_reviewed_at) {
+                        return;
+                    }
 
-                    // Helper para navegar tras resolver: los bookings cancelados
-                    // NO van a RateDriver (el backend rechaza calificar viajes
-                    // donde la reserva quedó cancelada). Van al Dashboard.
+                    setResolved(true);
+                    stopPolling();
+
+                    const isCancelled = b.status === 'cancelled' || b.status === 'canceled';
+
+                    // Los bookings cancelados NO van a RateDriver (el backend
+                    // rechaza calificar reservas canceladas). Van directo al
+                    // Dashboard donde la deuda se ve en History/BuscarViaje.
                     const navigateAfter = (extra = {}) => {
                         if (isCancelled) {
                             navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' });
@@ -138,40 +155,19 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
                         }
                     };
 
-                    // Viaje regalado: no hay pago que confirmar, pero igual
-                    // esperamos a que el conductor toque "Continuar" en
-                    // PaymentVerification para no romper la lógica de cierre
-                    // del viaje. Detectamos ese momento por el cambio del
-                    // booking a 'completed' (lo hace finalize-payment-verification).
-                    if (b?.payment_type === 'gifted') {
-                        if (isCompleted) {
-                            setResolved(true);
-                            stopPolling();
+                    // Viaje regalado: no hay pago que confirmar. Pasa directo
+                    // a calificar (o al Dashboard si la reserva quedó cancelada).
+                    if (b.payment_type === 'gifted') {
+                        if (isCancelled) {
+                            navigateAfter();
+                        } else {
                             goToRate({ paidConfirmed: true, gifted: true });
                         }
-                        // Si aún no está completed, seguimos esperando.
                         return;
                     }
 
-                    // Esperamos a que el viaje quede cerrado. Dos vías:
-                    //   - Booking 'completed' (caso normal: finalize-payment-verification
-                    //     promueve los confirmed → completed).
-                    //   - Booking 'cancelled' + ride 'completed' (penalización por
-                    //     cancelación: el booking nunca pasa a completed, pero el
-                    //     conductor cerró el viaje confirmando el pago de la penalización).
-                    //   - Booking 'cancelled' + payment_status 'paid' (penalización ya
-                    //     cubierta vía PayPal antes de que el conductor confirme).
-                    const tripClosed =
-                        isCompleted ||
-                        (isCancelled && (rideCompleted || b.payment_status === 'paid'));
-
-                    if (!tripClosed) {
-                        return;
-                    }
-
+                    // Caso normal: el veredicto del conductor está en payment_status.
                     if (b.payment_status === 'paid') {
-                        setResolved(true);
-                        stopPolling();
                         showAlert(
                             '¡Pago realizado correctamente!',
                             isCancelled
@@ -182,8 +178,6 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
                             () => navigateAfter({ paidConfirmed: true })
                         );
                     } else if (b.payment_status === 'pending') {
-                        setResolved(true);
-                        stopPolling();
                         showAlert(
                             'El pago no fue realizado',
                             'Por favor ve al historial a realizar el pago antes de recibir una amonestación.',
