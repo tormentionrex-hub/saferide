@@ -6,6 +6,7 @@ import { useCustomAlert } from '../../context/CustomAlertContext';
 import api from '../../services/api';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
 
+import { moderateScale } from '../../utils/responsive';
 const CancelConfirmationModal = ({ visible, onConfirm, onCancel, theme }) => {
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -603,13 +604,13 @@ const styles = StyleSheet.create({
     },
     title: {
         marginTop: 25,
-        fontSize: 22,
+        fontSize: moderateScale(22),
         fontFamily: 'Poppins-Bold',
         textAlign: 'center',
     },
     subtitle: {
         marginTop: 12,
-        fontSize: 15,
+        fontSize: moderateScale(15),
         textAlign: 'center',
         lineHeight: 22,
     },
@@ -638,11 +639,11 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-Bold',
     },
     cancelButtonText: {
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-Bold',
     }
 });
@@ -651,12 +652,12 @@ const modalStyles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 25 },
     card: { width: '100%', borderRadius: 30, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 15 },
     iconCircle: { width: 90, height: 90, borderRadius: 45, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-    title: { fontSize: 24, fontFamily: 'Poppins-Bold', marginBottom: 10, textAlign: 'center' },
-    subtitle: { fontSize: 15, textAlign: 'center', marginBottom: 25, lineHeight: 22 },
+    title: { fontSize: moderateScale(24), fontFamily: 'Poppins-Bold', marginBottom: 10, textAlign: 'center' },
+    subtitle: { fontSize: moderateScale(15), textAlign: 'center', marginBottom: 25, lineHeight: 22 },
     confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', paddingVertical: 16, borderRadius: 16, elevation: 2 },
-    confirmBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Poppins-Bold' },
+    confirmBtnText: { color: '#fff', fontSize: moderateScale(16), fontFamily: 'Poppins-Bold' },
     cancelBtn: { width: '100%', paddingVertical: 16, borderRadius: 16, alignItems: 'center', borderWidth: 1, marginTop: 4 },
-    cancelBtnText: { fontSize: 16, fontFamily: 'Poppins-SemiBold' },
+    cancelBtnText: { fontSize: moderateScale(16), fontFamily: 'Poppins-SemiBold' },
 });
 
 export default ScreenSaver;

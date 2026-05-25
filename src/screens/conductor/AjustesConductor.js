@@ -20,6 +20,7 @@ import { authService } from '../../services/authService';
 import notificationService from '../../services/notificationService';
 import { registerForPushNotifications } from '../../services/pushNotificationService';
 
+import { moderateScale } from '../../utils/responsive';
 // ── Hook de animación para el modal de logout ─────────────────────────────────
 const useLogoutModal = () => {
     const [visible, setVisible] = useState(false);
@@ -122,9 +123,9 @@ const AjustesConductor = ({ navigation }) => {
             {/* ── HEADER ── */}
             <View style={[styles.header, { paddingTop: insets.top > 0 ? insets.top : 16, borderBottomColor: theme.divider }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Ionicons name="chevron-back" size={24} color={theme.text} />
+                    <Ionicons name="arrow-back" size={24} color={theme.text} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Ajustes</Text>
+                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Ajustes</Text>
             </View>
 
             <View style={styles.scrollWrapper}>
@@ -307,9 +308,9 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
     },
     backBtn:     { position: 'absolute', left: 16 },
-    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
+    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
 
-    sectionLabel: { fontSize: 11, fontFamily: 'Poppins-Bold', letterSpacing: 0.8, marginBottom: 8, marginLeft: 4 },
+    sectionLabel: { fontSize: moderateScale(11), fontFamily: 'Poppins-Bold', letterSpacing: 0.8, marginBottom: 8, marginLeft: 4 },
 
     card: {
         borderRadius: 16, marginBottom: 24, paddingHorizontal: 16, elevation: 2,
@@ -318,19 +319,19 @@ const styles = StyleSheet.create({
     row:        { flexDirection: 'row', alignItems: 'center', paddingVertical: 14 },
     rowIconBox: { width: 36, alignItems: 'center', marginRight: 12 },
     rowTexts:   { flex: 1 },
-    rowTitle:   { fontSize: 15, fontFamily: 'Poppins-Bold' },
-    rowSub:     { fontSize: 12, fontFamily: 'Poppins-Regular', marginTop: 1 },
+    rowTitle:   { fontSize: moderateScale(15), fontFamily: 'Poppins-Bold' },
+    rowSub:     { fontSize: moderateScale(12), fontFamily: 'Poppins-Regular', marginTop: 1 },
     divider:    { height: 1 },
 
     themeRow:     { flexDirection: 'row', paddingVertical: 14, gap: 10 },
     themeBtn:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, borderWidth: 1.5 },
-    themeBtnText: { fontSize: 14, fontFamily: 'Poppins-Bold' },
+    themeBtnText: { fontSize: moderateScale(14), fontFamily: 'Poppins-Bold' },
 
     logoutBtn: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         borderWidth: 1.5, borderRadius: 14, paddingVertical: 16, marginBottom: 8,
     },
-    logoutText: { fontSize: 15, fontFamily: 'Poppins-Bold' },
+    logoutText: { fontSize: moderateScale(15), fontFamily: 'Poppins-Bold' },
 
     backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000', opacity: 0.55 },
     modalOuter: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
@@ -340,13 +341,13 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2, shadowRadius: 20,
     },
     modalIconCircle: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 18 },
-    modalTitle:    { fontSize: 20, fontFamily: 'Poppins-Bold', marginBottom: 8, textAlign: 'center' },
-    modalSubtitle: { fontSize: 14, fontFamily: 'Poppins-Regular', textAlign: 'center', lineHeight: 20, marginBottom: 28 },
+    modalTitle:    { fontSize: moderateScale(20), fontFamily: 'Poppins-Bold', marginBottom: 8, textAlign: 'center' },
+    modalSubtitle: { fontSize: moderateScale(14), fontFamily: 'Poppins-Regular', textAlign: 'center', lineHeight: 20, marginBottom: 28 },
     modalBtns:     { flexDirection: 'row', gap: 12, width: '100%' },
     btnNo: { flex: 1, paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center' },
-    btnNoText: { fontSize: 14, fontFamily: 'Poppins-Bold' },
+    btnNoText: { fontSize: moderateScale(14), fontFamily: 'Poppins-Bold' },
     btnSi: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-    btnSiText: { fontSize: 14, fontFamily: 'Poppins-Bold', color: '#FFF' },
+    btnSiText: { fontSize: moderateScale(14), fontFamily: 'Poppins-Bold', color: '#FFF' },
 });
 
 export default AjustesConductor;

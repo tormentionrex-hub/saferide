@@ -12,6 +12,7 @@ import { darkMapStyle } from '../../utils/mapStyle';
 import { Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { moderateScale } from '../../utils/responsive';
 const PAYMENT_OPTIONS = [
     { id: 'efectivo', label: 'Efectivo', icon: 'cash-outline' },
     { id: 'tarjeta',  label: 'Tarjeta',  icon: 'card-outline' },
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
     },
     mapCardLabel: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         fontFamily: 'Poppins-Bold',
         letterSpacing: 0.3,
     },
@@ -427,26 +428,26 @@ const styles = StyleSheet.create({
     dragBar: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 15 },
     headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
     avatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-    avatarText: { fontSize: 16, fontFamily: 'Poppins-Bold' },
-    driverLabel: { fontSize: 10, fontFamily: 'Poppins-Bold', letterSpacing: 1, marginBottom: 2 },
-    driverName: { fontSize: 18, fontFamily: 'Poppins-Bold' },
+    avatarText: { fontSize: moderateScale(16), fontFamily: 'Poppins-Bold' },
+    driverLabel: { fontSize: moderateScale(10), fontFamily: 'Poppins-Bold', letterSpacing: 1, marginBottom: 2 },
+    driverName: { fontSize: moderateScale(18), fontFamily: 'Poppins-Bold' },
     priceTag: { backgroundColor: '#25C46020', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
-    priceValue: { color: '#25C460', fontFamily: 'Poppins-Bold', fontSize: 16 },
+    priceValue: { color: '#25C460', fontFamily: 'Poppins-Bold', fontSize: moderateScale(16) },
     divider: { height: 1, marginBottom: 15 },
     routeBox: { flexDirection: 'row', marginBottom: 15 },
     iconColumn: { alignItems: 'center', marginRight: 15 },
     dotLine: { width: 2, height: 25, marginVertical: 4 },
     textColumn: { flex: 1, justifyContent: 'space-between' },
-    locationText: { fontSize: 14, fontFamily: 'Poppins-SemiBold' },
+    locationText: { fontSize: moderateScale(14), fontFamily: 'Poppins-SemiBold' },
     statsRow: { flexDirection: 'row', gap: 10, marginBottom: 15 },
     statItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 12 },
-    statText: { fontSize: 12, fontFamily: 'Poppins-SemiBold' },
+    statText: { fontSize: moderateScale(12), fontFamily: 'Poppins-SemiBold' },
     offerSection: { marginBottom: 15 },
-    offerLabel: { fontSize: 10, fontFamily: 'Poppins-Bold', letterSpacing: 1.2, marginBottom: 8 },
+    offerLabel: { fontSize: moderateScale(10), fontFamily: 'Poppins-Bold', letterSpacing: 1.2, marginBottom: 8 },
     offerInputRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 4, borderWidth: 1, gap: 8 },
-    offerCurrency: { fontSize: 18, fontFamily: 'Poppins-Bold' },
-    offerInput: { flex: 1, fontSize: 18, fontFamily: 'Poppins-Bold', paddingVertical: Platform.OS === 'ios' ? 12 : 8 },
-    offerHint: { fontSize: 11, marginTop: 6, fontStyle: 'italic' },
+    offerCurrency: { fontSize: moderateScale(18), fontFamily: 'Poppins-Bold' },
+    offerInput: { flex: 1, fontSize: moderateScale(18), fontFamily: 'Poppins-Bold', paddingVertical: Platform.OS === 'ios' ? 12 : 8 },
+    offerHint: { fontSize: moderateScale(11), marginTop: 6, fontStyle: 'italic' },
     paymentSection: { marginBottom: 15 },
     paymentRow: { flexDirection: 'row', gap: 8 },
     paymentChip: {
@@ -460,9 +461,9 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         borderWidth: 1,
     },
-    paymentChipText: { fontSize: 12, fontFamily: 'Poppins-SemiBold' },
+    paymentChipText: { fontSize: moderateScale(12), fontFamily: 'Poppins-SemiBold' },
     bookBtn: { paddingVertical: 15, borderRadius: 14, alignItems: 'center', justifyContent: 'center', elevation: 5 },
-    bookBtnText: { color: '#fff', fontFamily: 'Poppins-Bold', fontSize: 15, letterSpacing: 0.5 }
+    bookBtnText: { color: '#fff', fontFamily: 'Poppins-Bold', fontSize: moderateScale(15), letterSpacing: 0.5 }
 });
 
 export default RideDetail;

@@ -20,9 +20,9 @@ import api from '../../services/api';
 import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
-import SettingsGearButton from '../../components/SettingsGearButton';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 
+import { moderateScale } from '../../utils/responsive';
 const screenWidth = Dimensions.get('window').width;
 
 // Cache a nivel módulo: evita refetcha en cada useFocusEffect cuando el usuario
@@ -261,10 +261,10 @@ const DriverMetrics = ({ navigation }) => {
             <View style={[styles.mainCard, { backgroundColor: theme.surface }]}>
                 <View style={[styles.header, { borderBottomColor: theme.divider }]}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                        <Ionicons name="chevron-back" size={24} color={theme.text} />
+                        <Ionicons name="arrow-back" size={24} color={theme.text} />
                     </TouchableOpacity>
-                    <Text style={[styles.innerTitle, { color: theme.text }]}>Estadísticas</Text>
-                    <SettingsGearButton navigation={navigation} color={theme.text} style={styles.gearBtn} />
+                    <Text style={[styles.innerTitle, { color: theme.navActive || '#005BBF' }]}>Estadísticas</Text>
+                    <View style={styles.gearBtn} />
                 </View>
 
                 {loading ? (
@@ -293,7 +293,7 @@ const DriverMetrics = ({ navigation }) => {
                             <View style={[styles.statBox, styles.statBoxPrimary, { backgroundColor: theme.surfaceVariant }]}>
                                 <Text style={[styles.statLabel, { color: theme.textSecondary }]}>CO₂ ahorrado</Text>
                                 <Text style={[styles.statValue, styles.statValuePrimary, { color: theme.text }]}>
-                                    {stats.co2Total} <Text style={{ fontSize: 12, color: theme.textSecondary }}>kg</Text>
+                                    {stats.co2Total} <Text style={{ fontSize: moderateScale(12), color: theme.textSecondary }}>kg</Text>
                                 </Text>
                             </View>
 
@@ -390,9 +390,9 @@ const styles = StyleSheet.create({
     },
     backBtn: { position: 'absolute', left: 20 },
     gearBtn: { position: 'absolute', right: 20 },
-    innerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
+    innerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    loadingText: { marginTop: 10, fontSize: 16 },
+    loadingText: { marginTop: 10, fontSize: moderateScale(16) },
     scrollBody: { padding: 20, paddingBottom: 100 },
     statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25 },
     statBox: {
@@ -401,26 +401,26 @@ const styles = StyleSheet.create({
     },
     statBoxPrimary: { width: '100%', padding: 16, marginBottom: 12 },
     statBoxHalf: { width: '48%', padding: 12 },
-    statLabel: { fontSize: 10, textAlign: 'center', marginBottom: 5 },
-    statValue: { fontSize: 15, fontFamily: 'Poppins-Bold' },
-    statValuePrimary: { fontSize: 26, fontFamily: 'Poppins-Bold', marginTop: 2 },
+    statLabel: { fontSize: moderateScale(10), textAlign: 'center', marginBottom: 5 },
+    statValue: { fontSize: moderateScale(15), fontFamily: 'Poppins-Bold' },
+    statValuePrimary: { fontSize: moderateScale(26), fontFamily: 'Poppins-Bold', marginTop: 2 },
     chartContainer: {
         borderRadius: 20, padding: 15,
         marginBottom: 20, borderWidth: 1,
     },
-    chartHeaderTitle: { fontSize: 13, fontFamily: 'Poppins-Bold' },
+    chartHeaderTitle: { fontSize: moderateScale(13), fontFamily: 'Poppins-Bold' },
     valRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 5 },
-    mainValText: { fontSize: 18, fontFamily: 'Poppins-Bold' },
-    percentText: { fontSize: 11, fontFamily: 'Poppins-Bold', color: '#4CAF50', marginLeft: 8 },
-    timeLabel: { fontSize: 10, marginBottom: 10 },
+    mainValText: { fontSize: moderateScale(18), fontFamily: 'Poppins-Bold' },
+    percentText: { fontSize: moderateScale(11), fontFamily: 'Poppins-Bold', color: '#4CAF50', marginLeft: 8 },
+    timeLabel: { fontSize: moderateScale(10), marginBottom: 10 },
     chartStyle: { marginLeft: -15, marginTop: 10 },
     monthRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
     monthLeft: { flexDirection: 'row', alignItems: 'center' },
     monthIconBg: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-    monthName: { fontSize: 16, fontFamily: 'Poppins-Bold', textTransform: 'capitalize' },
+    monthName: { fontSize: moderateScale(16), fontFamily: 'Poppins-Bold', textTransform: 'capitalize' },
     monthRight: { alignItems: 'flex-end' },
-    monthStatLabel: { fontSize: 11, marginBottom: 4 },
-    monthStatKm: { fontSize: 15, fontFamily: 'Poppins-Bold' }
+    monthStatLabel: { fontSize: moderateScale(11), marginBottom: 4 },
+    monthStatKm: { fontSize: moderateScale(15), fontFamily: 'Poppins-Bold' }
 });
 
 export default DriverMetrics;

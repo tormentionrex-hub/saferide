@@ -31,6 +31,7 @@ import { darkMapStyle } from '../../utils/mapStyle';
 import { DateTime } from 'luxon';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
+import { moderateScale } from '../../utils/responsive';
 const { width } = Dimensions.get('window');
 
 const MONTHS_SHORT_ES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
@@ -624,8 +625,8 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: 35,
         borderBottomRightRadius: 35,
     },
-    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold', color: '#fff' },
-    headerSubtitle: { fontSize: 14, fontFamily: 'Poppins-Regular', color: 'rgba(255,255,255,0.9)' },
+    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold', color: '#fff' },
+    headerSubtitle: { fontSize: moderateScale(14), fontFamily: 'Poppins-Regular', color: 'rgba(255,255,255,0.9)' },
     listContainer: { flex: 1, marginTop: -25 },
     selectorWrapper: {
         paddingHorizontal: 20,
@@ -644,7 +645,7 @@ const styles = StyleSheet.create({
     },
     selectorLabel: {
         flex: 1,
-        fontSize: 15,
+        fontSize: moderateScale(15),
         fontFamily: 'Poppins-SemiBold',
     },
     modalOverlay: {
@@ -666,7 +667,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
     },
     modalTitle: {
-        fontSize: 20,
+        fontSize: moderateScale(20),
         fontFamily: 'Poppins-Bold',
     },
     modalBody: {
@@ -686,7 +687,7 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     optionText: {
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-SemiBold',
     },
     sectionDivider: {
@@ -695,7 +696,7 @@ const styles = StyleSheet.create({
         opacity: 0.1,
     },
     sectionTitle: {
-        fontSize: 12,
+        fontSize: moderateScale(12),
         fontFamily: 'Poppins-Bold',
         textTransform: 'uppercase',
         marginBottom: 12,
@@ -725,8 +726,8 @@ const styles = StyleSheet.create({
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     headerRight: {},
     dateBlock: { width: 54, height: 54, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-    dateDay: { fontSize: 20, fontFamily: 'Poppins-Bold' },
-    dateMonth: { fontSize: 10, fontFamily: 'Poppins-SemiBold' },
+    dateDay: { fontSize: moderateScale(20), fontFamily: 'Poppins-Bold' },
+    dateMonth: { fontSize: moderateScale(10), fontFamily: 'Poppins-SemiBold' },
     statusCol: { gap: 4 },
     statusBadge: {
         paddingHorizontal: 10,
@@ -735,11 +736,11 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-start',
     },
     statusText: {
-        fontSize: 10,
+        fontSize: moderateScale(10),
         fontFamily: 'Poppins-Bold',
         textTransform: 'uppercase',
     },
-    timeText: { fontSize: 12, fontFamily: 'Poppins-SemiBold' },
+    timeText: { fontSize: moderateScale(12), fontFamily: 'Poppins-SemiBold' },
     mapSection: {
         borderRadius: 16,
         borderWidth: 1,
@@ -754,7 +755,7 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
     },
     mapSectionLabel: {
-        fontSize: 11,
+        fontSize: moderateScale(11),
         fontFamily: 'Poppins-Bold',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -783,15 +784,15 @@ const styles = StyleSheet.create({
     },
     routeContainer: { padding: 12, borderRadius: 16, gap: 2, marginBottom: 16 },
     routePoint: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    routeValue: { flex: 1, fontSize: 13, fontFamily: 'Poppins-SemiBold' },
+    routeValue: { flex: 1, fontSize: moderateScale(13), fontFamily: 'Poppins-SemiBold' },
     routeConnector: { width: 1.5, height: 8, marginLeft: 6, marginVertical: 2 },
-    priceText: { fontSize: 20, fontFamily: 'Poppins-Bold' },
+    priceText: { fontSize: moderateScale(20), fontFamily: 'Poppins-Bold' },
     passengerSection: {
         paddingTop: 16,
         borderTopWidth: 1,
     },
     passengerLabel: {
-        fontSize: 11,
+        fontSize: moderateScale(11),
         fontFamily: 'Poppins-Bold',
         textTransform: 'uppercase',
         marginBottom: 12,
@@ -820,7 +821,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.1)',
     },
     passengerNameText: {
-        fontSize: 15,
+        fontSize: moderateScale(15),
         fontFamily: 'Poppins-SemiBold',
     },
     contactButtons: {
@@ -836,11 +837,11 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
     paymentBadgeText: {
-        fontSize: 11,
+        fontSize: moderateScale(11),
         fontFamily: 'Poppins-Bold',
     },
     passengerAmountText: {
-        fontSize: 12,
+        fontSize: moderateScale(12),
         fontFamily: 'Poppins-SemiBold',
         marginTop: 1,
     },
@@ -864,7 +865,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     loadMoreText: {
-        fontSize: 15,
+        fontSize: moderateScale(15),
         fontFamily: 'Poppins-Bold',
     },
     centerContainer: {
@@ -880,12 +881,12 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     emptyTitle: {
-        fontSize: 18,
+        fontSize: moderateScale(18),
         fontFamily: 'Poppins-Bold',
         textAlign: 'center',
     },
     emptyText: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         textAlign: 'center',
         lineHeight: 22,
         paddingHorizontal: 20,

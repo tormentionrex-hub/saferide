@@ -17,6 +17,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import { darkMapStyle } from '../../utils/mapStyle';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
 
+import { moderateScale } from '../../utils/responsive';
 const { width } = Dimensions.get('window');
 const ACCENT = '#2563EB';
 const RECENT_SEARCHES_KEY = 'buscarViaje_recentSearches';
@@ -439,7 +440,7 @@ const BuscarViaje = ({ navigation, route }) => {
                     <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                         <Ionicons name="arrow-back" size={22} color="#1A1A2E" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Tu Viaje</Text>
+                    <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Tu Viaje</Text>
                     <View style={{ width: 40 }} />
                 </View>
 
@@ -697,19 +698,19 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
     },
     headerTitle: {
-        fontSize: 22,
+        fontSize: moderateScale(22),
         fontFamily: 'Poppins-Bold',
         color: '#1A1A2E',
     },
     subLabel: {
-        fontSize: 11,
+        fontSize: moderateScale(11),
         color: ACCENT,
         fontFamily: 'Poppins-SemiBold',
         letterSpacing: 1.2,
         marginBottom: 4,
     },
     mainTitle: {
-        fontSize: 26,
+        fontSize: moderateScale(26),
         fontFamily: 'Poppins-Bold',
         color: '#1A1A2E',
         marginBottom: 16,
@@ -740,7 +741,7 @@ const styles = StyleSheet.create({
     },
     yourLocationText: {
         color: '#fff',
-        fontSize: 10,
+        fontSize: moderateScale(10),
         fontFamily: 'Poppins-SemiBold',
         letterSpacing: 0.5,
     },
@@ -771,14 +772,14 @@ const styles = StyleSheet.create({
     },
     fieldTexts: { flex: 1 },
     fieldLabel: {
-        fontSize: 10,
+        fontSize: moderateScale(10),
         color: '#9BA0A8',
         fontFamily: 'Poppins-SemiBold',
         letterSpacing: 0.8,
         marginBottom: 2,
     },
     fieldValue: {
-        fontSize: 15,
+        fontSize: moderateScale(15),
         color: '#1A1A2E',
         fontFamily: 'Poppins-SemiBold',
     },
@@ -816,14 +817,14 @@ const styles = StyleSheet.create({
     },
     seeTripsBtnText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-Bold',
     },
     recentSection: {
         marginBottom: 10,
     },
     recentLabel: {
-        fontSize: 12,
+        fontSize: moderateScale(12),
         color: '#9BA0A8',
         fontFamily: 'Poppins-SemiBold',
         letterSpacing: 1,
@@ -853,12 +854,12 @@ const styles = StyleSheet.create({
     },
     recentTexts: { flex: 1 },
     recentName: {
-        fontSize: 15,
+        fontSize: moderateScale(15),
         color: '#1A1A2E',
         fontFamily: 'Poppins-SemiBold',
     },
     recentAddress: {
-        fontSize: 12,
+        fontSize: moderateScale(12),
         color: '#9BA0A8',
         fontFamily: 'Poppins-Regular',
     },
@@ -893,14 +894,14 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     modalTitle: {
-        fontSize: 22,
+        fontSize: moderateScale(22),
         fontFamily: 'Poppins-Bold',
         color: '#1A1A2E',
         marginBottom: 10,
         textAlign: 'center',
     },
     modalSubtitle: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         color: '#9BA0A8',
         textAlign: 'center',
         marginBottom: 24,
@@ -918,7 +919,7 @@ const styles = StyleSheet.create({
     },
     modalConfirmBtnText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-Bold',
     },
 });

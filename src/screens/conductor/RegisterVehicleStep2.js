@@ -15,6 +15,7 @@ import sessionCache from '../../services/sessionCache';
 import { uploadToCloudinary } from '../../Cloudinary/Cloudinary';
 import CustomAlert from '../../components/CustomAlert';
 
+import { moderateScale } from '../../utils/responsive';
 export default function RegisterVehicleStep2({ route, navigation }) {
     const { theme } = useDriverTheme();
     const si = useScrollIndicator();
@@ -153,9 +154,9 @@ export default function RegisterVehicleStep2({ route, navigation }) {
                 {/* Header */}
                 <View style={[styles.header, { borderBottomColor: theme.divider }]}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                        <Ionicons name="chevron-back" size={24} color={theme.text} />
+                        <Ionicons name="arrow-back" size={24} color={theme.text} />
                     </TouchableOpacity>
-                    <Text style={[styles.innerTitle, { color: theme.text }]}>Registro de Vehículo</Text>
+                    <Text style={[styles.innerTitle, { color: theme.navActive || '#005BBF' }]}>Registro de Vehículo</Text>
                 </View>
 
                 <View style={{ flex: 1 }}>
@@ -363,39 +364,39 @@ const styles = StyleSheet.create({
         paddingVertical: 20, borderBottomWidth: 1,
     },
     backBtn:    { position: 'absolute', left: 20 },
-    innerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
+    innerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
     scrollBody: { padding: 20, paddingBottom: 100 },
 
     progressRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-    stepLabel:    { fontSize: 11, fontFamily: 'Poppins-Bold', letterSpacing: 0.8 },
-    pct:          { fontSize: 13, fontFamily: 'Poppins-Bold' },
+    stepLabel:    { fontSize: moderateScale(11), fontFamily: 'Poppins-Bold', letterSpacing: 0.8 },
+    pct:          { fontSize: moderateScale(13), fontFamily: 'Poppins-Bold' },
     progressTrack:{ height: 5, borderRadius: 3, marginBottom: 20, overflow: 'hidden' },
     progressFill: { height: '100%', borderRadius: 3 },
 
-    sectionTitle: { fontSize: 20, fontFamily: 'Poppins-Bold', marginBottom: 6 },
-    sectionSub:   { fontSize: 12, lineHeight: 18, marginBottom: 20 },
+    sectionTitle: { fontSize: moderateScale(20), fontFamily: 'Poppins-Bold', marginBottom: 6 },
+    sectionSub:   { fontSize: moderateScale(12), lineHeight: 18, marginBottom: 20 },
 
-    label:    { fontSize: 11, fontFamily: 'Poppins-Bold', letterSpacing: 0.8, marginBottom: 5 },
+    label:    { fontSize: moderateScale(11), fontFamily: 'Poppins-Bold', letterSpacing: 0.8, marginBottom: 5 },
 
     uploadArea:       { borderWidth: 1, borderRadius: 14, marginBottom: 16, overflow: 'hidden' },
     uploadPlaceholder:{ alignItems: 'center', paddingVertical: 22, paddingHorizontal: 20 },
     uploadIconBox:    { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-    uploadText:       { fontSize: 12, fontFamily: 'Poppins-SemiBold', textAlign: 'center', marginBottom: 3 },
-    uploadHint:       { fontSize: 10, textAlign: 'center' },
+    uploadText:       { fontSize: moderateScale(12), fontFamily: 'Poppins-SemiBold', textAlign: 'center', marginBottom: 3 },
+    uploadHint:       { fontSize: moderateScale(10), textAlign: 'center' },
     uploadedRow:      { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 },
     fileIconBox:      { width: 38, height: 38, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-    fileName:         { flex: 1, fontSize: 12, fontFamily: 'Poppins-SemiBold' },
+    fileName:         { flex: 1, fontSize: moderateScale(12), fontFamily: 'Poppins-SemiBold' },
 
     inputRow:   { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, marginBottom: 16 },
-    inputInner: { flex: 1, fontSize: 14, paddingVertical: 13, color: '#fff' },
+    inputInner: { flex: 1, fontSize: moderateScale(14), paddingVertical: 13, color: '#fff' },
 
     infoBox:    { flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 24 },
     infoIconBox:{ width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
-    infoTitle:  { fontSize: 12, fontFamily: 'Poppins-Bold', marginBottom: 3 },
-    infoText:   { fontSize: 11, lineHeight: 16 },
+    infoTitle:  { fontSize: moderateScale(12), fontFamily: 'Poppins-Bold', marginBottom: 3 },
+    infoText:   { fontSize: moderateScale(11), lineHeight: 16 },
 
     finishBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, borderRadius: 14, elevation: 4, shadowColor: '#748FFF', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8 },
-    finishBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Poppins-Bold' },
+    finishBtnText: { color: '#fff', fontSize: moderateScale(15), fontFamily: 'Poppins-Bold' },
 
     // ── MODAL SUCCESS ──
     backdrop: {
@@ -448,13 +449,13 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
     modalTitle: {
-        fontSize: 22,
+        fontSize: moderateScale(22),
         fontFamily: 'Poppins-Bold',
         marginBottom: 10,
         letterSpacing: 0.3,
     },
     modalSubtitle: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         textAlign: 'center',
         lineHeight: 21,
         paddingHorizontal: 8,
@@ -479,7 +480,7 @@ const styles = StyleSheet.create({
     },
     modalPrimaryBtnText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-Bold',
         letterSpacing: 0.3,
     },

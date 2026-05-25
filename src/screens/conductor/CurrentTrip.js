@@ -101,6 +101,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import BottomNavigationBarAlt from '../../components/BottomNavigationDriver';
 
+import { moderateScale } from '../../utils/responsive';
 const TripInProgressDriver = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const { showAlert } = useCustomAlert();
@@ -483,7 +484,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: theme.bg, justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
                 <Ionicons name="alert-circle-outline" size={60} color="#EF5350" />
-                <Text style={{ marginTop: 10, fontSize: 18, color: theme.text }}>No se encontró el viaje.</Text>
+                <Text style={{ marginTop: 10, fontSize: moderateScale(18), color: theme.text }}>No se encontró el viaje.</Text>
                 <TouchableOpacity style={[styles.finishButton, { backgroundColor: theme.accent, width: '100%' }]} onPress={() => navigation.goBack()}>
                     <Text style={styles.finishButtonText}>Volver</Text>
                 </TouchableOpacity>
@@ -514,9 +515,9 @@ const TripInProgressDriver = ({ route, navigation }) => {
             {/* ── HEADER ── */}
             <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : 44, backgroundColor: theme.bg }]}>
                 <TouchableOpacity style={styles.headerBackBtn} onPress={navigateToDashboard}>
-                    <Ionicons name="chevron-back" size={26} color={theme.text} />
+                    <Ionicons name="arrow-back" size={26} color={theme.text} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Viaje en curso</Text>
+                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Viaje en curso</Text>
                 <TouchableOpacity style={styles.headerMenuBtn}>
                     <Ionicons name="ellipsis-vertical" size={20} color={theme.text} />
                 </TouchableOpacity>
@@ -724,7 +725,7 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     headerBackBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
-    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold', color: '#191C1E', letterSpacing: -0.2 },
+    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold', color: '#191C1E', letterSpacing: -0.2 },
     headerMenuBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
     scrollContent: { paddingBottom: 260 },
 
@@ -736,7 +737,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1, shadowRadius: 12, elevation: 6,
     },
     mapUnavailable: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    mapUnavailableText: { marginTop: 10, fontSize: 15, fontFamily: 'Poppins-SemiBold', color: '#727785' },
+    mapUnavailableText: { marginTop: 10, fontSize: moderateScale(15), fontFamily: 'Poppins-SemiBold', color: '#727785' },
     mapChip: {
         position: 'absolute', bottom: 14, left: 14,
         flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -744,7 +745,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12, paddingVertical: 7,
         shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4,
     },
-    mapChipText: { fontSize: 13, fontFamily: 'Poppins-SemiBold', color: '#191C1E' },
+    mapChipText: { fontSize: moderateScale(13), fontFamily: 'Poppins-SemiBold', color: '#191C1E' },
 
     // Tarjeta pasajero
     passengerCard: {
@@ -757,11 +758,11 @@ const styles = StyleSheet.create({
     passengerInfo: { flexDirection: 'row', alignItems: 'center' },
     passengerAvatar: { width: 52, height: 52, borderRadius: 26 },
     passengerAvatarFallback: { backgroundColor: '#E8EDF2', justifyContent: 'center', alignItems: 'center' },
-    passengerAvatarInitials: { fontSize: 17, fontFamily: 'Poppins-Bold', color: '#555' },
+    passengerAvatarInitials: { fontSize: moderateScale(17), fontFamily: 'Poppins-Bold', color: '#555' },
     passengerDetails: { flex: 1, marginLeft: 14 },
-    passengerName: { fontSize: 16, fontFamily: 'Poppins-SemiBold', color: '#191C1E', lineHeight: 21 },
+    passengerName: { fontSize: moderateScale(16), fontFamily: 'Poppins-SemiBold', color: '#191C1E', lineHeight: 21 },
     passengerRatingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 3, gap: 4 },
-    passengerRating: { fontSize: 13, fontFamily: 'Poppins-SemiBold', color: '#414754' },
+    passengerRating: { fontSize: moderateScale(13), fontFamily: 'Poppins-SemiBold', color: '#414754' },
     passengerActions: { flexDirection: 'row', gap: 10 },
     actionBtn: {
         width: 42, height: 42, borderRadius: 21, backgroundColor: '#F5F5F5',
@@ -783,8 +784,8 @@ const styles = StyleSheet.create({
     routeLine: { width: 2, flex: 1, backgroundColor: '#D0D5DD', marginVertical: 4 },
     routeTextsColumn: { flex: 1, justifyContent: 'space-between', gap: 20 },
     routeTextBlock: {},
-    routeLabel: { fontSize: 10, fontFamily: 'Poppins-Bold', color: '#999', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
-    routeAddress: { fontSize: 15, fontFamily: 'Poppins-SemiBold', color: '#191C1E' },
+    routeLabel: { fontSize: moderateScale(10), fontFamily: 'Poppins-Bold', color: '#999', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
+    routeAddress: { fontSize: moderateScale(15), fontFamily: 'Poppins-SemiBold', color: '#191C1E' },
 
     // Botón finalizar
     bottomBtnContainer: {
@@ -797,25 +798,25 @@ const styles = StyleSheet.create({
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         shadowColor: '#EF4444', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 10, elevation: 5,
     },
-    finalizeBtnText: { fontSize: 16, fontFamily: 'Poppins-Bold', color: '#fff', letterSpacing: 0.3 },
+    finalizeBtnText: { fontSize: moderateScale(16), fontFamily: 'Poppins-Bold', color: '#fff', letterSpacing: 0.3 },
     cancelTripBtn: {
         marginTop: 10, paddingVertical: 16, borderRadius: 28,
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         borderWidth: 1.5, borderColor: '#EF4444', backgroundColor: 'transparent',
     },
-    cancelTripBtnText: { fontSize: 16, fontFamily: 'Poppins-Bold', color: '#EF4444', letterSpacing: 0.3 },
+    cancelTripBtnText: { fontSize: moderateScale(16), fontFamily: 'Poppins-Bold', color: '#EF4444', letterSpacing: 0.3 },
 });
 
 const modalStyles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 25 },
     card: { width: '100%', borderRadius: 30, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 15 },
     iconCircle: { width: 90, height: 90, borderRadius: 45, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-    title: { fontSize: 24, fontFamily: 'Poppins-Bold', marginBottom: 10, textAlign: 'center' },
-    subtitle: { fontSize: 15, textAlign: 'center', marginBottom: 25, lineHeight: 22 },
+    title: { fontSize: moderateScale(24), fontFamily: 'Poppins-Bold', marginBottom: 10, textAlign: 'center' },
+    subtitle: { fontSize: moderateScale(15), textAlign: 'center', marginBottom: 25, lineHeight: 22 },
     confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', paddingVertical: 16, borderRadius: 16, elevation: 2 },
-    confirmBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Poppins-Bold' },
+    confirmBtnText: { color: '#fff', fontSize: moderateScale(16), fontFamily: 'Poppins-Bold' },
     cancelBtn: { width: '100%', paddingVertical: 16, borderRadius: 16, alignItems: 'center', borderWidth: 1, marginTop: 4 },
-    cancelBtnText: { fontSize: 16, fontFamily: 'Poppins-SemiBold' },
+    cancelBtnText: { fontSize: moderateScale(16), fontFamily: 'Poppins-SemiBold' },
 });
 
 export default TripInProgressDriver;

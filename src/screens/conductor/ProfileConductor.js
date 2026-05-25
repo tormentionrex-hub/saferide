@@ -27,6 +27,7 @@ import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndi
 import StarRating from '../../components/StarRating';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 
+import { moderateScale } from '../../utils/responsive';
 const COMPANIES = [ //Estas son las empresas 
     'Intel', 'Cargill', 'Deloitte', 'Citi', 'Experian',
     '3M', 'DHL', 'Bill Gosling Outsourcing (BGO)',
@@ -352,10 +353,10 @@ const ProfileConductor = ({ navigation, route }) => {
             <View style={[styles.header, { paddingTop: insets.top > 0 ? 0 : 16, borderBottomColor: theme.divider }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <View style={[styles.headerIconBtn, { backgroundColor: theme.iconCircleBg || '#1C1C40' }]}>
-                        <Ionicons name="chevron-back" size={20} color={theme.accent} />
+                        <Ionicons name="arrow-back" size={20} color={theme.accent} />
                     </View>
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Mi Perfil</Text>
+                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Mi Perfil</Text>
                 <View style={styles.headerIconBtn} />
             </View>
 
@@ -518,7 +519,7 @@ const ProfileConductor = ({ navigation, route }) => {
                                     <Image source={{ uri: editForm.profileImage }} style={[styles.modalAvatar, { borderColor: theme.accent }]} />
                                 ) : (
                                     <View style={[styles.modalAvatar, styles.avatarFallback, { borderColor: theme.accent, backgroundColor: theme.iconCircleBg || '#1C1C40' }]}>
-                                        <Text style={[styles.initials, { color: theme.accent, fontSize: 28 }]}>{initials}</Text>
+                                        <Text style={[styles.initials, { color: theme.accent, fontSize: moderateScale(28) }]}>{initials}</Text>
                                     </View>
                                 )}
                                 <View style={[styles.cameraBadge, { backgroundColor: theme.accent, borderColor: theme.surface || '#111128' }]}>
@@ -689,7 +690,7 @@ const CustomSelect = ({ label, icon, value, options, onValueChange, theme, place
                 onPress={() => setVisible(true)}
                 style={[styles.pickerContainer, { borderColor: theme.divider, backgroundColor: theme.bg }]}
             >
-                <Text style={{ color: value ? theme.text : theme.textSecondary, fontSize: 15, fontFamily: 'Poppins-Regular' }}>
+                <Text style={{ color: value ? theme.text : theme.textSecondary, fontSize: moderateScale(15), fontFamily: 'Poppins-Regular' }}>
                     {value || placeholder}
                 </Text>
                 <Ionicons name="chevron-down" size={18} color={theme.accent} />
@@ -790,7 +791,7 @@ const styles = StyleSheet.create({
         width: 38, height: 38, borderRadius: 19,
         justifyContent: 'center', alignItems: 'center',
     },
-    headerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
+    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
 
     scrollContent: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 48 },
 
@@ -817,19 +818,19 @@ const styles = StyleSheet.create({
         elevation: 10,
     },
     avatarFallback: { justifyContent: 'center', alignItems: 'center' },
-    initials: { fontSize: 38, fontFamily: 'Poppins-Bold' },
+    initials: { fontSize: moderateScale(38), fontFamily: 'Poppins-Bold' },
     onlineDot: {
         position: 'absolute', bottom: 6, right: 6,
         width: 16, height: 16, borderRadius: 8, borderWidth: 2.5,
     },
-    userName: { fontSize: 22, fontFamily: 'Poppins-Bold', marginBottom: 4 },
-    userEmail: { fontSize: 13, fontFamily: 'Poppins-Regular', marginBottom: 14 },
+    userName: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold', marginBottom: 4 },
+    userEmail: { fontSize: moderateScale(13), fontFamily: 'Poppins-Regular', marginBottom: 14 },
     roleBadge: {
         flexDirection: 'row', alignItems: 'center',
         paddingHorizontal: 14, paddingVertical: 6,
         borderRadius: 20, borderWidth: 1, gap: 6,
     },
-    roleText: { fontSize: 12, fontFamily: 'Poppins-SemiBold' },
+    roleText: { fontSize: moderateScale(12), fontFamily: 'Poppins-SemiBold' },
     ratingContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -837,14 +838,14 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     ratingValue: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         fontFamily: 'Poppins-Bold',
         marginLeft: 2,
     },
 
     // Section title
     sectionTitle: {
-        fontSize: 11, fontFamily: 'Poppins-SemiBold',
+        fontSize: moderateScale(11), fontFamily: 'Poppins-SemiBold',
         letterSpacing: 1.4, marginBottom: 10, marginLeft: 4,
     },
 
@@ -865,8 +866,8 @@ const styles = StyleSheet.create({
         marginRight: 14,
     },
     infoTexts: { flex: 1 },
-    infoLabel: { fontSize: 11, fontFamily: 'Poppins-Regular', marginBottom: 2 },
-    infoValue: { fontSize: 15, fontFamily: 'Poppins-SemiBold' },
+    infoLabel: { fontSize: moderateScale(11), fontFamily: 'Poppins-Regular', marginBottom: 2 },
+    infoValue: { fontSize: moderateScale(15), fontFamily: 'Poppins-SemiBold' },
 
     emptyCard: {
         borderRadius: 16, borderWidth: 1,
@@ -874,7 +875,7 @@ const styles = StyleSheet.create({
         alignItems: 'center', gap: 10,
         marginBottom: 10,
     },
-    emptyText: { fontSize: 14, fontFamily: 'Poppins-Regular' },
+    emptyText: { fontSize: moderateScale(14), fontFamily: 'Poppins-Regular' },
 
     // Acciones
     actionsWrapper: { marginTop: 18, gap: 12 },
@@ -887,13 +888,13 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.4,
         shadowRadius: 12,
     },
-    editBtnText: { color: '#FFF', fontSize: 15, fontFamily: 'Poppins-SemiBold' },
+    editBtnText: { color: '#FFF', fontSize: moderateScale(15), fontFamily: 'Poppins-SemiBold' },
     logoutBtn: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         height: 56, borderRadius: 18, borderWidth: 1.5, gap: 10,
         marginTop: 8,
     },
-    logoutText: { fontSize: 15, fontFamily: 'Poppins-SemiBold' },
+    logoutText: { fontSize: moderateScale(15), fontFamily: 'Poppins-SemiBold' },
 
     // Modal
     modalOverlay: {
@@ -926,7 +927,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     chipText: {
-        fontSize: 12,
+        fontSize: moderateScale(12),
         fontFamily: 'Poppins-Medium',
     },
 
@@ -946,7 +947,7 @@ const styles = StyleSheet.create({
     },
 
     modalTitle: {
-        fontSize: 20,
+        fontSize: moderateScale(20),
         fontFamily: 'Poppins-Bold'
     },
 
@@ -985,7 +986,7 @@ const styles = StyleSheet.create({
 
     photoHint: {
         textAlign: 'center',
-        fontSize: 12,
+        fontSize: moderateScale(12),
         fontFamily: 'Poppins-Regular',
         marginBottom: 22,
     },
@@ -1002,7 +1003,7 @@ const styles = StyleSheet.create({
     },
 
     inputLabel: {
-        fontSize: 11,
+        fontSize: moderateScale(11),
         fontFamily: 'Poppins-SemiBold',
         letterSpacing: 0.8
     },
@@ -1012,7 +1013,7 @@ const styles = StyleSheet.create({
         borderRadius: 15,
         borderWidth: 1.5,
         paddingHorizontal: 16,
-        fontSize: 15,
+        fontSize: moderateScale(15),
         fontFamily: 'Poppins-Regular',
     },
 
@@ -1048,7 +1049,7 @@ const styles = StyleSheet.create({
     },
 
     selectTitle: {
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-Bold',
         marginBottom: 16,
         textAlign: 'center'
@@ -1063,7 +1064,7 @@ const styles = StyleSheet.create({
     },
 
     selectOptionText: {
-        fontSize: 15,
+        fontSize: moderateScale(15),
         fontFamily: 'Poppins-Regular'
     },
 
@@ -1084,7 +1085,7 @@ const styles = StyleSheet.create({
 
     saveBtnText: {
         color: '#FFF',
-        fontSize: 16,
+        fontSize: moderateScale(16),
         fontFamily: 'Poppins-SemiBold'
     },
 });

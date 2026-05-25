@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 
+import { moderateScale } from '../../utils/responsive';
 const METHODS = [
     {
         id:       'efectivo',
@@ -121,10 +122,10 @@ const PaymentMethodScreen = ({ navigation }) => {
             <View style={[styles.header, { paddingTop: insets.top > 0 ? 0 : 16, borderBottomColor: theme.divider }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <View style={[styles.headerIconBtn, { backgroundColor: iconCircleBg }]}>
-                        <Ionicons name="chevron-back" size={20} color={theme.accent} />
+                        <Ionicons name="arrow-back" size={20} color={theme.accent} />
                     </View>
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Método de Pago</Text>
+                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Método de Pago</Text>
                 <View style={styles.headerIconBtn} />
             </View>
 
@@ -282,12 +283,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20, paddingBottom: 14, borderBottomWidth: 1,
     },
     headerIconBtn: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center' },
-    headerTitle:   { fontSize: 22, fontFamily: 'Poppins-Bold' },
+    headerTitle:   { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
 
     content: { flex: 1, paddingHorizontal: 20, paddingTop: 28 },
 
     subtitle: {
-        fontSize: 14, fontFamily: 'Poppins-Regular',
+        fontSize: moderateScale(14), fontFamily: 'Poppins-Regular',
         marginBottom: 24, lineHeight: 20,
     },
 
@@ -302,8 +303,8 @@ const styles = StyleSheet.create({
         marginRight: 16,
     },
     methodTexts: { flex: 1 },
-    methodLabel: { fontSize: 16, fontFamily: 'Poppins-SemiBold', marginBottom: 3 },
-    methodSub:   { fontSize: 12, fontFamily: 'Poppins-Regular', lineHeight: 16 },
+    methodLabel: { fontSize: moderateScale(16), fontFamily: 'Poppins-SemiBold', marginBottom: 3 },
+    methodSub:   { fontSize: moderateScale(12), fontFamily: 'Poppins-Regular', lineHeight: 16 },
 
     radio: {
         width: 22, height: 22, borderRadius: 11, borderWidth: 2,
@@ -318,7 +319,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.35, shadowRadius: 12,
     },
-    saveBtnText: { fontSize: 15, fontFamily: 'Poppins-SemiBold' },
+    saveBtnText: { fontSize: moderateScale(15), fontFamily: 'Poppins-SemiBold' },
 
     // Toast
     toast: {
@@ -343,8 +344,8 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.9, shadowRadius: 10,
     },
     toastTexts: { flex: 1 },
-    toastTitle: { fontSize: 14, fontFamily: 'Poppins-Bold', marginBottom: 2 },
-    toastSub:   { fontSize: 12, fontFamily: 'Poppins-Regular' },
+    toastTitle: { fontSize: moderateScale(14), fontFamily: 'Poppins-Bold', marginBottom: 2 },
+    toastSub:   { fontSize: moderateScale(12), fontFamily: 'Poppins-Regular' },
 });
 
 export default PaymentMethodScreen;

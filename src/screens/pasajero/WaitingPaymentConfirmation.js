@@ -8,6 +8,7 @@ import { useCustomAlert } from '../../context/CustomAlertContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../services/api';
 
+import { moderateScale } from '../../utils/responsive';
 const POLL_INTERVAL_MS = 3000;
 
 const WaitingPaymentConfirmation = ({ route, navigation }) => {
@@ -182,7 +183,7 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
                 <View style={[styles.headerIcon, { backgroundColor: theme.surfaceVariant }]}>
                     <Ionicons name={methodIcon} size={20} color={theme.accent} />
                 </View>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Confirmando pago</Text>
+                <Text style={[styles.headerTitle, { color: theme.navActive || '#005BBF' }]}>Confirmando pago</Text>
             </View>
 
             <View style={styles.center}>
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center', alignItems: 'center',
     },
     headerTitle: {
-        fontSize: 22,
+        fontSize: moderateScale(22),
         fontFamily: 'Poppins-Bold',
         letterSpacing: -0.3,
     },
@@ -295,7 +296,7 @@ const styles = StyleSheet.create({
     avatarImg: { width: '100%', height: '100%' },
 
     title: {
-        fontSize: 24,
+        fontSize: moderateScale(24),
         fontFamily: 'Poppins-Bold',
         textAlign: 'center',
         letterSpacing: -0.5,
@@ -311,7 +312,7 @@ const styles = StyleSheet.create({
         width: 8, height: 8, borderRadius: 4,
     },
     subtitle: {
-        fontSize: 14,
+        fontSize: moderateScale(14),
         fontFamily: 'Poppins-Regular',
         textAlign: 'center',
         lineHeight: 22,
@@ -327,13 +328,13 @@ const styles = StyleSheet.create({
         borderWidth: 1,
     },
     amountLabel: {
-        fontSize: 10,
+        fontSize: moderateScale(10),
         fontFamily: 'Poppins-Bold',
         letterSpacing: 1.4,
         marginBottom: 4,
     },
     amountValue: {
-        fontSize: 26,
+        fontSize: moderateScale(26),
         fontFamily: 'Poppins-Bold',
         letterSpacing: -0.5,
     },
@@ -352,7 +353,7 @@ const styles = StyleSheet.create({
     },
     tipText: {
         flex: 1,
-        fontSize: 12,
+        fontSize: moderateScale(12),
         fontFamily: 'Poppins-Regular',
         lineHeight: 17,
     },

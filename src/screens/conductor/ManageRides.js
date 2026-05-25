@@ -8,8 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
-import SettingsGearButton from '../../components/SettingsGearButton';
 
+import { moderateScale } from '../../utils/responsive';
 /* ─── Modal de cancelación ────────────────────────────────────────── */
 const CancelModal = ({ visible, ride, onClose, onConfirm, cancelling, theme }) => {
     const [step, setStep] = useState(1); // 1 = primera confirmación, 2 = segunda confirmación
@@ -332,10 +332,10 @@ const ManageRides = ({ navigation }) => {
                     onPress={() => navigation.navigate('MainTabsDriver', { screen: 'DashboardDriver' })}
                     style={styles.backBtn}
                 >
-                    <Ionicons name="chevron-back" size={24} color={theme.text} />
+                    <Ionicons name="arrow-back" size={24} color={theme.text} />
                 </TouchableOpacity>
-                <Text style={[styles.title, { color: theme.text }]}>Mis Viajes Publicados</Text>
-                <SettingsGearButton navigation={navigation} color={theme.text} style={styles.gearBtn} />
+                <Text style={[styles.title, { color: theme.navActive || '#005BBF' }]}>Mis Viajes Publicados</Text>
+                <View style={styles.gearBtn} />
             </View>
 
             {loading ? (
@@ -379,45 +379,45 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 20, borderBottomWidth: 1 },
     backBtn: { position: 'absolute', left: 20 },
     gearBtn: { position: 'absolute', right: 20 },
-    title: { fontSize: 22, fontFamily: 'Poppins-Bold' },
+    title: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
     rideCard: { padding: 15, borderRadius: 15, borderWidth: 1, marginBottom: 15, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
     statusBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 12, gap: 6 },
     statusDot: { width: 7, height: 7, borderRadius: 4 },
-    statusText: { fontSize: 12, fontFamily: 'Poppins-Bold', letterSpacing: 0.3 },
+    statusText: { fontSize: moderateScale(12), fontFamily: 'Poppins-Bold', letterSpacing: 0.3 },
     routeContainer: { flexDirection: 'row', alignItems: 'center', minHeight: 60 },
     line: { width: 2, height: 25, position: 'absolute', left: 7, top: 18 },
     routeTextContainer: { marginLeft: 15, flex: 1, justifyContent: 'space-between', height: 50 },
-    locationText: { fontSize: 15, fontFamily: 'Poppins-Bold' },
+    locationText: { fontSize: moderateScale(15), fontFamily: 'Poppins-Bold' },
     divider: { height: 1, marginVertical: 15 },
     detailsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
     detailItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    detailText: { fontSize: 13, fontFamily: 'Poppins-SemiBold' },
+    detailText: { fontSize: moderateScale(13), fontFamily: 'Poppins-SemiBold' },
     buttonsRow: { flexDirection: 'row', alignItems: 'center' },
     manageBtn: { paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
-    manageBtnText: { color: '#fff', fontFamily: 'Poppins-Bold', fontSize: 14 },
+    manageBtnText: { color: '#fff', fontFamily: 'Poppins-Bold', fontSize: moderateScale(14) },
     cancelBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#EF4444', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 10 },
     cancelBtnDisabled: { backgroundColor: '#E5E7EB' },
-    cancelBtnText: { color: '#fff', fontFamily: 'Poppins-Bold', fontSize: 14 },
+    cancelBtnText: { color: '#fff', fontFamily: 'Poppins-Bold', fontSize: moderateScale(14) },
 });
 
 const modal = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
     card: { width: '100%', backgroundColor: '#fff', borderRadius: 28, padding: 28, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 16 },
     iconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#FEF3C7', justifyContent: 'center', alignItems: 'center', marginBottom: 18 },
-    title: { fontSize: 20, fontFamily: 'Poppins-Bold', color: '#111827', textAlign: 'center', marginBottom: 8 },
-    subtitle: { fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 21, marginBottom: 18 },
-    hint: { fontSize: 12, color: '#9CA3AF', textAlign: 'center', marginBottom: 20, lineHeight: 18 },
+    title: { fontSize: moderateScale(20), fontFamily: 'Poppins-Bold', color: '#111827', textAlign: 'center', marginBottom: 8 },
+    subtitle: { fontSize: moderateScale(14), color: '#6B7280', textAlign: 'center', lineHeight: 21, marginBottom: 18 },
+    hint: { fontSize: moderateScale(12), color: '#9CA3AF', textAlign: 'center', marginBottom: 20, lineHeight: 18 },
     routeSummary: { width: '100%', backgroundColor: '#F9FAFB', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#E5E7EB' },
     routeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    routeText: { flex: 1, fontSize: 13, fontFamily: 'Poppins-SemiBold', color: '#374151' },
+    routeText: { flex: 1, fontSize: moderateScale(13), fontFamily: 'Poppins-SemiBold', color: '#374151' },
     routeDotLine: { width: 2, height: 14, backgroundColor: '#E5E7EB', marginLeft: 6, marginVertical: 4 },
     buttonsCol: { width: '100%', gap: 10, marginTop: 4 },
     btnDestructive: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#F59E0B', paddingVertical: 14, borderRadius: 14 },
     btnDestructiveFinal: { backgroundColor: '#EF4444' },
     btnDisabled: { opacity: 0.6 },
-    btnDestructiveText: { color: '#fff', fontFamily: 'Poppins-Bold', fontSize: 15 },
+    btnDestructiveText: { color: '#fff', fontFamily: 'Poppins-Bold', fontSize: moderateScale(15) },
     btnGhost: { alignItems: 'center', paddingVertical: 10 },
-    btnGhostText: { color: '#6B7280', fontSize: 14, fontFamily: 'Poppins-SemiBold' },
+    btnGhostText: { color: '#6B7280', fontSize: moderateScale(14), fontFamily: 'Poppins-SemiBold' },
     stepsRow: { flexDirection: 'row', gap: 6, marginTop: 20 },
     stepDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#E5E7EB' },
     stepDotActive: { backgroundColor: '#EF4444', width: 18 },

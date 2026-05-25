@@ -21,8 +21,8 @@ import sessionCache from '../../services/sessionCache';
 import passengerBookingsCache from '../../services/passengerBookingsCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
-import SettingsGearButton from '../../components/SettingsGearButton';
 
+import { moderateScale } from '../../utils/responsive';
 const screenWidth = Dimensions.get('window').width;
 
 // Cache a nivel módulo: evita refetcha en cada useFocusEffect cuando el usuario
@@ -221,16 +221,10 @@ const Metrics = ({ navigation }) => {
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Ionicons name="chevron-back" size={24} color={theme.text} />
+                    <Ionicons name="arrow-back" size={24} color={theme.text} />
                 </TouchableOpacity>
-                <Text style={[styles.innerTitle, { color: theme.text }]}>Estadísticas</Text>
-                <SettingsGearButton
-                    navigation={navigation}
-                    color={theme.text}
-                    style={styles.gearBtn}
-                    profileScreen="PasajeroProfileScreen"
-                    settingsScreen="SettingPasajero"
-                />
+                <Text style={[styles.innerTitle, { color: theme.navActive || '#005BBF' }]}>Estadísticas</Text>
+                <View style={styles.gearBtn} />
             </View>
 
             {loading ? (
@@ -328,24 +322,24 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15 },
     backBtn: { position: 'absolute', left: 20 },
     gearBtn: { position: 'absolute', right: 20 },
-    innerTitle: { fontSize: 22, fontFamily: 'Poppins-Bold' },
+    innerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold' },
     loadingContainer: { flex: 1, justifyContent: 'center' },
     scrollBody: { padding: 20, paddingBottom: 50 },
     statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
     statBox: { width: '31%', borderRadius: 12, padding: 12, alignItems: 'center' },
-    statLabel: { fontSize: 10, textAlign: 'center', marginBottom: 4 },
-    statValue: { fontSize: 14, fontFamily: 'Poppins-Bold' },
+    statLabel: { fontSize: moderateScale(10), textAlign: 'center', marginBottom: 4 },
+    statValue: { fontSize: moderateScale(14), fontFamily: 'Poppins-Bold' },
     chartContainer: { borderRadius: 20, padding: 15, borderWidth: 1, marginBottom: 20 },
-    chartHeaderTitle: { fontSize: 13, fontFamily: 'Poppins-Bold' },
+    chartHeaderTitle: { fontSize: moderateScale(13), fontFamily: 'Poppins-Bold' },
     chartStyle: { marginVertical: 8, borderRadius: 16, marginLeft: -10 },
     chartPlaceholder: { height: 180, alignItems: 'center', justifyContent: 'center' },
     monthRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
     monthLeft: { flexDirection: 'row', alignItems: 'center' },
     monthIconBg: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-    monthName: { fontSize: 16, fontFamily: 'Poppins-Bold', textTransform: 'capitalize' },
+    monthName: { fontSize: moderateScale(16), fontFamily: 'Poppins-Bold', textTransform: 'capitalize' },
     monthRight: { alignItems: 'flex-end' },
-    monthStatLabel: { fontSize: 11, marginBottom: 4 },
-    monthStatKm: { fontSize: 15, fontFamily: 'Poppins-Bold' }
+    monthStatLabel: { fontSize: moderateScale(11), marginBottom: 4 },
+    monthStatKm: { fontSize: moderateScale(15), fontFamily: 'Poppins-Bold' }
 });
 
 export default Metrics;
