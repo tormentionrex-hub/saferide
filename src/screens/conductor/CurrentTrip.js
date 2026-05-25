@@ -478,26 +478,48 @@ const TripInProgressDriver = ({ route, navigation }) => {
                         routes: [{ name: 'MainTabsDriver', params: { screen: 'DashboardDriver' } }],
                     });
 
-                    // El backend decrementa trustScore solo si la ride estaba
-                    // en 'in progress' al cancelarse. Si decremented=true,
-                    // mostramos el alert específico antes de navegar.
+                    // El backend devuelve el trustScore del conductor SIEMPRE
+                    // que pueda (decremented=true si la cancelación gatilló
+                    // el decremento, false si no — por ej. cancelar durante
+                    // 'scheduled'). En ambos casos mostramos las oportunidades
+                    // restantes para que el conductor sepa dónde está parado,
+                    // mismo patrón que el alert del pasajero gifted en
+                    // TripInProgress.js.
                     const trust = rideRes.data?.trust;
-                    if (trust?.decremented) {
+                    if (trust) {
                         const reachedZero = trust.newScore === 0;
-                        showAlert(
-                            'Has perdido una oportunidad',
-                            reachedZero
+                        const opportunitiesLine =
+                            trust.newScore === 1
+                                ? 'Te queda 1 oportunidad antes de que tu cuenta sea limitada.'
+                                : `Te quedan ${trust.newScore} oportunidades antes de que tu cuenta sea limitada.`;
+
+                        let title;
+                        let message;
+                        let type;
+
+                        if (trust.decremented) {
+                            // Hubo penalización (cancel durante 'in progress').
+                            title = 'Has perdido una oportunidad';
+                            type = 'warning';
+                            message = reachedZero
                                 ? 'Tu trust score bajó a 0 de 4. Tu cuenta ha sido limitada: no podrás publicar nuevos viajes hasta que un administrador la reactive.'
-                                : `Tu trust score bajó a ${trust.newScore} de 4. ${
-                                    trust.newScore === 1
-                                        ? 'Te queda 1 oportunidad antes de que tu cuenta sea limitada.'
-                                        : `Te quedan ${trust.newScore} oportunidades antes de que tu cuenta sea limitada.`
-                                }`,
-                            'warning',
-                            'Entendido',
-                            goToDashboard
-                        );
+                                : `Tu trust score bajó a ${trust.newScore} de 4. ${opportunitiesLine}`;
+                        } else {
+                            // Sin penalización (cancel en 'scheduled' u otro).
+                            // Igual le recordamos su estado para que sea
+                            // consciente del límite si llegara a cancelar
+                            // otro viaje en progreso.
+                            title = 'Viaje cancelado';
+                            type = 'success';
+                            message = reachedZero
+                                ? 'El viaje ha sido cancelado y los pasajeros notificados. Tu trust score está en 0 de 4 — tu cuenta está limitada.'
+                                : `El viaje ha sido cancelado y los pasajeros notificados.\n\nTu trust score actual es ${trust.newScore} de 4. ${opportunitiesLine}`;
+                        }
+
+                        showAlert(title, message, type, 'Entendido', goToDashboard);
                     } else {
+                        // Fallback: backend no devolvió trust (admin, error al
+                        // leer User, etc.). Alert mínimo.
                         showAlert(
                             'Viaje cancelado',
                             'El viaje ha sido cancelado exitosamente y los pasajeros han sido notificados.',
