@@ -5,11 +5,11 @@
 ### Pasos a seguir:
 
 1. Crea un nuevo archivo en esta carpeta (`src/`) y nómbralo `config.js`.
-2. Ejecuta `ipconfig` en tu terminal para obtener tu Dirección IPv4 (ej. `192.168.100.19`).
+2. Ejecuta `ipconfig` en tu terminal para obtener tu Dirección IPv4 (ej. `192.168.0.7`).
 3. Copia el siguiente código y pégalo dentro de tu nuevo `config.js`, reemplazando la IP por la tuya:
 
 ```javascript
-export const API_URL = 'http://192.168.100.19:8080/api/v1'; // Reemplaza esta IP con tu propia IP local
+export const API_URL = 'http://192.168.0.7:8080/api/v1'; // Reemplaza esta IP con tu propia IP local
 
 export default {
     API_URL,
