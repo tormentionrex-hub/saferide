@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, Platform, ScrollView, ActivityIndicator, Image, Alert, Linking, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Platform, ScrollView, ActivityIndicator, Image, Alert, Linking, BackHandler } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
@@ -8,7 +8,7 @@ import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndi
 import ScreenHeader from '../../components/ScreenHeader';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 import api from '../../services/api';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { moderateScale } from '../../utils/responsive';
 // Mismo correo configurado en el backend para los códigos de verificación
@@ -353,7 +353,7 @@ const PaymentVerification = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
+    container: { flex: 1 },
     scrollContent: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 220 },
     topIconContainer: { alignItems: 'center', marginBottom: 14 },
     moneyIconCircle: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center' },

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
-    ActivityIndicator, SafeAreaView, StatusBar, Platform,
+    ActivityIndicator, StatusBar, Platform,
     Modal, Animated, Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import sessionCache from '../../services/sessionCache';
@@ -370,7 +371,7 @@ const ManageRides = ({ navigation }) => {
 
 /* ─── Estilos ─────────────────────────────────────────────────────── */
 const styles = StyleSheet.create({
-    container: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0 },
+    container: { flex: 1 },
     rideCard: { padding: 15, borderRadius: 15, borderWidth: 1, marginBottom: 15, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
     statusBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 12, gap: 6 },
     statusDot: { width: 7, height: 7, borderRadius: 4 },
