@@ -605,7 +605,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 </View>
 
                 {/* ── TARJETA PASAJERO ── */}
-                <View style={[styles.passengerCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <View style={[styles.passengerCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border }]}>
                     <View style={styles.passengerInfo}>
                         {passenger?.profileImage ? (
                             <Image source={{ uri: passenger.profileImage }} style={styles.passengerAvatar} onError={() => {}} />
@@ -647,7 +647,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
                 </View>
 
                 {/* ── TARJETA RUTA ── */}
-                <View style={[styles.routeCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <View style={[styles.routeCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border }]}>
                     <View style={styles.routeRow}>
                         {/* Columna de iconos con línea conectora */}
                         <View style={styles.routeIconColumn}>

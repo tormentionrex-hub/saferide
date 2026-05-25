@@ -688,6 +688,10 @@ const TripInProgress = ({ route, navigation }) => {
 
             <ScreenHeader
                 title="Viaje en Curso"
+                onBack={() => navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'MainTabsPasajero', params: { screen: 'DashboardPasajero' } }],
+                })}
                 useInsets
                 right={
                     <TouchableOpacity
@@ -841,7 +845,7 @@ const TripInProgress = ({ route, navigation }) => {
                 </View>
 
                 {/* ── TARJETA CONDUCTOR + VEHÍCULO (solo lectura, datos del conductor) ── */}
-                <View style={[styles.infoCard, { backgroundColor: theme.surface }]}>
+                <View style={[styles.infoCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}>
                     <View style={styles.driverVehicleTopRow}>
                         <View style={styles.driverLeftCol}>
                             <DriverAvatar profileImage={driver?.profileImage} name={driver?.name} size={56} />
@@ -923,7 +927,7 @@ const TripInProgress = ({ route, navigation }) => {
                 </View>
 
                 {/* ── TARJETA RUTA ────────────────────────────────── */}
-                <View style={[styles.infoCard, { backgroundColor: theme.surface }]}>
+                <View style={[styles.infoCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}>
                     <View style={styles.routeRow}>
                         <View style={styles.routeIconCol}>
                             <View style={[styles.routeDotOrigin, { backgroundColor: theme.navActive }]} />

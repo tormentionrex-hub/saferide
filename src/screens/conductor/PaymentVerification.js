@@ -5,6 +5,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import ScreenHeader from '../../components/ScreenHeader';
+import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 import api from '../../services/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -166,15 +167,7 @@ const PaymentVerification = ({ route, navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             
-            <ScreenHeader
-                title="Trip Details"
-                onBack={() => navigation.goBack()}
-                right={
-                    <TouchableOpacity>
-                        <Ionicons name="ellipsis-vertical" size={24} color={theme.accent} />
-                    </TouchableOpacity>
-                }
-            />
+            <ScreenHeader title="Trip Details" onBack={() => navigation.goBack()} />
 
             <View style={{ flex: 1 }}>
                 <ScrollView contentContainerStyle={styles.scrollContent} {...si.scrollProps}>
@@ -203,7 +196,7 @@ const PaymentVerification = ({ route, navigation }) => {
                             const isLocked = isGifted || isCancelled;
 
                             return (
-                                <View key={booking._id} style={[styles.passengerCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                                <View key={booking._id} style={[styles.passengerCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border }]}>
                                     <View style={styles.passengerInfo}>
                                         <Image
                                             source={{ uri: passenger?.profileImage || 'https://via.placeholder.com/150' }}
@@ -311,10 +304,15 @@ const PaymentVerification = ({ route, navigation }) => {
                 <ScrollIndicator si={si} thumbColor={theme.accent} />
             </View>
 
-            <View style={[styles.footer, { backgroundColor: theme.surface, borderTopColor: theme.border, paddingBottom: (insets.bottom > 0 ? insets.bottom : 20) + 12 }]}>
-                <TouchableOpacity 
+            <View style={[styles.footer, {
+                backgroundColor: theme.surface,
+                borderTopColor: theme.border,
+                bottom: 70 + (insets.bottom > 0 ? insets.bottom : 14),
+                paddingBottom: 14,
+            }]}>
+                <TouchableOpacity
                     style={[
-                        styles.continueBtn, 
+                        styles.continueBtn,
                         (!allSelected || submitting) && styles.continueBtnDisabled
                     ]}
                     activeOpacity={0.8}
@@ -331,13 +329,15 @@ const PaymentVerification = ({ route, navigation }) => {
                     )}
                 </TouchableOpacity>
             </View>
+
+            <BottomNavigationDriver navigation={navigation} />
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
     container: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
-    scrollContent: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 },
+    scrollContent: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 220 },
     topIconContainer: { alignItems: 'center', marginBottom: 14 },
     moneyIconCircle: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center' },
     mainTitle: { fontSize: moderateScale(26), fontFamily: 'Poppins-Bold', textAlign: 'center', marginBottom: 8, letterSpacing: -0.5 },
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
     },
     emailBtnText: { fontSize: moderateScale(12), fontFamily: 'Poppins-SemiBold' },
-    footer: { paddingHorizontal: 24, paddingTop: 20, borderTopWidth: 1 },
+    footer: { position: 'absolute', left: 0, right: 0, paddingHorizontal: 24, paddingTop: 14, borderTopWidth: 1 },
     continueBtn: {
         backgroundColor: '#1A73E8', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         paddingVertical: 18, borderRadius: 99, gap: 8,

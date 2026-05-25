@@ -425,20 +425,19 @@ const BuscarViaje = ({ navigation, route }) => {
         <View style={[styles.safeArea, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
 
+            <ScreenHeader title="Tu Viaje" onBack={() => navigation.goBack()} useInsets />
+
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={[
                     styles.scrollContent,
-                    { 
-                        paddingTop: (insets.top || 0) + 30, // Bajamos todo el contenido junto
-                        paddingBottom: 100 + (insets.bottom || 14) 
+                    {
+                        paddingTop: 16,
+                        paddingBottom: 100 + (insets.bottom || 14),
                     },
                 ]}
                 showsVerticalScrollIndicator={false}
             >
-                <View style={{ marginHorizontal: -20, marginBottom: 20 }}>
-                    <ScreenHeader title="Tu Viaje" onBack={() => navigation.goBack()} />
-                </View>
 
                 {/* SUBTÍTULO Y TÍTULO */}
                 <Text style={styles.subLabel}>SELECCIÓN DE DESTINO</Text>

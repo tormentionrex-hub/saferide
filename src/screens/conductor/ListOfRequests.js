@@ -863,7 +863,7 @@ const ListOfRequests = ({ route, navigation }) => {
         const isPending = item.status === 'pending';
 
         return (
-            <View style={[styles.passengerCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={[styles.passengerCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border }]}>
                 {/* Fila principal: Avatar + Info + Botones de acción */}
                 <View style={styles.cardTopRow}>
                     <PassengerAvatar
@@ -972,7 +972,7 @@ const ListOfRequests = ({ route, navigation }) => {
             )}
 
             {specificRideId && !loading && (
-                <View style={[styles.startRideContainer, { backgroundColor: theme.surface, borderTopColor: theme.divider }]}>
+                <View style={[styles.startRideContainer, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.divider }]}>
                     <Text style={[styles.startRideText, { color: theme.textSecondary }]}>¿Tienes todos los pasajeros a bordo?</Text>
                     <TouchableOpacity 
                         style={[styles.startRideBtn, { backgroundColor: theme.accent }]} 
