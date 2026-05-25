@@ -47,15 +47,16 @@ const getShortMonthNameES = (dt) => {
 //
 // Reglas (alineadas con la lógica del backend):
 // 1. Tiene que estar payment_status='pending' con charged_amount > 0.
-// 2. Solo aplica cobro real cuando:
-//    - El ride se completó (cobro normal por viaje cumplido), o
-//    - El booking fue cancelado por el pasajero (booking cancelled +
-//      ride NO cancelled → penalización).
-// 3. Si el ride completo fue cancelado por el conductor (ride.status
-//    'cancelled'/'canceled'), no hay cobro al pasajero aunque quede
-//    payment_status='pending' por residuo de datos.
-// 4. Si el ride aún está scheduled / in progress, el viaje no terminó y
-//    no debe figurar como deuda en el historial.
+// 2. Aplica cobro real cuando:
+//    a. El booking fue cancelado por el pasajero con apply_penalty=true.
+//       El backend deja payment_status='pending' + charged_amount=penalización
+//       sin importar lo que pase con el ride después (sigue corriendo con
+//       otros pasajeros, o se auto-cancela si era el único).
+//    b. El ride se completó con cobro pendiente (caso normal: conductor
+//       marcó "No pagó" en PaymentVerification).
+// 3. Cuando el conductor cancela el ride entero, el backend pone los
+//    bookings activos como payment_status='waived' → ya quedan filtrados
+//    por el primer chequeo (payment_status !== 'pending').
 const isPendingPayment = (b) => {
     if (!b) return false;
     if (b.payment_status !== 'pending') return false;
@@ -63,19 +64,18 @@ const isPendingPayment = (b) => {
 
     const rideStatus = b.ride_id?.status;
     const bookingStatus = b.status;
-    const rideCancelled = rideStatus === 'cancelled' || rideStatus === 'canceled';
     const bookingCancelled = bookingStatus === 'cancelled' || bookingStatus === 'canceled';
 
-    // Conductor canceló el ride → no hay cobro al pasajero.
-    if (rideCancelled) return false;
-
-    // Viaje completado → cobro normal aplica.
-    if (rideStatus === 'completed') return true;
-
-    // Pasajero canceló su booking sobre un ride no cancelado → penalización.
+    // (a) Pasajero canceló su booking con penalización pendiente.
+    // Aplica aún si el ride después fue auto-cancelado por ser el último
+    // pasajero: el cobro ya estaba aplicado antes y debe cobrarse.
     if (bookingCancelled) return true;
 
-    // Resto (ride scheduled / in progress, etc.) → no es deuda visible aún.
+    // (b) Viaje completado con cobro pendiente normal.
+    if (rideStatus === 'completed') return true;
+
+    // Resto (ride scheduled / in progress sin cancelación del booking) →
+    // no es deuda visible aún.
     return false;
 };
 

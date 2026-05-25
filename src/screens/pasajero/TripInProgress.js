@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import sessionStorage from '../../services/sessionStorage';
+import passengerBookingsCache from '../../services/passengerBookingsCache';
 import { userService } from '../../services/userService';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -592,6 +593,12 @@ const TripInProgress = ({ route, navigation }) => {
                                 });
 
                                 if (res.data?.success) {
+                                    // Invalidamos el cache compartido de bookings para
+                                    // que History/Dashboard/Metrics traigan datos frescos
+                                    // en el próximo foco — sin esto se podrían quedar 60s
+                                    // viendo el booking como 'confirmed' aún.
+                                    passengerBookingsCache.invalidate();
+
                                     const trust = res.data?.trust;
                                     // El backend decrementa trustScore solo en este escenario
                                     // (gifted + ride in progress + pasajero cancela). Mostramos
@@ -631,6 +638,12 @@ const TripInProgress = ({ route, navigation }) => {
                                 });
 
                                 if (res.data?.success) {
+                                    // Invalidamos el cache compartido de bookings para
+                                    // que History/Dashboard/Metrics traigan datos frescos
+                                    // (la etiqueta "Cobro pendiente" debe aparecer al
+                                    // siguiente foco de History).
+                                    passengerBookingsCache.invalidate();
+
                                     const updatedBooking = res.data.data;
                                     const penaltyApplied = updatedBooking.charged_amount !== updatedBooking.offered_amount;
 

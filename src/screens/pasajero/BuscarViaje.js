@@ -258,17 +258,28 @@ const BuscarViaje = ({ navigation, route }) => {
             if (bookingsRes.data?.success && bookingsRes.data?.data) {
                 const bookings = bookingsRes.data.data;
 
-                // 0. Cobro pendiente → prioridad máxima, debe pagar antes de cualquier acción
+                // 0. Cobro pendiente → prioridad máxima, debe pagar antes de cualquier acción.
+                // Incluye dos casos: (a) viaje completado con pago pendiente
+                // (conductor marcó "No pagó") y (b) booking cancelado por el
+                // pasajero con penalización pendiente. En ambos casos el
+                // backend deja payment_status='pending' + charged_amount>0.
+                // Las cancelaciones del conductor no entran porque el backend
+                // las pone como 'waived'.
                 const unpaidBooking = bookings.find(b =>
-                    b.status === 'completed' &&
+                    (b.status === 'completed' || b.status === 'cancelled' || b.status === 'canceled') &&
                     b.payment_status === 'pending' &&
                     Number(b.charged_amount) > 0
                 );
                 if (unpaidBooking) {
                     setLoading(false);
+                    const isPenalty =
+                        unpaidBooking.status === 'cancelled' ||
+                        unpaidBooking.status === 'canceled';
                     showAlert(
-                        'Tienes un cobro pendiente',
-                        `Para buscar nuevos viajes primero debes pagar el viaje pendiente por ₡${Number(unpaidBooking.charged_amount).toLocaleString('es-CR')}.`,
+                        isPenalty ? 'Penalización pendiente' : 'Tienes un cobro pendiente',
+                        isPenalty
+                            ? `Tienes una penalización por cancelación pendiente de ₡${Number(unpaidBooking.charged_amount).toLocaleString('es-CR')}. Debes pagarla antes de buscar nuevos viajes.`
+                            : `Para buscar nuevos viajes primero debes pagar el viaje pendiente por ₡${Number(unpaidBooking.charged_amount).toLocaleString('es-CR')}.`,
                         'warning',
                         'Pagar ahora',
                         null,
