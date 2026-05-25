@@ -265,13 +265,15 @@ const ManageRides = ({ navigation }) => {
                     <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
                 </View>
 
-                <View style={styles.routeContainer}>
-                    <Ionicons name="radio-button-on" size={16} color={theme.accent} />
-                    <View style={[styles.line, { backgroundColor: theme.divider }]} />
-                    <Ionicons name="location" size={16} color="#FF5A5F" />
-                    <View style={styles.routeTextContainer}>
-                        <Text style={[styles.locationText, { color: theme.text }]} numberOfLines={1}>Origen: {originName}</Text>
-                        <Text style={[styles.locationText, { color: theme.text, marginTop: 15 }]} numberOfLines={1}>Destino: {destName}</Text>
+                <View style={{ backgroundColor: theme.surface, borderColor: theme.cardBorder || theme.border, borderWidth: 1, borderRadius: 12, padding: 12 }}>
+                    <View style={styles.routeContainer}>
+                        <Ionicons name="radio-button-on" size={16} color={theme.accent} />
+                        <View style={[styles.line, { backgroundColor: theme.divider }]} />
+                        <Ionicons name="location" size={16} color="#FF5A5F" />
+                        <View style={styles.routeTextContainer}>
+                            <Text style={[styles.locationText, { color: theme.text }]} numberOfLines={1}>Origen: {originName}</Text>
+                            <Text style={[styles.locationText, { color: theme.text, marginTop: 15 }]} numberOfLines={1}>Destino: {destName}</Text>
+                        </View>
                     </View>
                 </View>
 

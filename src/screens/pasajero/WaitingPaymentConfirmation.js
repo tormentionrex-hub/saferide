@@ -1,13 +1,15 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
-    View, Text, StyleSheet, SafeAreaView, StatusBar, Animated, Easing, Image,
+    View, Text, StyleSheet, SafeAreaView, StatusBar, Animated, Easing, Image, BackHandler,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../services/api';
 import ScreenHeader from '../../components/ScreenHeader';
+import BottomNavigationBar from '../../components/BottomNavigationBar';
 
 import { moderateScale } from '../../utils/responsive';
 const POLL_INTERVAL_MS = 3000;
@@ -44,6 +46,19 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
         mountedRef.current = true;
         return () => { mountedRef.current = false; };
     }, []);
+
+    // Back hardware (Android) → DashboardPasajero.
+    const navigateToDashboard = useCallback(() => {
+        navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' });
+    }, [navigation]);
+
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => { navigateToDashboard(); return true; };
+            const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => sub.remove();
+        }, [navigateToDashboard])
+    );
 
     useEffect(() => {
         const loop = (val, delay) =>
@@ -238,7 +253,7 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
                 )}
             </View>
 
-            <View style={[styles.footer, { paddingBottom: insets.bottom > 0 ? insets.bottom : 18 }]}>
+            <View style={[styles.footer, { paddingBottom: 90 + (insets.bottom > 0 ? insets.bottom : 14) }]}>
                 <View style={[styles.tipBox, { backgroundColor: theme.surfaceVariant }]}>
                     <Ionicons name="information-circle-outline" size={18} color={theme.accent} />
                     <Text style={[styles.tipText, { color: theme.textSecondary }]}>
@@ -246,6 +261,8 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
                     </Text>
                 </View>
             </View>
+
+            <BottomNavigationBar navigation={navigation} />
         </SafeAreaView>
     );
 };

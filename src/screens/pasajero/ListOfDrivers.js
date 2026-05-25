@@ -110,7 +110,7 @@ const DriverCard = React.memo(({ item, onPress, onImagePress, theme }) => {
             </View>
 
             {/* Ruta */}
-            <View style={[styles.routeBox, { backgroundColor: theme.surfaceVariant }]}>
+            <View style={[styles.routeBox, { backgroundColor: theme.surface, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}>
                 <View style={styles.routeRow}>
                     <Ionicons name="radio-button-on" size={14} color={theme.accent} />
                     <Text style={[styles.routeText, { color: theme.text }]} numberOfLines={1}>

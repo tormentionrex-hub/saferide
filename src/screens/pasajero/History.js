@@ -301,7 +301,7 @@ const HistoryItem = memo(({ item, theme, calculateArrivalTime, handleContact }) 
                 </View>
             ) : null}
 
-            <View style={[styles.routeContainer, { backgroundColor: theme.bg }]}>
+            <View style={[styles.routeContainer, { backgroundColor: theme.surface, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}>
                 <View style={styles.routePoint}>
                     <Ionicons name="radio-button-on" size={14} color={theme.accent} />
                     <Text style={[styles.routeValue, { color: theme.text }]} numberOfLines={1}>

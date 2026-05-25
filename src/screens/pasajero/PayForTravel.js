@@ -175,7 +175,7 @@ const PayForTravel = ({ route, navigation }) => {
                             </View>
                         </View>
 
-                        <View style={styles.routeRow}>
+                        <View style={[styles.routeRow, { backgroundColor: theme.surface, borderColor: theme.cardBorder || theme.border, borderWidth: 1, borderRadius: 12, padding: 12 }]}>
                             <View style={styles.routeIconCol}>
                                 <Ionicons name="radio-button-on" size={14} color={theme.accent} />
                                 <View style={[styles.routeLine, { backgroundColor: theme.border }]} />

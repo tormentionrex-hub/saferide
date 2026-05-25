@@ -497,7 +497,7 @@ const BuscarViaje = ({ navigation, route }) => {
                 {/* TARJETA DE BÚSQUEDA */}
                 <View style={[styles.searchCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.divider }]}>
                     {/* FROM */}
-                    <TouchableOpacity style={styles.fieldRow} onPress={() => handleOpenPicker('origen')}>
+                    <TouchableOpacity style={[styles.fieldRow, { backgroundColor: theme.surface, borderColor: theme.cardBorder || theme.divider, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12 }]} onPress={() => handleOpenPicker('origen')}>
                         <View style={[styles.fieldIconWrap, { backgroundColor: '#EBF0FF' }]}>
                             <Ionicons name="navigate-circle-outline" size={20} color={ACCENT} />
                         </View>
@@ -515,10 +515,10 @@ const BuscarViaje = ({ navigation, route }) => {
                         {loadingLocation && <ActivityIndicator size="small" color={ACCENT} />}
                     </TouchableOpacity>
 
-                    <View style={styles.fieldDivider} />
+                    <View style={{ height: 8 }} />
 
                     {/* TO */}
-                    <TouchableOpacity style={styles.fieldRow} onPress={() => handleOpenPicker('destino')}>
+                    <TouchableOpacity style={[styles.fieldRow, { backgroundColor: theme.surface, borderColor: theme.cardBorder || theme.divider, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12 }]} onPress={() => handleOpenPicker('destino')}>
                         <View style={[styles.fieldIconWrap, { backgroundColor: '#FFF0F0' }]}>
                             <Ionicons name="location-outline" size={20} color="#FF5A5F" />
                         </View>

@@ -118,7 +118,7 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handl
             ) : null}
 
             {/* Ruta Textual */}
-            <View style={[styles.routeContainer, { backgroundColor: theme.bg }]}>
+            <View style={[styles.routeContainer, { backgroundColor: theme.surface, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}>
                 <View style={styles.routePoint}>
                     <Ionicons name="radio-button-on" size={14} color={theme.accent} />
                     <Text style={[styles.routeValue, { color: theme.text }]} numberOfLines={1}>
