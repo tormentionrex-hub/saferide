@@ -344,7 +344,7 @@ const DriverMetrics = ({ navigation }) => {
                 )}
             </View>
 
-            <BottomNavigationDriver navigation={navigation} activeTab="none" />
+            <BottomNavigationDriver navigation={navigation} activeTab="Metricas" />
         </SafeAreaView>
     );
 };
