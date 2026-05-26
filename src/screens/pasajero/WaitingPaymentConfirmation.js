@@ -3,6 +3,7 @@ import {
     View, Text, StyleSheet, SafeAreaView, StatusBar, Animated, Easing, Image, BackHandler,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
@@ -141,6 +142,10 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
 
                     setResolved(true);
                     stopPolling();
+
+                    // Limpia el flag puesto por PayForTravel al tocar Continuar;
+                    // el conductor ya resolvió, no debe haber auto-redirect futuro.
+                    AsyncStorage.removeItem(`paymentConfirming:${bookingId}`).catch(() => { });
 
                     const isCancelled = b.status === 'cancelled' || b.status === 'canceled';
 

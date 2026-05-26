@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
@@ -12,6 +13,12 @@ import api from '../../services/api';
 import PaymentMethodCards from '../../components/PaymentMethodCards';
 import ScreenHeader from '../../components/ScreenHeader';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
+
+// Clave AsyncStorage que marca "el pasajero ya tocó Continuar y está esperando
+// al conductor". Guardamos los params completos para poder re-navegar a
+// WaitingPaymentConfirmation desde cualquier punto (tab, deep link, etc.)
+// sin depender de fetches adicionales.
+const paymentConfirmingKey = (bookingId) => `paymentConfirming:${bookingId}`;
 
 import { moderateScale } from '../../utils/responsive';
 const PayForTravel = ({ route, navigation }) => {
@@ -49,17 +56,33 @@ const PayForTravel = ({ route, navigation }) => {
             setLoading(false);
             return;
         }
-        const fetchBooking = async () => {
+        let cancelled = false;
+        const run = async () => {
+            // Auto-redirect si el pasajero ya tocó Continuar antes y aún
+            // está pendiente la confirmación del conductor. Sin este guard,
+            // entrar a "Tu viaje" desde la bottom bar volvía a PayForTravel
+            // en vez de regresar a WaitingPaymentConfirmation.
+            try {
+                const raw = await AsyncStorage.getItem(paymentConfirmingKey(bookingId));
+                if (raw && !cancelled) {
+                    const params = JSON.parse(raw);
+                    navigation.replace('WaitingPaymentConfirmation', params);
+                    return;
+                }
+            } catch (_) { /* sin flag: flujo normal */ }
+
+            if (cancelled) return;
             try {
                 const res = await api.get(`/bookings/${bookingId}`);
-                if (res.data?.success) setBooking(res.data.data);
+                if (!cancelled && res.data?.success) setBooking(res.data.data);
             } catch (e) {
-                showAlert('Error', 'No se pudo cargar la información del viaje.', 'error');
+                if (!cancelled) showAlert('Error', 'No se pudo cargar la información del viaje.', 'error');
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
-        fetchBooking();
+        run();
+        return () => { cancelled = true; };
     }, [bookingId]);
 
     if (loading) {
@@ -103,8 +126,8 @@ const PayForTravel = ({ route, navigation }) => {
             'Sí',
             null,
             'Aún no',
-            () => {
-                navigation.replace('WaitingPaymentConfirmation', {
+            async () => {
+                const params = {
                     bookingId,
                     rideId,
                     driverId,
@@ -112,7 +135,14 @@ const PayForTravel = ({ route, navigation }) => {
                     driverImage,
                     paymentMethod,
                     chargedAmount: amount,
-                });
+                };
+                // Marcamos que el pasajero ya tocó Continuar. Si vuelve a
+                // entrar a "Tu viaje" antes de que el conductor responda,
+                // PayForTravel detecta el flag y re-navega a esta pantalla.
+                try {
+                    await AsyncStorage.setItem(paymentConfirmingKey(bookingId), JSON.stringify(params));
+                } catch (_) { /* best-effort */ }
+                navigation.replace('WaitingPaymentConfirmation', params);
             },
         );
     };
