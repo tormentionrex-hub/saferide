@@ -446,27 +446,12 @@ const TripInProgressDriver = ({ route, navigation }) => {
                     intervalIdRef.current = null;
                 }
                 try {
-                    // A. Fetch all bookings for this ride
-                    const bookingsRes = await api.get(`/bookings/ride/${rideId}`);
-                    const allBookings = bookingsRes.data?.data || [];
-
-                    // Update each active booking to cancelled + waived (preserve payment_type)
-                    const activeBookings = allBookings.filter(b =>
-                        ['pending', 'confirmed'].includes(b.status)
-                    );
-
-                    for (const booking of activeBookings) {
-                        try {
-                            await api.patch(`/bookings/${booking._id}/status`, {
-                                status: 'cancelled',
-                                payment_status: 'waived',
-                            });
-                        } catch (bookingErr) {
-                            console.log(`Error cancelando booking ${booking._id}:`, bookingErr?.message);
-                        }
-                    }
-
-                    // B. Cancel the ride itself
+                    // Una sola llamada: el backend de /rides/:id/cancel cancela el ride
+                    // y en cascada marca todos sus bookings activos como 'cancelled' +
+                    // 'waived' (sin penalización al pasajero). Cancelar booking a booking
+                    // desde el frontend disparaba la auto-cancelación del ride en
+                    // bookingController y rompía el snapshot previousStatus === 'in progress'
+                    // que el decremento de trustScore necesita.
                     const rideRes = await api.patch(`/rides/${rideId}/cancel`);
 
                     // Cancelación voluntaria del conductor: no hay nada que
