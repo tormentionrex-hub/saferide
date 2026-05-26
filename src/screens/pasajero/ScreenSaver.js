@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert, Platform, Modal, Animated, AppState } from 'react-native';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert, Platform, Modal, Animated, AppState, BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { useCustomAlert } from '../../context/CustomAlertContext';
@@ -256,6 +257,26 @@ const ScreenSaver = ({ route, navigation }) => {
         mountedRef.current = true;
         return () => { mountedRef.current = false; };
     }, []);
+
+    // Back hardware (Android) → DashboardPasajero. Sin esto, el back haría
+    // pop del stack y devolvería al pasajero a BuscarViaje/RideDetail/SearchRide
+    // con estado obsoleto (parecería que puede solicitar otro viaje cuando ya
+    // tiene esta reserva activa). El polling y los modals manejan el resto del
+    // ciclo de vida (deny/cancelled/confirmed) con su propia navegación.
+    const navigateToDashboard = useCallback(() => {
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainTabsPasajero', params: { screen: 'DashboardPasajero' } }],
+        });
+    }, [navigation]);
+
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => { navigateToDashboard(); return true; };
+            const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => sub.remove();
+        }, [navigateToDashboard])
+    );
 
     useEffect(() => {
         if (!bookingId) return;
