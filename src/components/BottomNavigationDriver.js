@@ -19,7 +19,7 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
     if (state) {
         const routeName = state.routes[state.index].name;
         if (routeName === 'DashboardDriver') currentTab = 'Inicio';
-        else if (routeName === 'PublishRide') currentTab = 'Viajes';
+        else if (routeName === 'DriverMetrics') currentTab = 'Metricas';
         else if (routeName === 'ManageRides' || routeName === 'CurrentTrip' || routeName === 'ListOfRequests' || routeName === 'PaymentVerification') currentTab = 'Rutas';
         else if (routeName === 'PreviousTrips') currentTab = 'History';
     }
@@ -159,8 +159,8 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
             ]}>
                 {[
                     { label: 'Inicio', activeIcon: 'home', inactiveIcon: 'home-outline', tab: 'Inicio', onPress: () => navigateTo('DashboardDriver') },
-                    { label: 'Viajes', activeIcon: 'map', inactiveIcon: 'map-outline', tab: 'Viajes', locked: !hasVehicleRegistered, onPress: () => handleRestrictedPress('PublishRide') },
-                    { label: 'Rutas', activeIcon: 'navigate', inactiveIcon: 'navigate-outline', tab: 'Rutas', locked: !hasVehicleRegistered, onPress: async () => {
+                    { label: 'Métricas', activeIcon: 'bar-chart', inactiveIcon: 'bar-chart-outline', tab: 'Metricas', onPress: () => navigateTo('DriverMetrics') },
+                    { label: 'Tu viaje', activeIcon: 'map', inactiveIcon: 'map-outline', tab: 'Rutas', locked: !hasVehicleRegistered, onPress: async () => {
                         if (!hasVehicleRegistered) { setShowModal(true); return; }
                         try {
                             // Forzamos refresh para que justo después de
