@@ -159,7 +159,6 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
             ]}>
                 {[
                     { label: 'Inicio', activeIcon: 'home', inactiveIcon: 'home-outline', tab: 'Inicio', onPress: () => navigateTo('DashboardDriver') },
-                    { label: 'Métricas', activeIcon: 'bar-chart', inactiveIcon: 'bar-chart-outline', tab: 'Metricas', onPress: () => navigateTo('DriverMetrics') },
                     { label: 'Tu viaje', activeIcon: 'map', inactiveIcon: 'map-outline', tab: 'Rutas', locked: !hasVehicleRegistered, onPress: async () => {
                         if (!hasVehicleRegistered) { setShowModal(true); return; }
                         try {
@@ -185,6 +184,7 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                         } catch (error) { navigateTo('ManageRides'); }
                     }},
                     { label: 'Historial', activeIcon: 'time', inactiveIcon: 'time-outline', tab: 'History', onPress: () => navigateTo('PreviousTrips') },
+                    { label: 'Métricas', activeIcon: 'bar-chart', inactiveIcon: 'bar-chart-outline', tab: 'Metricas', onPress: () => navigateTo('DriverMetrics') },
                 ].map((item) => {
                     const isActive = currentTab === item.tab;
                     const color = item.locked ? theme.navInactive : (isActive ? theme.navActive : theme.navInactive);
