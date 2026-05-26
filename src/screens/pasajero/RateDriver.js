@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import api from '../../services/api';
 import RatingScreen from '../shared/RatingScreen';
 
@@ -11,6 +13,24 @@ const RateDriver = ({ route, navigation }) => {
         bookingId: bookingIdParam,
         bookingStatus: bookingStatusParam,
     } = route.params || {};
+
+    // El back (hardware Android) siempre va al Dashboard, nunca al stack
+    // anterior — al venir de PayForTravel (skip pago) o de TripInProgress
+    // no tiene sentido dejar al pasajero volver a la pantalla previa.
+    const goToDashboard = useCallback(() => {
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainTabsPasajero', params: { screen: 'DashboardPasajero' } }],
+        });
+    }, [navigation]);
+
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => { goToDashboard(); return true; };
+            const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => sub.remove();
+        }, [goToDashboard])
+    );
 
     // Inicializamos desde route.params para reaccionar correctamente al booking
     // individual desde el primer render (evita flicker / habilitación temporal).
@@ -70,8 +90,8 @@ const RateDriver = ({ route, navigation }) => {
             accentColor="#1976D2"
             badgeColor={{ bg: '#E3F2FD', icon: '#1976D2' }}
             disabled={isCancelled}
-            onSuccess={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
-            onSkip={() => navigation.navigate('MainTabsPasajero', { screen: 'DashboardPasajero' })}
+            onSuccess={goToDashboard}
+            onSkip={goToDashboard}
         />
     );
 };
