@@ -346,28 +346,31 @@ const RideDetail = ({ route, navigation }) => {
                         </View>
                     </View>
 
-                    {/* Reseñas del conductor (clasificadas por el agente IA).
-                        Aparecen JUSTO ANTES del botón "Solicitar unirse" porque
-                        es el momento exacto donde el pasajero decide si confía
-                        en este conductor — la reputación tiene máximo valor
-                        decisional acá. Ver header de ReviewsList para el racional
-                        completo. */}
-                    {ride?.driver_id?._id ? (
-                        <View style={{ marginTop: 16, marginBottom: 8 }}>
-                            <Text style={[styles.sectionTitle, { color: theme.textSecondary, marginBottom: 8, fontSize: 12, letterSpacing: 0.5 }]}>
-                                RESEÑAS DEL CONDUCTOR
-                            </Text>
-                            <ReviewsList userId={ride.driver_id._id} isOwn={false} maxItems={5} />
-                        </View>
-                    ) : null}
-
-                    {/* Botón de Acción Principal */}
+                    {/* Botón de Acción Principal — colocado ANTES de las reseñas
+                        para que el pasajero que ya tiene decisión tomada pueda
+                        solicitar unirse sin scroll. Las reseñas quedan abajo
+                        como información complementaria opcional para quien
+                        quiera evaluar al conductor antes de decidir. */}
                     <TouchableOpacity
                         style={[styles.bookBtn, { backgroundColor: theme.accent }]}
                         onPress={handleConfirmBooking}
                     >
                         <Text style={styles.bookBtnText}>Solicitar unirse</Text>
                     </TouchableOpacity>
+
+                    {/* Reseñas del conductor (clasificadas por el agente IA).
+                        Hasta 5 reseñas, ordenadas por las más recientes. Sirven
+                        como información para que el pasajero tome una decisión
+                        consciente — pero NO bloquean al usuario que ya decidió:
+                        el botón arriba permite acción inmediata sin leer reseñas. */}
+                    {ride?.driver_id?._id ? (
+                        <View style={{ marginTop: 24, marginBottom: 8 }}>
+                            <Text style={[styles.sectionTitle, { color: theme.textSecondary, marginBottom: 8, fontSize: 12, letterSpacing: 0.5 }]}>
+                                RESEÑAS DEL CONDUCTOR
+                            </Text>
+                            <ReviewsList userId={ride.driver_id._id} isOwn={false} maxItems={5} />
+                        </View>
+                    ) : null}
                 </ScrollView>
             </View>
         </View>

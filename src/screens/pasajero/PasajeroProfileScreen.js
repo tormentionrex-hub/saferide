@@ -19,7 +19,7 @@ import { userService } from '../../services/userService';
 import { authService } from '../../services/authService';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import StarRating from '../../components/StarRating';
-import ReviewsList from '../../components/ReviewsList';
+import MyReviewsModal from '../../components/MyReviewsModal';
 
 import { moderateScale } from '../../utils/responsive';
 const COMPANIES = [
@@ -212,6 +212,7 @@ const PasajeroProfileScreen = ({ navigation }) => {
     const [userData,      setUserData]      = useState(null);
     const [modalVisible,  setModalVisible]  = useState(false);
     const [updating,      setUpdating]      = useState(false);
+    const [reviewsModalVisible, setReviewsModalVisible] = useState(false);
     const [editForm,      setEditForm]      = useState({
         name: '', phone: '', email: '', company: '', profileImage: null
     });
@@ -486,20 +487,6 @@ const PasajeroProfileScreen = ({ navigation }) => {
                     <InfoCard icon="call-outline"     label="Teléfono"            value={userData?.phone   || 'No registrado'} theme={theme} />
                     <InfoCard icon="business-outline" label="Empresa"             value={userData?.company || 'No registrada'} theme={theme} />
 
-                    {/* ── Mis reseñas recibidas ──
-                        En el perfil propio mostramos las reseñas con comentario
-                        COMPLETO y razón del agente IA, para que el pasajero vea
-                        cómo lo perciben los conductores y pueda mejorar.
-                        Diferente al caso de ListOfRequests/RideDetail donde NO se
-                        muestra el comentario (privacidad de terceros). Ver
-                        header de ReviewsList para el racional completo. */}
-                    {userData?._id ? (
-                        <View style={{ marginTop: 18 }}>
-                            <SectionHeader title="MIS RESEÑAS" theme={theme} />
-                            <ReviewsList userId={userData._id} isOwn={true} maxItems={10} />
-                        </View>
-                    ) : null}
-
                     {/* ── Acciones ── */}
                     <View style={styles.actionsWrapper}>
                         <TouchableOpacity
@@ -510,6 +497,21 @@ const PasajeroProfileScreen = ({ navigation }) => {
                             <Ionicons name="create-outline" size={20} color="#FFF" />
                             <Text style={styles.editBtnText}>Editar perfil</Text>
                         </TouchableOpacity>
+
+                        {/* Botón "Tus reseñas" — abre modal full-screen con paginación.
+                            Reemplaza el bloque inline para no sobrecargar el perfil cuando
+                            el usuario tiene muchas reseñas. Anónimo: el backend no expone
+                            reviewer_id. Carga 10 inicial + "Ver más" suma 10 cada vez. */}
+                        {userData?._id ? (
+                            <TouchableOpacity
+                                style={[styles.editBtn, { backgroundColor: theme.accent }]}
+                                onPress={() => setReviewsModalVisible(true)}
+                                activeOpacity={0.85}
+                            >
+                                <Ionicons name="chatbubble-ellipses-outline" size={20} color="#FFF" />
+                                <Text style={styles.editBtnText}>Tus reseñas</Text>
+                            </TouchableOpacity>
+                        ) : null}
 
                         <TouchableOpacity
                             style={[styles.deleteBtn, { borderColor: theme.danger, backgroundColor: 'rgba(255,107,107,0.07)' }]}
@@ -648,6 +650,13 @@ const PasajeroProfileScreen = ({ navigation }) => {
 
             {/* ── Sweet Alert: éxito con burbujas ── */}
             <SuccessAlert hook={successAlert} isDark={theme.dark} />
+
+            {/* Modal full-screen con todas las reseñas recibidas + paginación */}
+            <MyReviewsModal
+                visible={reviewsModalVisible}
+                userId={userData?._id}
+                onClose={() => setReviewsModalVisible(false)}
+            />
 
         </SafeAreaView>
     );

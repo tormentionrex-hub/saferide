@@ -26,7 +26,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import { uploadToCloudinary } from '../../Cloudinary/Cloudinary';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import StarRating from '../../components/StarRating';
-import ReviewsList from '../../components/ReviewsList';
+import MyReviewsModal from '../../components/MyReviewsModal';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 
 import { moderateScale } from '../../utils/responsive';
@@ -92,6 +92,7 @@ const ProfileConductor = ({ navigation, route }) => {
     const [userData, setUserData] = useState(null);
     const [vehicleData, setVehicleData] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
+    const [reviewsModalVisible, setReviewsModalVisible] = useState(false);
     const [vehicleModalVisible, setVehicleModalVisible] = useState(false);
     const [updating, setUpdating] = useState(false);
     const [editForm, setEditForm] = useState({
@@ -442,20 +443,6 @@ const ProfileConductor = ({ navigation, route }) => {
 
                     </View>
 
-                    {/* ── Mis reseñas recibidas ──
-                        En el perfil propio el conductor ve las reseñas con
-                        comentario COMPLETO y la razón del agente IA, para que
-                        entienda cómo lo perciben los pasajeros. Diferente al
-                        caso de ListOfRequests/RideDetail donde NO se muestra
-                        el comentario (privacidad de terceros). Ver header de
-                        ReviewsList para el racional completo. */}
-                    {userData?._id ? (
-                        <View style={{ marginTop: 18 }}>
-                            <SectionHeader title="MIS RESEÑAS" theme={theme} />
-                            <ReviewsList userId={userData._id} isOwn={true} maxItems={10} />
-                        </View>
-                    ) : null}
-
                     {/* ── Acciones ── */}
                     <View style={styles.actionsWrapper}>
                         <TouchableOpacity
@@ -466,6 +453,21 @@ const ProfileConductor = ({ navigation, route }) => {
                             <Ionicons name="create-outline" size={20} color="#FFF" />
                             <Text style={styles.editBtnText}>Editar perfil</Text>
                         </TouchableOpacity>
+
+                        {/* Botón "Tus reseñas" — abre modal full-screen con paginación.
+                            Reemplaza el bloque inline para no sobrecargar el perfil cuando
+                            el conductor tiene muchas reseñas. Anónimo: el backend no expone
+                            reviewer_id. Carga 10 inicial + "Ver más" suma 10 cada vez. */}
+                        {userData?._id ? (
+                            <TouchableOpacity
+                                style={[styles.editBtn, { backgroundColor: theme.accent }]}
+                                onPress={() => setReviewsModalVisible(true)}
+                                activeOpacity={0.85}
+                            >
+                                <Ionicons name="chatbubble-ellipses-outline" size={20} color="#FFF" />
+                                <Text style={styles.editBtnText}>Tus reseñas</Text>
+                            </TouchableOpacity>
+                        ) : null}
 
                         {vehicleData && (
                             <TouchableOpacity
@@ -674,6 +676,12 @@ const ProfileConductor = ({ navigation, route }) => {
                 </View>
             </Modal>
 
+            {/* Modal full-screen con todas las reseñas recibidas + paginación */}
+            <MyReviewsModal
+                visible={reviewsModalVisible}
+                userId={userData?._id}
+                onClose={() => setReviewsModalVisible(false)}
+            />
 
         </SafeAreaView>
     );
