@@ -26,6 +26,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import { uploadToCloudinary } from '../../Cloudinary/Cloudinary';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import StarRating from '../../components/StarRating';
+import ReviewsList from '../../components/ReviewsList';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 
 import { moderateScale } from '../../utils/responsive';
@@ -440,6 +441,20 @@ const ProfileConductor = ({ navigation, route }) => {
                         )}
 
                     </View>
+
+                    {/* ── Mis reseñas recibidas ──
+                        En el perfil propio el conductor ve las reseñas con
+                        comentario COMPLETO y la razón del agente IA, para que
+                        entienda cómo lo perciben los pasajeros. Diferente al
+                        caso de ListOfRequests/RideDetail donde NO se muestra
+                        el comentario (privacidad de terceros). Ver header de
+                        ReviewsList para el racional completo. */}
+                    {userData?._id ? (
+                        <View style={{ marginTop: 18 }}>
+                            <SectionHeader title="MIS RESEÑAS" theme={theme} />
+                            <ReviewsList userId={userData._id} isOwn={true} maxItems={10} />
+                        </View>
+                    ) : null}
 
                     {/* ── Acciones ── */}
                     <View style={styles.actionsWrapper}>

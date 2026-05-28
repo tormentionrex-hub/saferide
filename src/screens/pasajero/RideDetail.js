@@ -11,6 +11,7 @@ import api from '../../services/api';
 import { darkMapStyle } from '../../utils/mapStyle';
 import { Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ReviewsList from '../../components/ReviewsList';
 
 import { moderateScale } from '../../utils/responsive';
 const PAYMENT_OPTIONS = [
@@ -344,6 +345,21 @@ const RideDetail = ({ route, navigation }) => {
                             })}
                         </View>
                     </View>
+
+                    {/* Reseñas del conductor (clasificadas por el agente IA).
+                        Aparecen JUSTO ANTES del botón "Solicitar unirse" porque
+                        es el momento exacto donde el pasajero decide si confía
+                        en este conductor — la reputación tiene máximo valor
+                        decisional acá. Ver header de ReviewsList para el racional
+                        completo. */}
+                    {ride?.driver_id?._id ? (
+                        <View style={{ marginTop: 16, marginBottom: 8 }}>
+                            <Text style={[styles.sectionTitle, { color: theme.textSecondary, marginBottom: 8, fontSize: 12, letterSpacing: 0.5 }]}>
+                                RESEÑAS DEL CONDUCTOR
+                            </Text>
+                            <ReviewsList userId={ride.driver_id._id} isOwn={false} maxItems={5} />
+                        </View>
+                    ) : null}
 
                     {/* Botón de Acción Principal */}
                     <TouchableOpacity
