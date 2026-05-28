@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../context/DriverThemeContext';
 import { getUserReviews } from '../services/safescoreService';
+import { reclassify } from '../utils/reviewHeuristics';
 
 /**
  * MyReviewsModal — modal full-screen para que el usuario vea TODAS sus reseñas
@@ -218,8 +219,10 @@ const StatBadge = ({ count, label, color }) => (
 
 // ── Subcomponente: Review card ────────────────────────────────────────────
 const ReviewCard = ({ review, theme }) => {
-  const cat = review.moderation?.category || 'Pendiente';
-  const catColor = review.moderation?.color || '#94a3b8';
+  // Reclasificación heurística client-side por palabras clave del comentario.
+  // Parche temporal mientras se re-modera la BD con el prompt nuevo.
+  const backendCategory = review.moderation?.category || 'Pendiente';
+  const { category: cat, color: catColor } = reclassify(backendCategory, review.comment);
 
   // Estrellas
   const stars = [];

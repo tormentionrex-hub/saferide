@@ -5,6 +5,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../context/DriverThemeContext';
 import { getUserReviews } from '../services/safescoreService';
+import { reclassify } from '../utils/reviewHeuristics';
 
 /**
  * ReviewsList — muestra reviews recibidas de un usuario con clasificación IA.
@@ -162,8 +163,11 @@ const StatChip = ({ count, label, color }) => (
 
 // ── Subcomponente: ítem individual de review ─────────────────────────────
 const ReviewItem = ({ review, isOwn, compact, theme, isLast }) => {
-  const cat = review.moderation?.category || 'Pendiente';
-  const catColor = review.moderation?.color || '#94a3b8';
+  // Reclasificación heurística client-side por palabras clave del comentario.
+  // Parche temporal mientras se re-modera la BD con el prompt nuevo.
+  // Ver src/utils/reviewHeuristics.js para detalles y cuándo eliminar este parche.
+  const backendCategory = review.moderation?.category || 'Pendiente';
+  const { category: cat, color: catColor } = reclassify(backendCategory, review.comment);
 
   // Estrellas visuales según rating
   const stars = [];
