@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View, Text, StyleSheet, FlatList, Image, TouchableOpacity,
-    ActivityIndicator, SafeAreaView, StatusBar, Alert, Platform, Modal, Animated, Dimensions, ScrollView, AppState, BackHandler
+    ActivityIndicator, StatusBar, Alert, Platform, Modal, Animated, Dimensions, ScrollView, AppState, BackHandler
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -1064,7 +1065,7 @@ const ListOfRequests = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0 },
+    container: { flex: 1 },
     passengerCard: { padding: 14, borderRadius: 15, borderWidth: 1, marginBottom: 15, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
     cardTopRow: { flexDirection: 'row', alignItems: 'center' },
     avatar: { width: 44, height: 44, borderRadius: 22 },
