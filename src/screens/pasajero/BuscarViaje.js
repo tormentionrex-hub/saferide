@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
-    SafeAreaView, StatusBar, Platform, Dimensions, ScrollView, Modal, Linking,
+    StatusBar, Platform, Dimensions, ScrollView, Modal, Linking,
 } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { getCurrentLocation, reverseGeocode } from '../../services/locationService';
 import api from '../../services/api';
