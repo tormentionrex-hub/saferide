@@ -19,6 +19,7 @@ import { userService } from '../../services/userService';
 import { authService } from '../../services/authService';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 import StarRating from '../../components/StarRating';
+import ReviewsList from '../../components/ReviewsList';
 
 import { moderateScale } from '../../utils/responsive';
 const COMPANIES = [
@@ -484,6 +485,20 @@ const PasajeroProfileScreen = ({ navigation }) => {
                     <InfoCard icon="mail-outline"     label="Correo electrónico"  value={userData?.email   || 'No registrado'} theme={theme} />
                     <InfoCard icon="call-outline"     label="Teléfono"            value={userData?.phone   || 'No registrado'} theme={theme} />
                     <InfoCard icon="business-outline" label="Empresa"             value={userData?.company || 'No registrada'} theme={theme} />
+
+                    {/* ── Mis reseñas recibidas ──
+                        En el perfil propio mostramos las reseñas con comentario
+                        COMPLETO y razón del agente IA, para que el pasajero vea
+                        cómo lo perciben los conductores y pueda mejorar.
+                        Diferente al caso de ListOfRequests/RideDetail donde NO se
+                        muestra el comentario (privacidad de terceros). Ver
+                        header de ReviewsList para el racional completo. */}
+                    {userData?._id ? (
+                        <View style={{ marginTop: 18 }}>
+                            <SectionHeader title="MIS RESEÑAS" theme={theme} />
+                            <ReviewsList userId={userData._id} isOwn={true} maxItems={10} />
+                        </View>
+                    ) : null}
 
                     {/* ── Acciones ── */}
                     <View style={styles.actionsWrapper}>

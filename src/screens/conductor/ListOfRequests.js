@@ -12,6 +12,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 import ScreenHeader from '../../components/ScreenHeader';
 import TripCompletedOverlay from '../../components/TripCompletedOverlay';
+import ReviewsList from '../../components/ReviewsList';
 import { darkMapStyle } from '../../utils/mapStyle';
 
 import { moderateScale } from '../../utils/responsive';
@@ -476,6 +477,20 @@ const PassengerDetailModal = ({ visible, onClose, booking, rideData, theme }) =>
                                 </Text>
                             </View>
                         </View>
+
+                        {/* Reseñas del pasajero (clasificadas por el agente IA).
+                            Se muestran ACÁ y no en otra parte porque el conductor está
+                            a punto de decidir si acepta o rechaza al pasajero a bordo —
+                            es el momento donde la reputación del solicitante tiene
+                            máximo impacto en la decisión. Ver header de ReviewsList. */}
+                        {passenger?._id ? (
+                            <View style={{ marginTop: 16 }}>
+                                <Text style={[detailModalStyles.sectionLabel, { color: theme.textSecondary, marginBottom: 8 }]}>
+                                    RESEÑAS DEL PASAJERO
+                                </Text>
+                                <ReviewsList userId={passenger._id} isOwn={false} maxItems={5} />
+                            </View>
+                        ) : null}
                     </ScrollView>
                     </View>
                 </Animated.View>
