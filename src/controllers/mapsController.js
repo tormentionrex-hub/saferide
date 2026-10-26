@@ -45,7 +45,8 @@ exports.getDirections = async (req, res, next) => {
 const GOOGLE_BASE = 'https://maps.googleapis.com/maps/api';
 const PROXIED = {
   autocomplete: { path: '/place/autocomplete/json', params: ['input', 'language', 'components', 'sessiontoken', 'location', 'radius', 'types'] },
-  details: { path: '/place/details/json', params: ['place_id', 'fields', 'language', 'sessiontoken'] },
+  // react-native-google-places-autocomplete manda `placeid` (sin guion bajo).
+  details: { path: '/place/details/json', params: ['place_id', 'placeid', 'fields', 'language', 'sessiontoken'] },
   geocode: { path: '/geocode/json', params: ['latlng', 'language'] },
 };
 
@@ -60,6 +61,10 @@ const proxyGoogle = (kind) => async (req, res, next) => {
     params.forEach((p) => {
       if (typeof req.query[p] === 'string' && req.query[p].length <= 300) qs.set(p, req.query[p]);
     });
+    if (qs.has('placeid')) {
+      qs.set('place_id', qs.get('placeid'));
+      qs.delete('placeid');
+    }
     qs.set('key', key);
 
     const response = await fetch(`${GOOGLE_BASE}${path}?${qs.toString()}`);
