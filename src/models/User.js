@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { COMPANIES } = require('../config/companies');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
@@ -38,7 +39,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: [function () { return this.type !== 'admin'; }, 'Company is required'],
         enum: {
-            values: ['Intel', 'Cargill', 'Deloitte', 'Citi', 'Experian', '3M', 'DHL', 'Bill Gosling Outsourcing (BGO)', 'WeWork Costa Rica', 'Concentrix', 'Nestlé Costa Rica'],
+            values: COMPANIES,
             message: 'Invalid company selected',
         },
     },

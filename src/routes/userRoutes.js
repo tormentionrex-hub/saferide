@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const userController = require('../controllers/userController');
 const { verifyToken, authorize } = require('../middleware/auth');
+const { COMPANIES } = require('../config/companies');
 
 const router = express.Router();
 
@@ -18,6 +19,22 @@ const upload = multer({
       cb(new Error('Only image files are allowed'));
     }
   },
+});
+
+/**
+ * @swagger
+ * /users/companies:
+ *   get:
+ *     summary: Empresas con convenio (público, lo usa el registro)
+ *     tags: [Users]
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: Lista de nombres de empresa
+ */
+// Público y antes de verifyToken: el registro lo consulta sin sesión.
+router.get('/companies', (req, res) => {
+  res.status(200).json({ success: true, data: COMPANIES });
 });
 
 // All routes require authentication
