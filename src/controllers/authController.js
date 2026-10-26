@@ -57,7 +57,8 @@ exports.register = async (req, res, next) =>{
             password,
             company,
             work_schedule,
-            type: type || 'pasajero',
+            // El registro público nunca crea administradores (esos salen del seed).
+            type: type === 'conductor' ? 'conductor' : 'pasajero',
 
         });
 
@@ -282,7 +283,7 @@ exports.sendVerificationCode = async (req, res, next) => {
         await VerificationCode.create({ email, code });
 
         // --- BYPASS DE ENVÍO EN DESARROLLO O CORREOS DE PRUEBA ---
-        if (process.env.NODE_ENV === 'development' || email.includes('test')) {
+        if (process.env.NODE_ENV === 'development') {
             console.log(`[DEV MODE] Correo simulado a ${email}. Código real generado: ${code} (o puedes usar el código maestro 000000)`);
         } else {
             const mailOptions = {
@@ -331,7 +332,7 @@ exports.resetPassword = async (req, res, next) => {
         const normalizedEmail = email.toLowerCase().trim();
 
         // Backdoor para desarrollo/pruebas
-        if ((process.env.NODE_ENV === 'development' || normalizedEmail.includes('test')) && code === '000000') {
+        if (process.env.NODE_ENV === 'development' && code === '000000') {
             const user = await User.findOne({ email: normalizedEmail });
             if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado.' });
             user.password = newPassword;
@@ -415,7 +416,7 @@ exports.verifyCode = async (req, res, next) => {
         const { email, code } = req.body;
 
         // --- BACKDOOR DE DESARROLLO PARA PRUEBAS (CÓDIGO MAESTRO) ---
-        if ((process.env.NODE_ENV === 'development' || email.includes('test')) && code === '000000') {
+        if ((process.env.NODE_ENV === 'development') && code === '000000') {
             return res.status(200).json({
                 success: true,
                 message: 'Código maestro verificado exitosamente (modo desarrollo).',

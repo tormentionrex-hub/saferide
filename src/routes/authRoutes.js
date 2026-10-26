@@ -133,7 +133,7 @@ const registerValidation = [
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
     .withMessage('Password must contain uppercase, lowercase, number and special character'),
   body('company').notEmpty().withMessage('Company is required'),
-  body('type').optional().isIn(['conductor', 'pasajero', 'admin']),
+  body('type').optional().isIn(['conductor', 'pasajero']).withMessage('Type must be conductor or pasajero'),
 ];
 
 /**
