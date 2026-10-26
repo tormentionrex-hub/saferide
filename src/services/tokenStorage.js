@@ -1,5 +1,17 @@
-import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+import * as ExpoSecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// SecureStore no tiene implementación en web (lanza TypeError); ahí los
+// tokens van a AsyncStorage (localStorage). En iOS/Android sigue usándose
+// el almacenamiento seguro del dispositivo.
+const SecureStore = Platform.OS === 'web'
+    ? {
+        getItemAsync: (key) => AsyncStorage.getItem(key),
+        setItemAsync: (key, value) => AsyncStorage.setItem(key, value),
+        deleteItemAsync: (key) => AsyncStorage.removeItem(key),
+    }
+    : ExpoSecureStore;
 
 const ACCESS_TOKEN_KEY = 'saferide_access_token';
 const REFRESH_TOKEN_KEY = 'saferide_refresh_token';
