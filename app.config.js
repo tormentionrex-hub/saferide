@@ -1,7 +1,12 @@
 // Configuración de Expo. Reemplaza al antiguo app.json para poder leer secretos
 // y valores por entorno desde .env (desarrollo) o desde los perfiles de
 // eas.json (builds), en lugar de dejarlos escritos en el repositorio.
-const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+// Clave del SDK nativo del mapa, una por plataforma: Google solo permite un
+// tipo de restricción de app por clave (paquete Android o bundle de iOS).
+// EXPO_PUBLIC_GOOGLE_MAPS_API_KEY queda como respaldo común para desarrollo.
+const MAPS_KEY_FALLBACK = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+const MAPS_KEY_ANDROID = process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY || MAPS_KEY_FALLBACK;
+const MAPS_KEY_IOS = process.env.EXPO_PUBLIC_GOOGLE_MAPS_IOS_KEY || MAPS_KEY_FALLBACK;
 const EAS_PROJECT_ID = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
 
 module.exports = {
@@ -23,7 +28,7 @@ module.exports = {
             bundleIdentifier: 'cr.saferide.app',
             buildNumber: '1',
             config: {
-                googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+                googleMapsApiKey: MAPS_KEY_IOS,
             },
             infoPlist: {
                 NSLocationWhenInUseUsageDescription:
@@ -48,7 +53,7 @@ module.exports = {
             ],
             config: {
                 googleMaps: {
-                    apiKey: GOOGLE_MAPS_API_KEY,
+                    apiKey: MAPS_KEY_ANDROID,
                 },
             },
         },
