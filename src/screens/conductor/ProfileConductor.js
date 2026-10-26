@@ -30,11 +30,7 @@ import MyReviewsModal from '../../components/MyReviewsModal';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 
 import { moderateScale } from '../../utils/responsive';
-const COMPANIES = [ //Estas son las empresas 
-    'Intel', 'Cargill', 'Deloitte', 'Citi', 'Experian',
-    '3M', 'DHL', 'Bill Gosling Outsourcing (BGO)',
-    'WeWork Costa Rica', 'Concentrix', 'Nestlé Costa Rica'
-];
+import { useCompanies } from '../../services/companiesService';
 
 const CAR_DATA = { //ESTOS SON LOS AUTOS EN GENERAL
     Acura: ['MDX', 'RDX', 'TLX', 'TSX', 'Integra'],
@@ -82,6 +78,8 @@ const VEHICLE_COLORS = ['Blanco', 'Negro', 'Gris', 'Plateado', 'Rojo', 'Azul', '
 const YEARS = Array.from({ length: 30 }, (_, i) => (new Date().getFullYear() - i).toString());
 
 const ProfileConductor = ({ navigation, route }) => {
+    // Empresas con convenio desde el backend (con respaldo local sin conexión).
+    const COMPANIES = useCompanies();
     const { theme } = useDriverTheme();
     const si = useScrollIndicator();
 

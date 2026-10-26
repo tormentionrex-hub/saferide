@@ -22,11 +22,7 @@ import StarRating from '../../components/StarRating';
 import MyReviewsModal from '../../components/MyReviewsModal';
 
 import { moderateScale } from '../../utils/responsive';
-const COMPANIES = [
-    'Intel', 'Cargill', 'Deloitte', 'Citi', 'Experian',
-    '3M', 'DHL', 'Bill Gosling Outsourcing (BGO)',
-    'WeWork Costa Rica', 'Concentrix', 'Nestlé Costa Rica'
-];
+import { useCompanies } from '../../services/companiesService';
 
 // ── Burbujas y colores por modo ───────────────────────────────────────────────
 const BUBBLES_LIGHT = ['#4F8EF7','#34D399','#F59E0B','#EC4899','#8B5CF6','#06B6D4','#F97316','#10B981'];
@@ -202,6 +198,8 @@ const useLogoutModal = () => {
 };
 
 const PasajeroProfileScreen = ({ navigation }) => {
+    // Empresas con convenio desde el backend (con respaldo local sin conexión).
+    const COMPANIES = useCompanies();
     const { theme } = useDriverTheme();
     const si = useScrollIndicator();
     const logoutModal  = useLogoutModal();

@@ -21,17 +21,15 @@ import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../services/api';
 import { useCustomAlert } from '../../context/CustomAlertContext';
+import { useCompanies } from '../../services/companiesService';
 
 const { width, height } = Dimensions.get('window');
 const ICON = require('../../images/IconSafeRide.png');
 
-const COMPANIES = [
-    'Intel', 'Cargill', 'Deloitte', 'Citi', 'Experian',
-    '3M', 'DHL', 'Bill Gosling Outsourcing (BGO)',
-    'WeWork Costa Rica', 'Concentrix', 'Nestlé Costa Rica'
-];
 
 export default function CreatePasswordScreen({ route, navigation }) {
+    // Empresas con convenio desde el backend (con respaldo local sin conexión).
+    const COMPANIES = useCompanies();
     const { email } = route.params || { email: 'test@empresa.com' };
     const { showAlert } = useCustomAlert();
 
