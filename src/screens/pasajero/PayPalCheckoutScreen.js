@@ -10,7 +10,8 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { API_URL } from '../../config';
 import { useCustomAlert } from '../../context/CustomAlertContext';
-import PaymentOptionList from '../../components/checkout/PaymentOptionList';
+import PaymentOptionList, { Logo } from '../../components/checkout/PaymentOptionList';
+import CardFormBeta from '../../components/checkout/CardFormBeta';
 import { getCheckoutColors } from '../../components/checkout/checkoutTheme';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { moderateScale } from '../../utils/responsive';
@@ -27,6 +28,15 @@ import { moderateScale } from '../../utils/responsive';
 // Un pago capturado deja la reserva pagada en el backend sin esperar al
 // conductor.
 
+// Interruptor del cobro real. En false (estado beta) el checkout completo se
+// puede recorrer y la tarjeta se puede escribir, pero el botón Pagar queda
+// deshabilitado y no se crea ninguna orden en el servidor. En true se usa el
+// flujo real con PayPal (probado en sandbox).
+export const ONLINE_PAYMENTS_LIVE = false;
+
+const BETA_MSG =
+    'Estado beta: los pagos en línea aún no están habilitados. Por ahora paga en efectivo o por SINPE Móvil a tu conductor.';
+
 const API_ORIGIN = (API_URL || '').replace(/\/api\/v\d+\/?$/, '');
 const RETURN_HOST = 'saferide.app/paypal/';
 
@@ -39,10 +49,10 @@ const buildOptions = () => {
         { id: 'paypal', title: 'PayPal', subtitle: 'Paga con tu cuenta de PayPal' },
     ];
     if (Platform.OS === 'ios') {
-        options.push({ id: 'apple_pay', title: 'Apple Pay', subtitle: 'Pagar con Apple Pay', unavailable: true });
+        options.push({ id: 'apple_pay', title: 'Apple Pay', subtitle: 'Pagar con Apple Pay', unavailable: ONLINE_PAYMENTS_LIVE });
     }
     if (Platform.OS === 'android') {
-        options.push({ id: 'google_pay', title: 'Google Pay', subtitle: 'Paga con Google Pay', unavailable: true });
+        options.push({ id: 'google_pay', title: 'Google Pay', subtitle: 'Paga con Google Pay', unavailable: ONLINE_PAYMENTS_LIVE });
     }
     return options;
 };
@@ -87,7 +97,7 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
     useFocusEffect(
         useCallback(() => {
             const onBack = () => {
-                if (step === 'card' || step === 'paypal') { backToChoose(); return true; }
+                if (step === 'card' || step === 'paypal' || step === 'beta') { backToChoose(); return true; }
                 return step === 'capturing';
             };
             const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
@@ -140,6 +150,11 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
     const handleContinue = async () => {
         if (!bookingId) { setError('No se encontró la reserva a pagar.'); return; }
         if (selectedOption?.unavailable) return;
+        if (!ONLINE_PAYMENTS_LIVE) {
+            setError(null);
+            setStep('beta');
+            return;
+        }
         setCreating(true);
         setError(null);
         try {
@@ -196,11 +211,65 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
                 <Ionicons name="chevron-back" size={24} color={C.onSurface} />
             </Pressable>
             <Text style={styles.headerTitle}>
-                {step === 'card' ? 'Pago con tarjeta' : step === 'paypal' ? 'PayPal' : 'Método de pago'}
+                {(step === 'card' || (step === 'beta' && selected === 'card'))
+                    ? 'Pago con tarjeta'
+                    : step === 'choose' ? 'Método de pago' : selectedOption?.title}
             </Text>
             <View style={styles.backBtn} />
         </View>
     );
+
+    if (step === 'beta') {
+        const isCard = selected === 'card';
+        const methodName = selectedOption?.title || 'PayPal';
+        return (
+            <SafeAreaView style={styles.container}>
+                <StatusBar barStyle={C.statusBar} backgroundColor={C.bg} />
+                {header}
+                <ScrollView
+                    contentContainerStyle={styles.scroll}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                >
+                    <View style={styles.amountBlock}>
+                        <Text style={styles.amountLabel}>Total a pagar</Text>
+                        <Text style={styles.amountValue}>₡{Number(amountCrc || 0).toLocaleString('es-CR')}</Text>
+                    </View>
+
+                    {isCard ? (
+                        <CardFormBeta />
+                    ) : (
+                        <View style={styles.methodPanel}>
+                            <View style={styles.methodLogo}><Logo id={selected} /></View>
+                            <Text style={styles.methodPanelText}>
+                                Al pagar se abrirá la página oficial de {methodName} para que confirmes el cobro.
+                            </Text>
+                        </View>
+                    )}
+
+                    <View style={styles.secure}>
+                        <Ionicons name="lock-closed" size={14} color={C.muted} />
+                        <Text style={styles.secureText}>Tu pago es seguro</Text>
+                    </View>
+
+                    <Pressable
+                        disabled
+                        accessibilityRole="button"
+                        accessibilityState={{ disabled: true }}
+                        accessibilityHint="Los pagos en línea están en estado beta"
+                        style={[styles.cta, { backgroundColor: C.disabledBg }]}
+                    >
+                        <Text style={[styles.ctaText, { color: C.disabledText }]}>Pagar</Text>
+                    </Pressable>
+
+                    <View style={styles.betaBanner} accessibilityLiveRegion="polite">
+                        <View style={styles.betaPill}><Text style={styles.betaPillText}>BETA</Text></View>
+                        <Text style={styles.betaText}>{BETA_MSG}</Text>
+                    </View>
+                </ScrollView>
+            </SafeAreaView>
+        );
+    }
 
     if (step === 'capturing') {
         return (
@@ -408,6 +477,61 @@ const makeStyles = (C) => StyleSheet.create({
         color: C.ctaText,
         fontSize: moderateScale(16),
         fontFamily: 'Poppins-Bold',
+    },
+    methodPanel: {
+        backgroundColor: C.surface,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: C.line,
+        padding: 20,
+        alignItems: 'center',
+        gap: 16,
+    },
+    methodLogo: {
+        width: 120,
+        height: 64,
+        borderRadius: 8,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: C.logoBorder,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    methodPanelText: {
+        color: C.muted,
+        fontSize: moderateScale(14),
+        fontFamily: 'Poppins-Regular',
+        textAlign: 'center',
+        lineHeight: moderateScale(20),
+    },
+    betaBanner: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+        backgroundColor: C.warningBg,
+        borderRadius: 10,
+        padding: 12,
+        marginTop: 12,
+    },
+    betaPill: {
+        backgroundColor: C.warning,
+        borderRadius: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        marginTop: 1,
+    },
+    betaPillText: {
+        color: C.warningBg,
+        fontSize: moderateScale(11),
+        fontFamily: 'Poppins-Bold',
+        letterSpacing: 0.5,
+    },
+    betaText: {
+        flex: 1,
+        color: C.warning,
+        fontSize: moderateScale(13),
+        fontFamily: 'Poppins-Regular',
+        lineHeight: moderateScale(18),
     },
 });
 

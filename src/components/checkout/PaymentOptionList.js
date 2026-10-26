@@ -29,7 +29,7 @@ const MastercardMark = () => (
     </View>
 );
 
-const Logo = ({ id }) => {
+export const Logo = ({ id }) => {
     switch (id) {
         case 'card':
             return (

@@ -10,6 +10,10 @@ export const getCheckoutColors = (theme) => ({
     // textos de 13px del checkout se oscurece hasta superar 4.5:1.
     muted: theme.dark ? theme.textSecondary : '#636366',
     line: theme.border,
+    placeholder: theme.dark ? '#6E6E73' : '#AEAEB2',
+    stripe: theme.dark ? '#2C2C2E' : '#1C1C1E',
+    disabledBg: theme.dark ? '#2C2C2E' : '#D1D1D6',
+    disabledText: theme.dark ? '#8E8E93' : '#6E6E73',
     accent: theme.accent,
     logoBorder: theme.dark ? 'transparent' : theme.border,
     warningBg: theme.dark ? '#2B2410' : '#FFF6E0',
