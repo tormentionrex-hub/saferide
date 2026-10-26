@@ -166,6 +166,10 @@ const PaymentVerification = ({ route, navigation }) => {
                 if (isCancelled && b.payment_status === 'waived') {
                     return Promise.resolve();
                 }
+                // Ya pagado en BD (pago en línea): no hay nada que revisar.
+                if (b.payment_status === 'paid') {
+                    return Promise.resolve();
+                }
 
                 const status = paymentStatuses[b._id];
                 return api.patch(`/bookings/${b._id}/payment`, {
@@ -241,8 +245,12 @@ const PaymentVerification = ({ route, navigation }) => {
                             // que cobrar). Los cancelados con penalización pendiente
                             // mantienen los botones activos para que el conductor
                             // pueda registrar si el pasajero ya pagó esa penalización.
+                            // Pagado en BD (en línea con PayPal o confirmado antes):
+                            // el backend no permite revertirlo, así que se bloquea.
+                            const isAlreadyPaid = booking.payment_status === 'paid';
                             const isLocked =
                                 isGifted ||
+                                isAlreadyPaid ||
                                 (isCancelled && booking.payment_status === 'waived');
 
                             return (
@@ -315,8 +323,8 @@ const PaymentVerification = ({ route, navigation }) => {
                                                 styles.selectBtn,
                                                 styles.rightBtn,
                                                 { backgroundColor: theme.bg },
-                                                isPaid && !isLocked && styles.paidSelected,
-                                                isLocked && { opacity: 0.5 }
+                                                isPaid && (!isLocked || isAlreadyPaid) && styles.paidSelected,
+                                                isLocked && !isAlreadyPaid && { opacity: 0.5 }
                                             ]}
                                             activeOpacity={isLocked ? 1 : 0.7}
                                             disabled={isLocked}
@@ -325,7 +333,7 @@ const PaymentVerification = ({ route, navigation }) => {
                                             <Text style={[
                                                 styles.selectBtnText,
                                                 { color: theme.textSecondary },
-                                                isPaid && !isLocked && styles.paidSelectedText
+                                                isPaid && (!isLocked || isAlreadyPaid) && styles.paidSelectedText
                                             ]}>Pagó</Text>
                                         </TouchableOpacity>
                                     </View>

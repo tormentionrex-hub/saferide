@@ -211,8 +211,10 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
         };
     }, [bookingId, resolved]);
 
-    const methodLabel = paymentMethod === 'tarjeta' ? 'tarjeta' : 'efectivo';
-    const methodIcon = paymentMethod === 'tarjeta' ? 'card-outline' : 'cash-outline';
+    // 'tarjeta' es el valor histórico; el checkout en línea envía el método real.
+    const isOnline = ['tarjeta', 'card', 'paypal', 'google_pay', 'apple_pay'].includes(paymentMethod);
+    const methodLabel = paymentMethod === 'paypal' ? 'PayPal' : isOnline ? 'tarjeta' : 'efectivo';
+    const methodIcon = paymentMethod === 'paypal' ? 'logo-paypal' : isOnline ? 'card-outline' : 'cash-outline';
 
     const ringStyle = (anim) => ({
         opacity: anim.interpolate({ inputRange: [0, 1], outputRange: [0.55, 0] }),
