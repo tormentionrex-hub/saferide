@@ -379,7 +379,8 @@ const PasajeroProfileScreen = ({ navigation }) => {
             await userService.updateProfile({
                 name:         editForm.name,
                 phone:        editForm.phone,
-                email:        editForm.email,
+                // El correo corporativo es el verificado en el registro: no se
+                // edita (el backend tampoco lo acepta en este endpoint).
                 company:      editForm.company,
                 profileImage: profileImageUrl,
             });
