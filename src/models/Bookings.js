@@ -53,6 +53,24 @@ const bookingSchema = new mongoose.Schema({
     enum: ['normal', 'gifted'],
     default: 'normal',
   },
+  // Medio con el que se pagó. Los electrónicos (paypal, card, google_pay,
+  // apple_pay) los fija la captura de PayPal; efectivo y SINPE los confirma
+  // el conductor como siempre.
+  payment_method: {
+    type: String,
+    enum: ['cash', 'sinpe', 'paypal', 'card', 'google_pay', 'apple_pay', null],
+    default: null,
+  },
+  // ID de la orden de PayPal capturada, para conciliación.
+  payment_reference: {
+    type: String,
+    default: null,
+  },
+  // Monto realmente cobrado en USD (PayPal no opera en colones).
+  paid_amount_usd: {
+    type: Number,
+    default: null,
+  },
   passenger_origin: {
     type: String,
     default: null,

@@ -47,6 +47,22 @@ if (process.env.NODE_ENV === 'development') {
 // Rate limiting — deshabilitado en desarrollo, habilitar en producción
 // app.use('/api', apiLimiter);
 
+// El checkout con tarjeta carga el SDK de PayPal y sus iframes de Card
+// Fields; la CSP por defecto de helmet los bloquearía. Se relaja solo para
+// /checkout y solo hacia los dominios de PayPal.
+const PAYPAL_SRC = ['https://*.paypal.com', 'https://*.paypalobjects.com', 'https://*.braintreegateway.com'];
+app.use('/checkout', helmet.contentSecurityPolicy({
+  directives: {
+    defaultSrc: ["'self'"],
+    scriptSrc: ["'self'", ...PAYPAL_SRC],
+    frameSrc: PAYPAL_SRC,
+    connectSrc: ["'self'", ...PAYPAL_SRC],
+    imgSrc: ["'self'", 'data:', ...PAYPAL_SRC],
+    styleSrc: ["'self'", "'unsafe-inline'"],
+    frameAncestors: ["'none'"],
+  },
+}));
+
 app.use(express.static('public'));
 
 // Ruta para la página de documentación personalizada
