@@ -1,4 +1,4 @@
-const { Notification } = require('../models');
+const { sendNotification: deliverNotification } = require('../services/notificationService');
 const logger = require('../utils/logger');
 const eventEmitter = require('../events/eventEmitter');
 
@@ -34,18 +34,17 @@ const processQueue = async () => {
         try {
             logger.info(`🚀 Processing notification for user: ${notificationData.userId}`);
 
-            // Create notification in the database
-            const notification = await Notification.create({
-                user_id: notificationData.userId,
-                message: notificationData.message,
-                type: notificationData.type,
-                status: 'unread',
-                relatedEntity: notificationData.relatedEntity || null,
-                date: new Date(),
-            });
+            // Guarda la notificación y envía la push del sistema con el mismo
+            // servicio que usan los controladores (respeta optIn y el token
+            // del usuario). Antes la cola solo guardaba en la base, así que
+            // los recordatorios programados nunca llegaban como push.
+            const notification = await deliverNotification(
+                notificationData.userId,
+                notificationData.message,
+                notificationData.type,
+                notificationData.relatedEntity || null
+            );
             logger.success(`✅ Notification created with ID: ${notification._id}`);
-            // TODO: Integrate with push/email notification service if needed or push notification services
-            // await sendPushNotification(notificationData.userId, notificationData.message);
 
             // Emit notification sent event
             eventEmitter.emit('notification:sent', notification);
