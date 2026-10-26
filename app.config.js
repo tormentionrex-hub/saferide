@@ -7,12 +7,16 @@
 const MAPS_KEY_FALLBACK = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 const MAPS_KEY_ANDROID = process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY || MAPS_KEY_FALLBACK;
 const MAPS_KEY_IOS = process.env.EXPO_PUBLIC_GOOGLE_MAPS_IOS_KEY || MAPS_KEY_FALLBACK;
-const EAS_PROJECT_ID = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
+// Proyecto de EAS (@christopher202006s-team/saferide). El ID no es secreto:
+// identifica el proyecto para builds y push. La variable permite cambiarlo.
+const EAS_OWNER = 'christopher202006s-team';
+const EAS_PROJECT_ID = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || '260f951a-85de-46a2-a63b-3ca4e09ef7cd';
 
 module.exports = {
     expo: {
         name: 'SafeRide',
-        slug: 'Saferide-FrontEnd',
+        slug: 'saferide',
+        owner: EAS_OWNER,
         scheme: 'saferide',
         version: '1.0.0',
         orientation: 'portrait',
@@ -88,6 +92,6 @@ module.exports = {
                 },
             ],
         ],
-        extra: EAS_PROJECT_ID ? { eas: { projectId: EAS_PROJECT_ID } } : {},
+        extra: { eas: { projectId: EAS_PROJECT_ID } },
     },
 };
