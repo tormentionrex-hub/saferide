@@ -7,7 +7,7 @@ require('dotenv').config();
 
 const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
-// const { apiLimiter } = require('./middleware/rateLimiter'); // Deshabilitado — habilitar en producción
+const { apiLimiter } = require('./middleware/rateLimiter');
 const logger = require('./utils/logger');
 
 const path = require('path');
@@ -44,8 +44,8 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
-// Rate limiting — deshabilitado en desarrollo, habilitar en producción
-// app.use('/api', apiLimiter);
+// Rate limiting: activo fuera de desarrollo y pruebas (ver middleware/rateLimiter).
+app.use('/api', apiLimiter);
 
 // El checkout con tarjeta carga el SDK de PayPal y sus iframes de Card
 // Fields; la CSP por defecto de helmet los bloquearía. Se relaja solo para

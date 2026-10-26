@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { User, VerificationCode } = require('../models');
 
@@ -12,16 +13,24 @@ const transporter = nodemailer.createTransport({
         pass: process.env.EMAIL_PASS,
     },
 });
-// Helper function to generate access and refresh tokens
+// Solo se guarda el hash del refresh token: si alguien lee la base, no
+// obtiene un token que le permita abrir sesión.
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+
+// Helper function to generate access and refresh tokens.
+// typ distingue ambos tokens: comparten secreto, y sin esta marca un refresh
+// token (7 días) se aceptaba también como access token.
 const generateTokens = (userId) => {
     const accessToken = jwt.sign(
-        { userId },
+        { userId, typ: 'access' },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN || '24h'}
     );
 
+    // jti aleatorio: dos refresh firmados en el mismo segundo salían
+    // idénticos y la rotación no podía invalidar el anterior.
     const refreshToken = jwt.sign(
-        { userId },
+        { userId, typ: 'refresh', jti: crypto.randomUUID() },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
     );
@@ -66,7 +75,7 @@ exports.register = async (req, res, next) =>{
         const { accessToken, refreshToken} = generateTokens(user._id);
 
         // Save refresh token
-        user.refreshToken = refreshToken;
+        user.refreshToken = hashToken(refreshToken);
         await user.save();
         
         res.status(201).json({
@@ -121,7 +130,7 @@ exports.login = async (req, res, next) => {
         const { accessToken, refreshToken} = generateTokens(user._id);
 
         // Save refresh token
-        user.refreshToken = refreshToken;
+        user.refreshToken = hashToken(refreshToken);
         await user.save();
 
         res.status(200).json({
@@ -157,6 +166,9 @@ exports.refreshToken = async (req, res, next) => {
         // 1. Verificar firma y expiración del refresh token. Si falla,
         //    cae al catch y devolvemos 401.
         const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+        if (decoded.typ === 'access') {
+            return res.status(401).json({ success: false, message: 'Invalid refresh token' });
+        }
 
         // 2. Generar el nuevo par de tokens antes del update.
         const tokens = generateTokens(decoded.userId);
@@ -172,9 +184,11 @@ exports.refreshToken = async (req, res, next) => {
         //        b) Race entre dos refresh paralelos: ambos podían validar
         //           y luego sobreescribirse entre sí; con findOneAndUpdate
         //           solo el primero gana, el segundo recibe null → 401.
+        //    Se acepta también el token en claro para no cerrar las sesiones
+        //    abiertas antes de guardar hashes; al rotar queda solo el hash.
         const updated = await User.findOneAndUpdate(
-            { _id: decoded.userId, refreshToken: refreshToken },
-            { refreshToken: tokens.refreshToken },
+            { _id: decoded.userId, refreshToken: { $in: [hashToken(refreshToken), refreshToken] } },
+            { refreshToken: hashToken(tokens.refreshToken) },
             { new: true }
         );
 

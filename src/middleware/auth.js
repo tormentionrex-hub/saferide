@@ -14,6 +14,8 @@ const verifyToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Un refresh token no sirve como access token.
+    if (decoded.typ === 'refresh') throw new Error('Refresh token used as access token');
     
     // Attach user to request.
     // Nota: NO rechazamos por isActive=false aquí. Un usuario con trustScore=0
@@ -75,6 +77,8 @@ const optionalAuth = async (req, res, next) => {
 
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      // Un refresh token no sirve como access token.
+      if (decoded.typ === 'refresh') throw new Error('Refresh token used as access token');
       const user = await User.findById(decoded.userId).select('-password -refreshToken');
       
       if (user) {

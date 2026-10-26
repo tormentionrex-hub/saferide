@@ -3,7 +3,7 @@ const { body } = require('express-validator');
 const authController = require('../controllers/authController');
 const { verifyToken } = require('../middleware/auth');
 const validate = require('../middleware/validation');
-// const { authLimiter } = require('../middleware/rateLimiter'); // Deshabilitado — habilitar en producción
+const { authLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -418,14 +418,14 @@ const passwordValidation = [
 ];
 
 // Routes
-router.post('/register', registerValidation, validate, authController.register);
-router.post('/login', loginValidation, validate, authController.login);
+router.post('/register', authLimiter, registerValidation, validate, authController.register);
+router.post('/login', authLimiter, loginValidation, validate, authController.login);
 router.post('/refresh', authController.refreshToken);
 router.post('/logout', verifyToken, authController.logout);
 router.get('/me', verifyToken, authController.getMe);
-router.post('/send-verification-code', authController.sendVerificationCode);
-router.post('/verify-code', authController.verifyCode);
-router.post('/reset-password', [
+router.post('/send-verification-code', authLimiter, authController.sendVerificationCode);
+router.post('/verify-code', authLimiter, authController.verifyCode);
+router.post('/reset-password', authLimiter, [
   body('email').isEmail().normalizeEmail().withMessage('Email válido requerido'),
   body('code').isLength({ min: 6, max: 6 }).withMessage('Código debe ser de 6 dígitos'),
   body('newPassword')
