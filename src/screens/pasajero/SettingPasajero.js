@@ -22,6 +22,7 @@ import notificationService from '../../services/notificationService';
 import { registerForPushNotifications } from '../../services/pushNotificationService';
 
 import { moderateScale } from '../../utils/responsive';
+import DeleteAccountSection from '../../components/DeleteAccountSection';
 const useLogoutModal = () => {
     const [visible, setVisible] = useState(false);
     const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -263,6 +264,7 @@ const SettingPasajero = ({ navigation }) => {
                         <Ionicons name="log-out-outline" size={20} color={theme.danger} style={{ marginRight: 8 }} />
                         <Text style={[styles.logoutText, { color: theme.danger }]}>Cerrar sesión</Text>
                     </TouchableOpacity>
+                    <DeleteAccountSection navigation={navigation} />
                 </ScrollView>
                 <ScrollIndicator si={si} thumbColor={theme.accent} />
             </View>

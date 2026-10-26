@@ -31,5 +31,14 @@ export const userService = {
         } catch (error) {
             throw error;
         }
+    },
+
+    /**
+     * Elimina la cuenta del usuario autenticado (DELETE /users/me).
+     * @param {string} password - Contraseña actual, para confirmar
+     */
+    deleteMyAccount: async (password) => {
+        const response = await api.delete('/users/me', { data: { password } });
+        return response.data;
     }
 };
