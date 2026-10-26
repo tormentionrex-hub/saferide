@@ -288,6 +288,13 @@ exports.cancelRide = async (req, res, next) => {
     const previousStatus = ride.status;
     const isDriverCancelling = ride.driver_id.toString() === req.user._id.toString();
 
+    if (['cancelled', 'completed'].includes(previousStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ride is already finished or cancelled',
+      });
+    }
+
     // Can only cancel if ride is still scheduled
     ride.status = 'cancelled';
     await ride.save({ validateModifiedOnly: true });
@@ -448,6 +455,28 @@ exports.startRide = async (req, res, next) => {
     // Update status to in progress
     ride.status = 'in progress';
     await ride.save({ validateModifiedOnly: true });
+
+    // Las solicitudes que el conductor no respondió quedaban en 'pending'
+    // para siempre (el pasajero seguía esperando en ScreenSaver). Al salir el
+    // carro se rechazan y se avisa.
+    const unanswered = await Booking.find(
+      { ride_id: ride._id, status: 'pending' },
+      { passenger_id: 1 }
+    );
+    if (unanswered.length > 0) {
+      await Booking.updateMany(
+        { ride_id: ride._id, status: 'pending' },
+        { $set: { status: 'deny' } }
+      );
+      unanswered.forEach((b) => {
+        sendNotification(
+          b.passenger_id.toString(),
+          'El viaje salió sin confirmar tu solicitud. Busca otro viaje disponible.',
+          'booking_denied',
+          { entityType: 'booking', entityId: b._id }
+        );
+      });
+    }
 
     // ── Notificaciones de inicio de viaje ───────────────────────────
     // Capturamos los pasajeros confirmados al momento de iniciar.

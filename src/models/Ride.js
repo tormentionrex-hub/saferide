@@ -117,7 +117,10 @@ rideSchema.pre('save', async function (next) {
             const diff = Math.abs(thisTime.diff(rideTime, 'minutes').minutes);
             
             if (diff < 5) {
-                return next(new Error(`Conflicto de horario: Ya tienes un viaje a las ${ride.hora}. Debe haber al menos 5 minutos entre viajes.`));
+                // 409 y no 500: es una regla de negocio, no un fallo del servidor.
+                const conflict = new Error(`Conflicto de horario: Ya tienes un viaje a las ${ride.hora}. Debe haber al menos 5 minutos entre viajes.`);
+                conflict.statusCode = 409;
+                return next(conflict);
             }
         }
         

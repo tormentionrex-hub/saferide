@@ -54,7 +54,7 @@ exports.createReview = async (req, res, next) => {
     let booking = await Booking.findOne({
       ride_id: ride._id,
       passenger_id: req.user._id,
-      status: { $nin: ['cancelled', 'canceled'] },
+      status: { $in: ['confirmed', 'completed'] },
     });
 
     const isPassenger = !!booking;
@@ -73,7 +73,7 @@ exports.createReview = async (req, res, next) => {
       const passengerBooking = await Booking.findOne({
         ride_id: ride._id,
         passenger_id: reviewee_id,
-        status: { $nin: ['cancelled', 'canceled'] },
+        status: { $in: ['confirmed', 'completed'] },
       });
       
       if (!passengerBooking) {

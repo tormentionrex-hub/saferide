@@ -41,6 +41,22 @@ exports.createBooking = async (req, res, next) => {
       });
     }
 
+    // La app bloquea reservar con un cobro pendiente; el backend lo hace
+    // cumplir para que no se salte desde otro cliente.
+    const unpaid = await Booking.exists({
+      passenger_id: req.user._id,
+      status: 'completed',
+      payment_status: 'pending',
+      payment_type: { $ne: 'gifted' },
+    });
+    if (unpaid) {
+      return res.status(403).json({
+        success: false,
+        code: 'PENDING_PAYMENT',
+        message: 'Tienes un cobro pendiente. Págalo antes de reservar otro viaje.',
+      });
+    }
+
     // Check if user is trying to book their own ride
     if (ride.driver_id.toString() === req.user._id.toString()) {
       return res.status(400).json({
@@ -365,7 +381,7 @@ exports.cancelBooking = async (req, res, next) => {
     }
 
     // Check if booking can be cancelled
-    if (booking.status === 'cancelled' || booking.status === 'completed') {
+    if (['cancelled', 'canceled', 'completed'].includes(booking.status)) {
       return res.status(400).json({
         success: false,
         message: 'This booking cannot be cancelled',
@@ -378,6 +394,15 @@ exports.cancelBooking = async (req, res, next) => {
     // que sumarle ahora sería un over-credit / asientos fantasma).
     const wasConfirmed = booking.status === 'confirmed';
     const ride = booking.ride_id;
+
+    // Con el viaje ya en marcha (o terminado) una reserva confirmada no se
+    // cancela: dejaba el cobro en 'waived' y el pasajero se bajaba sin pagar.
+    if (wasConfirmed && ride.status !== 'scheduled') {
+      return res.status(400).json({
+        success: false,
+        message: 'El viaje ya salió: la reserva no se puede cancelar.',
+      });
+    }
 
     // Update booking status
     booking.status = 'cancelled';
@@ -456,6 +481,13 @@ exports.canceledBooking = async (req, res, next) => {
     }
 
     const ride = booking.ride_id;
+
+    if (ride.status !== 'scheduled') {
+      return res.status(400).json({
+        success: false,
+        message: 'El viaje ya salió: la reserva no se puede cancelar.',
+      });
+    }
 
     // Update booking status
     booking.status = 'canceled';
@@ -536,6 +568,21 @@ exports.updateBookingStatus = async (req, res, next) => {
       });
     }
     const ride = booking.ride_id;
+
+    // Con el viaje en marcha, el pasajero solo puede cancelar un viaje
+    // regalado (flujo propio con penalización de TrustScore); una reserva
+    // normal confirmada no se cancela una vez que el carro salió.
+    if (
+      passengerOnly &&
+      booking.status === 'confirmed' &&
+      ride.status !== 'scheduled' &&
+      booking.payment_type !== 'gifted'
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'El viaje ya salió: la reserva no se puede cancelar.',
+      });
+    }
 
     // When driver confirms: discount seats. Las dos operaciones son atómicas
     // para que varias confirmaciones en paralelo no dejen asientos negativos
