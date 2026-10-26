@@ -89,7 +89,7 @@ const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
             return decodePolyline(data.routes[0].overview_polyline.points);
         }
     } catch (e) {
-        console.log('[CurrentTrip] Error obteniendo ruta:', e.message);
+        devLog('[CurrentTrip] Error obteniendo ruta:', e.message);
     }
     return null;
 };
@@ -101,6 +101,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import BottomNavigationBarAlt from '../../components/BottomNavigationDriver';
 
 import { moderateScale } from '../../utils/responsive';
+import { devLog } from '../../utils/devLog';
 const TripInProgressDriver = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const { showAlert } = useCustomAlert();
@@ -281,7 +282,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
                     setBookingData(currentBooking || null);
                 }
             } catch (error) {
-                console.log('Error fetching trip:', error.message);
+                devLog('Error fetching trip:', error.message);
             } finally {
                 setLoading(false);
                 // Liberar bandera SIEMPRE, también si hubo error.

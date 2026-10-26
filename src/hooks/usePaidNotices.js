@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { rideService } from '../services/rideService';
 import sessionCache from '../services/sessionCache';
+import { devLog } from '../utils/devLog';
 
 const STORAGE_KEY = '@saferide_paidBookingsSeen_v1';
 const POLL_MS = 25000;
@@ -90,7 +91,7 @@ export const usePaidNotices = (active = true) => {
             fresh.forEach(p => { updated[p.bookingId] = true; });
             await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
         } catch (e) {
-            console.log('[usePaidNotices] error:', e?.message);
+            devLog('[usePaidNotices] error:', e?.message);
         } finally {
             fetchingRef.current = false;
         }

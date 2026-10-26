@@ -3,6 +3,7 @@ import { BackHandler } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../../services/api';
 import RatingScreen from '../shared/RatingScreen';
+import { devLog } from '../../utils/devLog';
 
 const RateDriver = ({ route, navigation }) => {
     const {
@@ -69,7 +70,7 @@ const RateDriver = ({ route, navigation }) => {
                     setBookingStatus(booking?.status ?? null);
                 }
             } catch (e) {
-                console.log('[RateDriver] No se pudo cargar el booking:', e?.message);
+                devLog('[RateDriver] No se pudo cargar el booking:', e?.message);
             }
         };
         fetchBookingStatus();

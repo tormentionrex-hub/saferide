@@ -1,4 +1,5 @@
 import api from './api';
+import { devLog } from '../utils/devLog';
 
 /**
  * notificationService.js
@@ -30,7 +31,7 @@ const notificationService = {
                 };
             }
         } catch (err) {
-            console.log('[notificationService] getRecent error:', err?.message);
+            devLog('[notificationService] getRecent error:', err?.message);
         }
         return { data: [], unreadCount: 0 };
     },
@@ -43,7 +44,7 @@ const notificationService = {
             await api.patch(`/notifications/${id}/read`);
             return true;
         } catch (err) {
-            console.log('[notificationService] markAsRead error:', err?.message);
+            devLog('[notificationService] markAsRead error:', err?.message);
             return false;
         }
     },
@@ -56,7 +57,7 @@ const notificationService = {
             await api.patch('/notifications/read-all');
             return true;
         } catch (err) {
-            console.log('[notificationService] markAllAsRead error:', err?.message);
+            devLog('[notificationService] markAllAsRead error:', err?.message);
             return false;
         }
     },
@@ -74,7 +75,7 @@ const notificationService = {
             const res = await api.patch('/auth/notification-preferences', { optIn });
             return res.data?.success === true;
         } catch (err) {
-            console.log('[notificationService] setOptIn error:', err?.message);
+            devLog('[notificationService] setOptIn error:', err?.message);
             return false;
         }
     },

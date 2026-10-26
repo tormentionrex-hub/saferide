@@ -23,6 +23,7 @@ import MyReviewsModal from '../../components/MyReviewsModal';
 
 import { moderateScale } from '../../utils/responsive';
 import { useCompanies } from '../../services/companiesService';
+import { devLog } from '../../utils/devLog';
 
 // ── Burbujas y colores por modo ───────────────────────────────────────────────
 const BUBBLES_LIGHT = ['#4F8EF7','#34D399','#F59E0B','#EC4899','#8B5CF6','#06B6D4','#F97316','#10B981'];
@@ -293,8 +294,8 @@ const PasajeroProfileScreen = ({ navigation }) => {
                         profileImage: server.profileImage || '',
                     });
                 }
-            } catch (e) { console.log('API sync error:', e?.response?.data?.message || e?.message || 'unknown error'); }
-        } catch (e) { console.log('Load error:', e?.response?.data?.message || e?.message || 'unknown error'); }
+            } catch (e) { devLog('API sync error:', e?.response?.data?.message || e?.message || 'unknown error'); }
+        } catch (e) { devLog('Load error:', e?.response?.data?.message || e?.message || 'unknown error'); }
         finally { setLoading(false); }
     };
 

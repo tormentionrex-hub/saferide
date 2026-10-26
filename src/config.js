@@ -8,7 +8,7 @@ const API_PATH = '/api/v1';
 // bundle de Expo (hostUri = "192.168.x.x:8081"), así un teléfono físico en la
 // misma red llega al backend sin editar la IP a mano. En un build de tienda no
 // hay hostUri: ahí la URL tiene que venir del perfil de eas.json.
-const resolveApiUrl = () => {
+export const resolveApiUrl = () => {
     const fromEnv = process.env.EXPO_PUBLIC_API_URL;
     if (fromEnv) return fromEnv.replace(/\/+$/, '');
 

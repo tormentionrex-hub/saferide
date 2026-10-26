@@ -13,6 +13,7 @@ import ScreenHeader from '../../components/ScreenHeader';
 import BottomNavigationBar from '../../components/BottomNavigationBar';
 
 import { moderateScale } from '../../utils/responsive';
+import { devLog } from '../../utils/devLog';
 const POLL_INTERVAL_MS = 3000;
 
 const WaitingPaymentConfirmation = ({ route, navigation }) => {
@@ -193,7 +194,7 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
                     }
                 }
             } catch (e) {
-                console.log('[WaitingPayment] poll error:', e?.message);
+                devLog('[WaitingPayment] poll error:', e?.message);
             } finally {
                 fetchingRef.current = false;
             }

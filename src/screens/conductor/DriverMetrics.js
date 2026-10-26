@@ -24,6 +24,7 @@ import ScreenHeader from '../../components/ScreenHeader';
 import BottomNavigationDriver from '../../components/BottomNavigationDriver';
 
 import { moderateScale } from '../../utils/responsive';
+import { devLog } from '../../utils/devLog';
 const screenWidth = Dimensions.get('window').width;
 
 // Cache a nivel módulo: evita refetcha en cada useFocusEffect cuando el usuario
@@ -83,7 +84,7 @@ const DriverMetrics = ({ navigation }) => {
                     metricsData = mResponse.data.data;
                 }
             } catch (e) {
-                console.log("No se pudieron cargar métricas, usando ceros.");
+                devLog("No se pudieron cargar métricas, usando ceros.");
             }
 
             // 3. Detalle mensual (gráfico + historial): se sigue armando en vivo desde rides+bookings.

@@ -27,6 +27,7 @@ import NotificationCenterModal from '../../components/NotificationCenterModal';
 import { useNotifications } from '../../hooks/useNotifications';
 
 import { moderateScale } from '../../utils/responsive';
+import { devLog } from '../../utils/devLog';
 // Obtenemos dimensiones de la pantalla para garantizar responsividad
 const { height, width } = Dimensions.get('window');
 
@@ -169,7 +170,7 @@ const DashboardPasajero = ({ navigation, route }) => {
                         setFrequentRoutes(sorted);
                     }
                 } catch (e) {
-                    console.log('Frequent routes load error:', e?.response?.data?.message || e?.message || 'unknown error');
+                    devLog('Frequent routes load error:', e?.response?.data?.message || e?.message || 'unknown error');
                 }
             });
             return () => task.cancel();

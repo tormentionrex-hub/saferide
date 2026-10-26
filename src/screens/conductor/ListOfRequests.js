@@ -17,6 +17,7 @@ import ReviewsList from '../../components/ReviewsList';
 import { darkMapStyle } from '../../utils/mapStyle';
 
 import { moderateScale } from '../../utils/responsive';
+import { devLog } from '../../utils/devLog';
 /* ─── Modal de inicio de viaje ───────────────────────────────────── */
 const StartRideModal = ({ visible, onClose, onConfirm, loading, confirmedCount, theme }) => {
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
@@ -882,7 +883,7 @@ const ListOfRequests = ({ route, navigation }) => {
                 }
             }
         } catch (e) {
-            console.log('Error fetching ride detail for modal:', e.message);
+            devLog('Error fetching ride detail for modal:', e.message);
         }
         setPassengerDetailVisible(true);
     };

@@ -4,28 +4,12 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { getCheckoutColors } from './checkoutTheme';
 import { moderateScale } from '../../utils/responsive';
+import { onlyDigits, formatNumber, formatExpiry, detectBrand } from '../../utils/cardFormat';
 
 // Formulario de tarjeta del checkout en estado beta. Solo da formato y valida
 // en pantalla: los datos no se envían a ningún servidor ni se guardan, y se
 // pierden al salir. El cobro real con tarjeta (PayPal Card Fields) está listo
 // en PayPalCheckoutScreen detrás de ONLINE_PAYMENTS_LIVE.
-
-const onlyDigits = (v) => v.replace(/\D/g, '');
-
-const formatNumber = (v) => onlyDigits(v).slice(0, 19).replace(/(\d{4})(?=\d)/g, '$1 ');
-
-const formatExpiry = (v) => {
-    const d = onlyDigits(v).slice(0, 4);
-    return d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
-};
-
-const detectBrand = (number) => {
-    const d = onlyDigits(number);
-    if (/^4/.test(d)) return 'visa';
-    if (/^(5[1-5]|2[2-7])/.test(d)) return 'mastercard';
-    if (/^3[47]/.test(d)) return 'amex';
-    return null;
-};
 
 const BRAND_ICON = { visa: 'cc-visa', mastercard: 'cc-mastercard', amex: 'cc-amex' };
 

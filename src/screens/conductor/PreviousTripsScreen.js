@@ -32,6 +32,7 @@ import { DateTime } from 'luxon';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { moderateScale } from '../../utils/responsive';
+import { devLog } from '../../utils/devLog';
 const { width } = Dimensions.get('window');
 
 const MONTHS_SHORT_ES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
@@ -279,7 +280,7 @@ export default function PreviousTripsScreen() {
 
                     return { ...trip, passengers };
                 } catch (error) {
-                    console.log('[PreviousTrips] bookings fetch failed for', trip._id, error?.message);
+                    devLog('[PreviousTrips] bookings fetch failed for', trip._id, error?.message);
                     return { ...trip, passengers: [] };
                 }
             }));

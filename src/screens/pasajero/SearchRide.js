@@ -11,6 +11,7 @@ import api from '../../services/api';
 import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
+import { devLog } from '../../utils/devLog';
 const { width } = Dimensions.get('window');
 
 const SearchRide = ({ navigation }) => {
@@ -136,7 +137,7 @@ const SearchRide = ({ navigation }) => {
                     // Si no hay viajes activos confirmados ni en proceso y termina, quitamos el loader
                     if (mountedRef.current) setIsChecking(false);
                 } catch (error) {
-                    console.log('Error silenciado verificando viajes activos en SearchRide:', error?.message);
+                    devLog('Error silenciado verificando viajes activos en SearchRide:', error?.message);
                     if (mountedRef.current) setIsChecking(false);
                 } finally {
                     // Liberar bandera siempre, sobrevive a excepciones

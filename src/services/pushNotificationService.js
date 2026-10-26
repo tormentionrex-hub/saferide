@@ -3,6 +3,7 @@ import { isRunningInExpoGo } from 'expo';
 import Constants from 'expo-constants';
 import api from './api';
 import { navigationRef } from './navigationRef';
+import { devLog } from '../utils/devLog';
 
 // Si estamos en Expo Go, no importar el módulo en absoluto.
 // El simple import estático ya dispara el warning interno del SDK 53+ en Android.
@@ -40,7 +41,7 @@ if (Notifications) {
  */
 export const registerForPushNotifications = async () => {
     if (!Notifications) {
-        console.log('[Push] Expo Go detectado — push notifications omitidas.');
+        devLog('[Push] Expo Go detectado — push notifications omitidas.');
         return null;
     }
 
@@ -75,7 +76,7 @@ export const registerForPushNotifications = async () => {
         }
 
         if (finalStatus !== 'granted') {
-            console.log('[Push] Permiso denegado — no se registrará token.');
+            devLog('[Push] Permiso denegado — no se registrará token.');
             return null;
         }
 

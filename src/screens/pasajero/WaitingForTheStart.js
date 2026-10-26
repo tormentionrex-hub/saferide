@@ -10,6 +10,7 @@ import BottomNavigationBar from '../../components/BottomNavigationBar';
 import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
+import { devLog } from '../../utils/devLog';
 const CancelConfirmationModal = ({ visible, onConfirm, onCancel, theme }) => {
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -415,7 +416,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                                     setVehicleData(vInfo || {});
                                 }
                             } catch (e) {
-                                console.log('Sin detalles de vehículo asociados.');
+                                devLog('Sin detalles de vehículo asociados.');
                                 if (mountedRef.current) setVehicleData({}); // Para que no intente buscar repetidamente
                             }
                         }

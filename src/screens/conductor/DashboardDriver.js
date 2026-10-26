@@ -32,6 +32,7 @@ import NotificationCenterModal from '../../components/NotificationCenterModal';
 import { useNotifications } from '../../hooks/useNotifications';
 
 import { moderateScale } from '../../utils/responsive';
+import { devLog } from '../../utils/devLog';
 export default function DashboardConductor({ route, navigation }) {
     const { theme } = useDriverTheme();
     const insets = useSafeAreaInsets();
@@ -153,7 +154,7 @@ export default function DashboardConductor({ route, navigation }) {
                     setFrequentRoutes(sorted);
                 }
             } catch (e) {
-                console.log('Driver frequent routes error:', e?.response?.data?.message || e?.message || 'unknown error');
+                devLog('Driver frequent routes error:', e?.response?.data?.message || e?.message || 'unknown error');
             }
         } catch (err) {
             setHasVehicle(false);

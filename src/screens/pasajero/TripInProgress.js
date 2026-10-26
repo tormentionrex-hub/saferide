@@ -19,6 +19,7 @@ import { darkMapStyle } from '../../utils/mapStyle';
 
 import { moderateScale } from '../../utils/responsive';
 import { fetchDirections } from '../../services/locationService';
+import { devLog } from '../../utils/devLog';
 
 // Decodifica el polyline codificado de Google Maps en array de coordenadas
 const decodePolyline = (encoded) => {
@@ -44,7 +45,7 @@ const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
             return decodePolyline(data.routes[0].overview_polyline.points);
         }
     } catch (e) {
-        console.log('[TripInProgress] Error obteniendo ruta:', e.message);
+        devLog('[TripInProgress] Error obteniendo ruta:', e.message);
     }
     return null;
 };
@@ -274,7 +275,7 @@ const TripInProgress = ({ route, navigation }) => {
                         setLoading(false);
                     }
                 } catch (err) {
-                    console.log('Error buscando booking activo:', err?.message);
+                    devLog('Error buscando booking activo:', err?.message);
                     if (!mountedRef.current) return;
                     setNoActiveTrip(true);
                     setLoading(false);
@@ -432,7 +433,7 @@ const TripInProgress = ({ route, navigation }) => {
                     }
                 }
             } catch (error) {
-                console.log('Error silenciado haciendo polling a trip details:', error?.message);
+                devLog('Error silenciado haciendo polling a trip details:', error?.message);
             } finally {
                 // Liberar la bandera siempre, sobreviviendo a excepciones
                 tripFetchingRef.current = false;

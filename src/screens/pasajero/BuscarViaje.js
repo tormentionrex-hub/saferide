@@ -19,6 +19,7 @@ import BottomNavigationBar from '../../components/BottomNavigationBar';
 import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
+import { devLog } from '../../utils/devLog';
 const { width } = Dimensions.get('window');
 const ACCENT = '#2563EB';
 const RECENT_SEARCHES_KEY = 'buscarViaje_recentSearches';
@@ -46,7 +47,7 @@ const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
             return decodePolyline(data.routes[0].overview_polyline.points);
         }
     } catch (e) {
-        console.log('[BuscarViaje] Error obteniendo ruta:', e.message);
+        devLog('[BuscarViaje] Error obteniendo ruta:', e.message);
     }
     return null;
 };
