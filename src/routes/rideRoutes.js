@@ -344,10 +344,6 @@ const rideValidation = [
       const valTime = nowLuxon.set({ year, month: month, day, hour: h, minute: m, second: 0, millisecond: 0 });
       const minAllowed = nowLuxon.plus({ minutes: 5 }).set({ second: 0, millisecond: 0 });
 
-      console.log(`[Validation Debug] nowLuxon: ${nowLuxon.toISO()}`);
-      console.log(`[Validation Debug] valTime: ${valTime.toISO()}`);
-      console.log(`[Validation Debug] minAllowed: ${minAllowed.toISO()}`);
-
       if (valTime < minAllowed) {
         throw new Error('Debes programar el viaje con al menos 5 minutos de anticipación.');
       }
@@ -430,10 +426,6 @@ const updateRideValidation = [
       
       const valTime = nowLuxon.set({ year, month: month, day, hour: h, minute: m, second: 0, millisecond: 0 });
       const minAllowed = nowLuxon.plus({ minutes: 5 }).set({ second: 0, millisecond: 0 });
-
-      console.log(`[Validation Debug] nowLuxon: ${nowLuxon.toISO()}`);
-      console.log(`[Validation Debug] valTime: ${valTime.toISO()}`);
-      console.log(`[Validation Debug] minAllowed: ${minAllowed.toISO()}`);
 
       if (valTime < minAllowed) {
         throw new Error('Debes programar el viaje con al menos 5 minutos de anticipación.');

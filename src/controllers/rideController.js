@@ -215,18 +215,37 @@ exports.updateRide = async (req, res, next) => {
       });
     }
 
-    // Fields that can be updated
-    const allowedUpdates = ['fecha', 'hora', 'available_seats', 'status'];
+    // Campos editables. 'status' no se acepta aquí: el ciclo del viaje se
+    // mueve solo con start / complete / cancel, que disparan notificaciones,
+    // métricas y TrustScore.
+    const allowedUpdates = ['fecha', 'hora', 'available_seats'];
     const updates = {};
-    // Process updates
     allowedUpdates.forEach(field => {
       if (req.body[field] !== undefined) {
         updates[field] = req.body[field];
       }
     });
-    // Apply updates to ride
+    const timeChanged = (updates.hora && updates.hora !== ride.hora)
+      || (updates.fecha && updates.fecha !== ride.fecha);
     Object.assign(ride, updates);
     await ride.save();
+
+    // Los pasajeros con reserva pendiente o confirmada se enteran si cambió
+    // la hora de salida.
+    if (timeChanged) {
+      const bookings = await Booking.find({
+        ride_id: ride._id,
+        status: { $in: ['pending', 'confirmed'] },
+      }).select('passenger_id');
+      bookings.forEach((b) => {
+        sendNotification(
+          b.passenger_id.toString(),
+          `El conductor cambió la hora de salida de tu viaje a las ${ride.hora}.`,
+          'ride_reminder',
+          { entityType: 'ride', entityId: ride._id }
+        );
+      });
+    }
 
     res.status(200).json({
       success: true,
