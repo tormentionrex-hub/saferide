@@ -388,6 +388,20 @@ exports.cancelBooking = async (req, res, next) => {
       });
     }
 
+    // Cancelación condicional (?if_status=pending): la app la usa cuando el
+    // pasajero se cansó de esperar. Si el conductor aceptó entre la última
+    // consulta y este DELETE, no se cancela una reserva ya confirmada; la app
+    // recibe 409 con el estado real y sigue por el flujo de reserva aceptada.
+    const ifStatus = typeof req.query.if_status === 'string' ? req.query.if_status : null;
+    if (ifStatus && booking.status !== ifStatus) {
+      return res.status(409).json({
+        success: false,
+        code: 'STATUS_CHANGED',
+        message: 'La reserva cambió de estado antes de cancelarla.',
+        data: { status: booking.status },
+      });
+    }
+
     // Capturamos el status previo del booking ANTES de mutarlo:
     // solo restauramos asientos si el booking estaba 'confirmed'
     // (un 'pending' nunca había descontado del available_seats, así
@@ -404,10 +418,24 @@ exports.cancelBooking = async (req, res, next) => {
       });
     }
 
-    // Update booking status
+    // Cancelación atómica: se reclama el booking solo si sigue en el estado
+    // que se leyó (si el conductor lo confirmó o lo rechazó en medio, 409) y
+    // los asientos se devuelven con $inc, igual que la confirmación, para no
+    // pisar el contador con un read-modify-write.
+    const claimed = await Booking.findOneAndUpdate(
+      { _id: booking._id, status: booking.status },
+      { $set: { status: 'cancelled', payment_status: 'waived' } },
+      { new: true }
+    );
+    if (!claimed) {
+      return res.status(409).json({
+        success: false,
+        code: 'STATUS_CHANGED',
+        message: 'La reserva cambió de estado antes de cancelarla.',
+      });
+    }
     booking.status = 'cancelled';
     booking.payment_status = 'waived';
-    await booking.save();
 
     // Solo devolvemos los asientos al inventario si:
     //   1. El booking estaba 'confirmed' (había descontado seats).
@@ -416,8 +444,8 @@ exports.cancelBooking = async (req, res, next) => {
     //      se tocan — quedan "perdidos" para reflejar que el cupo
     //      físico ya estaba comprometido al iniciar el viaje.
     if (wasConfirmed && ride.status === 'scheduled') {
+      await Ride.updateOne({ _id: ride._id }, { $inc: { available_seats: booking.seats_booked } });
       ride.available_seats += booking.seats_booked;
-      await ride.save();
     }
 
     // Notificar al conductor (sin duplicar Notification.create)
@@ -489,16 +517,28 @@ exports.canceledBooking = async (req, res, next) => {
       });
     }
 
-    // Update booking status
+    // Misma cancelación atómica que en cancelBooking: reclamar el booking
+    // solo si sigue 'confirmed' y devolver asientos con $inc.
+    const claimed = await Booking.findOneAndUpdate(
+      { _id: booking._id, status: 'confirmed' },
+      { $set: { status: 'canceled' } },
+      { new: true }
+    );
+    if (!claimed) {
+      return res.status(409).json({
+        success: false,
+        code: 'STATUS_CHANGED',
+        message: 'La reserva cambió de estado antes de cancelarla.',
+      });
+    }
     booking.status = 'canceled';
-    await booking.save();
 
     // Solo devolvemos los asientos si el ride todavía no arrancó.
     // Una vez 'in progress' (o más allá), el cupo físico ya quedó
     // comprometido al iniciar el viaje y no tiene sentido reabrirlo.
     if (ride.status === 'scheduled') {
+      await Ride.updateOne({ _id: ride._id }, { $inc: { available_seats: booking.seats_booked } });
       ride.available_seats += booking.seats_booked;
-      await ride.save();
     }
 
     // Notificar al conductor (sin duplicar Notification.create)

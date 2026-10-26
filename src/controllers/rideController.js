@@ -60,6 +60,21 @@ exports.createRide = async (req, res, next) => {
       });
     }
 
+    // La app no deja publicar con un viaje en marcha; el backend lo hace
+    // cumplir para que no se salte desde otro cliente (la ubicación en vivo
+    // se escribe sobre "el viaje en curso" y con dos sería ambiguo).
+    const activeRide = await Ride.exists({
+      driver_id: req.user._id,
+      status: { $in: ['in progress', 'awaiting_payment_verification'] },
+    });
+    if (activeRide) {
+      return res.status(409).json({
+        success: false,
+        code: 'ACTIVE_RIDE',
+        message: 'Tienes un viaje en curso. Termínalo antes de publicar otro.',
+      });
+    }
+
     // Create ride
     const ride = await Ride.create({
       driver_id: req.user._id,

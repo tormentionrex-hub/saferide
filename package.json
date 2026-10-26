@@ -10,6 +10,8 @@
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "db:init": "node src/scripts/initDatabase.js",
+    "qa:ataques": "node scripts/qa/qa1-ataques.js",
+    "qa:flujos": "node scripts/qa/qa2-flujos.js",
     "job:metrics": "node -e 'require(\"./src/jobs\").calculateMetricsJob().then(() => process.exit(0))'",
     "job:cleanup": "node -e 'require(\"./src/jobs\").cleanupExpiredRidesJob().then(() => process.exit(0))'",
     "job:reminders": "node -e 'require(\"./src/jobs\").sendRideRemindersJob().then(() => process.exit(0))'",
