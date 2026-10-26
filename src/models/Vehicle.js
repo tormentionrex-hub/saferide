@@ -5,7 +5,6 @@ const vehicleSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: [true, 'Driver ID is required'],
-        unique: true,
     },
     brand: {
         type: String,
@@ -54,8 +53,15 @@ const vehicleSchema = new mongoose.Schema({
 });
 
 // Indices
-// Note: driver_id and license_plate already have unique indexes from the schema definition (unique: true)
-// Only add additional non-unique indexes here if needed
+// license_plate: unique global (schema definition).
+// driver_id: NO es unique global. Hay un partial unique abajo que garantiza
+// un único vehículo activo por driver, permitiendo histórico de inactivos.
+
+vehicleSchema.index({ driver_id: 1, isActive: 1 });
+vehicleSchema.index(
+  { driver_id: 1 },
+  { unique: true, partialFilterExpression: { isActive: true } }
+);
 
 const Vehicle = mongoose.model('Vehicle', vehicleSchema);
 

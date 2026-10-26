@@ -166,8 +166,9 @@ router.get('/leaderboard', optionalAuth, metricsController.getLeaderboard);
 // Protected routes
 router.use(verifyToken);
 
+router.get('/passenger/:passengerId', metricsController.getPassengerMetrics);
 router.get('/user/:userId', metricsController.getUserMetrics);
-router.post('/calculate/:userId', authorize('administrador'), metricsController.calculateMetrics);
-router.get('/global', authorize('administrador'), metricsController.getGlobalMetrics);
+router.post('/calculate/:userId', authorize('admin'), metricsController.calculateMetrics);
+router.get('/global', authorize('admin'), metricsController.getGlobalMetrics);
 
 module.exports = router;

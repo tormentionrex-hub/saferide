@@ -14,7 +14,14 @@ const notificationSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: {
-      values: ['booking_confirmed', 'booking_cancelled', 'ride_reminder', 'ride_completed', 'review_request', 'system'],
+      values: [
+        // Eventos sobre bookings (entre pasajero y conductor)
+        'booking_confirmed', 'booking_cancelled', 'booking_pending', 'booking_denied',
+        // Eventos sobre rides (ciclo de vida del viaje)
+        'ride_reminder', 'ride_started', 'ride_completed', 'ride_cancelled',
+        // Otros
+        'review_request', 'system', 'trust_score_updated',
+      ],
       message: 'Invalid notification type',
     },
     required: true,

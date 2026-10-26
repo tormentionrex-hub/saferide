@@ -18,8 +18,15 @@ exports.createReview = async (req, res, next) => {
         message: 'Ride not found',
       });
     }
-    // Validate ride completion status
-    if (ride.status !== 'completed') {
+    // Validate ride completion status. Aceptamos también
+    // awaiting_payment_verification porque desde el punto de vista del
+    // pasajero el viaje ya terminó físicamente (el conductor tocó
+    // Finalizar) — solo falta que confirme pagos en PaymentVerification.
+    // El pasajero puede calificar en paralelo.
+    if (
+      ride.status !== 'completed' &&
+      ride.status !== 'awaiting_payment_verification'
+    ) {
       return res.status(400).json({
         success: false,
         message: 'Can only review completed rides',
@@ -27,33 +34,48 @@ exports.createReview = async (req, res, next) => {
     }
 
     // Check if user participated in the ride
-    const isDriver = ride.driver_id.toString() === req.user._id.toString();
-    const isPassenger = await Booking.findOne({
-      ride_id,
+    let isDriver = ride.driver_id.toString() === req.user._id.toString();
+    
+    // Look for any active booking (not cancelled)
+    let booking = await Booking.findOne({
+      ride_id: ride._id,
       passenger_id: req.user._id,
-      status: 'completed',
+      status: { $nin: ['cancelled', 'canceled'] },
     });
+
+    const isPassenger = !!booking;
+
     // Validate participation
     if (!isDriver && !isPassenger) {
       return res.status(403).json({
         success: false,
-        message: 'You can only review rides you participated in',
+        message: 'v2: No puedes calificar un viaje en el que no participaste.',
       });
     }
 
     // Check if reviewing the correct person
-    if (isDriver && reviewee_id !== isPassenger?.passenger_id.toString()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid reviewee',
+    if (isDriver) {
+      // The driver must review a passenger on this ride
+      const passengerBooking = await Booking.findOne({
+        ride_id: ride._id,
+        passenger_id: reviewee_id,
+        status: { $nin: ['cancelled', 'canceled'] },
       });
-    }
-    // Validate passenger reviewee
-    if (isPassenger && reviewee_id !== ride.driver_id.toString()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid reviewee',
-      });
+      
+      if (!passengerBooking) {
+        return res.status(400).json({
+          success: false,
+          message: `v2: Calificación inválida. El usuario ${reviewee_id} no tiene una reserva activa en este viaje.`,
+        });
+      }
+    } else if (isPassenger) {
+      // Validate passenger reviewee (must be the driver)
+      if (reviewee_id.toString() !== ride.driver_id.toString()) {
+        return res.status(400).json({
+          success: false,
+          message: 'v2: Calificación inválida. Un pasajero solo puede calificar al conductor del viaje.',
+        });
+      }
     }
 
     // Check if review already exists
@@ -79,11 +101,19 @@ exports.createReview = async (req, res, next) => {
       comment,
     });
 
-    // Update user's average rating
+    // Update user's average rating with a 5.0 starting baseline
     const reviews = await Review.find({ reviewee_id });
-    const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+    const totalStars = reviews.reduce((sum, r) => sum + r.rating, 0);
+    // Formula: (reviews_sum + 5.0 starting baseline) / (number_of_reviews + 1)
+    const avgRating = (totalStars + 5) / (reviews.length + 1);
+    
     // Update reviewee's rating
-    await User.findByIdAndUpdate(reviewee_id, { rating: avgRating });
+    await User.findByIdAndUpdate(reviewee_id, { rating: avgRating.toFixed(2) });
+
+    // [SAFESCORE-AGENT] — Notifica al agente que se creó una review. No-op si está deshabilitado.
+    try { require('../../safescore-reviewer/agent/emit').onReviewCreated(review); } catch (_) {}
+    // [SAFESCORE-AGENT] — fin
+
     // Populate review details
     await review.populate('reviewer_id reviewee_id', 'name username profileImage');
     // Respond successfully
@@ -107,8 +137,7 @@ exports.getReviewsByUser = async (req, res, next) => {
     const { page = 1, limit = 10 } = req.query;
     // Fetch reviews
     const reviews = await Review.find({ reviewee_id: req.params.userId })
-      .populate('reviewer_id', 'name username profileImage')
-      .populate('ride_id', 'origin destination date_time')
+      .populate('ride_id', 'origin destination fecha hora')
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ date: -1 });
@@ -120,9 +149,15 @@ exports.getReviewsByUser = async (req, res, next) => {
       ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
       : 0;
     // Respond with reviews and average rating
+    const anonymized = reviews.map(r => {
+      const obj = r.toObject();
+      obj.reviewer_id = { name: 'Anónimo', profileImage: null };
+      return obj;
+    });
+
     res.status(200).json({
       success: true,
-      data: reviews,
+      data: anonymized,
       averageRating: avgRating.toFixed(2),
       pagination: {
         total: count,
@@ -144,12 +179,18 @@ exports.getReviewsByRide = async (req, res, next) => {
   // Fetch reviews by ride
   try {
     const reviews = await Review.find({ ride_id: req.params.rideId })
-      .populate('reviewer_id reviewee_id', 'name username profileImage')
+      .populate('reviewee_id', 'name username profileImage')
       .sort({ date: -1 });
-    // Respond successfully
+
+    const anonymized = reviews.map(r => {
+      const obj = r.toObject();
+      obj.reviewer_id = { name: 'Anónimo', profileImage: null };
+      return obj;
+    });
+
     res.status(200).json({
       success: true,
-      data: reviews,
+      data: anonymized,
     });
   } catch (error) {
     next(error);
@@ -175,7 +216,7 @@ exports.deleteReview = async (req, res, next) => {
     // Check if user owns the review or is admin
     if (
       review.reviewer_id.toString() !== req.user._id.toString() &&
-      req.user.type !== 'administrador'
+      req.user.type !== 'admin'
     ) {
       return res.status(403).json({
         success: false,

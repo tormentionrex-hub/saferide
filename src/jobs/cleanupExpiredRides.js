@@ -1,33 +1,42 @@
 const { Ride, Booking } = require('../models');
 const logger = require('../utils/logger');
+const tz = require('../utils/timeZone');
 // Job to clean up expired rides and bookings
 const cleanupExpiredRidesJob = async () => {
     const startTime = Date.now();
     logger.info('🚀 Starting cleanup of expired rides job...');
     // Current date and time
     try {
-        const now = new Date();
+        const nowLuxon = tz.now();
 
-        // Cancel scheduled rides that have already passed
+        // Solo cancelar viajes que llevan más de 1 hora sin iniciarse (caso extremo)
+        const oneHourAgo = nowLuxon.minus({ hours: 1 });
+        const cutoffDate = oneHourAgo.toFormat('yyyy-MM-dd');
+        const cutoffTime = oneHourAgo.toFormat('HH:mm');
+
+        // Cancel scheduled rides that are more than 1 hour past their start time
         const expiredScheduled = await Ride.updateMany(
             {
                 status: 'scheduled',
-                date_time: { $lt: now },
+                $or: [
+                    { fecha: { $lt: cutoffDate } },
+                    { fecha: cutoffDate, hora: { $lte: cutoffTime } }
+                ]
             },
             {
-                $set: { status: 'canceled' },
+                $set: { status: 'cancelled' },
             }
         );
 
-        // Cutoff date: rides older than 7 days
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - 7);
+        // Cutoff date: bookings older than 7 days
+        const bookingCutoffDate = new Date();
+        bookingCutoffDate.setDate(bookingCutoffDate.getDate() - 7);
 
         // Cancel old pending bookings
         const expiredBookings = await Booking.updateMany(
             {
                 status: 'pending',
-                createdAt: { $lt: cutoffDate },
+                createdAt: { $lt: bookingCutoffDate },
             },
             {
                 $set: { status: 'cancelled' },

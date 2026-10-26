@@ -76,7 +76,7 @@ router.use(verifyToken);
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  */
-router.post('/', authorize('conductor'), vehicleValidation, validate, vehicleController.createVehicle);
+router.post('/', authorize('conductor', 'admin'), vehicleValidation, validate, vehicleController.createVehicle);
 
 /**
  * @swagger
@@ -179,7 +179,7 @@ router.get('/:id', vehicleController.getVehicleById);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.put('/:id', authorize('conductor'), vehicleController.updateVehicle);
+router.put('/:id', authorize('conductor', 'admin'), vehicleController.updateVehicle);
 
 /**
  * @swagger
@@ -220,7 +220,7 @@ router.put('/:id', authorize('conductor'), vehicleController.updateVehicle);
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  */
-router.post('/:id/image', authorize('conductor'), upload.single('image'), vehicleController.uploadVehicleImage);
+router.post('/:id/image', authorize('conductor', 'admin'), upload.single('image'), vehicleController.uploadVehicleImage);
 
 /**
  * @swagger
@@ -244,5 +244,27 @@ router.post('/:id/image', authorize('conductor'), upload.single('image'), vehicl
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.delete('/:id', vehicleController.deleteVehicle);
+
+/**
+ * @swagger
+ * /vehicles:
+ *   get:
+ *     summary: Obtener todos los vehículos (Admin)
+ *     description: Retorna una lista de todos los vehículos registrados (requiere rol de admin)
+ *     tags: [Vehicles]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get('/', authorize('admin'), vehicleController.getAllVehicles);
+
+/**
+ * @swagger
+ * /vehicles/{id}/status:
+ *   patch:
+ *     summary: Aprobar/Desactivar vehículo (Admin)
+ *     description: Cambia el estado isActive de un vehículo. Admin puede activar/desactivar cualquier vehículo. Conductor solo puede desactivar su propio vehículo.
+ *     tags: [Vehicles]
+ */
+router.patch('/:id/status', authorize('conductor', 'admin'), vehicleController.updateVehicleStatus);
 
 module.exports = router;

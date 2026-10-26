@@ -89,7 +89,7 @@ const sendNotification = (userId, message, type, relatedEntity = null) => {
  * Enviar notificaciones en lote
  */
 const sendBulkNotifications = (userIds, message, type) => {
-    userIds.foreach(userId => {
+    userIds.forEach(userId => {
         queueNotification({
             userId,
             message,

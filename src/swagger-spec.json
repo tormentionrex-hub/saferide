@@ -288,7 +288,7 @@
             "type": "string",
             "enum": [
               "scheduled",
-              "in_progress",
+              "in progress",
               "completed",
               "cancelled"
             ],
@@ -1779,7 +1779,7 @@
               "type": "string",
               "enum": [
                 "scheduled",
-                "in_progress",
+                "in progress",
                 "completed",
                 "cancelled"
               ],
@@ -2072,7 +2072,7 @@
     "/rides/{id}/start": {
       "patch": {
         "summary": "Iniciar un viaje",
-        "description": "Cambia el estado de un viaje a \"in_progress\" (solo el conductor)",
+        "description": "Cambia el estado de un viaje a \"in progress\" (solo el conductor)",
         "tags": [
           "Rides"
         ],

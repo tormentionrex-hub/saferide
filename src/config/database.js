@@ -22,36 +22,36 @@ const connectDB = async () => {
       connectionString = connectionString.replace('?', `/${dbName}?`);
     }
 
-    // Connection options optimized for Cosmos DB vCore
+    // Connection options optimized for Cosmos DB vCore or Local MongoDB
     const options = {
       // Specify the database name explicitly
       dbName: dbName,
-      
+
       // Timeout configurations
       serverSelectionTimeoutMS: 10000, // 10 seconds
       socketTimeoutMS: 45000, // 45 seconds
       connectTimeoutMS: 10000, // 10 seconds
-      
+
       // Connection pool
       maxPoolSize: 10, // Maximum simultaneous connections
       minPoolSize: 2,  // Minimum connections in the pool
-      
+
       // Retry configuration
       retryWrites: false, // Cosmos DB vCore does not support retryWrites by default
       retryReads: true,
-      
+
       // Additional settings
       maxIdleTimeMS: 120000, // 2 minutes
-      compressors: ['zlib'], // Data compression
-      
-      // TLS/SSL
-      tls: true,
-      tlsAllowInvalidCertificates: false,
-      
-      // Authentication
-      authSource: 'admin',
-      authMechanism: 'SCRAM-SHA-256',
     };
+
+    // If connecting to a remote Azure Cosmos DB, add TLS and Auth options
+    if (connectionString.includes('mongodb.net') || connectionString.includes('azure')) {
+      options.tls = true;
+      options.tlsAllowInvalidCertificates = false;
+      options.authSource = 'admin';
+      options.authMechanism = 'SCRAM-SHA-256';
+      options.compressors = ['zlib'];
+    }
 
     // Conectar a la base de datos
     await mongoose.connect(connectionString, options);
@@ -82,14 +82,14 @@ const connectDB = async () => {
 
   } catch (error) {
     logger.error('❌ Error connecting to Cosmos DB:', error);
-    
+
     // Log additional error details
     if (error.message.includes('authentication')) {
       logger.error('Authentication failed. Check your username and password.');
     } else if (error.message.includes('ENOTFOUND') || error.message.includes('ETIMEDOUT')) {
       logger.error('Network error. Check your connection string and firewall settings.');
     }
-    
+
     // Exit process with failure
     process.exit(1);
   }

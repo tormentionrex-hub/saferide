@@ -1,8 +1,9 @@
 const express = require('express');
 const { body } = require('express-validator');
 const rideController = require('../controllers/rideController');
-const { verifyToken, authorize, optionalAuth } = require('../middleware/auth');
+const { verifyToken, authorize, optionalAuth, requireActive } = require('../middleware/auth');
 const validate = require('../middleware/validation');
+const tz = require('../utils/timeZone');
 
 const router = express.Router();
 
@@ -48,7 +49,7 @@ const router = express.Router();
  *         description: Estado del viaje
  *         schema:
  *           type: string
- *           enum: [scheduled, in_progress, completed, cancelled]
+ *           enum: [scheduled, in progress, awaiting_payment_verification, completed, cancelled]
  *           default: scheduled
  *     responses:
  *       200:
@@ -84,7 +85,8 @@ const router = express.Router();
  *                     coordinates:
  *                       lat: 9.9281
  *                       lng: -84.0907
- *                   date_time: "2024-12-15T07:00:00.000Z"
+ *                   fecha: "2024-12-15"
+ *                   hora: "07:00"
  *                   available_seats: 3
  *                   status: "scheduled"
  *                   distance_km: 25.5
@@ -109,7 +111,8 @@ const router = express.Router();
  *             required:
  *               - origin
  *               - destination
- *               - date_time
+ *               - fecha
+ *               - hora
  *               - available_seats
  *             properties:
  *               origin:
@@ -151,11 +154,12 @@ const router = express.Router();
  *                       lng:
  *                         type: number
  *                         example: -84.0907
- *               date_time:
+ *               fecha:
  *                 type: string
- *                 format: date-time
- *                 description: Fecha y hora del viaje (debe ser futura)
- *                 example: "2024-12-15T07:00:00.000Z"
+ *                 format: date
+ *               hora:
+ *                 type: string
+ *                 example: "08:00"
  *               available_seats:
  *                 type: integer
  *                 minimum: 1
@@ -244,7 +248,7 @@ const router = express.Router();
  * /rides/{id}/start:
  *   patch:
  *     summary: Iniciar un viaje
- *     description: Cambia el estado de un viaje a "in_progress" (solo el conductor)
+ *     description: Cambia el estado de un viaje a "in progress" (solo el conductor)
  *     tags: [Rides]
  *     security:
  *       - bearerAuth: []
@@ -319,7 +323,36 @@ const rideValidation = [
   body('destination.name').trim().notEmpty().withMessage('Destination name is required'),
   body('destination.coordinates.lat').isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
   body('destination.coordinates.lng').isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
-  body('date_time').isISO8601().withMessage('Invalid date format'),
+  body('fecha')
+    .matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('Formato de fecha inválido (YYYY-MM-DD)')
+    .custom((value) => {
+      const nowDateString = tz.now().toFormat('yyyy-MM-dd');
+      if (value !== nowDateString) {
+        throw new Error('Solo puedes crear o gestionar viajes para el día de hoy');
+      }
+      return true;
+    }),
+  body('hora')
+    .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Formato de hora inválido (HH:mm)')
+    .custom((value, { req }) => {
+      if (!req.body.fecha) return false;
+      
+      const nowLuxon = tz.now();
+      const [year, month, day] = req.body.fecha.split('-').map(Number);
+      const [h, m] = value.split(':').map(Number);
+      
+      const valTime = nowLuxon.set({ year, month: month, day, hour: h, minute: m, second: 0, millisecond: 0 });
+      const minAllowed = nowLuxon.plus({ minutes: 5 }).set({ second: 0, millisecond: 0 });
+
+      console.log(`[Validation Debug] nowLuxon: ${nowLuxon.toISO()}`);
+      console.log(`[Validation Debug] valTime: ${valTime.toISO()}`);
+      console.log(`[Validation Debug] minAllowed: ${minAllowed.toISO()}`);
+
+      if (valTime < minAllowed) {
+        throw new Error('Debes programar el viaje con al menos 5 minutos de anticipación.');
+      }
+      return true;
+    }),
   body('available_seats').isInt({ min: 1, max: 7 }).withMessage('Seats must be between 1 and 7'),
   body('distance_km').optional().isFloat({ min: 0 }),
   body('duration_minutes').optional().isInt({ min: 0 }),
@@ -332,7 +365,7 @@ router.get('/:id', optionalAuth, rideController.getRideById);
 // Protected routes
 router.use(verifyToken);
 
-router.post('/', authorize('conductor'), rideValidation, validate, rideController.createRide);
+router.post('/', authorize('conductor'), requireActive, rideValidation, validate, rideController.createRide);
 /**
  * @swagger
  * /rides/{id}:
@@ -353,9 +386,12 @@ router.post('/', authorize('conductor'), rideValidation, validate, rideControlle
  *             properties:
  *               available_seats:
  *                 type: integer
- *               date_time:
+ *               fecha:
  *                 type: string
- *                 format: date-time
+ *                 format: date
+ *               hora:
+ *                 type: string
+ *                 example: "08:00"
  *     responses:
  *       200:
  *         description: Viaje actualizado exitosamente
@@ -373,12 +409,46 @@ router.post('/', authorize('conductor'), rideValidation, validate, rideControlle
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.put('/:id', authorize('conductor'), rideController.updateRide);
+const updateRideValidation = [
+  body('fecha').optional()
+    .matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('Formato de fecha inválido (YYYY-MM-DD)')
+    .custom((value) => {
+      const nowDateString = tz.now().toFormat('yyyy-MM-dd');
+      if (value !== nowDateString) {
+        throw new Error('Solo puedes crear o gestionar viajes para el día de hoy');
+      }
+      return true;
+    }),
+  body('hora').optional()
+    .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Formato de hora inválido (HH:mm)')
+    .custom((value, { req }) => {
+      const fechaToCheck = req.body.fecha || tz.now().toFormat('yyyy-MM-dd');
+      
+      const nowLuxon = tz.now();
+      const [year, month, day] = fechaToCheck.split('-').map(Number);
+      const [h, m] = value.split(':').map(Number);
+      
+      const valTime = nowLuxon.set({ year, month: month, day, hour: h, minute: m, second: 0, millisecond: 0 });
+      const minAllowed = nowLuxon.plus({ minutes: 5 }).set({ second: 0, millisecond: 0 });
+
+      console.log(`[Validation Debug] nowLuxon: ${nowLuxon.toISO()}`);
+      console.log(`[Validation Debug] valTime: ${valTime.toISO()}`);
+      console.log(`[Validation Debug] minAllowed: ${minAllowed.toISO()}`);
+
+      if (valTime < minAllowed) {
+        throw new Error('Debes programar el viaje con al menos 5 minutos de anticipación.');
+      }
+      return true;
+    }),
+  body('available_seats').optional().isInt({ min: 1, max: 7 }).withMessage('Seats must be between 1 and 7'),
+];
+
+router.put('/:id', authorize('conductor'), updateRideValidation, validate, rideController.updateRide);
 
 /**
  * @swagger
- * /rides/{id}:
- *   delete:
+ * /rides/{id}/cancel:
+ *   patch:
  *     summary: Cancelar viaje
  *     description: Cancela un viaje programado y notifica a los pasajeros (solo el conductor)
  *     tags: [Rides]
@@ -398,7 +468,7 @@ router.put('/:id', authorize('conductor'), rideController.updateRide);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.delete('/:id', authorize('conductor'), rideController.cancelRide);
+router.patch('/:id/cancel', authorize('conductor'), rideController.cancelRide);
 
 /**
  * @swagger
@@ -433,5 +503,12 @@ router.delete('/:id', authorize('conductor'), rideController.cancelRide);
 router.get('/driver/:driverId', rideController.getRidesByDriver);
 router.patch('/:id/start', authorize('conductor'), rideController.startRide);
 router.patch('/:id/complete', authorize('conductor'), rideController.completeRide);
+// Paso 2 del cierre del viaje. Lo dispara PaymentVerification al apretar
+// "Continuar": completa el ride y los bookings, dispara métricas y notifs.
+router.patch(
+  '/:id/finalize-payment-verification',
+  authorize('conductor'),
+  rideController.finalizePaymentVerification
+);
 
 module.exports = router;

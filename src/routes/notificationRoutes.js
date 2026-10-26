@@ -151,6 +151,6 @@ router.delete('/:id', notificationController.deleteNotification);
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  */
-router.post('/', authorize('administrador'), notificationValidation, validate, notificationController.createNotification);
+router.post('/', authorize('admin'), notificationValidation, validate, notificationController.createNotification);
 
 module.exports = router;

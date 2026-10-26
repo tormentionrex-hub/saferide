@@ -3,7 +3,7 @@ const { body } = require('express-validator');
 const authController = require('../controllers/authController');
 const { verifyToken } = require('../middleware/auth');
 const validate = require('../middleware/validation');
-const { authLimiter } = require('../middleware/rateLimiter');
+// const { authLimiter } = require('../middleware/rateLimiter'); // Deshabilitado — habilitar en producción
 
 const router = express.Router();
 
@@ -133,7 +133,7 @@ const registerValidation = [
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
     .withMessage('Password must contain uppercase, lowercase, number and special character'),
   body('company').notEmpty().withMessage('Company is required'),
-  body('type').optional().isIn(['conductor', 'pasajero', 'administrador']),
+  body('type').optional().isIn(['conductor', 'pasajero', 'admin']),
 ];
 
 /**
@@ -418,11 +418,23 @@ const passwordValidation = [
 ];
 
 // Routes
-router.post('/register', authLimiter, registerValidation, validate, authController.register);
-router.post('/login', authLimiter, loginValidation, validate, authController.login);
+router.post('/register', registerValidation, validate, authController.register);
+router.post('/login', loginValidation, validate, authController.login);
 router.post('/refresh', authController.refreshToken);
 router.post('/logout', verifyToken, authController.logout);
 router.get('/me', verifyToken, authController.getMe);
+router.post('/send-verification-code', authController.sendVerificationCode);
+router.post('/verify-code', authController.verifyCode);
+router.post('/reset-password', [
+  body('email').isEmail().normalizeEmail().withMessage('Email válido requerido'),
+  body('code').isLength({ min: 6, max: 6 }).withMessage('Código debe ser de 6 dígitos'),
+  body('newPassword')
+    .isLength({ min: 8 }).withMessage('La contraseña debe tener al menos 8 caracteres')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+    .withMessage('La contraseña debe contener mayúscula, minúscula, número y carácter especial'),
+], validate, authController.resetPassword);
+router.post('/push-token', verifyToken, authController.updatePushToken);
+router.patch('/notification-preferences', verifyToken, authController.updateNotificationPreferences);
 router.put('/password', verifyToken, passwordValidation, validate, authController.updatePassword);
 
 module.exports = router;

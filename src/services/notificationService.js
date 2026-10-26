@@ -1,4 +1,28 @@
-const { Notification } = require('../models');
+const https = require('https');
+const { Notification, User } = require('../models');
+
+const sendExpoPush = (expoPushToken, title, body, data = {}) => {
+  if (!expoPushToken || !expoPushToken.startsWith('ExponentPushToken')) return Promise.resolve();
+
+  const payload = JSON.stringify({ to: expoPushToken, sound: 'default', title, body, data });
+
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: 'exp.host',
+      path: '/--/api/v2/push/send',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+      },
+    }, (res) => { res.resume(); res.on('end', resolve); });
+
+    req.on('error', (err) => { console.error('[Push]', err.message); resolve(); });
+    req.write(payload);
+    req.end();
+  });
+};
 
 /**
  * Send notification to user
@@ -17,8 +41,20 @@ const sendNotification = async (userId, message, type, relatedEntity = null) => 
       relatedEntity,
     });
 
-    // TODO: Integrate with push notification service (Azure Notification Hubs)
-    // await sendPushNotification(userId, message);
+    // Push del SO: solo si el usuario tiene token Y tiene optIn=true.
+    // Si optIn=false, el registro queda guardado (la campana lo verá) pero
+    // NO se dispara el push externo. El token se preserva igualmente para
+    // que reactivar el switch no exija volver a pedir permisos al SO.
+    const user = await User.findById(userId).select('+expoPushToken optIn');
+    const pushAllowed = user?.optIn !== false; // default true si el campo es undefined (legacy)
+    if (user?.expoPushToken && pushAllowed) {
+      await sendExpoPush(
+        user.expoPushToken,
+        'SafeRide',
+        message,
+        { type, notificationId: notification._id.toString() }
+      );
+    }
 
     return notification;
   } catch (error) {
@@ -44,7 +80,13 @@ const sendBulkNotifications = async (userIds, message, type) => {
 
     const result = await Notification.insertMany(notifications);
 
-    // TODO: Send push notifications in bulk
+    // Enviar push solo a los usuarios con token Y optIn=true
+    const users = await User.find({ _id: { $in: userIds } }).select('+expoPushToken optIn');
+    await Promise.all(
+      users
+        .filter(u => u.expoPushToken && u.optIn !== false)
+        .map(u => sendExpoPush(u.expoPushToken, 'SafeRide', message, { type }))
+    );
 
     return result;
   } catch (error) {
@@ -71,7 +113,7 @@ const sendRideReminder = async (ride) => {
     const passengerIds = bookings.map(b => b.passenger_id);
     const allUserIds = [ride.driver_id, ...passengerIds];
 
-    const message = `Reminder: Your ride is scheduled for ${new Date(ride.date_time).toLocaleString()}`;
+    const message = `Reminder: Your ride is scheduled for ${ride.fecha} at ${ride.hora}`;
 
     await sendBulkNotifications(allUserIds, message, 'ride_reminder');
   } catch (error) {

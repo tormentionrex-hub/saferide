@@ -7,6 +7,8 @@ const bookingRoutes = require('./bookingRoutes');
 const notificationRoutes = require('./notificationRoutes');
 const reviewRoutes = require('./reviewRoutes');
 const metricsRoutes = require('./metricsRoutes');
+const locationRoutes = require('./locationRoutes');
+const paypalRoutes = require('./paypalRoutes');
 
 const router = express.Router();
 
@@ -48,5 +50,21 @@ router.use('/bookings', bookingRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/metrics', metricsRoutes);
+router.use('/location', locationRoutes);
+router.use('/paypal', paypalRoutes);
+
+// [SAFESCORE-AGENT] — Endpoints admin del agente (visibilidad de jobs y stats)
+try {
+  const agentAdminRoutes = require('../../safescore-reviewer/agent/routes/agentAdminRoutes');
+  router.use('/admin/agent-jobs', agentAdminRoutes);
+} catch (_) { /* agente no disponible, sigue el resto */ }
+// [SAFESCORE-AGENT] — fin
+
+// [SAFESCORE-AGENT] — Endpoints públicos de reviews con clasificación IA (para el móvil)
+try {
+  const safescoreReviewsRoutes = require('../../safescore-reviewer/agent/routes/reviewsRoutes');
+  router.use('/safescore/reviews', safescoreReviewsRoutes);
+} catch (_) { /* agente no disponible, sigue el resto */ }
+// [SAFESCORE-AGENT] — fin
 
 module.exports = router;

@@ -9,4 +9,6 @@ module.exports = {
   Notification: require('./Notification'),
   Review: require('./Review'),
   Metrics: require('./Metics'),
+  VerificationCode: require('./VerificationCode'),
+  TrustHistory: require('./TrustHistory'),
 };

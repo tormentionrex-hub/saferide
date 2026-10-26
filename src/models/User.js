@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema({
     },
     phone: {
         type: String,
-        required: [true, 'Phone number is required'],
+        required: [function () { return this.type !== 'admin'; }, 'Phone number is required'],
         match: [/^\d{8}$/, 'Phone number must be 8 digits'],
     },
     password: {
@@ -36,7 +36,7 @@ const userSchema = new mongoose.Schema({
     },
     company: {
         type: String,
-        required: [true, 'Company is required'],
+        required: [function () { return this.type !== 'admin'; }, 'Company is required'],
         enum: {
             values: ['Intel', 'Cargill', 'Deloitte', 'Citi', 'Experian', '3M', 'DHL', 'Bill Gosling Outsourcing (BGO)', 'WeWork Costa Rica', 'Concentrix', 'Nestlé Costa Rica'],
             message: 'Invalid company selected',
@@ -68,6 +68,21 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: true,
     },
+    // Semántica: usuario de confianza. Default 4 = 4 oportunidades.
+    // Cuando trustScore=0 → isActive=false (bloquea creación de nuevos
+    // bookings/rides vía requireActive middleware). Admin queda inmune
+    // al decremento por convención aplicada en trustService.
+    trustScore: {
+        type: Number,
+        default: 4,
+        min: 0,
+        max: 4,
+    },
+    currentLocation: {
+        lat: { type: Number },
+        lng: { type: Number },
+        updatedAt: { type: Date }
+    },
     refreshToken: {
         type: String,
         select: false, // Excluye el refreshToken por defecto en las consultas
@@ -75,7 +90,25 @@ const userSchema = new mongoose.Schema({
     entraID: {
         type: String,
         unique: true,
-        sparse: true, // Permite valores nulos en campos únicos
+        sparse: true,
+    },
+    expoPushToken: {
+        type: String,
+        select: false,
+    },
+    // Preferencia de opt-in para notificaciones push del SO.
+    // - true  → backend envía push del SO además de guardar el registro
+    //           en la campana (Notification).
+    // - false → backend solo guarda el registro; el usuario sigue viendo
+    //           la notificación dentro de la app, pero no aparece como
+    //           notificación del sistema operativo.
+    //
+    // OJO: este campo NO debe confundirse con `isActive` (usado para
+    // cuentas limitadas por trustScore=0). Son completamente independientes.
+    // Default true para mantener compatibilidad con usuarios existentes.
+    optIn: {
+        type: Boolean,
+        default: true,
     },
 }, {
     timestamps: true,
@@ -95,6 +128,7 @@ userSchema.virtual('vehicle', {
     localField: '_id',
     foreignField: 'driver_id',
     justOne: true,
+    match: { isActive: true },
 });
 
 // Hash password before saving

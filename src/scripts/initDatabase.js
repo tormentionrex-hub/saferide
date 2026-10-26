@@ -9,15 +9,9 @@ const initDatabase = async () => {
   try {
     logger.info('🚀 Starting database initialization...');
 
-    // Connect to the database
-    const connectionString = process.env.COSMOS_CONNECTION_STRING;
-    
-    await mongoose.connect(connectionString, {
-      serverSelectionTimeoutMS: 10000,
-      tls: true,
-      authMechanism: 'SCRAM-SHA-256',
-      retryWrites: false,
-    });
+    // Use the central connection logic
+    const { connectDB } = require('../config/database');
+    await connectDB();
 
     logger.success('✅ Connected to database');
 
@@ -27,12 +21,12 @@ const initDatabase = async () => {
 
     // Create collections and indexes for each model
     const modelNames = Object.keys(models);
-    
+
     for (const modelName of modelNames) {
       const Model = models[modelName];
-      
+
       logger.info(`📝 Creating collection: ${Model.collection.name}`);
-      
+
       try {
         // Create collection if it doesn't exist
         await Model.createCollection();
@@ -43,7 +37,7 @@ const initDatabase = async () => {
         }
         logger.info(`ℹ️  Collection ${Model.collection.name} already exists`);
       }
-      
+
       try {
         // Synchronize indexes (this handles duplicates automatically in mongoose 6+)
         await Model.syncIndexes();
@@ -67,7 +61,7 @@ const initDatabase = async () => {
 
 
     logger.success('🎉 Database initialization completed successfully!');
-    
+
   } catch (error) {
     logger.error('❌ Error initializing database:', error);
     throw error;

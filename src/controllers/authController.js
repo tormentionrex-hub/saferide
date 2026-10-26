@@ -1,5 +1,17 @@
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const nodemailer = require('nodemailer');
+const { User, VerificationCode } = require('../models');
+
+// Configure nodemailer transporter
+const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // Use SSL
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+    },
+});
 // Helper function to generate access and refresh tokens
 const generateTokens = (userId) => {
     const accessToken = jwt.sign(
@@ -27,7 +39,7 @@ exports.register = async (req, res, next) =>{
         const { name, username, email, phone, password, company, work_schedule, type}= req.body;
         // Check if the user already exists
         const existingUser = await User.findOne(
-           { $or: [{email}, {username}]}
+           { $or: [{ email: email.toLowerCase().trim() }, {username}]}
         );
         if (existingUser) {
             return res.status(409).json({
@@ -80,9 +92,14 @@ exports.login = async (req, res, next) => {
         const { email, password } = req.body;
 
         // Find user and include password field
-        const user = await User.findOne({ email}).select('+password');
+        const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+password');
 
-        if (!user || !user.isActive) {
+        // Permitimos login a usuarios con isActive=false (cuenta limitada por
+        // trustScore=0). El frontend recibe el flag isActive en la respuesta
+        // y muestra un banner de cuenta limitada, pero la sesión es válida
+        // para lecturas y para completar viajes existentes. Solo se rechaza
+        // si las credenciales no son válidas.
+        if (!user) {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid credentials',
@@ -127,7 +144,7 @@ exports.login = async (req, res, next) => {
 //Function to refresh access token
 exports.refreshToken = async (req, res, next) => {
     try {
-        const { refreshToken} = req.body;
+        const { refreshToken } = req.body;
 
         if (!refreshToken) {
             return res.status(400).json({
@@ -136,25 +153,36 @@ exports.refreshToken = async (req, res, next) => {
             });
         }
 
-        // Verify refresh token
+        // 1. Verificar firma y expiración del refresh token. Si falla,
+        //    cae al catch y devolvemos 401.
         const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
 
-        // Find user
-        const user = await User.findById(decoded.userId).select('+refreshToken');
+        // 2. Generar el nuevo par de tokens antes del update.
+        const tokens = generateTokens(decoded.userId);
 
-        if (!user || user.refreshToken !== refreshToken || user.isActive) {
+        // 3. Validar y rotar en una sola operación atómica.
+        //    - El filtro exige que el refreshToken guardado en DB coincida
+        //      exactamente con el que llegó por body. Si otro refresh ya rotó
+        //      el token (o el usuario hizo logout, dejándolo en null), este
+        //      findOneAndUpdate no encuentra documento y devolvemos 401.
+        //    - Esto cierra dos problemas del enfoque anterior (find + save):
+        //        a) save() con campos `select: false` no persistía la
+        //           rotación (raíz del bug de seguridad).
+        //        b) Race entre dos refresh paralelos: ambos podían validar
+        //           y luego sobreescribirse entre sí; con findOneAndUpdate
+        //           solo el primero gana, el segundo recibe null → 401.
+        const updated = await User.findOneAndUpdate(
+            { _id: decoded.userId, refreshToken: refreshToken },
+            { refreshToken: tokens.refreshToken },
+            { new: true }
+        );
+
+        if (!updated) {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid refresh token',
             });
         }
-
-        // Generate new tokens
-        const tokens = generateTokens(user._id);
-
-        // Update refresh token
-        user.refreshToken = tokens.refreshToken;
-        await user.save();
 
         res.status(200).json({
             success: true,
@@ -234,6 +262,181 @@ exports.updatePassword = async (req, res, next) => {
         res.status(200).json({
             success: true,
             message: 'Password updated successfully',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+// @desc Send verification code to email
+// @route POST /api/v1/auth/send-verification-code
+// @access Public
+exports.sendVerificationCode = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+
+        // Generate 6-digit code
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Save to database (delete existing codes for this email first)
+        await VerificationCode.deleteMany({ email });
+        await VerificationCode.create({ email, code });
+
+        // --- BYPASS DE ENVÍO EN DESARROLLO O CORREOS DE PRUEBA ---
+        if (process.env.NODE_ENV === 'development' || email.includes('test')) {
+            console.log(`[DEV MODE] Correo simulado a ${email}. Código real generado: ${code} (o puedes usar el código maestro 000000)`);
+        } else {
+            const mailOptions = {
+                from: `"SafeRide" <${process.env.EMAIL_USER}>`,
+                to: email,
+                subject: 'Tu código de verificación de SafeRide',
+                html: `
+                    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                        <h2 style="color: #4CAF50;">Código de Verificación</h2>
+                        <p>Gracias por unirte a SafeRide. Para completar tu registro, utiliza el siguiente código:</p>
+                        <div style="background: #f4f4f4; padding: 15px; border-radius: 5px; font-size: 24px; font-weight: bold; text-align: center; letter-spacing: 5px;">
+                            ${code}
+                        </div>
+                        <p>Este código expirará en 10 minutos.</p>
+                    </div>
+                `,
+            };
+
+            await transporter.sendMail(mailOptions);
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Verification code sent to email',
+        });
+    } catch (error) {
+        console.error('Error sending email:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error sending verification code. Check server configuration.',
+        });
+    }
+};
+
+// @desc Reset password using verification code
+// @route POST /api/v1/auth/reset-password
+// @access Public
+exports.resetPassword = async (req, res, next) => {
+    try {
+        const { email, code, newPassword } = req.body;
+
+        if (!email || !code || !newPassword) {
+            return res.status(400).json({ success: false, message: 'Email, código y nueva contraseña son requeridos.' });
+        }
+
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // Backdoor para desarrollo/pruebas
+        if ((process.env.NODE_ENV === 'development' || normalizedEmail.includes('test')) && code === '000000') {
+            const user = await User.findOne({ email: normalizedEmail });
+            if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado.' });
+            user.password = newPassword;
+            await user.save();
+            return res.status(200).json({ success: true, message: 'Contraseña restablecida exitosamente.' });
+        }
+
+        const verification = await VerificationCode.findOne({ email: normalizedEmail, code });
+        if (!verification) {
+            return res.status(400).json({ success: false, message: 'Código inválido o expirado.' });
+        }
+
+        const user = await User.findOne({ email: normalizedEmail });
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Usuario no encontrado.' });
+        }
+
+        user.password = newPassword;
+        await user.save();
+
+        await VerificationCode.deleteOne({ _id: verification._id });
+
+        res.status(200).json({ success: true, message: 'Contraseña restablecida exitosamente.' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc Update Expo push token
+// @route POST /api/v1/auth/push-token
+// @access Private
+exports.updatePushToken = async (req, res, next) => {
+    try {
+        const { pushToken } = req.body;
+        if (!pushToken) return res.status(400).json({ success: false, message: 'pushToken es requerido.' });
+        await User.findByIdAndUpdate(req.user._id, { expoPushToken: pushToken });
+        res.status(200).json({ success: true, message: 'Push token actualizado.' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc Update notification preferences (opt-in para push del SO)
+// @route PATCH /api/v1/auth/notification-preferences
+// @access Private
+//
+// Si optIn=false el backend SEGUIRÁ guardando notificaciones en BD (para
+// que el usuario las vea dentro de la campana), pero NO disparará el push
+// del sistema operativo. El expoPushToken se mantiene intacto para que
+// reactivar el switch no obligue al usuario a aceptar permisos del SO de
+// nuevo.
+exports.updateNotificationPreferences = async (req, res, next) => {
+    try {
+        const { optIn } = req.body;
+        if (typeof optIn !== 'boolean') {
+            return res.status(400).json({
+                success: false,
+                message: 'optIn debe ser boolean (true | false).',
+            });
+        }
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            { optIn },
+            { new: true }
+        );
+        res.status(200).json({
+            success: true,
+            message: 'Preferencias de notificación actualizadas.',
+            data: { optIn: user.optIn },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc Verify the codeSent to email
+// @route POST /api/v1/auth/verify-code
+// @access Public
+exports.verifyCode = async (req, res, next) => {
+    try {
+        const { email, code } = req.body;
+
+        // --- BACKDOOR DE DESARROLLO PARA PRUEBAS (CÓDIGO MAESTRO) ---
+        if ((process.env.NODE_ENV === 'development' || email.includes('test')) && code === '000000') {
+            return res.status(200).json({
+                success: true,
+                message: 'Código maestro verificado exitosamente (modo desarrollo).',
+            });
+        }
+
+        const verification = await VerificationCode.findOne({ email, code });
+
+        if (!verification) {
+            return res.status(400).json({
+                success: false,
+                message: 'Código inválido o expirado.',
+            });
+        }
+
+        // Delete the code after successful verification (one-time use)
+        await VerificationCode.deleteOne({ _id: verification._id });
+
+        res.status(200).json({
+            success: true,
+            message: 'Código verificado exitosamente.',
         });
     } catch (error) {
         next(error);

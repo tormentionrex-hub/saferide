@@ -1,6 +1,7 @@
 const { Ride, Booking } = require('../models');
 const { sendBulkNotifications } = require('../workers/notificationWorker');
 const logger = require('../utils/logger');
+const tz = require('../utils/timeZone');
 
 // Job to send ride reminders
 const sendRideRemindersJob = async () => {
@@ -8,17 +9,20 @@ const sendRideRemindersJob = async () => {
   logger.info('⏰ Checking for ride reminders...');
   // Current date and time
   try {
-    const now = new Date();
-    const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-    const fourHoursLater = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+    const nowLuxon = tz.now();
+    const nowDate = nowLuxon.toFormat('yyyy-MM-dd');
 
-    // Find upcoming rides
-    const upcomingRides = await Ride.find({
+    // Find upcoming rides for today
+    const upcomingRidesFull = await Ride.find({
       status: 'scheduled',
-      date_time: {
-        $gte: twoHoursLater,
-        $lte: fourHoursLater,
-      },
+      fecha: nowDate
+    });
+
+    const upcomingRides = upcomingRidesFull.filter(ride => {
+      const [h, mm] = ride.hora.split(':').map(Number);
+      const rideTime = nowLuxon.set({ hour: h, minute: mm, second: 0, millisecond: 0 });
+      const diffHrs = rideTime.diff(nowLuxon, 'hours').hours;
+      return diffHrs >= 2 && diffHrs <= 4;
     });
 
     let remindersSent = 0;
@@ -30,7 +34,7 @@ const sendRideRemindersJob = async () => {
         const recentReminder = await Notification.findOne({
           'relatedEntity.entityId': ride._id,
           type: 'ride_reminder',
-          date: { $gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+          date: { $gte: nowLuxon.minus({ days: 1 }).toJSDate() },
         });
 
         if (recentReminder) {
@@ -47,7 +51,9 @@ const sendRideRemindersJob = async () => {
         const allUserIds = [ride.driver_id.toString(), ...passengerIds];
 
         // Calculate hours until the ride
-        const hoursUntilRide = Math.round((ride.date_time - now) / (60 * 60 * 1000));
+        const [h_sub, mm_sub] = ride.hora.split(':').map(Number);
+        const rideTimeStrObj = nowLuxon.set({ hour: h_sub, minute: mm_sub });
+        const hoursUntilRide = Math.round(rideTimeStrObj.diff(nowLuxon, 'hours').hours);
 
         const message = `Recordatorio: Tu viaje es en ${hoursUntilRide} horas`;
 

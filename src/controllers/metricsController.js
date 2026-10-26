@@ -1,40 +1,64 @@
 const { Metrics, Ride, Booking } = require('../models');
-
-// Constants for carbon footprint calculation
-const AVG_CAR_EMISSION = 0.12; // kg CO2 per km for average car
-const AVG_CARPOOLING_FACTOR = 0.6; // 60% reduction with carpooling
+const { processDriver, processPassenger } = require('../jobs/calculateMetrics');
 
 // @desc    Get user metrics
-// @route   GET /api/v1/metrics/user/:userId
+// @route   GET /api/v1/metrics/user/:userId?role=conductor|pasajero&period=total
 // @access  Private
 
-//Function to get user metrics
+const VALID_ROLES = ['conductor', 'pasajero'];
+
+// Map User.type values to a metrics role; admins default to 'conductor' when no param is provided
+const inferRoleFromUserType = (userType) => {
+  if (userType === 'conductor') return 'conductor';
+  if (userType === 'pasajero') return 'pasajero';
+  return 'conductor';
+};
+
 exports.getUserMetrics = async (req, res, next) => {
   try {
     const userId = req.params.userId;
-    const { period = 'total' } = req.query;
+    const { period = 'total', role: roleParam } = req.query;
 
-    // Check access
+    // Authorization: own metrics or admin
     if (
       userId !== req.user._id.toString() &&
-      req.user.type !== 'administrador'
+      req.user.type !== 'admin'
     ) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
       });
     }
-    // Fetch metrics
+
+    // Resolve role: explicit query param wins (a driver can request their passenger view).
+    // Fall back to deducing from the authenticated user's type only when not provided.
+    let role;
+    if (roleParam !== undefined) {
+      if (!VALID_ROLES.includes(roleParam)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}`,
+        });
+      }
+      role = roleParam;
+    } else {
+      role = inferRoleFromUserType(req.user.type);
+    }
+
     const metrics = await Metrics.findOne({
       user_id: userId,
+      role,
       period,
     });
 
+    // No 404: return zeros so the frontend can render an empty state uniformly
     if (!metrics) {
-      return res.status(404).json({
-        success: false,
-        message: 'Metrics not found',
+      return res.status(200).json({
+        success: true,
         data: {
+          user_id: userId,
+          role,
+          period,
           kilometers_driven: 0,
           carbon_footprint: 0,
           total_rides: 0,
@@ -52,54 +76,83 @@ exports.getUserMetrics = async (req, res, next) => {
   }
 };
 
-// @desc    Calculate and update metrics for a user
+// @desc    Recalculate metrics for a user (admin trigger)
 // @route   POST /api/v1/metrics/calculate/:userId
+// @body    { role?: 'conductor' | 'pasajero' }   default: 'conductor'
 // @access  Private/Admin
-
-//Function to calculate and update user metrics
 exports.calculateMetrics = async (req, res, next) => {
   try {
     const userId = req.params.userId;
-    const { period = 'total' } = req.body;
+    const role = req.body.role || 'conductor';
 
-    // Get completed rides as driver
-    const completedRides = await Ride.find({
-      driver_id: userId,
-      status: 'completed',
+    if (!['conductor', 'pasajero'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role. Must be one of: conductor, pasajero`,
+      });
+    }
+
+    // Reuse the same logic as the cron job so both stay in sync
+    const outcome = role === 'conductor'
+      ? await processDriver({ _id: userId })
+      : await processPassenger({ _id: userId });
+
+    const metrics = await Metrics.findOne({ user_id: userId, role, period: 'total' });
+
+    res.status(200).json({
+      success: true,
+      message: outcome === 'processed'
+        ? 'Metrics recalculated successfully'
+        : 'No completed activity found for this user',
+      data: metrics,
     });
+  } catch (error) {
+    next(error);
+  }
+};
 
-    // Calculate total kilometers
-    const kilometers_driven = completedRides.reduce(
-      (sum, ride) => sum + (ride.distance_km || 0),
-      0
-    );
+// @desc    Get passenger metrics
+// @route   GET /api/v1/metrics/passenger/:passengerId
+// @access  Private
+exports.getPassengerMetrics = async (req, res, next) => {
+  try {
+    const passengerId = req.params.passengerId;
 
-    // Calculate total passengers across all rides
-    const total_passengers = await Booking.countDocuments({
-      ride_id: { $in: completedRides.map(r => r._id) },
+    if (
+      passengerId !== req.user._id.toString() &&
+      req.user.type !== 'admin'
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied',
+      });
+    }
+
+    const bookings = await Booking.find({
+      passenger_id: passengerId,
       status: 'completed',
-    });
+    })
+      .populate({
+        path: 'ride_id',
+        populate: {
+          path: 'driver_id',
+          select: 'name username rating profileImage',
+        },
+      })
+      .sort({ updatedAt: -1 });
 
-    // Calculate carbon footprint saved
-    const carbon_footprint = kilometers_driven * AVG_CAR_EMISSION * AVG_CARPOOLING_FACTOR * total_passengers;
-
-    // Update or create metrics
-    const metrics = await Metrics.findOneAndUpdate(
-      { user_id: userId, period },
-      {
-        kilometers_driven,
-        carbon_footprint,
-        total_rides: completedRides.length,
-        total_passengers,
-        date: new Date(),
-      },
-      { upsert: true, new: true }
+    const totalKilometers = Number(
+      bookings.reduce((sum, booking) => sum + (booking.distance_km || 0), 0).toFixed(1)
     );
 
     res.status(200).json({
       success: true,
-      message: 'Metrics calculated successfully',
-      data: metrics,
+      data: {
+        passenger_id: passengerId,
+        total_kilometers: totalKilometers,
+        total_bookings: bookings.length,
+        bookings,
+      },
     });
   } catch (error) {
     next(error);
@@ -113,8 +166,10 @@ exports.calculateMetrics = async (req, res, next) => {
 //Function to get global metrics
 exports.getGlobalMetrics = async (req, res, next) => {
   try {
+    // Restricted to driver-side records to avoid double-counting kilometers
+    // (each completed booking generates both a driver and a passenger entry).
     const totalMetrics = await Metrics.aggregate([
-      { $match: { period: 'total' } },
+      { $match: { period: 'total', role: 'conductor' } },
       {
         $group: {
           _id: null,
@@ -153,8 +208,9 @@ exports.getGlobalMetrics = async (req, res, next) => {
 exports.getLeaderboard = async (req, res, next) => {
   try {
     const { limit = 10, sortBy = 'carbon_footprint' } = req.query;
-    // Fetch top users based on specified metric
-    const leaderboard = await Metrics.find({ period: 'total' })
+    // Driver-only ranking (original semantics before the role field was introduced).
+    // Pass ?role=pasajero in a future iteration if a passenger leaderboard is needed.
+    const leaderboard = await Metrics.find({ period: 'total', role: 'conductor' })
       .populate('user_id', 'name username profileImage rating')
       .sort({ [sortBy]: -1 })
       .limit(parseInt(limit));

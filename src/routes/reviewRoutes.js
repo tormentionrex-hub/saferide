@@ -92,6 +92,7 @@ router.use(verifyToken);
  *         $ref: '#/components/responses/ValidationError'
  */
 router.post('/', reviewValidation, validate, reviewController.createReview);
+router.post('/direct-submit', reviewValidation, validate, reviewController.createReview);
 
 /**
  * @swagger

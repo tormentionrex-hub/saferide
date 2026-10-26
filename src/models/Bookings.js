@@ -18,7 +18,7 @@ const bookingSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: {
-      values: ['pending', 'confirmed', 'cancelled', 'completed'],
+      values: ['pending', 'confirmed', 'cancelled', 'canceled', 'completed', 'deny'],
       message: 'Invalid status',
     },
     default: 'pending',
@@ -28,6 +28,48 @@ const bookingSchema = new mongoose.Schema({
     default: 1,
     min: [1, 'Must book at least 1 seat'],
     max: [7, 'Cannot book more than 7 seats'],
+  },
+  distance_km: {
+    type: Number,
+    default: 0,
+    min: [0, 'Distance cannot be negative'],
+  },
+  offered_amount: {
+    type: Number,
+    min: 0,
+  },
+  charged_amount: {
+    type: Number,
+    default: 0,
+    min: [0, 'Charged amount cannot be negative'],
+  },
+  payment_status: {
+    type: String,
+    enum: ['pending', 'paid', 'waived'],
+    default: 'pending',
+  },
+  payment_type: {
+    type: String,
+    enum: ['normal', 'gifted'],
+    default: 'normal',
+  },
+  passenger_origin: {
+    type: String,
+    default: null,
+  },
+  passenger_destination: {
+    type: String,
+    default: null,
+  },
+  // Timestamp en que el conductor confirmó su revisión del cobro en
+  // PaymentVerification o PreviousTripsScreen. Se setea SIEMPRE que el
+  // conductor decide, sin importar el veredicto (Pagó o No pagó). Es la
+  // señal que WaitingPaymentConfirmation usa para liberar al pasajero —
+  // no podemos usar payment_status por sí solo porque el caso "No pagó"
+  // del auto-cancel (pending → pending) no produce ningún cambio detectable.
+  payment_reviewed_at: {
+    type: Date,
+    default: null,
   },
 }, {
   timestamps: true,

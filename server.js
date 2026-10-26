@@ -16,6 +16,17 @@ const startServer = async () => {
       initScheduledJobs();
     }
 
+    // [SAFESCORE-AGENT] — Inicializar agente SafeScore si SAFESCORE_ENABLED=true.
+    // El try/catch hace que la ausencia de la carpeta safescore-reviewer/ NO rompa el backend.
+    // Ver safescore-reviewer/README.md
+    try {
+      const safescoreAgent = require('./safescore-reviewer/agent');
+      safescoreAgent.init();
+    } catch (err) {
+      logger.warn('[SAFESCORE-AGENT] no disponible: ' + (err.message || err));
+    }
+    // [SAFESCORE-AGENT] — fin
+
     // Start server after successful connection
     const server = app.listen(PORT, () => {
       logger.success(`🚀 Server running on port ${PORT}`);

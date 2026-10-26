@@ -1,7 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const bookingController = require('../controllers/bookingController');
-const { verifyToken, authorize } = require('../middleware/auth');
+const { verifyToken, authorize, requireActive } = require('../middleware/auth');
 const validate = require('../middleware/validation');
 
 const router = express.Router();
@@ -150,21 +150,61 @@ const router = express.Router();
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
+/**
+ * @swagger
+ * /bookings/{id}/canceled:
+ *   patch:
+ *     summary: Cancelar una reserva confirmada (conductor)
+ *     description: 'Permite al conductor cancelar una reserva que ya fue confirmada. Devuelve los asientos al viaje y notifica al pasajero. Estado resultante: "canceled" (una l).'
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/IdParam'
+ *     responses:
+ *       200:
+ *         description: Reserva cancelada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Booking canceled successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/Booking'
+ *       400:
+ *         description: La reserva no está en estado "confirmed"
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
 // Validation rules
 const bookingValidation = [
   body('ride_id').isMongoId().withMessage('Invalid ride ID'),
   body('seats_booked').optional().isInt({ min: 1, max: 7 }).withMessage('Seats must be between 1 and 7'),
+  body('offered_amount').optional().isFloat({ min: 0 }).withMessage('offered_amount must be a non-negative number'),
 ];
 
 // All routes require authentication
 router.use(verifyToken);
 
-router.post('/', bookingValidation, validate, bookingController.createBooking);
+router.post('/', requireActive, bookingValidation, validate, bookingController.createBooking);
 router.get('/', bookingController.getAllBookings);
 router.get('/:id', bookingController.getBookingById);
 router.get('/passenger/:passengerId', bookingController.getBookingsByPassenger);
 router.get('/ride/:rideId', bookingController.getBookingsByRide);
 router.delete('/:id', bookingController.cancelBooking);
-router.patch('/:id/status', authorize('conductor', 'administrador'), bookingController.updateBookingStatus);
+router.patch('/:id/canceled', bookingController.canceledBooking);
+router.patch('/:id/status', authorize('conductor', 'admin', 'pasajero'), bookingController.updateBookingStatus);
+router.patch('/:id/payment', authorize('conductor', 'admin'), bookingController.updatePaymentStatus);
 
 module.exports = router;

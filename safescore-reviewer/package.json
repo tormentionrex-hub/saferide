@@ -1,0 +1,20 @@
+{
+  "name": "safescore-reviewer-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agente autónomo de moderación y reputación para SafeRide (módulo del backend, no es paquete npm independiente)",
+  "main": "agent/index.js",
+  "scripts": {
+    "verify": "node verify.js",
+    "install:agent": "node install.js",
+    "uninstall:agent": "node uninstall.js",
+    "test:safescore": "jest --config=tests/jest.config.js"
+  },
+  "dependencies": {
+    "@cerebras/cerebras_cloud_sdk": "^1.0.0",
+    "@google/generative-ai": "^0.21.0",
+    "groq-sdk": "^0.7.0",
+    "zod": "^3.23.0"
+  },
+  "note": "Estas deps se instalan en el package.json del BACKEND. Este archivo es informativo del agente."
+}

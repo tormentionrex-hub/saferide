@@ -7,7 +7,7 @@ require('dotenv').config();
 
 const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
-const { apiLimiter } = require('./middleware/rateLimiter');
+// const { apiLimiter } = require('./middleware/rateLimiter'); // Deshabilitado — habilitar en producción
 const logger = require('./utils/logger');
 
 const path = require('path');
@@ -44,8 +44,8 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
-// Rate limiting
-app.use('/api', apiLimiter);
+// Rate limiting — deshabilitado en desarrollo, habilitar en producción
+// app.use('/api', apiLimiter);
 
 app.use(express.static('public'));
 
@@ -56,6 +56,7 @@ app.get('/docs', (req, res) => {
 
 // API Routes
 app.use(`/api/${process.env.API_VERSION || 'v1'}`, routes);
+app.get('/ping', (req, res) => res.json({ success: true, message: 'Pong from server!' }));
 
 // Root endpoint
 app.get('/', (req, res) => {

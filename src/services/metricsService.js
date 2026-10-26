@@ -1,110 +1,49 @@
-const { Metrics, Ride, Booking } = require('../models');
+const { Ride, Booking } = require('../models');
+const { processDriver, processPassenger } = require('../jobs/calculateMetrics');
+const logger = require('../utils/logger');
 
-const AVG_CAR_EMISSION = 0.12; // kg CO2 per km
-const AVG_CARPOOLING_FACTOR = 0.6; // 60% reduction
+// All refresh helpers swallow errors and log them, so callers can fire-and-forget
+// without metric failures breaking the request that triggered them.
 
-/**
- * Calculate carbon footprint saved
- * @param {number} kilometers - Distance in km
- * @param {number} passengers - Number of passengers
- * @returns {number}
- */
-const calculateCarbonSaved = (kilometers, passengers) => {
-  return kilometers * AVG_CAR_EMISSION * AVG_CARPOOLING_FACTOR * passengers;
+// Refresh both the driver's and every involved passenger's metrics for a completed ride.
+const refreshMetricsForRide = async (rideId) => {
+    try {
+        const ride = await Ride.findById(rideId, { driver_id: 1 });
+        if (!ride) return;
+
+        const completedBookings = await Booking.find(
+            { ride_id: rideId, status: 'completed' },
+            { passenger_id: 1 }
+        );
+
+        const passengerIds = [...new Set(completedBookings.map((b) => b.passenger_id.toString()))];
+
+        await Promise.allSettled([
+            processDriver({ _id: ride.driver_id }),
+            ...passengerIds.map((pid) => processPassenger({ _id: pid })),
+        ]);
+    } catch (error) {
+        logger.error(`❌ refreshMetricsForRide failed for ride ${rideId}:`, error.message);
+    }
 };
 
-/**
- * Update user metrics after ride completion
- * @param {string} userId - User ID
- * @param {Object} rideData - Ride data
- * @returns {Promise<Object>}
- */
-const updateUserMetrics = async (userId, rideData) => {
-  try {
-    const { distance_km, passengerCount } = rideData;
+// Refresh metrics for a single booking transition (passenger + driver of that booking's ride).
+const refreshMetricsForBooking = async (booking) => {
+    try {
+        const rideId = booking.ride_id?._id || booking.ride_id;
+        const ride = await Ride.findById(rideId, { driver_id: 1 });
+        if (!ride) return;
 
-    // Calculate carbon saved
-    const carbonSaved = calculateCarbonSaved(distance_km, passengerCount);
-
-    // Update total metrics
-    let metrics = await Metrics.findOne({
-      user_id: userId,
-      period: 'total',
-    });
-
-    if (!metrics) {
-      metrics = new Metrics({
-        user_id: userId,
-        period: 'total',
-      });
+        await Promise.allSettled([
+            processPassenger({ _id: booking.passenger_id }),
+            processDriver({ _id: ride.driver_id }),
+        ]);
+    } catch (error) {
+        logger.error(`❌ refreshMetricsForBooking failed for booking ${booking?._id}:`, error.message);
     }
-
-    metrics.kilometers_driven += distance_km;
-    metrics.carbon_footprint += carbonSaved;
-    metrics.total_rides += 1;
-    metrics.total_passengers += passengerCount;
-    metrics.date = new Date();
-
-    await metrics.save();
-
-    return metrics;
-  } catch (error) {
-    console.error('Error updating user metrics:', error);
-    throw error;
-  }
-};
-
-/**
- * Calculate metrics for all users (batch job)
- * @returns {Promise<void>}
- */
-const calculateAllMetrics = async () => {
-  try {
-    const { User } = require('../models');
-    // Get all drivers
-    const drivers = await User.find({ type: 'conductor', isActive: true });
-    // Calculate metrics for each driver
-    for (const driver of drivers) {
-      const completedRides = await Ride.find({
-        driver_id: driver._id,
-        status: 'completed',
-      });
-
-      // Calculate total kilometers driven
-      const kilometers_driven = completedRides.reduce(
-        (sum, ride) => sum + (ride.distance_km || 0),
-        0
-      );
-
-      // Calculate total passengers
-      const total_passengers = await Booking.countDocuments({
-        ride_id: { $in: completedRides.map(r => r._id) },
-        status: 'completed',
-      });
-      // Calculate carbon footprint saved
-      const carbon_footprint = calculateCarbonSaved(kilometers_driven, total_passengers);
-      // Upsert metrics
-      await Metrics.findOneAndUpdate(
-        { user_id: driver._id, period: 'total' },
-        {
-          kilometers_driven,
-          carbon_footprint,
-          total_rides: completedRides.length,
-          total_passengers,
-          date: new Date(),
-        },
-        { upsert: true }
-      );
-    }
-
-    console.log('✅ All metrics calculated successfully');
-  } catch (error) {
-    console.error('❌ Error calculating metrics:', error);
-  }
 };
 
 module.exports = {
-  calculateCarbonSaved,
-  updateUserMetrics,
-  calculateAllMetrics,
+    refreshMetricsForRide,
+    refreshMetricsForBooking,
 };

@@ -157,7 +157,7 @@ Parámetros de query:
             },
             type: {
               type: 'string',
-              enum: ['conductor', 'pasajero', 'administrador'],
+              enum: ['conductor', 'pasajero', 'admin'],
               description: 'Tipo de usuario en el sistema',
               example: 'conductor',
             },
@@ -257,7 +257,7 @@ Parámetros de query:
         // Schema de Viaje
         Ride: {
           type: 'object',
-          required: ['driver_id', 'origin', 'destination', 'date_time', 'available_seats'],
+          required: ['driver_id', 'origin', 'destination', 'fecha', 'hora', 'available_seats'],
           properties: {
             _id: {
               type: 'string',
@@ -322,11 +322,16 @@ Parámetros de query:
                 },
               },
             },
-            date_time: {
+            fecha: {
               type: 'string',
-              format: 'date-time',
-              description: 'Fecha y hora del viaje',
-              example: '2024-12-15T07:00:00.000Z',
+              format: 'date',
+              description: 'Fecha del viaje (YYYY-MM-DD)',
+              example: '2024-12-15',
+            },
+            hora: {
+              type: 'string',
+              description: 'Hora del viaje (HH:mm)',
+              example: '07:00',
             },
             available_seats: {
               type: 'integer',
@@ -337,8 +342,8 @@ Parámetros de query:
             },
             status: {
               type: 'string',
-              enum: ['scheduled', 'in_progress', 'completed', 'cancelled'],
-              description: 'Estado actual del viaje',
+              enum: ['scheduled', 'in progress', 'awaiting_payment_verification', 'completed', 'cancelled'],
+              description: 'Estado actual del viaje. awaiting_payment_verification es el paso intermedio entre Finalizar viaje y la confirmación de pagos en PaymentVerification.',
               example: 'scheduled',
             },
             distance_km: {
@@ -825,3 +830,6 @@ Parámetros de query:
 const swaggerSpec = swaggerJsdoc(options);
 
 module.exports = swaggerSpec;
+
+
+
