@@ -20,6 +20,9 @@ const PAYMENT_OPTIONS = [
     { id: 'paypal',   label: 'PayPal',   icon: 'logo-paypal' },
 ];
 
+// Valores de la app -> enum payment_method del backend (Booking).
+const PAYMENT_METHOD_API = { efectivo: 'cash', sinpe: 'sinpe', tarjeta: 'card', paypal: 'paypal' };
+
 const { width, height } = Dimensions.get('window');
 
 const RideDetail = ({ route, navigation }) => {
@@ -160,6 +163,7 @@ const RideDetail = ({ route, navigation }) => {
             const response = await api.post('/bookings', {
                 ride_id: ride._id,
                 seats_booked: 1,
+                payment_method: PAYMENT_METHOD_API[paymentMethod] || null,
                 offered_amount: safeAmount,
                 passenger_origin: searchOrigin?.name ?? null,
                 passenger_destination: searchDestination?.name ?? null,
