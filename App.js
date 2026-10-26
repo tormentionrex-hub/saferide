@@ -4,7 +4,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DriverThemeProvider } from './src/context/DriverThemeContext';
 import { CustomAlertProvider } from './src/context/CustomAlertContext';
 import { navigationRef } from './src/services/navigationRef';
-import ApiHealthCheckScreen from './src/screens/ApiHealthCheckScreen';
 import RegisterScreen from './src/screens/register/RegisterScreen';
 import TermsServiceScreen from './src/screens/register/TermsServiceScreen';
 import VerificationScreen from './src/screens/register/VerificationScreen';
@@ -13,7 +12,6 @@ import AccountVerificationSucess from './src/screens/register/AccountVerificatio
 import RoleSelectionScreen from './src/screens/register/RoleSelectionScreen';
 import SignInScreen from './src/screens/login/SignInScreen';
 import SplashScreen from './src/screens/SplashScreen';
-import LoginSuccessScreen from './src/screens/login/LoginSuccessScreen';
 import ForgotPasswordEmail from './src/screens/login/ForgotPasswordEmail';
 import ForgotPasswordCode from './src/screens/login/ForgotPasswordCode';
 import ForgotPasswordNewPassword from './src/screens/login/ForgotPasswordNewPassword';
@@ -156,14 +154,6 @@ export default function App() {
               name="SignIn"
               component={SignInScreen}
             />
-            <Stack.Screen
-              name="LoginSuccess"
-              component={LoginSuccessScreen}
-              options={{
-                animation: 'fade',
-                gestureEnabled: false
-              }}
-            />
 
             {/* Tab Navigators para flujos principales */}
             <Stack.Screen
@@ -189,16 +179,6 @@ export default function App() {
             <Stack.Screen name="DriverMetrics" component={DriverMetrics} options={{ animation: 'slide_from_right', headerShown: false }} />
             <Stack.Screen name="RegisterVehicleStep1" component={RegisterVehicleStep1} options={{ animation: 'slide_from_right', headerShown: false }} />
             <Stack.Screen name="RegisterVehicleStep2" component={RegisterVehicleStep2} options={{ animation: 'slide_from_right', headerShown: false }} />
-
-            <Stack.Screen
-              name="Home"
-              component={ApiHealthCheckScreen}
-              options={{
-                title: 'Dashboard',
-                headerBackVisible: false,
-                animation: 'slide_from_left'
-              }}
-            />
 
             <Stack.Screen
               name="PasajeroProfileScreen"

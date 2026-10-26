@@ -189,6 +189,14 @@ export default function SignInScreen({ navigation }) {
             const data = await authService.login(email.trim(), password.trim());
             const { name: userName, type: userRole } = data.data.user;
 
+            // La app es para pasajeros y conductores; los administradores
+            // usan el panel web. Se cierra la sesión recién abierta.
+            if (userRole !== 'pasajero' && userRole !== 'conductor') {
+                await authService.logout().catch(() => {});
+                setEmailError('Esta cuenta es de administración. Ingresa desde el panel web de SafeRide.');
+                return;
+            }
+
             registerForPushNotifications().catch(() => {});
 
             showSuccessAnimation();
@@ -196,12 +204,7 @@ export default function SignInScreen({ navigation }) {
             setTimeout(() => {
                 setShowSuccess(false);
 
-                let dashboardRoute = 'Home';
-                if (userRole === 'pasajero') {
-                    dashboardRoute = 'MainTabsPasajero';
-                } else if (userRole === 'conductor') {
-                    dashboardRoute = 'MainTabsDriver';
-                }
+                const dashboardRoute = userRole === 'conductor' ? 'MainTabsDriver' : 'MainTabsPasajero';
                 navigation.reset({
                     index: 1,
                     routes: [

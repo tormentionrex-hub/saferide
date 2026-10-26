@@ -92,10 +92,8 @@ const RatingScreen = ({
             comment: comment.trim(),
         };
 
-        console.log('[DEBUG] Enviando reseña con payload:', payload);
 
         try {
-            console.log('[DEBUG] Enviando reseña a /reviews/direct-submit con payload:', payload);
             const response = await api.post('/reviews/direct-submit', payload);
             triggerSuccessModal(onSuccess);
         } catch (error) {

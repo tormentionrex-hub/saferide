@@ -232,7 +232,9 @@ export default function SplashScreen({ navigation }) {
                     }
                 }
 
-                if (userRole && userName) {
+                // Los administradores trabajan en el panel web; la app no tiene
+                // vistas para ellos, así que vuelven al login.
+                if (userRole && userName && userRole !== 'admin') {
                     const route = userRole === 'conductor' ? 'MainTabsDriver' : 'MainTabsPasajero';
                     navigation.reset({
                         index: 1,

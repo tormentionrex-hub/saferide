@@ -791,18 +791,14 @@ const ListOfRequests = ({ route, navigation }) => {
             const currentBookings = bookingsRes.data?.data || [];
             const realConfirmedCount = currentBookings.filter(b => b.status === 'confirmed').length;
 
-            console.log(`[DEBUG] Iniciando validación: Status=${currentStatus}, Pasajeros Confirmados=${realConfirmedCount}`);
             if (realConfirmedCount === 0) {
-                console.log('[DEBUG] No hay pasajeros. Forzando finalización del viaje.');
                 
                 // Transición segura: El servidor requiere 'start' antes de 'complete'
                 if (currentStatus === 'scheduled') {
-                    console.log('[DEBUG] Paso 1: Iniciando viaje (/start)...');
                     await api.patch(`/rides/${specificRideId}/start`);
                 }
                 
                 if (currentStatus !== 'completed') {
-                    console.log('[DEBUG] Paso 2: Finalizando viaje (/complete)...');
                     await api.patch(`/rides/${specificRideId}/complete`);
                 }
                 
