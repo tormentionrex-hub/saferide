@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { isRunningInExpoGo } from 'expo';
+import Constants from 'expo-constants';
 import api from './api';
 import { navigationRef } from './navigationRef';
 
@@ -43,7 +44,28 @@ export const registerForPushNotifications = async () => {
         return null;
     }
 
+    // Sin projectId de EAS, getExpoPushTokenAsync lanza en un build standalone
+    // (SDK 49+). Se obtiene con `eas init`, que lo escribe en app.config.js vía
+    // EXPO_PUBLIC_EAS_PROJECT_ID; mientras no exista, se omite el registro.
+    const projectId =
+        Constants.easConfig?.projectId ?? Constants.expoConfig?.extra?.eas?.projectId;
+    if (!projectId) {
+        console.warn('[Push] Falta el projectId de EAS (correr `eas init`); no se registran push del sistema.');
+        return null;
+    }
+
     try {
+        // En Android 13+ el canal debe existir antes de pedir el permiso para
+        // que el sistema muestre el diálogo.
+        if (Platform.OS === 'android') {
+            await Notifications.setNotificationChannelAsync('default', {
+                name: 'SafeRide',
+                importance: Notifications.AndroidImportance.MAX,
+                vibrationPattern: [0, 250, 250, 250],
+                lightColor: '#38BDF8',
+            });
+        }
+
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
 
@@ -57,28 +79,18 @@ export const registerForPushNotifications = async () => {
             return null;
         }
 
-        const tokenData = await Notifications.getExpoPushTokenAsync();
+        const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
         const pushToken = tokenData.data;
 
         try {
             await api.post('/auth/push-token', { pushToken });
-            console.log('[Push] Token registrado en backend:', pushToken);
         } catch (e) {
             console.error('[Push] Error guardando token en backend:', e.message);
         }
 
-        if (Platform.OS === 'android') {
-            await Notifications.setNotificationChannelAsync('default', {
-                name: 'SafeRide',
-                importance: Notifications.AndroidImportance.MAX,
-                vibrationPattern: [0, 250, 250, 250],
-                lightColor: '#38BDF8',
-            });
-        }
-
         return pushToken;
     } catch (error) {
-        console.log('[Push] Error en el flujo de notificaciones:', error.message);
+        console.warn('[Push] Error en el flujo de notificaciones:', error.message);
         return null;
     }
 };

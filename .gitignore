@@ -46,6 +46,4 @@ yarn-error.*
 
 
 
-# local config (IP/port específica de cada dev)
-src/config.js
 .claude/

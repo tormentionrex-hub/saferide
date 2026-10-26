@@ -7,7 +7,7 @@ import api from '../../services/api';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { darkMapStyle } from '../../utils/mapStyle';
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBjX1C4jk1I2E5MB2FnABjTZC0uXt0ullA';
+import { GOOGLE_MAPS_API_KEY } from '../../config.js';
 
 const FinalizeTripModal = ({ visible, onConfirm, onCancel, theme, loading }) => {
     const scaleAnim = useRef(new Animated.Value(0.85)).current;

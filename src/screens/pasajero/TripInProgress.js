@@ -18,7 +18,7 @@ import MapView, { Marker, Polyline } from 'react-native-maps';
 import { darkMapStyle } from '../../utils/mapStyle';
 
 import { moderateScale } from '../../utils/responsive';
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBjX1C4jk1I2E5MB2FnABjTZC0uXt0ullA';
+import { GOOGLE_MAPS_API_KEY } from '../../config.js';
 
 // Decodifica el polyline codificado de Google Maps en array de coordenadas
 const decodePolyline = (encoded) => {
