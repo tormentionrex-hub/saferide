@@ -92,17 +92,22 @@ const DriverMetrics = ({ navigation }) => {
             const rResponse = await api.get(`/rides/driver/${userId}?limit=1000&status=completed`);
             const rawRides = rResponse.data.data || [];
 
-            const ridesWithPassData = await Promise.all(
-                rawRides.map(async (ride) => {
-                    try {
-                        const bRes = await api.get(`/bookings/ride/${ride._id}`);
-                        const bookings = bRes.data.data || [];
-                        return { ...ride, bookings };
-                    } catch (e) {
-                        return { ...ride, bookings: [] };
-                    }
-                })
-            );
+            // Una sola llamada trae las reservas de todos los viajes (antes
+            // era una por viaje); se agrupan aquí por ride_id.
+            let bookingsByRide = {};
+            try {
+                const bRes = await api.get('/bookings/driver/me', { params: { rideStatus: 'completed' } });
+                (bRes.data.data || []).forEach(b => {
+                    const key = String(b.ride_id);
+                    (bookingsByRide[key] = bookingsByRide[key] || []).push(b);
+                });
+            } catch (e) {
+                bookingsByRide = {};
+            }
+            const ridesWithPassData = rawRides.map(ride => ({
+                ...ride,
+                bookings: bookingsByRide[String(ride._id)] || [],
+            }));
 
             const allRides = ridesWithPassData.filter(ride =>
                 ride.bookings && ride.bookings.some(b => b.status === 'completed')
