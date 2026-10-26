@@ -4,6 +4,20 @@ const { Review, Ride, Booking, User } = require('../models');
 // @route   POST /api/v1/reviews
 // @access  Private
 
+
+// Calificación de un usuario = promedio real de sus reseñas, con dos
+// decimales. Antes la creación sumaba un 5 inicial a la cuenta
+// ((suma + 5) / (n + 1)) y el borrado usaba el promedio real, así que la nota
+// cambiaba de método según la última acción. Sin reseñas queda en 5, el valor
+// por defecto del modelo.
+const recalculateUserRating = async (userId) => {
+  const reviews = await Review.find({ reviewee_id: userId }).select('rating');
+  const avg = reviews.length
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+    : 5;
+  await User.findByIdAndUpdate(userId, { rating: Math.round(avg * 100) / 100 });
+};
+
 //Function to create a review
 exports.createReview = async (req, res, next) => {
   try {
@@ -101,14 +115,7 @@ exports.createReview = async (req, res, next) => {
       comment,
     });
 
-    // Update user's average rating with a 5.0 starting baseline
-    const reviews = await Review.find({ reviewee_id });
-    const totalStars = reviews.reduce((sum, r) => sum + r.rating, 0);
-    // Formula: (reviews_sum + 5.0 starting baseline) / (number_of_reviews + 1)
-    const avgRating = (totalStars + 5) / (reviews.length + 1);
-    
-    // Update reviewee's rating
-    await User.findByIdAndUpdate(reviewee_id, { rating: avgRating.toFixed(2) });
+    await recalculateUserRating(reviewee_id);
 
     // [SAFESCORE-AGENT] — Notifica al agente que se creó una review. No-op si está deshabilitado.
     try { require('../../safescore-reviewer/agent/emit').onReviewCreated(review); } catch (_) {}
@@ -213,11 +220,9 @@ exports.deleteReview = async (req, res, next) => {
       });
     }
 
-    // Check if user owns the review or is admin
-    if (
-      review.reviewer_id.toString() !== req.user._id.toString() &&
-      req.user.type !== 'admin'
-    ) {
+    // Solo un administrador elimina reseñas (moderación). Si el autor
+    // pudiera borrarla, podría usarla para presionar y reescribirla después.
+    if (req.user.type !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
@@ -226,13 +231,7 @@ exports.deleteReview = async (req, res, next) => {
     // Delete review
     await review.deleteOne();
 
-    // Recalculate user's average rating
-    const reviews = await Review.find({ reviewee_id: review.reviewee_id });
-    const avgRating = reviews.length > 0
-      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-      : 5;
-    // Update reviewee's rating
-    await User.findByIdAndUpdate(review.reviewee_id, { rating: avgRating });
+    await recalculateUserRating(review.reviewee_id);
     // Respond successfully
     res.status(200).json({
       success: true,

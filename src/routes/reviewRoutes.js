@@ -1,7 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const reviewController = require('../controllers/reviewController');
-const { verifyToken, optionalAuth } = require('../middleware/auth');
+const { verifyToken, optionalAuth, authorize } = require('../middleware/auth');
 const validate = require('../middleware/validation');
 
 const router = express.Router();
@@ -149,6 +149,6 @@ router.get('/ride/:rideId', reviewController.getReviewsByRide);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.delete('/:id', reviewController.deleteReview);
+router.delete('/:id', authorize('admin'), reviewController.deleteReview);
 
 module.exports = router;
