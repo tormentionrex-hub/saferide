@@ -7,7 +7,7 @@ import api from '../../services/api';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { darkMapStyle } from '../../utils/mapStyle';
 
-import { GOOGLE_MAPS_API_KEY } from '../../config.js';
+import { fetchDirections } from '../../services/locationService';
 
 const FinalizeTripModal = ({ visible, onConfirm, onCancel, theme, loading }) => {
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
@@ -84,9 +84,7 @@ const decodePolyline = (encoded) => {
 
 const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
     try {
-        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLng}&destination=${destLat},${destLng}&key=${GOOGLE_MAPS_API_KEY}`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await fetchDirections(originLat, originLng, destLat, destLng);
         if (data.status === 'OK' && data.routes?.length > 0) {
             return decodePolyline(data.routes[0].overview_polyline.points);
         }

@@ -11,7 +11,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { getCurrentLocation, reverseGeocode } from '../../services/locationService';
 import api from '../../services/api';
-import { GOOGLE_MAPS_API_KEY } from '../../config.js';
+import { fetchDirections } from '../../services/locationService';
 import LocationPicker from '../../components/LocationPicker';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { darkMapStyle } from '../../utils/mapStyle';
@@ -41,9 +41,7 @@ const decodePolyline = (encoded) => {
 
 const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
     try {
-        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLng}&destination=${destLat},${destLng}&key=${GOOGLE_MAPS_API_KEY}`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await fetchDirections(originLat, originLng, destLat, destLng);
         if (data.status === 'OK' && data.routes?.length > 0) {
             return decodePolyline(data.routes[0].overview_polyline.points);
         }

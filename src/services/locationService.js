@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as Location from 'expo-location';
 import { GOOGLE_MAPS_API_KEY } from '../config.js';
+import api from './api';
 
 /**
  * Obtiene la ubicación GPS actual del dispositivo con alta precisión.
@@ -62,19 +63,10 @@ export const reverseGeocode = async (lat, lng) => {
  */
 export const getRouteDetails = async (origin, destination) => {
     try {
-        const response = await axios.get(
-            'https://maps.googleapis.com/maps/api/directions/json',
-            {
-                params: {
-                    origin: `${origin.lat},${origin.lng}`,
-                    destination: `${destination.lat},${destination.lng}`,
-                    key: GOOGLE_MAPS_API_KEY,
-                },
-            }
-        );
+        const data = await fetchDirections(origin.lat, origin.lng, destination.lat, destination.lng);
 
-        if (response.data.status === 'OK') {
-            const leg = response.data.routes[0].legs[0];
+        if (data.status === 'OK' && data.routes?.length) {
+            const leg = data.routes[0].legs[0];
             return {
                 distance_km: parseFloat((leg.distance.value / 1000).toFixed(1)),
                 duration_minutes: Math.ceil(leg.duration.value / 60),
@@ -86,4 +78,16 @@ export const getRouteDetails = async (origin, destination) => {
         console.error('[getRouteDetails] Error:', error.message);
         throw error;
     }
+};
+
+/**
+ * Ruta entre dos puntos calculada por el backend (GET /maps/directions), que
+ * guarda la clave de Google en el servidor. Devuelve la misma forma que
+ * Google Directions: { status, routes: [{ overview_polyline, legs }] }.
+ */
+export const fetchDirections = async (originLat, originLng, destLat, destLng) => {
+    const { data } = await api.get('/maps/directions', {
+        params: { origin: `${originLat},${originLng}`, destination: `${destLat},${destLng}` },
+    });
+    return data;
 };

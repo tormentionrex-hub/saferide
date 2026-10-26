@@ -18,7 +18,7 @@ import MapView, { Marker, Polyline } from 'react-native-maps';
 import { darkMapStyle } from '../../utils/mapStyle';
 
 import { moderateScale } from '../../utils/responsive';
-import { GOOGLE_MAPS_API_KEY } from '../../config.js';
+import { fetchDirections } from '../../services/locationService';
 
 // Decodifica el polyline codificado de Google Maps en array de coordenadas
 const decodePolyline = (encoded) => {
@@ -39,9 +39,7 @@ const decodePolyline = (encoded) => {
 // Obtiene la ruta real entre dos puntos usando Google Directions API
 const fetchRoutePolyline = async (originLat, originLng, destLat, destLng) => {
     try {
-        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLng}&destination=${destLat},${destLng}&key=${GOOGLE_MAPS_API_KEY}`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await fetchDirections(originLat, originLng, destLat, destLng);
         if (data.status === 'OK' && data.routes?.length > 0) {
             return decodePolyline(data.routes[0].overview_polyline.points);
         }
