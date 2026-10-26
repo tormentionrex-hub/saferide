@@ -1,6 +1,4 @@
-import axios from 'axios';
 import * as Location from 'expo-location';
-import { GOOGLE_MAPS_API_KEY } from '../config.js';
 import api from './api';
 
 /**
@@ -28,16 +26,10 @@ export const getCurrentLocation = async () => {
  */
 export const reverseGeocode = async (lat, lng) => {
     try {
-        const response = await axios.get(
-            'https://maps.googleapis.com/maps/api/geocode/json',
-            {
-                params: {
-                    latlng: `${lat},${lng}`,
-                    key: GOOGLE_MAPS_API_KEY,
-                    language: 'es',
-                },
-            }
-        );
+        // Pasa por el proxy del backend: la clave de Google queda en el servidor.
+        const response = await api.get('/maps/geocode/json', {
+            params: { latlng: `${lat},${lng}`, language: 'es' },
+        });
 
         if (response.data.status !== 'OK' || !response.data.results.length) {
             return { name: 'Ubicación seleccionada', address: '' };

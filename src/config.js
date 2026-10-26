@@ -24,13 +24,10 @@ export const resolveApiUrl = () => {
 
 export const API_URL = resolveApiUrl();
 
-export const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
-
-if (!GOOGLE_MAPS_API_KEY) {
-    console.warn('[config] EXPO_PUBLIC_GOOGLE_MAPS_API_KEY está vacía: rutas, autocompletado y geocodificación no funcionarán.');
-}
+// La clave de Google Maps ya no se usa desde JavaScript: rutas, direcciones y
+// geocodificación pasan por el backend (/maps). Solo la lee app.config.js para
+// el SDK nativo del mapa, así no queda incrustada en el bundle.
 
 export default {
     API_URL,
-    GOOGLE_MAPS_API_KEY,
 };

@@ -13,7 +13,8 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { Ionicons } from '@expo/vector-icons';
-import { GOOGLE_MAPS_API_KEY } from '../config.js';
+import { API_URL } from '../config.js';
+import tokenStorage from '../services/tokenStorage';
 import { getCurrentLocation, reverseGeocode } from '../services/locationService';
 import { useDriverTheme } from '../context/DriverThemeContext';
 import { darkMapStyle } from '../utils/mapStyle';
@@ -27,6 +28,12 @@ const { width, height } = Dimensions.get('window');
 const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubicación' }) => {
     const { theme } = useDriverTheme();
     const [tab, setTab] = useState('search');
+    // El autocompletado va por el proxy del backend (/maps/place/...), que
+    // guarda la clave de Google en el servidor y pide la sesión del usuario.
+    const [authToken, setAuthToken] = useState(null);
+    useEffect(() => {
+        tokenStorage.getAccessToken().then(setAuthToken).catch(() => {});
+    }, []);
     const [loading, setLoading] = useState(false);
     const [region, setRegion] = useState({
         latitude: 9.9281,
@@ -149,8 +156,12 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
                                 setSelectedPlace({ lat, lng, name, address });
                                 setTab('map');
                             }}
+                            requestUrl={{
+                                useOnPlatform: 'all',
+                                url: `${API_URL}/maps`,
+                                headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+                            }}
                             query={{
-                                key: GOOGLE_MAPS_API_KEY,
                                 language: 'es',
                                 components: 'country:cr',
                             }}
