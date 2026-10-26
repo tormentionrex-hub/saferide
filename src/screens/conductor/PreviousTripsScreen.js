@@ -175,7 +175,9 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handl
                                         {isPaid ? (
                                             <View style={[styles.paymentBadge, { backgroundColor: '#4CD96420' }]}>
                                                 <Ionicons name="checkmark-circle" size={16} color="#4CD964" />
-                                                <Text style={[styles.paymentBadgeText, { color: '#4CD964' }]}>Pagado</Text>
+                                                <Text style={[styles.paymentBadgeText, { color: '#4CD964' }]}>
+                                                    {['card', 'paypal', 'google_pay', 'apple_pay'].includes(p.payment_method) ? 'Pagado en línea' : 'Pagado'}
+                                                </Text>
                                             </View>
                                         ) : isGifted ? (
                                             <View style={[styles.paymentBadge, { backgroundColor: '#FF9F0A20' }]}>
@@ -271,6 +273,7 @@ export default function PreviousTripsScreen() {
                         phone: b.passenger_id?.phone,
                         payment_status: b.payment_status || 'pending',
                         payment_type: b.payment_type,
+                        payment_method: b.payment_method,
                         charged_amount: b.charged_amount,
                     }));
 
