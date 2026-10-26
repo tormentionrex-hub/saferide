@@ -281,6 +281,29 @@ exports.getBookingsByPassenger = async (req, res, next) => {
 // @route   GET /api/v1/bookings/ride/:rideId
 // @access  Private
 
+
+// @desc    Reservas de todos los viajes del conductor autenticado
+// @route   GET /api/v1/bookings/driver/me?rideStatus=completed
+// @access  Private/Conductor
+//
+// Reemplaza el patrón de pedir /bookings/ride/:id una vez por viaje: con 100
+// viajes eran 101 llamadas desde la pantalla de métricas.
+exports.getMyDriverBookings = async (req, res, next) => {
+  try {
+    const rideQuery = { driver_id: req.user._id };
+    if (req.query.rideStatus) rideQuery.status = req.query.rideStatus;
+    const rideIds = await Ride.find(rideQuery).distinct('_id');
+
+    const bookings = await Booking.find({ ride_id: { $in: rideIds } })
+      .select('ride_id passenger_id status charged_amount offered_amount payment_status payment_type createdAt')
+      .lean();
+
+    res.status(200).json({ success: true, data: bookings });
+  } catch (error) {
+    next(error);
+  }
+};
+
 //Function to get bookings by ride
 exports.getBookingsByRide = async (req, res, next) => {
   try {

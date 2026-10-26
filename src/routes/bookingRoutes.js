@@ -203,6 +203,9 @@ router.get('/', bookingController.getAllBookings);
 router.get('/:id', bookingController.getBookingById);
 router.get('/passenger/:passengerId', bookingController.getBookingsByPassenger);
 router.get('/ride/:rideId', bookingController.getBookingsByRide);
+// Todas las reservas de los viajes del conductor autenticado en una sola
+// consulta (métricas del conductor). ?rideStatus=completed filtra por estado del viaje.
+router.get('/driver/me', authorize('conductor'), bookingController.getMyDriverBookings);
 router.delete('/:id', bookingController.cancelBooking);
 router.patch('/:id/canceled', bookingController.canceledBooking);
 router.patch('/:id/status', authorize('conductor', 'admin', 'pasajero'), bookingController.updateBookingStatus);
