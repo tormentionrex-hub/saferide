@@ -163,6 +163,27 @@ router.put('/profile', userController.updateMyProfile);
 // Debe ir antes de /:id para que "me" no sea interpretado como ID.
 router.get('/me/trust/history', userController.getMyTrustHistory);
 
+/**
+ * @swagger
+ * /users/me:
+ *   delete:
+ *     summary: Eliminar la propia cuenta (anonimiza los datos)
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               password: { type: string }
+ *     responses:
+ *       200: { description: Cuenta eliminada }
+ *       403: { description: Contraseña incorrecta }
+ *       409: { description: Tiene viajes activos o cobros pendientes }
+ */
+router.delete('/me', userController.deleteMyAccount);
+
 router.get('/:id', userController.getUserById);
 
 /**

@@ -22,7 +22,8 @@ const verifyToken = async (req, res, next) => {
     // hace con el middleware requireActive aplicado puntualmente.
     const user = await User.findById(decoded.userId).select('-password -refreshToken');
 
-    if (!user) {
+    // Una cuenta eliminada deja de aceptar los tokens que ya había emitido.
+    if (!user || user.deletedAt) {
       return res.status(401).json({
         success: false,
         message: 'Invalid token or user not found.',

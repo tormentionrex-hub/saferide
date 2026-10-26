@@ -93,6 +93,11 @@ const userSchema = new mongoose.Schema({
         unique: true,
         sparse: true,
     },
+    // Fecha en que el usuario eliminó su cuenta (datos ya anonimizados).
+    deletedAt: {
+        type: Date,
+        default: null,
+    },
     expoPushToken: {
         type: String,
         select: false,

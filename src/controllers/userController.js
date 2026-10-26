@@ -274,6 +274,86 @@ exports.deleteUser = async ( req, res, next) => {
     }
 };
 
+// @desc Delete own account (requisito de Google Play y App Store)
+// @route DELETE /api/v1/users/me
+// @access Private
+//
+// No se borra el documento: reservas, viajes y reseñas lo referencian y el
+// historial de los demás usuarios no debe romperse. Se anonimizan los datos
+// personales, se invalida la contraseña y las sesiones, y la cuenta queda
+// inactiva. El correo se reemplaza para que no se pueda volver a iniciar
+// sesión con él (el login admite cuentas inactivas por la regla de
+// trustScore) y para que la persona pueda registrarse de nuevo si quiere.
+exports.deleteMyAccount = async (req, res, next) => {
+    try {
+        const { password } = req.body || {};
+        if (!password) {
+            return res.status(400).json({ success: false, message: 'Password is required' });
+        }
+
+        const user = await User.findById(req.user._id).select('+password');
+        if (!user || user.deletedAt) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        if (!(await user.comparePassword(password))) {
+            // 403 y no 401: la app trata todo 401 como sesión vencida y cerraría la sesión.
+            return res.status(403).json({ success: false, code: 'WRONG_PASSWORD', message: 'Incorrect password' });
+        }
+
+        const { Ride, Booking } = require("../models");
+        const OPEN_RIDE = ['scheduled', 'in progress', 'awaiting_payment_verification'];
+
+        const openRide = await Ride.exists({ driver_id: user._id, status: { $in: OPEN_RIDE } });
+        const openBookings = await Booking.find({
+            passenger_id: user._id,
+            status: { $in: ['pending', 'confirmed'] },
+        }).populate('ride_id', 'status');
+        const activeBooking = openBookings.some(b => b.ride_id && OPEN_RIDE.includes(b.ride_id.status));
+        if (openRide || activeBooking) {
+            return res.status(409).json({
+                success: false,
+                code: 'ACTIVE_TRIPS',
+                message: 'Cancel or finish your active trips before deleting your account',
+            });
+        }
+
+        const unpaid = await Booking.exists({
+            passenger_id: user._id,
+            status: 'completed',
+            payment_status: 'pending',
+            payment_type: { $ne: 'gifted' },
+        });
+        if (unpaid) {
+            return res.status(409).json({
+                success: false,
+                code: 'PENDING_PAYMENTS',
+                message: 'Pay your pending charges before deleting your account',
+            });
+        }
+
+        const tag = user._id.toString();
+        user.name = 'Usuario eliminado';
+        user.username = `eliminado_${tag}`;
+        user.email = `eliminado+${tag}@saferide.invalid`;
+        if (user.phone) user.phone = '00000000';
+        user.profileImage = null;
+        user.password = require('crypto').randomBytes(32).toString('hex');
+        user.refreshToken = null;
+        user.expoPushToken = null;
+        user.currentLocation = undefined;
+        user.optIn = false;
+        user.isActive = false;
+        user.deletedAt = new Date();
+        await user.save({ validateBeforeSave: false });
+
+        await Vehicle.updateMany({ driver_id: user._id }, { $set: { isActive: false } });
+
+        res.status(200).json({ success: true, message: 'Account deleted' });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc Activate user
 // @route PATCH /api/v1/users/:id/activate
 // @access Private/Admin
