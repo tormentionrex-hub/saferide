@@ -145,12 +145,12 @@ const PaymentMethodCards = ({
                 activeOpacity={0.85}
             >
                 <View style={[styles.methodIcon, { backgroundColor: '#EAF1FB' }]}>
-                    <Ionicons name="logo-paypal" size={22} color={PAYPAL_BLUE} />
+                    <Ionicons name="card" size={22} color={PAYPAL_BLUE} />
                 </View>
                 <View style={{ flex: 1 }}>
-                    <Text style={[styles.methodTitle, { color: theme.text }]}>PayPal</Text>
+                    <Text style={[styles.methodTitle, { color: theme.text }]}>Pago en línea</Text>
                     <Text style={[styles.methodSub, { color: theme.textSecondary }]}>
-                        Pago instantáneo y automático. Tu cuenta se libera al instante.
+                        Tarjeta de crédito o débito, PayPal o billetera digital. Se confirma al instante.
                     </Text>
                 </View>
                 <View style={[
@@ -167,11 +167,9 @@ const PaymentMethodCards = ({
                     onPress={onPayPal}
                     activeOpacity={0.9}
                 >
-                    <Ionicons name="logo-paypal" size={22} color={PAYPAL_BLUE} />
-                    <Text style={styles.paypalBtnText}>
-                        <Text style={{ color: PAYPAL_BLUE, fontFamily: 'Poppins-Bold' }}>Pay</Text>
-                        <Text style={{ color: '#009CDE', fontFamily: 'Poppins-Bold' }}>Pal</Text>
-                        <Text style={{ color: PAYPAL_BLUE, fontFamily: 'Poppins-SemiBold' }}>  · Pagar ₡{Number(amount).toLocaleString('es-CR')}</Text>
+                    <Ionicons name="lock-closed" size={18} color={PAYPAL_BLUE} />
+                    <Text style={[styles.paypalBtnText, { color: PAYPAL_BLUE, fontFamily: 'Poppins-Bold' }]}>
+                        Pagar ₡{Number(amount).toLocaleString('es-CR')} en línea
                     </Text>
                 </TouchableOpacity>
             )}
