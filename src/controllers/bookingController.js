@@ -7,6 +7,8 @@ const { sendNotification } = require('../services/notificationService');
 const { refreshMetricsForBooking } = require('../services/metricsService');
 const trustService = require('../services/trustService');
 
+const PREFERRED_PAYMENT_METHODS = ['cash', 'sinpe', 'card', 'paypal'];
+
 // @desc    Create a booking
 // @route   POST /api/v1/bookings
 // @access  Private/Pasajero
@@ -15,6 +17,11 @@ const trustService = require('../services/trustService');
 exports.createBooking = async (req, res, next) => {
   try {
     const { ride_id, seats_booked = 1, passenger_origin = null, passenger_destination = null, offered_amount } = req.body;
+    // Método con el que el pasajero piensa pagar. La captura de PayPal lo
+    // reemplaza por el método real cuando el pago se hace en línea.
+    const payment_method = PREFERRED_PAYMENT_METHODS.includes(req.body.payment_method)
+      ? req.body.payment_method
+      : null;
 
     // Find the ride
     const ride = await Ride.findById(ride_id);
@@ -64,6 +71,7 @@ exports.createBooking = async (req, res, next) => {
       }
       if (passenger_origin) existingBooking.passenger_origin = passenger_origin.trim();
       if (passenger_destination) existingBooking.passenger_destination = passenger_destination.trim();
+      if (payment_method) existingBooking.payment_method = payment_method;
 
       await existingBooking.save();
       const booking = existingBooking;
@@ -98,6 +106,7 @@ exports.createBooking = async (req, res, next) => {
     const booking = await Booking.create({
       ride_id,
       passenger_id: req.user._id,
+      payment_method,
       seats_booked,
       status: 'pending',
       passenger_origin: passenger_origin?.trim() || null,

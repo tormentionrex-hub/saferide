@@ -192,6 +192,7 @@ const bookingValidation = [
   body('ride_id').isMongoId().withMessage('Invalid ride ID'),
   body('seats_booked').optional().isInt({ min: 1, max: 7 }).withMessage('Seats must be between 1 and 7'),
   body('offered_amount').optional().isFloat({ min: 0 }).withMessage('offered_amount must be a non-negative number'),
+  body('payment_method').optional({ nullable: true }).isIn(['cash', 'sinpe', 'card', 'paypal']).withMessage('Invalid payment method'),
 ];
 
 // All routes require authentication
