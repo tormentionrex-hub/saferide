@@ -1,0 +1,8 @@
+# Cada proyecto tiene su propio .gitignore en frontend/ y backend/.
+# Esto cubre lo que pueda quedar en la raíz.
+node_modules/
+.env
+.env.local
+.DS_Store
+Thumbs.db
+*.log
