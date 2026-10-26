@@ -44,6 +44,10 @@ const RETURN_HOST = 'saferide.app/paypal/';
 const WALLET_PENDING_MSG =
     'Disponible cuando SafeRide se publique con dominio HTTPS y la cuenta de comercio esté verificada. Mientras tanto, paga con tarjeta o PayPal.';
 
+// En beta (ONLINE_PAYMENTS_LIVE=false) todas las opciones abren el formulario
+// de muestra, incluidas Apple Pay y Google Pay. Cuando los pagos pasen a
+// producción, esas dos quedan marcadas como no disponibles hasta que haya
+// dominio HTTPS y cuenta de comercio verificada (UNAVAILABLE_REASON).
 const buildOptions = () => {
     const options = [
         { id: 'card', title: 'Tarjeta de crédito o débito', subtitle: 'Pague con tarjeta de débito o crédito Visa, Mastercard o Maestro' },

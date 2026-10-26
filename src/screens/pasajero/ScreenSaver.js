@@ -378,9 +378,17 @@ const ScreenSaver = ({ route, navigation }) => {
                             intervalRef.current = null;
                             finishedRef.current = true;
                             try {
-                                // Borramos el booking para que el usuario pueda intentar de nuevo
-                                await api.delete(`/bookings/${bookingId}`);
+                                // Borramos el booking para que el usuario pueda intentar de nuevo.
+                                // Solo si sigue pendiente: si el conductor aceptó justo ahora, el
+                                // backend responde 409 y seguimos por el flujo de reserva aceptada.
+                                await api.delete(`/bookings/${bookingId}`, { params: { if_status: 'pending' } });
                             } catch (err) {
+                                if (err?.response?.status === 409) {
+                                    finishedRef.current = false;
+                                    isFetchingRef.current = false;
+                                    setTimeout(checkStatus, 0);
+                                    return;
+                                }
                                 console.error('Error deleting timed out booking:', err?.response?.data?.message || err?.message || 'unknown error');
                             }
                             if (!mountedRef.current) return;
