@@ -10,6 +10,7 @@ import api from '../../services/api';
 import sessionCache from '../../services/sessionCache';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScreenHeader from '../../components/ScreenHeader';
+import EditRideModal from '../../components/EditRideModal';
 
 import { moderateScale } from '../../utils/responsive';
 /* ─── Modal de cancelación ────────────────────────────────────────── */
@@ -182,6 +183,7 @@ const ManageRides = ({ navigation }) => {
     const [selectedRide, setSelectedRide] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [successModalVisible, setSuccessModalVisible] = useState(false);
+    const [editingRide, setEditingRide] = useState(null);
 
     const fetchRides = async () => {
         try {
@@ -303,6 +305,16 @@ const ManageRides = ({ navigation }) => {
                     </TouchableOpacity>
 
                     <TouchableOpacity
+                        style={[styles.editBtn, { borderColor: theme.accent }, isInProgress && styles.editBtnDisabled]}
+                        onPress={() => setEditingRide(item)}
+                        disabled={isInProgress}
+                        accessibilityRole="button"
+                        accessibilityLabel="Editar viaje"
+                    >
+                        <Ionicons name="create-outline" size={20} color={isInProgress ? '#9CA3AF' : theme.accent} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
                         style={[
                             styles.cancelBtn,
                             (isInProgress || isCancelling) && styles.cancelBtnDisabled,
@@ -362,6 +374,18 @@ const ManageRides = ({ navigation }) => {
                 theme={theme}
             />
 
+            <EditRideModal
+                visible={!!editingRide}
+                ride={editingRide}
+                theme={theme}
+                onClose={() => setEditingRide(null)}
+                onSaved={(updated) => {
+                    setRides(prev => prev.map(r => (r._id === updated._id ? { ...r, ...updated } : r)));
+                    sessionCache.clearActiveRides();
+                    setEditingRide(null);
+                }}
+            />
+
             <SuccessCancelModal
                 visible={successModalVisible}
                 onClose={() => setSuccessModalVisible(false)}
@@ -391,6 +415,8 @@ const styles = StyleSheet.create({
     manageBtnText: { color: '#fff', fontFamily: 'Poppins-Bold', fontSize: moderateScale(14) },
     cancelBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#EF4444', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 10 },
     cancelBtnDisabled: { backgroundColor: '#E5E7EB' },
+    editBtn: { width: 48, height: 46, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+    editBtnDisabled: { borderColor: '#E5E7EB' },
     cancelBtnText: { color: '#fff', fontFamily: 'Poppins-Bold', fontSize: moderateScale(14) },
 });
 
