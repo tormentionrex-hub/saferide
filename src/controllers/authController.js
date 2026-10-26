@@ -24,7 +24,9 @@ const generateTokens = (userId) => {
     const accessToken = jwt.sign(
         { userId, typ: 'access' },
         process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN || '24h'}
+        // 1 h: el logout no revoca el access token (JWT), así que su vida debe
+        // ser corta; la app lo renueva sola con el refresh token.
+        { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
     );
 
     // jti aleatorio: dos refresh firmados en el mismo segundo salían

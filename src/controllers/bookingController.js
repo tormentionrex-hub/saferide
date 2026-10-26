@@ -537,18 +537,29 @@ exports.updateBookingStatus = async (req, res, next) => {
     }
     const ride = booking.ride_id;
 
-    // When driver confirms: discount seats (use updateOne to avoid ride validators)
+    // When driver confirms: discount seats. Las dos operaciones son atómicas
+    // para que varias confirmaciones en paralelo no dejen asientos negativos
+    // ni confirmen dos veces la misma reserva (leer y luego restar permitía
+    // que todas pasaran la comprobación con el mismo valor).
     if (status === 'confirmed' && booking.status === 'pending') {
-      if (ride.available_seats < booking.seats_booked) {
+      const claimed = await Booking.updateOne(
+        { _id: booking._id, status: 'pending' },
+        { $set: { status: 'confirmed' } }
+      );
+      if (claimed.modifiedCount === 0) {
+        return res.status(409).json({ success: false, message: 'Booking already processed' });
+      }
+      const seated = await Ride.findOneAndUpdate(
+        { _id: ride._id, available_seats: { $gte: booking.seats_booked } },
+        { $inc: { available_seats: -booking.seats_booked } }
+      );
+      if (!seated) {
+        await Booking.updateOne({ _id: booking._id }, { $set: { status: 'pending' } });
         return res.status(400).json({
           success: false,
           message: `Only ${ride.available_seats} seat(s) available`,
         });
       }
-      await Ride.updateOne(
-        { _id: ride._id },
-        { $inc: { available_seats: -booking.seats_booked } }
-      );
     }
 
     // Restauración simétrica al descuento de arriba: si el booking pasa

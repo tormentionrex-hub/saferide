@@ -23,8 +23,15 @@ app.set('trust proxy', 1);
 app.use(helmet());
 
 // CORS configuration
+// En producción CORS_ORIGIN es obligatoria: sin ella no se permite ningún
+// origen web (la app móvil no usa CORS y no se ve afectada). En desarrollo
+// se acepta todo para no estorbar al panel en localhost.
+const isProduction = process.env.NODE_ENV === 'production';
+if (isProduction && !process.env.CORS_ORIGIN) {
+  logger.warn('CORS_ORIGIN no definida: el panel web no podrá llamar a esta API en producción.');
+}
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN?.split(',') || '*',
+  origin: process.env.CORS_ORIGIN?.split(',').map(o => o.trim()) || (isProduction ? false : '*'),
   credentials: true,
   optionsSuccessStatus: 200,
 };
@@ -116,11 +123,15 @@ const swaggerOptions = {
   },
 };
 
-app.use(
-  '/api-docs',
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerSpec, swaggerOptions)
-);
+// La documentación interactiva se publica solo fuera de producción, o si se
+// pide explícitamente con SWAGGER_ENABLED=true.
+if (!isProduction || process.env.SWAGGER_ENABLED === 'true') {
+  app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, swaggerOptions)
+  );
+}
 
 // Endpoint para descargar el spec en JSON
 app.get('/api-docs.json', (req, res) => {

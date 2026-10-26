@@ -7,6 +7,8 @@ const { authLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
+const PERSONAL_EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com', 'icloud.com'];
+
 /**
  * @swagger
  * /auth/register:
@@ -126,7 +128,16 @@ const router = express.Router();
 const registerValidation = [
   body('name').trim().isLength({ min: 4 }).withMessage('Name must be at least 4 characters'),
   body('username').trim().isLength({ min: 4 }).withMessage('Username must be at least 4 characters'),
-  body('email').isEmail().normalizeEmail().withMessage('Invalid email address'),
+  body('email').isString().isEmail().normalizeEmail().withMessage('Invalid email address')
+    .custom((value) => {
+      // SafeRide es carpooling corporativo: la app ya rechaza estos dominios
+      // y el backend debe hacer lo mismo para que no se salten la regla.
+      const domain = String(value).split('@')[1] || '';
+      if (PERSONAL_EMAIL_DOMAINS.includes(domain)) {
+        throw new Error('Usa tu correo corporativo, no uno personal');
+      }
+      return true;
+    }),
   body('phone').matches(/^\d{8}$/).withMessage('Phone must be 8 digits'),
   body('password')
     .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
@@ -405,8 +416,10 @@ const registerValidation = [
  */
 
 const loginValidation = [
-  body('email').isEmail().normalizeEmail(),
-  body('password').notEmpty(),
+  // isString antes de isEmail: express-validator valida cada elemento si llega
+  // un array, y el controlador recibía un array (email.toLowerCase fallaba).
+  body('email').isString().isEmail().normalizeEmail(),
+  body('password').isString().notEmpty(),
 ];
 
 const passwordValidation = [
@@ -426,8 +439,8 @@ router.get('/me', verifyToken, authController.getMe);
 router.post('/send-verification-code', authLimiter, authController.sendVerificationCode);
 router.post('/verify-code', authLimiter, authController.verifyCode);
 router.post('/reset-password', authLimiter, [
-  body('email').isEmail().normalizeEmail().withMessage('Email válido requerido'),
-  body('code').isLength({ min: 6, max: 6 }).withMessage('Código debe ser de 6 dígitos'),
+  body('email').isString().isEmail().normalizeEmail().withMessage('Email válido requerido'),
+  body('code').isString().isLength({ min: 6, max: 6 }).withMessage('Código debe ser de 6 dígitos'),
   body('newPassword')
     .isLength({ min: 8 }).withMessage('La contraseña debe tener al menos 8 caracteres')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)

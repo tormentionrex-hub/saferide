@@ -65,8 +65,14 @@ exports.getAllUsers = async (req, res, next) => {
 //Function to get user by ID
 exports.getUserById = async (req, res, next) => {
     try {
+        // El perfil completo (correo, teléfono, preferencias) solo lo ve el
+        // propio usuario o un administrador; el resto ve la ficha pública.
+        const isSelf = req.params.id === req.user._id.toString();
+        const fields = isSelf || req.user.type === 'admin'
+            ? '-password -refreshToken'
+            : 'name username type company profileImage rating trustScore isActive createdAt';
         const user = await User.findById(req.params.id)
-        .select('-password -refreshToken')
+        .select(fields)
         .populate('vehicle');
 
 // Validate user existence
