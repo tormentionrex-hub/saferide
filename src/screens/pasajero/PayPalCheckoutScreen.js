@@ -15,6 +15,7 @@ import CardFormBeta from '../../components/checkout/CardFormBeta';
 import { getCheckoutColors } from '../../components/checkout/checkoutTheme';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { moderateScale } from '../../utils/responsive';
+import { formatCRC } from '../../utils/currency';
 
 // Checkout en línea del viaje. Todos los medios se procesan con PayPal (la
 // única pasarela con credenciales hoy):
@@ -233,7 +234,7 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
                 >
                     <View style={styles.amountBlock}>
                         <Text style={styles.amountLabel}>Total a pagar</Text>
-                        <Text style={styles.amountValue}>₡{Number(amountCrc || 0).toLocaleString('es-CR')}</Text>
+                        <Text style={styles.amountValue}>{formatCRC(amountCrc || 0)}</Text>
                     </View>
 
                     {isCard ? (
@@ -341,7 +342,7 @@ const PayPalCheckoutScreen = ({ navigation, route }) => {
                     <Text style={styles.amountLabel}>
                         {isLateCharge ? 'Cuota pendiente' : 'Total del viaje'}
                     </Text>
-                    <Text style={styles.amountValue}>₡{Number(amountCrc || 0).toLocaleString('es-CR')}</Text>
+                    <Text style={styles.amountValue}>{formatCRC(amountCrc || 0)}</Text>
                     <Text style={styles.amountHint}>El cobro se procesa en dólares al tipo de cambio del día.</Text>
                 </View>
 

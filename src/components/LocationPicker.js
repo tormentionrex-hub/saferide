@@ -130,7 +130,7 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
                     {/* ── BÚSQUEDA ── */}
                     {tab === 'search' && (
                         <GooglePlacesAutocomplete
-                            placeholder='¿A donde vas?'
+                            placeholder='¿A dónde vas?'
                             textInputProps={{ placeholderTextColor: placeholderColor }}
                             debounce={300} // Espera 300ms al teclear para evitar llamadas excesivas y parpadeos
                             onPress={(data, details = null) => {

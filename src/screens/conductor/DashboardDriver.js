@@ -322,10 +322,9 @@ export default function DashboardConductor({ route, navigation }) {
                         </TouchableOpacity>
 
                         {/* ── SECCIÓN: Rutas Frecuentes del Conductor ── */}
-                        <View style={styles.frequentSection}>
-                            <Text style={[styles.frequentTitle, { color: theme.textSecondary }]}>Rutas Frecuentes</Text>
-                            
-                            {frequentRoutes.length > 0 && (
+                        {frequentRoutes.length > 0 && (
+                            <View style={styles.frequentSection}>
+                                <Text style={[styles.frequentTitle, { color: theme.textSecondary }]}>Rutas Frecuentes</Text>
                                 <View style={styles.frequentRow}>
                                     {frequentRoutes.map((rt, idx) => {
                                         const icons = ['navigate-circle-outline', 'location-outline'];
@@ -363,8 +362,8 @@ export default function DashboardConductor({ route, navigation }) {
                                         );
                                     })}
                                 </View>
-                            )}
-                        </View>
+                            </View>
+                        )}
 
                         {/* Fila de Cards Secundarias */}
                         <View style={styles.row}>

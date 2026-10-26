@@ -44,14 +44,21 @@ const EditRideModal = ({ visible, ride, onClose, onSaved, theme }) => {
     if (!ride) return null;
 
     const save = async () => {
+        // Solo se envía lo que cambió: el backend valida la hora cada vez que
+        // la recibe, y cambiar los asientos de un viaje cuya hora ya está
+        // cerca no debe fallar por una hora que el conductor no tocó.
+        const payload = {};
+        if (toHora(time) !== ride.hora) {
+            payload.fecha = ride.fecha;
+            payload.hora = toHora(time);
+        }
+        if (seats !== Number(ride.available_seats)) payload.available_seats = seats;
+        if (Object.keys(payload).length === 0) { onClose(); return; }
+
         setSaving(true);
         setError(null);
         try {
-            const res = await api.put(`/rides/${ride._id}`, {
-                fecha: ride.fecha,
-                hora: toHora(time),
-                available_seats: seats,
-            });
+            const res = await api.put(`/rides/${ride._id}`, payload);
             onSaved(res.data?.data || { ...ride, hora: toHora(time), available_seats: seats });
         } catch (e) {
             const data = e.response?.data;

@@ -317,7 +317,7 @@ const ProfileConductor = ({ navigation, route }) => {
 
     const handleLogout = () => {
         showAlert(
-            'Cerrar Sesión',
+            'Cerrar sesión',
             '¿Estás seguro de que quieres salir?',
             'warning',
             'Sí, salir',
@@ -486,7 +486,7 @@ const ProfileConductor = ({ navigation, route }) => {
                             activeOpacity={0.8}
                         >
                             <Ionicons name="log-out-outline" size={20} color={theme.danger} />
-                            <Text style={[styles.logoutText, { color: theme.danger }]}>Cerrar Sesión</Text>
+                            <Text style={[styles.logoutText, { color: theme.danger }]}>Cerrar sesión</Text>
                         </TouchableOpacity>
                     </View>
 

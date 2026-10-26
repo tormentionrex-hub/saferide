@@ -21,6 +21,7 @@ import BottomNavigationBar from '../../components/BottomNavigationBar';
 const paymentConfirmingKey = (bookingId) => `paymentConfirming:${bookingId}`;
 
 import { moderateScale } from '../../utils/responsive';
+import { formatCRC } from '../../utils/currency';
 const PayForTravel = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const { showAlert } = useCustomAlert();
@@ -188,7 +189,7 @@ const PayForTravel = ({ route, navigation }) => {
                     <View style={[styles.summaryCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border }]}>
                         <Text style={[styles.amountLabel, { color: theme.textSecondary }]}>MONTO A PAGAR</Text>
                         <Text style={[styles.amountValue, { color: theme.text }]}>
-                            ₡{Number(amount).toLocaleString('es-CR')}
+                            {formatCRC(amount)}
                         </Text>
 
                         <View style={[styles.divider, { backgroundColor: theme.border }]} />

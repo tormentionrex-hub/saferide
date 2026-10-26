@@ -18,6 +18,7 @@ import { darkMapStyle } from '../../utils/mapStyle';
 
 import { moderateScale } from '../../utils/responsive';
 import { devLog } from '../../utils/devLog';
+import { formatCRC } from '../../utils/currency';
 /* ─── Modal de inicio de viaje ───────────────────────────────────── */
 const StartRideModal = ({ visible, onClose, onConfirm, loading, confirmedCount, theme }) => {
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
@@ -475,7 +476,7 @@ const PassengerDetailModal = ({ visible, onClose, booking, rideData, theme }) =>
                             <View style={{ flex: 1 }}>
                                 <Text style={[detailModalStyles.offerLabel, { color: theme.textSecondary }]}>MONTO OFRECIDO</Text>
                                 <Text style={[detailModalStyles.offerValue, { color: (booking.offered_amount ?? 0) > 0 ? '#25C460' : theme.text }]}>
-                                    ₡{(booking.offered_amount ?? 0).toLocaleString()}
+                                    {formatCRC(booking.offered_amount)}
                                 </Text>
                             </View>
                         </View>
@@ -928,7 +929,7 @@ const ListOfRequests = ({ route, navigation }) => {
                         </Text>
                         <View style={styles.offeredRow}>
                             <Ionicons name="cash-outline" size={14} color="#25C460" />
-                            <Text style={styles.offeredText}>Ofrece: ₡{(item.offered_amount ?? 0).toLocaleString()}</Text>
+                            <Text style={styles.offeredText}>Ofrece: {formatCRC(item.offered_amount)}</Text>
                         </View>
                     </View>
                     {isPending && (

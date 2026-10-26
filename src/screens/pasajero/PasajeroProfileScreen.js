@@ -519,7 +519,7 @@ const PasajeroProfileScreen = ({ navigation }) => {
                             activeOpacity={0.8}
                         >
                             <Ionicons name="log-out-outline" size={20} color={theme.danger} />
-                            <Text style={[styles.deleteBtnText, { color: theme.danger }]}>Cerrar Sesión</Text>
+                            <Text style={[styles.deleteBtnText, { color: theme.danger }]}>Cerrar sesión</Text>
                         </TouchableOpacity>
                     </View>
 

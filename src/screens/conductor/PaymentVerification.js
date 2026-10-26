@@ -11,6 +11,7 @@ import api from '../../services/api';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { moderateScale } from '../../utils/responsive';
+import { formatCRC } from '../../utils/currency';
 // Mismo correo configurado en el backend para los códigos de verificación
 const SUPPORT_EMAIL = 'saferidefwd@gmail.com';
 
@@ -217,7 +218,7 @@ const PaymentVerification = ({ route, navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.bg} />
             
-            <ScreenHeader title="Trip Details" onBack={navigateToDashboard} />
+            <ScreenHeader title="Verificar pagos" onBack={navigateToDashboard} />
 
             <View style={{ flex: 1 }}>
                 <ScrollView contentContainerStyle={styles.scrollContent} {...si.scrollProps}>
@@ -277,18 +278,18 @@ const PaymentVerification = ({ route, navigation }) => {
                                                     </View>
                                                 ) : isGifted ? (
                                                     <View style={[styles.badge, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
-                                                        <Text style={[styles.badgeTextSuccess, { color: '#10B981' }]}>GIFTED</Text>
+                                                        <Text style={[styles.badgeTextSuccess, { color: '#10B981' }]}>REGALADO</Text>
                                                     </View>
                                                 ) : (
                                                     <View style={[styles.badge, { backgroundColor: theme.border }]}>
-                                                        <Text style={[styles.badgeTextSuccess, { color: theme.textSecondary }]}>STANDARD TRIP</Text>
+                                                        <Text style={[styles.badgeTextSuccess, { color: theme.textSecondary }]}>VIAJE NORMAL</Text>
                                                     </View>
                                                 )}
                                             </View>
                                         </View>
                                         <View style={{ justifyContent: 'center', alignItems: 'flex-end', marginLeft: 10 }}>
                                             <Text style={{ fontSize: moderateScale(18), fontFamily: 'Poppins-Bold', color: theme.text }}>
-                                                ₡{booking.charged_amount ?? 0}
+                                                {formatCRC(booking.charged_amount)}
                                             </Text>
                                         </View>
                                     </View>

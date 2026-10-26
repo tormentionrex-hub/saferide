@@ -22,6 +22,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import ScrollIndicator, { useScrollIndicator } from '../../components/ScrollIndicator';
 
 import { moderateScale } from '../../utils/responsive';
+import { formatCRC } from '../../utils/currency';
 /**
  * Pantalla para que los conductores publiquen un nuevo viaje con geolocalización avanzada.
  */
@@ -356,7 +357,7 @@ const PublishRide = ({ navigation, route }) => {
                                 <View style={styles.summaryDivider} />
                                 <View style={styles.summaryItem}>
                                     <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Precio Sug.</Text>
-                                    <Text style={[styles.summaryValue, { color: '#25C460' }]}>₡{calculatePrice()}</Text>
+                                    <Text style={[styles.summaryValue, { color: '#25C460' }]}>{formatCRC(calculatePrice())}</Text>
                                 </View>
                             </View>
                         </View>

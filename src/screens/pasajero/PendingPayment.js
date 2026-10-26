@@ -11,6 +11,7 @@ import PaymentMethodCards from '../../components/PaymentMethodCards';
 import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
+import { formatCRC } from '../../utils/currency';
 const PendingPayment = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const { showAlert } = useCustomAlert();
@@ -111,7 +112,7 @@ const PendingPayment = ({ route, navigation }) => {
 
                     <Text style={[styles.amountLabel, { color: theme.textSecondary }]}>MONTO A PAGAR</Text>
                     <Text style={[styles.amountValue, { color: theme.text }]}>
-                        ₡{Number(amount).toLocaleString('es-CR')}
+                        {formatCRC(amount)}
                     </Text>
 
                     <View style={[styles.divider, { backgroundColor: theme.border }]} />

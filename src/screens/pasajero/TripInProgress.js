@@ -20,6 +20,7 @@ import { darkMapStyle } from '../../utils/mapStyle';
 import { moderateScale } from '../../utils/responsive';
 import { fetchDirections } from '../../services/locationService';
 import { devLog } from '../../utils/devLog';
+import { formatCRC } from '../../utils/currency';
 
 // Decodifica el polyline codificado de Google Maps en array de coordenadas
 const decodePolyline = (encoded) => {
@@ -659,7 +660,7 @@ const TripInProgress = ({ route, navigation }) => {
 
                                         showAlert(
                                             'Cancelación con penalización',
-                                            `Se te cobrará un monto debido a la cancelación.\nPor favor realiza el pago correspondiente.\n\nMonto a pagar: ₡${updatedBooking.charged_amount}`,
+                                            `Se te cobrará un monto debido a la cancelación.\nPor favor realiza el pago correspondiente.\n\nMonto a pagar: ${formatCRC(updatedBooking.charged_amount)}`,
                                             'warning',
                                             'OK',
                                             () => navigation.replace('PayForTravel', {

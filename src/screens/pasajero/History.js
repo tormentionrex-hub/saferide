@@ -28,6 +28,7 @@ import { Image } from 'expo-image';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { moderateScale } from '../../utils/responsive';
+import { formatCRC } from '../../utils/currency';
 const { width } = Dimensions.get('window');
 
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -104,7 +105,7 @@ const PendingPaymentCard = memo(({ item, theme, navigation }) => {
                         Tienes un pago sin completar
                     </Text>
                 </View>
-                <Text style={pendingStyles.amount}>₡{Number(amount).toLocaleString('es-CR')}</Text>
+                <Text style={pendingStyles.amount}>{formatCRC(amount)}</Text>
             </View>
 
             <View style={pendingStyles.body}>
@@ -259,7 +260,7 @@ const HistoryItem = memo(({ item, theme, calculateArrivalTime, handleContact }) 
                 </View>
                 <View style={styles.headerRight}>
                     <Text style={[styles.priceText, { color: theme.accent }]}>
-                        ₡{totalPaid.toLocaleString('es-CR')}
+                        {formatCRC(totalPaid)}
                     </Text>
                 </View>
             </View>

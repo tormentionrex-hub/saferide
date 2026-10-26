@@ -33,6 +33,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { moderateScale } from '../../utils/responsive';
 import { devLog } from '../../utils/devLog';
+import { formatCRC } from '../../utils/currency';
 const { width } = Dimensions.get('window');
 
 const MONTHS_SHORT_ES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
@@ -76,7 +77,7 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handl
                 </View>
                 <View style={styles.headerRight}>
                     <Text style={[styles.priceText, { color: theme.accent }]}>
-                        ₡{item.suggested_price?.toLocaleString()}
+                        {formatCRC(item.suggested_price)}
                     </Text>
                 </View>
             </View>
@@ -166,7 +167,7 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handl
                                             </Text>
                                             {p.charged_amount != null && (
                                                 <Text style={[styles.passengerAmountText, { color: theme.textSecondary }]}>
-                                                    ₡{Number(p.charged_amount).toLocaleString()}
+                                                    {formatCRC(p.charged_amount)}
                                                 </Text>
                                             )}
                                         </View>

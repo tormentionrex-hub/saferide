@@ -301,6 +301,15 @@ const DashboardPasajero = ({ navigation, route }) => {
                 <View style={styles.quickDestinationsWrapper}>
                     <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Rutas Frecuentes</Text>
                     
+                    {frequentRoutes.length === 0 && (
+                        <View style={[styles.quickEmpty, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.divider }]}>
+                            <Ionicons name="map-outline" size={22} color={theme.textSecondary} />
+                            <Text style={[styles.quickEmptyText, { color: theme.textSecondary }]}>
+                                Tus destinos más usados aparecerán aquí cuando completes viajes.
+                            </Text>
+                        </View>
+                    )}
+
                     {frequentRoutes.length > 0 && (
                         <View style={styles.quickCardsRow}>
                             {frequentRoutes.map((rt, idx) => {
@@ -476,6 +485,36 @@ const styles = StyleSheet.create({
         marginBottom: 14,
         letterSpacing: 0.5,
         alignSelf: 'flex-start',
+    },
+    quickEmpty: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        borderWidth: 1,
+        borderRadius: 15,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+    },
+    quickEmptyText: {
+        flex: 1,
+        fontFamily: 'Poppins-Regular',
+        fontSize: moderateScale(12),
+        lineHeight: moderateScale(18),
+    },
+    quickEmpty: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        borderWidth: 1,
+        borderRadius: 15,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+    },
+    quickEmptyText: {
+        flex: 1,
+        fontFamily: 'Poppins-Regular',
+        fontSize: moderateScale(12),
+        lineHeight: moderateScale(18),
     },
     quickCardsRow: {
         flexDirection: 'row',

@@ -12,6 +12,7 @@ import api from '../../services/api';
 import sessionCache from '../../services/sessionCache';
 
 import { moderateScale } from '../../utils/responsive';
+import { formatCRC } from '../../utils/currency';
 // ── Utilidad de Distancia Haversine ──────────────────────────────────────────
 const getHaversineDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371;
@@ -59,7 +60,7 @@ const DriverCard = React.memo(({ item, onPress, onImagePress, theme }) => {
     const destName = item.destination?.name || 'Destino';
     const date = item.fecha || null;
     const time = item.hora || null;
-    const price = item.suggested_price != null ? `₡${item.suggested_price.toLocaleString()}` : null;
+    const price = item.suggested_price != null ? formatCRC(item.suggested_price) : null;
     const seats = item.available_seats ?? null;
 
     const initials = driverName

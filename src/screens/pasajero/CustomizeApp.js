@@ -13,6 +13,7 @@ import ScreenHeader from '../../components/ScreenHeader';
 import { authService } from '../../services/authService';
 
 import { moderateScale } from '../../utils/responsive';
+import DeleteAccountSection from '../../components/DeleteAccountSection';
 const PAYMENT_LABELS = { efectivo: 'Efectivo', sinpe: 'SINPE Móvil', tarjeta: 'Tarjeta' };
 const PAYMENT_ICONS  = { efectivo: 'cash-outline', sinpe: 'phone-portrait-outline', tarjeta: 'card-outline' };
 
@@ -104,10 +105,10 @@ const CustomizeApp = ({ navigation }) => {
                             </View>
                             <View style={styles.rowTexts}>
                                 <Text style={[styles.rowTitle, { color: theme.text }]}>
-                                    {isDark ? 'Modo oscuro' : 'Modo claro'}
+                                    Modo oscuro
                                 </Text>
                                 <Text style={[styles.rowSub, { color: theme.textSecondary }]}>
-                                    {isDark ? 'Fondo oscuro activado' : 'Fondo claro activado'}
+                                    {isDark ? 'Activado' : 'Desactivado. Fondo claro'}
                                 </Text>
                             </View>
                             <Switch
@@ -179,6 +180,9 @@ const CustomizeApp = ({ navigation }) => {
                         <Ionicons name="log-out-outline" size={20} color={theme.danger} style={{ marginRight: 8 }} />
                         <Text style={[styles.logoutText, { color: theme.danger }]}>Cerrar sesión</Text>
                     </TouchableOpacity>
+                    {/* El engranaje del dashboard abre esta pantalla (no SettingPasajero),
+                        así que la opción de borrar la cuenta tiene que vivir aquí. */}
+                    <DeleteAccountSection navigation={navigation} />
                 </ScrollView>
                 <ScrollIndicator si={si} thumbColor={theme.accent} />
             </View>

@@ -14,6 +14,7 @@ import BottomNavigationBar from '../../components/BottomNavigationBar';
 
 import { moderateScale } from '../../utils/responsive';
 import { devLog } from '../../utils/devLog';
+import { formatCRC } from '../../utils/currency';
 const POLL_INTERVAL_MS = 3000;
 
 const WaitingPaymentConfirmation = ({ route, navigation }) => {
@@ -279,7 +280,7 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
                 {amount != null && Number(amount) > 0 && (
                     <View style={[styles.amountCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <Text style={[styles.amountLabel, { color: theme.textSecondary }]}>MONTO DEL VIAJE</Text>
-                        <Text style={[styles.amountValue, { color: theme.text }]}>₡{amount}</Text>
+                        <Text style={[styles.amountValue, { color: theme.text }]}>{formatCRC(amount)}</Text>
                     </View>
                 )}
             </View>

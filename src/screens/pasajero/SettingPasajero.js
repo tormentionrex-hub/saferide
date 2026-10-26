@@ -176,10 +176,10 @@ const SettingPasajero = ({ navigation }) => {
                             </View>
                             <View style={styles.rowTexts}>
                                 <Text style={[styles.rowTitle, { color: theme.text }]}>
-                                    {isDark ? 'Modo oscuro' : 'Modo claro'}
+                                    Modo oscuro
                                 </Text>
                                 <Text style={[styles.rowSub, { color: theme.textSecondary }]}>
-                                    {isDark ? 'Fondo oscuro activado' : 'Fondo claro activado'}
+                                    {isDark ? 'Activado' : 'Desactivado. Fondo claro'}
                                 </Text>
                             </View>
                             <Switch

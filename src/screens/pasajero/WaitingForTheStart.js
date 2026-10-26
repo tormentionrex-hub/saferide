@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Platform, ScrollView, Image, Linking, Modal, Animated, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ActivityIndicator, Platform, ScrollView, Image, Linking, Modal, Animated, BackHandler } from 'react-native';
+// SafeAreaView de react-native está obsoleto; el de safe-area-context respeta
+// el notch y la barra de gestos.
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { Ionicons } from '@expo/vector-icons';

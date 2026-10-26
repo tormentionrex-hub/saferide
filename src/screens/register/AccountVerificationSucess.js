@@ -195,7 +195,7 @@ export default function AccountVerificationSucess({ navigation }) {
 
                         <Text style={styles.title}>¡Cuenta Verificada!</Text>
                         <Text style={styles.subtitle}>
-                            Tu cuenta ha sido verificada{'\n'}exitosamente. Ya puedes continuar{'\n'}y empezar a usar Safe Ride.
+                            Tu cuenta ha sido verificada{'\n'}exitosamente. Ya puedes continuar{'\n'}y empezar a usar SafeRide.
                         </Text>
                     </Animated.View>
                 </View>

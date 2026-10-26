@@ -20,6 +20,7 @@ import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
 import { devLog } from '../../utils/devLog';
+import { formatCRC } from '../../utils/currency';
 const { width } = Dimensions.get('window');
 const ACCENT = '#2563EB';
 const RECENT_SEARCHES_KEY = 'buscarViaje_recentSearches';
@@ -146,7 +147,7 @@ const BuscarViaje = ({ navigation, route }) => {
             // La ubicación está desactivada o fue denegada → preguntarle al usuario
             showAlert(
                 '¿Activar ubicación?',
-                'Parece que tenés la ubicación desactivada en tu teléfono. ¿Querés activarla para que te detectemos automáticamente? Si preferís no hacerlo, podés elegir el punto de salida a mano.',
+                'Parece que tienes la ubicación desactivada en tu teléfono. ¿Quieres activarla para detectarte automáticamente? Si prefieres no hacerlo, puedes elegir el punto de salida a mano.',
                 'warning',
                 'Sí, activar',
                 null,
@@ -277,8 +278,8 @@ const BuscarViaje = ({ navigation, route }) => {
                     showAlert(
                         isPenalty ? 'Penalización pendiente' : 'Tienes un cobro pendiente',
                         isPenalty
-                            ? `Tienes una penalización por cancelación pendiente de ₡${Number(unpaidBooking.charged_amount).toLocaleString('es-CR')}. Debes pagarla antes de buscar nuevos viajes.`
-                            : `Para buscar nuevos viajes primero debes pagar el viaje pendiente por ₡${Number(unpaidBooking.charged_amount).toLocaleString('es-CR')}.`,
+                            ? `Tienes una penalización por cancelación pendiente de ${formatCRC(unpaidBooking.charged_amount)}. Debes pagarla antes de buscar nuevos viajes.`
+                            : `Para buscar nuevos viajes primero debes pagar el viaje pendiente por ${formatCRC(unpaidBooking.charged_amount)}.`,
                         'warning',
                         'Pagar ahora',
                         null,
@@ -744,10 +745,10 @@ const styles = StyleSheet.create({
         fontSize: moderateScale(26),
         fontFamily: 'Poppins-Bold',
         color: '#1A1A2E',
-        marginBottom: 16,
+        marginBottom: 10,
     },
     mapContainer: {
-        height: 180,
+        height: 130, // antes 180: el botón "Ver Viajes" quedaba bajo la barra de pestañas sin desplazar
         borderRadius: 20,
         overflow: 'hidden',
         marginBottom: 16,

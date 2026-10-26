@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Alert, Platform, Modal, Animated, AppState, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ActivityIndicator, Alert, Platform, Modal, Animated, AppState, BackHandler } from 'react-native';
+// SafeAreaView de react-native está obsoleto; el de safe-area-context respeta
+// el notch y la barra de gestos.
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
@@ -251,6 +254,9 @@ const ScreenSaver = ({ route, navigation }) => {
     // este booking, no se vuelve a disparar. Cubre el caso en que el polling
     // (o un re-mount con el mismo bookingId ya en 'deny') intente reabrirlo.
     const alertedRef = useRef(false);
+    // Una vez que la pantalla llegó a un cierre (tiempo agotado, aceptada,
+    // rechazada o cancelada) no se vuelve a consultar ni a abrir otro modal.
+    const finishedRef = useRef(false);
 
     // Cleanup global de montaje: bloquea setStates tardíos tras desmontar
     useEffect(() => {
@@ -282,6 +288,7 @@ const ScreenSaver = ({ route, navigation }) => {
         if (!bookingId) return;
 
         const checkStatus = async () => {
+            if (finishedRef.current) return;
             // Anti-solapamiento: si la cascada anterior sigue activa, saltamos este tick
             if (isFetchingRef.current) return;
             isFetchingRef.current = true;
@@ -308,6 +315,7 @@ const ScreenSaver = ({ route, navigation }) => {
                                     try { await api.delete(`/bookings/${bookingId}`); } catch (err) {}
                                     if (!mountedRef.current) return;
                                     setStatus('deny');
+                                    finishedRef.current = true;
                                     if (!alertedRef.current) {
                                         alertedRef.current = true;
                                         setShowRejectionModal(true);
@@ -346,6 +354,7 @@ const ScreenSaver = ({ route, navigation }) => {
                                 if (!mountedRef.current) return;
                                 const rideStatus = rideRes.data.data.status;
 
+                                finishedRef.current = true;
                                 if (rideStatus === 'scheduled') {
                                     setModalType('scheduled');
                                     setShowScheduledModal(true);
@@ -367,6 +376,7 @@ const ScreenSaver = ({ route, navigation }) => {
                         if (lastUpdate && timeDiff > 2 * 60 * 1000) {
                             clearInterval(intervalRef.current);
                             intervalRef.current = null;
+                            finishedRef.current = true;
                             try {
                                 // Borramos el booking para que el usuario pueda intentar de nuevo
                                 await api.delete(`/bookings/${bookingId}`);
@@ -405,7 +415,7 @@ const ScreenSaver = ({ route, navigation }) => {
         const POLL_MS = 6000;
 
         const startPolling = () => {
-            if (intervalRef.current) return;
+            if (intervalRef.current || finishedRef.current) return;
             intervalRef.current = setInterval(checkStatus, POLL_MS);
         };
 

@@ -60,7 +60,7 @@ const TripCompletedOverlay = ({ visible, onFinish, theme }) => {
                     <Text style={[styles.title, { color: theme.text }]}>¡Viaje Completado!</Text>
                     
                     <Text style={[styles.message, { color: theme.textSecondary }]}>
-                        Gracias por usar Safe Ride.{"\n"}
+                        Gracias por usar SafeRide.{"\n"}
                         Esperamos verte en tu próximo trayecto.
                     </Text>
 

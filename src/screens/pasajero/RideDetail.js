@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReviewsList from '../../components/ReviewsList';
 
 import { moderateScale } from '../../utils/responsive';
+import { formatCRC } from '../../utils/currency';
 const PAYMENT_OPTIONS = [
     { id: 'efectivo', label: 'Efectivo', icon: 'cash-outline' },
     { id: 'tarjeta',  label: 'Tarjeta',  icon: 'card-outline' },
@@ -115,7 +116,7 @@ const RideDetail = ({ route, navigation }) => {
                     if (unpaidBooking) {
                         showAlert(
                             'Tienes un cobro pendiente',
-                            `Para unirte a nuevos viajes primero debes pagar el viaje pendiente por ₡${Number(unpaidBooking.charged_amount).toLocaleString('es-CR')}.`,
+                            `Para unirte a nuevos viajes primero debes pagar el viaje pendiente por ${formatCRC(unpaidBooking.charged_amount)}.`,
                             'warning',
                             'Pagar ahora',
                             null,
@@ -252,7 +253,7 @@ const RideDetail = ({ route, navigation }) => {
                             </View>
                         </View>
                         <View style={styles.priceTag}>
-                            <Text style={styles.priceValue}>₡{ride.suggested_price}</Text>
+                            <Text style={styles.priceValue}>{formatCRC(ride.suggested_price)}</Text>
                         </View>
                     </View>
 

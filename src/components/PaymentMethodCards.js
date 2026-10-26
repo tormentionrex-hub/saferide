@@ -5,6 +5,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../context/DriverThemeContext';
 import { useCustomAlert } from '../context/CustomAlertContext';
+import { formatCRC } from '../utils/currency';
 
 const PAYPAL_BLUE = '#003087';
 const PAYPAL_YELLOW = '#FFC439';
@@ -38,7 +39,7 @@ const PaymentMethodCards = ({
         const cleanPhone = driverPhone.replace(/[^\d+]/g, '');
         const finalPhone = cleanPhone.startsWith('+') ? cleanPhone : '+506' + cleanPhone;
         const msg = encodeURIComponent(
-            `Hola ${driverName.split(' ')[0]}, ya realicé el pago pendiente del viaje por SINPE Móvil por un monto de ₡${Number(amount).toLocaleString('es-CR')}. ¿Podrías confirmarlo desde tu app? ¡Gracias!`
+            `Hola ${driverName.split(' ')[0]}, ya realicé el pago pendiente del viaje por SINPE Móvil por un monto de ${formatCRC(amount)}. ¿Podrías confirmarlo desde tu app? ¡Gracias!`
         );
         const url = `https://wa.me/${finalPhone.replace('+', '')}?text=${msg}`;
         Linking.openURL(url).catch(() =>
@@ -93,7 +94,7 @@ const PaymentMethodCards = ({
                         <Text style={{ fontFamily: 'Poppins-Bold' }}>1.</Text> Abre tu banco y selecciona SINPE Móvil.
                     </Text>
                     <Text style={[styles.sinpeStep, { color: theme.text }]}>
-                        <Text style={{ fontFamily: 'Poppins-Bold' }}>2.</Text> Envía <Text style={{ fontFamily: 'Poppins-Bold' }}>₡{Number(amount).toLocaleString('es-CR')}</Text> al número del conductor:
+                        <Text style={{ fontFamily: 'Poppins-Bold' }}>2.</Text> Envía <Text style={{ fontFamily: 'Poppins-Bold' }}>{formatCRC(amount)}</Text> al número del conductor:
                     </Text>
 
                     <View style={[styles.phoneBox, { backgroundColor: theme.bg, borderColor: theme.border }]}>
@@ -169,7 +170,7 @@ const PaymentMethodCards = ({
                 >
                     <Ionicons name="lock-closed" size={18} color={PAYPAL_BLUE} />
                     <Text style={[styles.paypalBtnText, { color: PAYPAL_BLUE, fontFamily: 'Poppins-Bold' }]}>
-                        Pagar ₡{Number(amount).toLocaleString('es-CR')} en línea
+                        Pagar {formatCRC(amount)} en línea
                     </Text>
                 </TouchableOpacity>
             )}
