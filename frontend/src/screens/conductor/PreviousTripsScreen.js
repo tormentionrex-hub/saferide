@@ -1,0 +1,902 @@
+import React, { useState, useEffect, useCallback, memo } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    StatusBar,
+    FlatList,
+    TouchableOpacity,
+    ActivityIndicator,
+    RefreshControl,
+    Dimensions,
+    ScrollView,
+    Modal,
+    Platform,
+    Linking,
+    Alert,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { Image } from 'expo-image';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useDriverTheme } from '../../context/DriverThemeContext';
+import { useCustomAlert } from '../../context/CustomAlertContext';
+import api from '../../services/api';
+import { rideService } from '../../services/rideService';
+import sessionCache from '../../services/sessionCache';
+import { darkMapStyle } from '../../utils/mapStyle';
+import { DateTime } from 'luxon';
+import DateTimePicker from '@react-native-community/datetimepicker';
+
+import { moderateScale } from '../../utils/responsive';
+import { devLog } from '../../utils/devLog';
+import { formatCRC } from '../../utils/currency';
+const { width } = Dimensions.get('window');
+
+const MONTHS_SHORT_ES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+const getShortMonthNameES = (dt) => {
+    if (!dt || !dt.isValid) return '---';
+    return MONTHS_SHORT_ES[dt.month - 1] || '---';
+};
+
+// Memoized Trip Item for better performance
+const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handlePaymentToggle }) => {
+    const isCancelled = item.status === 'cancelled';
+    const statusColor = isCancelled ? '#FF3B30' : '#4CD964';
+    const arrivalTime = calculateArrivalTime(item.fecha, item.hora, item.duration_minutes);
+
+    const originCoords = item.origin?.coordinates;
+    const destCoords = item.destination?.coordinates;
+
+    const dateObj = DateTime.fromISO(item.fecha).setLocale('es');
+    const day = dateObj.day || '--';
+    const month = getShortMonthNameES(dateObj);
+
+    return (
+        <View style={[styles.card, { backgroundColor: theme.surfaceVariant, borderColor: theme.cardBorder || theme.border, shadowColor: theme.text }]}>
+            {/* Header: Fecha + Estado/Tiempos + Precio */}
+            <View style={styles.cardHeader}>
+                <View style={styles.headerLeft}>
+                    <View style={[styles.dateBlock, { backgroundColor: theme.bg }]}>
+                        <Text style={[styles.dateDay, { color: theme.text }]}>{day}</Text>
+                        <Text style={[styles.dateMonth, { color: theme.textSecondary }]}>{month}</Text>
+                    </View>
+                    <View style={styles.statusCol}>
+                        <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
+                            <Text style={[styles.statusText, { color: statusColor }]}>
+                                {item.status === 'completed' ? 'Completado' : 'Cancelado'}
+                            </Text>
+                        </View>
+                        <Text style={[styles.timeText, { color: theme.textSecondary }]}>
+                            {item.hora} → {arrivalTime}
+                        </Text>
+                    </View>
+                </View>
+                <View style={styles.headerRight}>
+                    <Text style={[styles.priceText, { color: theme.accent }]}>
+                        {formatCRC(item.suggested_price)}
+                    </Text>
+                </View>
+            </View>
+
+            {/* Mapa con la ruta */}
+            {(originCoords && destCoords) ? (
+                <View style={[styles.mapSection, { borderColor: theme.cardBorder }]}>
+                    <View style={styles.mapSectionHeader}>
+                        <Ionicons name="navigate-outline" size={13} color={theme.accent} />
+                        <Text style={[styles.mapSectionLabel, { color: theme.textSecondary }]}>Ruta del Viaje</Text>
+                    </View>
+                    <View style={styles.mapContainer}>
+                        <MapView
+                            provider={PROVIDER_GOOGLE}
+                            style={styles.map}
+                            initialRegion={{
+                                latitude: (originCoords.lat + destCoords.lat) / 2,
+                                longitude: (originCoords.lng + destCoords.lng) / 2,
+                                latitudeDelta: Math.abs(originCoords.lat - destCoords.lat) * 2,
+                                longitudeDelta: Math.abs(originCoords.lng - destCoords.lng) * 2,
+                            }}
+                            scrollEnabled={false}
+                            zoomEnabled={false}
+                            pitchEnabled={false}
+                            rotateEnabled={false}
+                            cacheEnabled={true} // Performance optimization for MapView
+                            customMapStyle={theme.dark ? darkMapStyle : []}
+                        >
+                            <Marker coordinate={{ latitude: originCoords.lat, longitude: originCoords.lng }}>
+                                <View style={[styles.markerIcon, { backgroundColor: theme.accent }]}>
+                                    <View style={styles.markerInner} />
+                                </View>
+                            </Marker>
+                            <Marker coordinate={{ latitude: destCoords.lat, longitude: destCoords.lng }}>
+                                <Ionicons name="location" size={24} color="#FF3B30" />
+                            </Marker>
+                        </MapView>
+                    </View>
+                </View>
+            ) : null}
+
+            {/* Ruta Textual */}
+            <View style={[styles.routeContainer, { backgroundColor: theme.surface, borderColor: theme.cardBorder || theme.border, borderWidth: 1 }]}>
+                <View style={styles.routePoint}>
+                    <Ionicons name="radio-button-on" size={14} color={theme.accent} />
+                    <Text style={[styles.routeValue, { color: theme.text }]} numberOfLines={1}>
+                        {item.origin?.name || 'Ubicación desconocida'}
+                    </Text>
+                </View>
+                <View style={[styles.routeConnector, { backgroundColor: theme.border }]} />
+                <View style={styles.routePoint}>
+                    <Ionicons name="location" size={14} color="#FF5A5F" />
+                    <Text style={[styles.routeValue, { color: theme.text }]} numberOfLines={1}>
+                        {item.destination?.name || 'Ubicación desconocida'}
+                    </Text>
+                </View>
+            </View>
+
+            {/* Pasajeros con Contacto */}
+            {item.passengers?.length > 0 && (
+                <View style={[styles.passengerSection, { borderTopColor: theme.border }]}>
+                    <Text style={[styles.passengerLabel, { color: theme.textSecondary }]}>
+                        Pasajeros, Contacto y Pago:
+                    </Text>
+                    <View style={styles.passengerFullList}>
+                        {item.passengers.map((p, idx) => {
+                            const isPaid = p.payment_status === 'paid';
+                            // "Regalado" se reserva para viajes que el conductor
+                            // marcó explícitamente como obsequio (payment_type='gifted'),
+                            // no para bookings 'waived' por una cancelación: en ese
+                            // caso queremos seguir ofreciendo el toggle "No pagado"
+                            // para que el conductor pueda cobrar si el pasajero
+                            // termina pagando de todos modos.
+                            const isGifted = p.payment_type === 'gifted';
+                            const showPayBtn = !isPaid && !isGifted;
+                            return (
+                                <View key={idx} style={styles.passengerContactRow}>
+                                    <View style={styles.passengerInfoMain}>
+                                        <Image
+                                            source={p.image ? { uri: p.image } : 'https://res.cloudinary.com/do2ccwxm3/image/upload/v1/assets/default-avatar.png'}
+                                            style={styles.avatarLarge}
+                                            contentFit="cover"
+                                        />
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[styles.passengerNameText, { color: theme.text }]} numberOfLines={1}>
+                                                {p.name}
+                                            </Text>
+                                            {p.charged_amount != null && (
+                                                <Text style={[styles.passengerAmountText, { color: theme.textSecondary }]}>
+                                                    {formatCRC(p.charged_amount)}
+                                                </Text>
+                                            )}
+                                        </View>
+                                    </View>
+                                    <View style={styles.contactButtons}>
+                                        {/* Badge de pago */}
+                                        {isPaid ? (
+                                            <View style={[styles.paymentBadge, { backgroundColor: '#4CD96420' }]}>
+                                                <Ionicons name="checkmark-circle" size={16} color="#4CD964" />
+                                                <Text style={[styles.paymentBadgeText, { color: '#4CD964' }]}>
+                                                    {['card', 'paypal', 'google_pay', 'apple_pay'].includes(p.payment_method) ? 'Pagado en línea' : 'Pagado'}
+                                                </Text>
+                                            </View>
+                                        ) : isGifted ? (
+                                            <View style={[styles.paymentBadge, { backgroundColor: '#FF9F0A20' }]}>
+                                                <Ionicons name="gift-outline" size={16} color="#FF9F0A" />
+                                                <Text style={[styles.paymentBadgeText, { color: '#FF9F0A' }]}>Regalado</Text>
+                                            </View>
+                                        ) : showPayBtn ? (
+                                            <TouchableOpacity
+                                                style={[styles.paymentBadge, { backgroundColor: '#FF3B3020' }]}
+                                                onPress={() => handlePaymentToggle(p.bookingId, p.name)}
+                                                activeOpacity={0.7}
+                                            >
+                                                <Ionicons name="close-circle" size={16} color="#FF3B30" />
+                                                <Text style={[styles.paymentBadgeText, { color: '#FF3B30' }]}>No pagado</Text>
+                                            </TouchableOpacity>
+                                        ) : null}
+                                        <TouchableOpacity 
+                                            style={[styles.contactBtn, { backgroundColor: '#25D366' + '20' }]}
+                                            onPress={() => handleContact('whatsapp', p.phone)}
+                                        >
+                                            <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={[styles.contactBtn, { backgroundColor: theme.accent + '20' }]}
+                                            onPress={() => handleContact('call', p.phone)}
+                                        >
+                                            <Ionicons name="call" size={18} color={theme.accent} />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            );
+                        })}
+                    </View>
+                </View>
+            )}
+        </View>
+    );
+});
+
+export default function PreviousTripsScreen() {
+    const { theme } = useDriverTheme();
+    const insets = useSafeAreaInsets();
+    const { showAlert } = useCustomAlert();
+    const [allTrips, setAllTrips] = useState([]);
+    const [filteredTrips, setFilteredTrips] = useState([]);
+    const [availableMonths, setAvailableMonths] = useState([]);
+    const [selectedMonth, setSelectedMonth] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    
+    // Pagination & Day Picker States
+    const [displayLimit, setDisplayLimit] = useState(3);
+    const [showDayPicker, setShowDayPicker] = useState(false);
+    const [tempDate, setTempDate] = useState(new Date());
+
+    const fetchTrips = useCallback(async (isSilent = false) => {
+        if (!isSilent) setLoading(true);
+        try {
+            const driverId = await sessionCache.getDriverId();
+            if (!driverId) {
+                setLoading(false);
+                return;
+            }
+
+            const [completedRes, cancelledRes] = await Promise.all([
+                rideService.getRidesByDriver(driverId, 'completed'),
+                rideService.getRidesByDriver(driverId, 'cancelled')
+            ]);
+
+            const tripsFromApi = [...(completedRes.data || []), ...(cancelledRes.data || [])];
+
+            const tripsWithPassengers = await Promise.all(tripsFromApi.map(async (trip) => {
+                try {
+                    const bookingsRes = await rideService.getBookingsByRide(trip._id);
+                    // Aceptamos cualquier shape razonable que devuelva el endpoint:
+                    // { success, data: [...] }, o directamente un array.
+                    const rawBookings = Array.isArray(bookingsRes?.data)
+                        ? bookingsRes.data
+                        : Array.isArray(bookingsRes)
+                            ? bookingsRes
+                            : [];
+
+                    // Mostramos a TODOS los pasajeros del ride sin filtrar por
+                    // status — incluso bookings cancelados deben aparecer en el
+                    // historial. Si payment_status='paid' o payment_type='gifted',
+                    // el render decide el badge; en otro caso muestra el toggle
+                    // "No pagado" (misma funcionalidad reutilizada).
+                    const passengers = rawBookings.map(b => ({
+                        bookingId: b._id,
+                        name: b.passenger_id?.name || 'Pasajero',
+                        image: b.passenger_id?.profileImage,
+                        phone: b.passenger_id?.phone,
+                        payment_status: b.payment_status || 'pending',
+                        payment_type: b.payment_type,
+                        payment_method: b.payment_method,
+                        charged_amount: b.charged_amount,
+                    }));
+
+                    return { ...trip, passengers };
+                } catch (error) {
+                    devLog('[PreviousTrips] bookings fetch failed for', trip._id, error?.message);
+                    return { ...trip, passengers: [] };
+                }
+            }));
+
+            tripsWithPassengers.sort((a, b) => {
+                const dateA = new Date(`${a.fecha}T${a.hora}`);
+                const dateB = new Date(`${b.fecha}T${b.hora}`);
+                return dateB - dateA;
+            });
+
+            setAllTrips(tripsWithPassengers);
+            
+            const months = tripsWithPassengers.reduce((acc, trip) => {
+                const monthYear = DateTime.fromISO(trip.fecha).toFormat('yyyy-MM');
+                if (!acc.includes(monthYear)) acc.push(monthYear);
+                return acc;
+            }, []);
+            
+            setAvailableMonths(months);
+
+            // Updater funcional: si ya hay un mes seleccionado lo respetamos,
+            // si no, tomamos el primero disponible. Antes leíamos `selectedMonth`
+            // del closure → era una dependencia de useCallback → cada vez que
+            // el usuario cambiaba el filtro, `fetchTrips` se recreaba y
+            // `useFocusEffect` disparaba un refetch a la red sin necesidad.
+            if (months.length > 0) {
+                setSelectedMonth(prev => prev || months[0]);
+            }
+
+        } catch (error) {
+            console.error('Error fetching previous trips:', error?.response?.data?.message || error?.message || 'unknown error');
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    }, []);
+
+    // Refresh data when screen gains focus
+    useFocusEffect(
+        useCallback(() => {
+            setDisplayLimit(3);
+            fetchTrips(true); // Fetch silently on focus
+        }, [fetchTrips])
+    );
+
+    useEffect(() => {
+        if (!selectedMonth) return;
+        
+        let filtered = [];
+        if (selectedMonth.length > 7) {
+            filtered = allTrips.filter(t => t.fecha === selectedMonth);
+        } else {
+            filtered = allTrips.filter(t => 
+                DateTime.fromISO(t.fecha).toFormat('yyyy-MM') === selectedMonth
+            );
+        }
+        setFilteredTrips(filtered);
+    }, [selectedMonth, allTrips]);
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchTrips();
+    };
+
+    const calculateArrivalTime = useCallback((date, departureTime, durationMinutes) => {
+        if (!date || !departureTime || !durationMinutes) return '--:--';
+        const [year, month, day] = date.split('-').map(Number);
+        const [hours, minutes] = departureTime.split(':').map(Number);
+        const departure = DateTime.fromObject({ year, month, day, hour: hours, minute: minutes });
+        const arrival = departure.plus({ minutes: durationMinutes });
+        return arrival.toFormat('HH:mm');
+    }, []);
+
+    const handleDateChange = (event, date) => {
+        setShowDayPicker(Platform.OS === 'ios');
+        if (date) {
+            setTempDate(date);
+            const formattedDate = DateTime.fromJSDate(date).toFormat('yyyy-MM-dd');
+            setSelectedMonth(formattedDate);
+            setIsModalVisible(false);
+        }
+    };
+
+    const handleContact = useCallback((type, phone) => {
+        if (!phone) return;
+        const cleanPhone = phone.replace(/[^\d+]/g, '');
+        if (type === 'whatsapp') {
+            const url = `https://wa.me/${cleanPhone.startsWith('+') ? cleanPhone : '+506' + cleanPhone}`;
+            Linking.openURL(url).catch(() => Alert.alert('Error', 'No se pudo abrir WhatsApp.'));
+        } else if (type === 'call') {
+            Linking.openURL(`tel:${cleanPhone}`);
+        }
+    }, []);
+
+    const handlePaymentToggle = useCallback((bookingId, passengerName) => {
+        showAlert(
+            '💰 Confirmar pago',
+            `¿Confirmas que ${passengerName} ya realizó el pago?\n\nEsta acción no se puede deshacer.`,
+            'info',
+            'Sí, confirmar pago',
+            null,
+            'Cancelar',
+            async () => {
+                // Optimistic update: el badge pasa a "Pagado" al instante,
+                // sin esperar al backend. Si el PATCH falla, revertimos.
+                setAllTrips(prev => prev.map(trip => ({
+                    ...trip,
+                    passengers: trip.passengers?.map(p =>
+                        p.bookingId === bookingId
+                            ? { ...p, payment_status: 'paid' }
+                            : p
+                    ),
+                })));
+
+                try {
+                    await api.patch(`/bookings/${bookingId}/payment`, {
+                        payment_status: 'paid',
+                    });
+                    showAlert(
+                        'Pago confirmado',
+                        `El pago de ${passengerName} ha sido registrado correctamente.`,
+                        'success'
+                    );
+                } catch (error) {
+                    // Revert: el PATCH falló, devolvemos el badge a "No pagado".
+                    setAllTrips(prev => prev.map(trip => ({
+                        ...trip,
+                        passengers: trip.passengers?.map(p =>
+                            p.bookingId === bookingId
+                                ? { ...p, payment_status: 'pending' }
+                                : p
+                        ),
+                    })));
+                    const msg = error.response?.data?.message || 'Error al actualizar el pago';
+                    showAlert('Error', msg, 'error');
+                }
+            }
+        );
+    }, [showAlert]);
+
+    const renderMonthSelector = () => {
+        let selectedLabel = '';
+        if (!selectedMonth) {
+            selectedLabel = 'Seleccionar filtro';
+        } else if (selectedMonth.length > 7) {
+            selectedLabel = DateTime.fromISO(selectedMonth).setLocale('es').toFormat('dd MMMM yyyy');
+        } else {
+            selectedLabel = DateTime.fromISO(`${selectedMonth}-01`).setLocale('es').toFormat('MMMM yyyy');
+        }
+
+        return (
+            <View style={styles.selectorWrapper}>
+                <TouchableOpacity 
+                    style={[styles.selectorButton, { backgroundColor: theme.surfaceVariant }]}
+                    onPress={() => setIsModalVisible(true)}
+                >
+                    <Ionicons name="filter-outline" size={20} color={theme.accent} />
+                    <Text style={[styles.selectorLabel, { color: theme.text }]}>
+                        {selectedLabel.charAt(0).toUpperCase() + selectedLabel.slice(1)}
+                    </Text>
+                    <Ionicons name="chevron-down" size={18} color={theme.textSecondary} />
+                </TouchableOpacity>
+
+                <Modal
+                    visible={isModalVisible}
+                    transparent={true}
+                    animationType="slide"
+                    onRequestClose={() => setIsModalVisible(false)}
+                >
+                    <TouchableOpacity 
+                        style={styles.modalOverlay} 
+                        activeOpacity={1} 
+                        onPress={() => setIsModalVisible(false)}
+                    >
+                        <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+                            <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+                                <Text style={[styles.modalTitle, { color: theme.text }]}>Filtrar Viajes</Text>
+                                <TouchableOpacity onPress={() => setIsModalVisible(false)}>
+                                    <Ionicons name="close" size={24} color={theme.textSecondary} />
+                                </TouchableOpacity>
+                            </View>
+                            
+                            <ScrollView style={styles.modalBody}>
+                                <TouchableOpacity 
+                                    style={[
+                                        styles.monthOption, 
+                                        selectedMonth.length > 7 && { backgroundColor: theme.accent + '15' }
+                                    ]}
+                                    onPress={() => setShowDayPicker(true)}
+                                >
+                                    <View style={styles.optionRow}>
+                                        <Ionicons 
+                                            name="calendar-outline" 
+                                            size={20} 
+                                            color={selectedMonth.length > 7 ? theme.accent : theme.textSecondary} 
+                                        />
+                                        <Text style={[
+                                            styles.optionText, 
+                                            { color: selectedMonth.length > 7 ? theme.accent : theme.text }
+                                        ]}>
+                                            Filtrar por día...
+                                        </Text>
+                                    </View>
+                                    <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+                                </TouchableOpacity>
+
+                                <View style={[styles.sectionDivider, { backgroundColor: theme.border }]} />
+                                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Viajes por Mes</Text>
+
+                                {availableMonths.map((ym) => {
+                                    const label = DateTime.fromISO(`${ym}-01`).setLocale('es').toFormat('MMMM yyyy');
+                                    const isSelected = selectedMonth === ym;
+                                    return (
+                                        <TouchableOpacity 
+                                            key={ym}
+                                            style={[
+                                                styles.monthOption, 
+                                                isSelected && { backgroundColor: theme.accent + '15' }
+                                            ]}
+                                            onPress={() => {
+                                                setSelectedMonth(ym);
+                                                setIsModalVisible(false);
+                                            }}
+                                        >
+                                            <View style={styles.optionRow}>
+                                                <Ionicons 
+                                                    name="calendar-clear-outline" 
+                                                    size={20} 
+                                                    color={isSelected ? theme.accent : theme.textSecondary} 
+                                                />
+                                                <Text style={[
+                                                    styles.optionText, 
+                                                    { color: isSelected ? theme.accent : theme.text }
+                                                ]}>
+                                                    {label.charAt(0).toUpperCase() + label.slice(1)}
+                                                </Text>
+                                            </View>
+                                            {isSelected && <Ionicons name="checkmark" size={20} color={theme.accent} />}
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </ScrollView>
+                        </View>
+                    </TouchableOpacity>
+                </Modal>
+
+                {showDayPicker && (
+                    <DateTimePicker
+                        value={tempDate}
+                        mode="date"
+                        display="default"
+                        onChange={handleDateChange}
+                        maximumDate={new Date()}
+                    />
+                )}
+            </View>
+        );
+    };
+
+    const renderTripItem = useCallback(({ item }) => (
+        <TripItem 
+            item={item} 
+            theme={theme} 
+            calculateArrivalTime={calculateArrivalTime} 
+            handleContact={handleContact}
+            handlePaymentToggle={handlePaymentToggle}
+        />
+    ), [theme, calculateArrivalTime, handleContact, handlePaymentToggle]);
+
+    const renderFooter = () => {
+        if (displayLimit >= filteredTrips.length) return <View style={{ height: 40 }} />;
+        
+        return (
+            <TouchableOpacity 
+                style={[styles.loadMoreBtn, { borderColor: theme.accent }]}
+                onPress={() => setDisplayLimit(prev => prev + 3)}
+            >
+                <Text style={[styles.loadMoreText, { color: theme.accent }]}>Mostrar más</Text>
+                <Ionicons name="chevron-down" size={16} color={theme.accent} />
+            </TouchableOpacity>
+        );
+    };
+
+    return (
+        <View style={[styles.container, { backgroundColor: theme.bg }]}>
+            <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
+            <LinearGradient colors={[theme.accent, theme.accent + 'CC']} style={[styles.header, { paddingTop: insets.top + 20 }]}>
+                <Text style={styles.headerTitle}>Viajes Anteriores</Text>
+                <Text style={styles.headerSubtitle}>Tu historial de viajes como conductor</Text>
+            </LinearGradient>
+
+            <View style={styles.listContainer}>
+                {!loading && availableMonths.length > 0 && renderMonthSelector()}
+
+                {loading ? (
+                    <View style={styles.centerContainer}>
+                        <ActivityIndicator size="large" color={theme.accent} />
+                    </View>
+                ) : (
+                    <FlatList
+                        data={filteredTrips.slice(0, displayLimit)}
+                        renderItem={renderTripItem}
+                        keyExtractor={item => item._id}
+                        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]}
+                        removeClippedSubviews={true}
+                        initialNumToRender={3}
+                        maxToRenderPerBatch={3}
+                        windowSize={5}
+                        refreshControl={
+                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} />
+                        }
+                        ListFooterComponent={renderFooter}
+                        ListEmptyComponent={() => {
+                            const isFiltered = !!selectedMonth;
+                            return (
+                                <View style={styles.emptyContainer}>
+                                    <Ionicons
+                                        name={isFiltered ? 'calendar-outline' : 'car-sport-outline'}
+                                        size={72}
+                                        color={theme.textSecondary + '35'}
+                                    />
+                                    <Text style={[styles.emptyTitle, { color: theme.text }]}>
+                                        {isFiltered ? 'Sin viajes en este período' : '¡Aún no tienes viajes!'}
+                                    </Text>
+                                    <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                                        {isFiltered
+                                            ? 'No encontramos viajes para la fecha seleccionada. Prueba con otro filtro.'
+                                            : 'Cuando completes tu primer viaje como conductor, aparecerá aquí tu historial.'}
+                                    </Text>
+                                </View>
+                            );
+                        }}
+                    />
+                )}
+            </View>
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: { flex: 1 },
+    header: {
+        paddingHorizontal: 25,
+        paddingBottom: 45,
+        borderBottomLeftRadius: 35,
+        borderBottomRightRadius: 35,
+    },
+    headerTitle: { fontSize: moderateScale(22), fontFamily: 'Poppins-Bold', color: '#fff' },
+    headerSubtitle: { fontSize: moderateScale(14), fontFamily: 'Poppins-Regular', color: 'rgba(255,255,255,0.9)' },
+    listContainer: { flex: 1, marginTop: -25 },
+    selectorWrapper: {
+        paddingHorizontal: 20,
+        marginBottom: 15,
+        marginTop: 10,
+    },
+    selectorButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 16,
+        gap: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+    },
+    selectorLabel: {
+        flex: 1,
+        fontSize: moderateScale(15),
+        fontFamily: 'Poppins-SemiBold',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        maxHeight: '80%',
+        paddingBottom: 40,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 24,
+        borderBottomWidth: 1,
+    },
+    modalTitle: {
+        fontSize: moderateScale(20),
+        fontFamily: 'Poppins-Bold',
+    },
+    modalBody: {
+        padding: 16,
+    },
+    monthOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 16,
+        borderRadius: 16,
+        marginBottom: 8,
+    },
+    optionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    optionText: {
+        fontSize: moderateScale(16),
+        fontFamily: 'Poppins-SemiBold',
+    },
+    sectionDivider: {
+        height: 1,
+        marginVertical: 16,
+        opacity: 0.1,
+    },
+    sectionTitle: {
+        fontSize: moderateScale(12),
+        fontFamily: 'Poppins-Bold',
+        textTransform: 'uppercase',
+        marginBottom: 12,
+        marginLeft: 8,
+        letterSpacing: 1,
+    },
+    listContent: {
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+    },
+    card: {
+        borderRadius: 24,
+        padding: 16,
+        marginBottom: 20,
+        borderWidth: 1,
+        elevation: 6,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    headerRight: {},
+    dateBlock: { width: 54, height: 54, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+    dateDay: { fontSize: moderateScale(20), fontFamily: 'Poppins-Bold' },
+    dateMonth: { fontSize: moderateScale(10), fontFamily: 'Poppins-SemiBold' },
+    statusCol: { gap: 4 },
+    statusBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        alignSelf: 'flex-start',
+    },
+    statusText: {
+        fontSize: moderateScale(10),
+        fontFamily: 'Poppins-Bold',
+        textTransform: 'uppercase',
+    },
+    timeText: { fontSize: moderateScale(12), fontFamily: 'Poppins-SemiBold' },
+    mapSection: {
+        borderRadius: 16,
+        borderWidth: 1,
+        overflow: 'hidden',
+        marginBottom: 16,
+    },
+    mapSectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
+    mapSectionLabel: {
+        fontSize: moderateScale(11),
+        fontFamily: 'Poppins-Bold',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    mapContainer: {
+        height: 120,
+        overflow: 'hidden',
+    },
+    map: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    markerIcon: {
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        borderWidth: 2,
+        borderColor: '#fff',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    markerInner: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: '#fff',
+    },
+    routeContainer: { padding: 12, borderRadius: 16, gap: 2, marginBottom: 16 },
+    routePoint: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    routeValue: { flex: 1, fontSize: moderateScale(13), fontFamily: 'Poppins-SemiBold' },
+    routeConnector: { width: 1.5, height: 8, marginLeft: 6, marginVertical: 2 },
+    priceText: { fontSize: moderateScale(20), fontFamily: 'Poppins-Bold' },
+    passengerSection: {
+        paddingTop: 16,
+        borderTopWidth: 1,
+    },
+    passengerLabel: {
+        fontSize: moderateScale(11),
+        fontFamily: 'Poppins-Bold',
+        textTransform: 'uppercase',
+        marginBottom: 12,
+    },
+    passengerFullList: {
+        gap: 12,
+    },
+    passengerContactRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        padding: 10,
+        borderRadius: 16,
+    },
+    passengerInfoMain: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        flex: 1,
+    },
+    avatarLarge: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+    },
+    passengerNameText: {
+        fontSize: moderateScale(15),
+        fontFamily: 'Poppins-SemiBold',
+    },
+    contactButtons: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    paymentBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 12,
+    },
+    paymentBadgeText: {
+        fontSize: moderateScale(11),
+        fontFamily: 'Poppins-Bold',
+    },
+    passengerAmountText: {
+        fontSize: moderateScale(12),
+        fontFamily: 'Poppins-SemiBold',
+        marginTop: 1,
+    },
+    contactBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadMoreBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 14,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderStyle: 'dashed',
+        marginTop: 10,
+        marginBottom: 30,
+        gap: 8,
+    },
+    loadMoreText: {
+        fontSize: moderateScale(15),
+        fontFamily: 'Poppins-Bold',
+    },
+    centerContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 100,
+        gap: 12,
+    },
+    emptyTitle: {
+        fontSize: moderateScale(18),
+        fontFamily: 'Poppins-Bold',
+        textAlign: 'center',
+    },
+    emptyText: {
+        fontSize: moderateScale(14),
+        textAlign: 'center',
+        lineHeight: 22,
+        paddingHorizontal: 20,
+    },
+});
+
+
+
