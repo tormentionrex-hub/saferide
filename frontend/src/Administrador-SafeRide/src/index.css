@@ -1,0 +1,832 @@
+:root {
+  --primary-color: #00d2ff;
+  --secondary-color: #3a7bd5;
+  --bg-dark: #0f172a;
+  --card-bg: rgba(30, 41, 59, 0.7);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent-color: #10b981;
+  --error-color: #ef4444;
+}
+
+/* --- THEME OVERRIDES FOR GLOBAL INDEX.CSS --- */
+[data-theme="oscuro"] {
+  --primary-color: #3b82f6;
+  --secondary-color: #1d4ed8;
+  --bg-dark: #090d16;
+  --card-bg: #111827;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+}
+
+[data-theme="gris"] {
+  --primary-color: #475569;
+  --secondary-color: #334155;
+  --bg-dark: #eceef1;
+  --card-bg: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+}
+
+[data-theme="salvia"] {
+  --primary-color: #0f766e;
+  --secondary-color: #115e59;
+  --bg-dark: #f4f7f6;
+  --card-bg: #ffffff;
+  --text-primary: #064e3b;
+  --text-secondary: #0d9488;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--bg-dark); 
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(4px); /* Reducido de 12px: mejora fluídez global */
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); /* Sombra más ligera */
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 210, 255, 0.4);
+}
+
+.input-field {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.input-field:focus {
+  border-color: var(--primary-color);
+}
+
+/* Animations */
+.animate-fade-in {
+  opacity: 1;
+}
+
+/* --- Global Skeleton Loaders --- */
+.skeleton {
+  pointer-events: none;
+  user-select: none;
+}
+
+.skeleton-pulse {
+  background: #f1f5f9;
+}
+
+/* --- Staggered Card Entrance (Removed) --- */
+.conductor-card, .vehicle-card, .pasajero-card {
+  opacity: 1;
+}
+
+/* Specific skeleton parts */
+.skeleton-img, .skeleton-img-v {
+  width: 100%;
+  height: 160px;
+  background: #e2e8f0;
+  border-radius: 12px;
+}
+
+.skeleton-line, .skeleton-line-v {
+  height: 12px;
+  background: #e2e8f0;
+  margin: 8px 0;
+  border-radius: 4px;
+}
+
+.skeleton-line.title { width: 70%; height: 16px; }
+.skeleton-line.subtitle { width: 50%; }
+.skeleton-line.small { width: 40%; }
+
+/* --- Global Pagination Styles --- */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 50px;
+  padding: 12px 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px solid #F1F5F9;
+}
+
+.pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-left: 1px solid #F1F5F9;
+  border-right: 1px solid #F1F5F9;
+  margin: 0 5px;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #F1F5F9;
+  color: #3B82F6;
+  transform: scale(1.1);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.page-num {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.page-num:hover {
+  background: #F1F5F9;
+  color: #3B82F6;
+}
+
+.page-num.active {
+  background: #3B82F6;
+  color: white;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
+
+.pagination-dots {
+  padding: 0 8px;
+  color: #94A3B8;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.skeleton-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e2e8f0;
+}
+
+.skeleton-btn, .skeleton-btn-v {
+  height: 32px;
+  width: 32px;
+  border-radius: 8px;
+  background: #e2e8f0;
+}
+
+/* ============================================================
+   SOBREESCRITURAS DE TEMA GLOBALES PARA TODAS LAS PÁGINAS
+   ============================================================ */
+
+/* --- APLICAR COLOR DE FONDO PRINCIPAL DEL LAYOUT --- */
+[data-theme="oscuro"] .dashboardContent, [data-theme="oscuro"] .dashboardBody, [data-theme="oscuro"] main, [data-theme="oscuro"] .vehiculos-container, [data-theme="oscuro"] .notificaciones-container, [data-theme="oscuro"] .quejas-container, [data-theme="oscuro"] .conductores-container, [data-theme="oscuro"] .pasajeros-container, [data-theme="oscuro"] .auditoria-container, [data-theme="oscuro"] .contenedorConfiguracion, [data-theme="oscuro"] .contenedorPerfil {
+  background-color: var(--layout-bg) !important;
+  background: var(--layout-bg) !important;
+}
+[data-theme="gris"] .dashboardContent, [data-theme="gris"] .dashboardBody, [data-theme="gris"] main, [data-theme="gris"] .vehiculos-container, [data-theme="gris"] .notificaciones-container, [data-theme="gris"] .quejas-container, [data-theme="gris"] .conductores-container, [data-theme="gris"] .pasajeros-container, [data-theme="gris"] .auditoria-container, [data-theme="gris"] .contenedorConfiguracion, [data-theme="gris"] .contenedorPerfil {
+  background-color: var(--layout-bg) !important;
+  background: var(--layout-bg) !important;
+}
+[data-theme="salvia"] .dashboardContent, [data-theme="salvia"] .dashboardBody, [data-theme="salvia"] main, [data-theme="salvia"] .vehiculos-container, [data-theme="salvia"] .notificaciones-container, [data-theme="salvia"] .quejas-container, [data-theme="salvia"] .conductores-container, [data-theme="salvia"] .pasajeros-container, [data-theme="salvia"] .auditoria-container, [data-theme="salvia"] .contenedorConfiguracion, [data-theme="salvia"] .contenedorPerfil {
+  background-color: var(--layout-bg) !important;
+  background: var(--layout-bg) !important;
+}
+
+/* --- APLICAR COLORES A TARJETAS, PANELES Y CONTENEDORES --- */
+[data-theme="oscuro"] .tarjetaEstadistica, [data-theme="oscuro"] .graficos, [data-theme="oscuro"] .tarjetaLista, [data-theme="oscuro"] .tarjetaConfiguracion, [data-theme="oscuro"] .cardSoporteDedicado, [data-theme="oscuro"] .panelFiltros, [data-theme="oscuro"] .buscadorContainer, [data-theme="oscuro"] .menuDesplegable, [data-theme="oscuro"] .botonFecha, [data-theme="oscuro"] .botonVerTodos, [data-theme="oscuro"] .cajaIcono, [data-theme="oscuro"] .tarjetaVehiculo, [data-theme="oscuro"] .tarjetaPasajero, [data-theme="oscuro"] .tarjetaConductor, [data-theme="oscuro"] .tarjetaQueja, [data-theme="oscuro"] .tarjeta, [data-theme="oscuro"] .card, [data-theme="oscuro"] .tarjetaInfo, [data-theme="oscuro"] .conductor-card, [data-theme="oscuro"] .passenger-card-v2, [data-theme="oscuro"] .alphabet-filter, [data-theme="oscuro"] .pagination-container, [data-theme="oscuro"] .empty-state-dashboard, [data-theme="oscuro"] .contenedorPerfil, [data-theme="oscuro"] .contenedorIzquierdo, [data-theme="oscuro"] .n-card, [data-theme="oscuro"] .n-modal, [data-theme="oscuro"] .n-preview-box, [data-theme="oscuro"] .n-search-box input, [data-theme="oscuro"] .sim-menu, [data-theme="oscuro"] .vehicle-card, [data-theme="oscuro"] .queja-card, [data-theme="oscuro"] .notificacion-card, [data-theme="oscuro"] .auditoria-card {
+  background-color: var(--card-background) !important;
+  background: var(--card-background) !important;
+  border-color: var(--card-border) !important;
+  color: var(--card-text) !important;
+}
+
+[data-theme="gris"] .tarjetaEstadistica, [data-theme="gris"] .graficos, [data-theme="gris"] .tarjetaLista, [data-theme="gris"] .tarjetaConfiguracion, [data-theme="gris"] .cardSoporteDedicado, [data-theme="gris"] .panelFiltros, [data-theme="gris"] .buscadorContainer, [data-theme="gris"] .menuDesplegable, [data-theme="gris"] .botonFecha, [data-theme="gris"] .botonVerTodos, [data-theme="gris"] .cajaIcono, [data-theme="gris"] .tarjetaVehiculo, [data-theme="gris"] .tarjetaPasajero, [data-theme="gris"] .tarjetaConductor, [data-theme="gris"] .tarjetaQueja, [data-theme="gris"] .tarjeta, [data-theme="gris"] .card, [data-theme="gris"] .tarjetaInfo, [data-theme="gris"] .conductor-card, [data-theme="gris"] .passenger-card-v2, [data-theme="gris"] .alphabet-filter, [data-theme="gris"] .pagination-container, [data-theme="gris"] .empty-state-dashboard, [data-theme="gris"] .contenedorPerfil, [data-theme="gris"] .contenedorIzquierdo, [data-theme="gris"] .n-card, [data-theme="gris"] .n-modal, [data-theme="gris"] .n-preview-box, [data-theme="gris"] .n-search-box input, [data-theme="gris"] .sim-menu, [data-theme="gris"] .vehicle-card, [data-theme="gris"] .queja-card, [data-theme="gris"] .notificacion-card, [data-theme="gris"] .auditoria-card {
+  background-color: var(--card-background) !important;
+  background: var(--card-background) !important;
+  border-color: var(--card-border) !important;
+  color: var(--card-text) !important;
+}
+
+[data-theme="salvia"] .tarjetaEstadistica, [data-theme="salvia"] .graficos, [data-theme="salvia"] .tarjetaLista, [data-theme="salvia"] .tarjetaConfiguracion, [data-theme="salvia"] .cardSoporteDedicado, [data-theme="salvia"] .panelFiltros, [data-theme="salvia"] .buscadorContainer, [data-theme="salvia"] .menuDesplegable, [data-theme="salvia"] .botonFecha, [data-theme="salvia"] .botonVerTodos, [data-theme="salvia"] .cajaIcono, [data-theme="salvia"] .tarjetaVehiculo, [data-theme="salvia"] .tarjetaPasajero, [data-theme="salvia"] .tarjetaConductor, [data-theme="salvia"] .tarjetaQueja, [data-theme="salvia"] .tarjeta, [data-theme="salvia"] .card, [data-theme="salvia"] .tarjetaInfo, [data-theme="salvia"] .conductor-card, [data-theme="salvia"] .passenger-card-v2, [data-theme="salvia"] .alphabet-filter, [data-theme="salvia"] .pagination-container, [data-theme="salvia"] .empty-state-dashboard, [data-theme="salvia"] .contenedorPerfil, [data-theme="salvia"] .contenedorIzquierdo, [data-theme="salvia"] .n-card, [data-theme="salvia"] .n-modal, [data-theme="salvia"] .n-preview-box, [data-theme="salvia"] .n-search-box input, [data-theme="salvia"] .sim-menu, [data-theme="salvia"] .vehicle-card, [data-theme="salvia"] .queja-card, [data-theme="salvia"] .notificacion-card, [data-theme="salvia"] .auditoria-card {
+  background-color: var(--card-background) !important;
+  background: var(--card-background) !important;
+  border-color: var(--card-border) !important;
+  color: var(--card-text) !important;
+}
+
+/* Más fondos de contenedores y botones secundarios (Vehículos, Quejas, etc.) */
+[data-theme="oscuro"] .stat-card, [data-theme="oscuro"] .filter-group, [data-theme="oscuro"] .search-wrapper input, [data-theme="oscuro"] .doc-modal-content, [data-theme="oscuro"] .doc-validation-sidebar, [data-theme="oscuro"] .add-vehicle-section-white, [data-theme="oscuro"] .q-table-wrapper, [data-theme="oscuro"] .q-info-card, [data-theme="oscuro"] .q-message-box, [data-theme="oscuro"] .q-modal, [data-theme="oscuro"] .q-modal-header, [data-theme="oscuro"] .q-modal-footer, [data-theme="oscuro"] .q-btn-secondary, [data-theme="oscuro"] .q-sync-btn, [data-theme="oscuro"] .q-filters, [data-theme="oscuro"] .q-search-box input, [data-theme="oscuro"] .q-table th {
+  background-color: var(--card-background) !important;
+  background: var(--card-background) !important;
+  border-color: var(--card-border) !important;
+  color: var(--card-text) !important;
+}
+
+[data-theme="gris"] .stat-card, [data-theme="gris"] .filter-group, [data-theme="gris"] .search-wrapper input, [data-theme="gris"] .doc-modal-content, [data-theme="gris"] .doc-validation-sidebar, [data-theme="gris"] .add-vehicle-section-white, [data-theme="gris"] .q-table-wrapper, [data-theme="gris"] .q-info-card, [data-theme="gris"] .q-message-box, [data-theme="gris"] .q-modal, [data-theme="gris"] .q-modal-header, [data-theme="gris"] .q-modal-footer, [data-theme="gris"] .q-btn-secondary, [data-theme="gris"] .q-sync-btn, [data-theme="gris"] .q-filters, [data-theme="gris"] .q-search-box input, [data-theme="gris"] .q-table th {
+  background-color: var(--card-background) !important;
+  background: var(--card-background) !important;
+  border-color: var(--card-border) !important;
+  color: var(--card-text) !important;
+}
+
+[data-theme="salvia"] .stat-card, [data-theme="salvia"] .filter-group, [data-theme="salvia"] .search-wrapper input, [data-theme="salvia"] .doc-modal-content, [data-theme="salvia"] .doc-validation-sidebar, [data-theme="salvia"] .add-vehicle-section-white, [data-theme="salvia"] .q-table-wrapper, [data-theme="salvia"] .q-info-card, [data-theme="salvia"] .q-message-box, [data-theme="salvia"] .q-modal, [data-theme="salvia"] .q-modal-header, [data-theme="salvia"] .q-modal-footer, [data-theme="salvia"] .q-btn-secondary, [data-theme="salvia"] .q-sync-btn, [data-theme="salvia"] .q-filters, [data-theme="salvia"] .q-search-box input, [data-theme="salvia"] .q-table th {
+  background-color: var(--card-background) !important;
+  background: var(--card-background) !important;
+  border-color: var(--card-border) !important;
+  color: var(--card-text) !important;
+}
+
+/* --- APLICAR TEXTOS Y TÍTULOS --- */
+[data-theme="oscuro"] h1, [data-theme="oscuro"] h2, [data-theme="oscuro"] h3, [data-theme="oscuro"] h4, [data-theme="oscuro"] .estadisticaValor, [data-theme="oscuro"] .tituloElemento, [data-theme="oscuro"] .menuUserName, [data-theme="oscuro"] .valorTotal, [data-theme="oscuro"] .valorLeyenda, [data-theme="oscuro"] th, [data-theme="oscuro"] td, [data-theme="oscuro"] .tituloFiltro, [data-theme="oscuro"] .nombreConductor, [data-theme="oscuro"] .nombrePasajero, [data-theme="oscuro"] .conductor-name, [data-theme="oscuro"] .p-name-info h3, [data-theme="oscuro"] .n-message, [data-theme="oscuro"] .sim-menu-item, [data-theme="oscuro"] .n-empty-state h3, [data-theme="oscuro"] .n-preview-box strong, [data-theme="oscuro"] .n-tab-btn {
+  color: var(--card-text) !important;
+}
+[data-theme="oscuro"] p, [data-theme="oscuro"] span:not(aside *):not(.badge):not(.insigniaEstado):not(.status-badge):not(.indicator):not(.indicadorLeyenda):not(.notificacionBadge):not(.avatar-placeholder):not(.n-unread-num):not(.n-unread-text), [data-theme="oscuro"] label, [data-theme="oscuro"] .descripcionElemento, [data-theme="oscuro"] .textoGris, [data-theme="oscuro"] .estadisticaSubtitulo, [data-theme="oscuro"] .menuUserEmail, [data-theme="oscuro"] .nombreLeyenda, [data-theme="oscuro"] .RolAdmin, [data-theme="oscuro"] input, [data-theme="oscuro"] select, [data-theme="oscuro"] .infoItem span, [data-theme="oscuro"] .conductor-role, [data-theme="oscuro"] .p-company, [data-theme="oscuro"] .p-detail, [data-theme="oscuro"] .n-time, [data-theme="oscuro"] .n-empty-state p, [data-theme="oscuro"] .n-search-icon {
+  color: var(--card-text-muted) !important;
+}
+
+[data-theme="gris"] h1, [data-theme="gris"] h2, [data-theme="gris"] h3, [data-theme="gris"] h4, [data-theme="gris"] .estadisticaValor, [data-theme="gris"] .tituloElemento, [data-theme="gris"] .menuUserName, [data-theme="gris"] .valorTotal, [data-theme="gris"] .valorLeyenda, [data-theme="gris"] th, [data-theme="gris"] td, [data-theme="gris"] .tituloFiltro, [data-theme="gris"] .nombreConductor, [data-theme="gris"] .nombrePasajero, [data-theme="gris"] .conductor-name, [data-theme="gris"] .p-name-info h3, [data-theme="gris"] .n-message, [data-theme="gris"] .sim-menu-item, [data-theme="gris"] .n-empty-state h3, [data-theme="gris"] .n-preview-box strong, [data-theme="gris"] .n-tab-btn {
+  color: var(--card-text) !important;
+}
+[data-theme="gris"] p, [data-theme="gris"] span:not(aside *):not(.badge):not(.insigniaEstado):not(.status-badge):not(.indicator):not(.indicadorLeyenda):not(.notificacionBadge):not(.avatar-placeholder):not(.n-unread-num):not(.n-unread-text), [data-theme="gris"] label, [data-theme="gris"] .descripcionElemento, [data-theme="gris"] .textoGris, [data-theme="gris"] .estadisticaSubtitulo, [data-theme="gris"] .menuUserEmail, [data-theme="gris"] .nombreLeyenda, [data-theme="gris"] .RolAdmin, [data-theme="gris"] input, [data-theme="gris"] select, [data-theme="gris"] .infoItem span, [data-theme="gris"] .conductor-role, [data-theme="gris"] .p-company, [data-theme="gris"] .p-detail, [data-theme="gris"] .n-time, [data-theme="gris"] .n-empty-state p, [data-theme="gris"] .n-search-icon {
+  color: var(--card-text-muted) !important;
+}
+
+[data-theme="salvia"] h1, [data-theme="salvia"] h2, [data-theme="salvia"] h3, [data-theme="salvia"] h4, [data-theme="salvia"] .estadisticaValor, [data-theme="salvia"] .tituloElemento, [data-theme="salvia"] .menuUserName, [data-theme="salvia"] .valorTotal, [data-theme="salvia"] .valorLeyenda, [data-theme="salvia"] th, [data-theme="salvia"] td, [data-theme="salvia"] .tituloFiltro, [data-theme="salvia"] .nombreConductor, [data-theme="salvia"] .nombrePasajero, [data-theme="salvia"] .conductor-name, [data-theme="salvia"] .p-name-info h3, [data-theme="salvia"] .n-message, [data-theme="salvia"] .sim-menu-item, [data-theme="salvia"] .n-empty-state h3, [data-theme="salvia"] .n-preview-box strong, [data-theme="salvia"] .n-tab-btn {
+  color: var(--card-text) !important;
+}
+[data-theme="salvia"] p, [data-theme="salvia"] span:not(aside *):not(.badge):not(.insigniaEstado):not(.status-badge):not(.indicator):not(.indicadorLeyenda):not(.notificacionBadge):not(.avatar-placeholder):not(.n-unread-num):not(.n-unread-text), [data-theme="salvia"] label, [data-theme="salvia"] .descripcionElemento, [data-theme="salvia"] .textoGris, [data-theme="salvia"] .estadisticaSubtitulo, [data-theme="salvia"] .menuUserEmail, [data-theme="salvia"] .nombreLeyenda, [data-theme="salvia"] .RolAdmin, [data-theme="salvia"] input, [data-theme="salvia"] select, [data-theme="salvia"] .infoItem span, [data-theme="salvia"] .conductor-role, [data-theme="salvia"] .p-company, [data-theme="salvia"] .p-detail, [data-theme="salvia"] .n-time, [data-theme="salvia"] .n-empty-state p, [data-theme="salvia"] .n-search-icon {
+  color: var(--card-text-muted) !important;
+}
+
+/* --- DETALLES DE TABLAS, CONTENEDORES INTERNOS Y BORDES --- */
+[data-theme="oscuro"] th, [data-theme="oscuro"] td, [data-theme="oscuro"] tr, [data-theme="oscuro"] .filaElemento, [data-theme="oscuro"] .infoItem, [data-theme="oscuro"] .p-card-body, [data-theme="oscuro"] .card-actions {
+  border-color: var(--card-border) !important;
+}
+[data-theme="oscuro"] .vehicle-info-mini, [data-theme="oscuro"] .card-actions {
+  background-color: var(--layout-bg) !important;
+  background: var(--layout-bg) !important;
+  border-color: var(--card-border) !important;
+}
+[data-theme="oscuro"] .letter-btn {
+  color: var(--card-text-muted) !important;
+}
+[data-theme="oscuro"] .letter-btn:hover {
+  background: var(--layout-bg) !important;
+  color: var(--accent-blue-light) !important;
+}
+
+[data-theme="gris"] th, [data-theme="gris"] td, [data-theme="gris"] tr, [data-theme="gris"] .filaElemento, [data-theme="gris"] .infoItem, [data-theme="gris"] .p-card-body, [data-theme="gris"] .card-actions {
+  border-color: var(--card-border) !important;
+}
+[data-theme="gris"] .vehicle-info-mini, [data-theme="gris"] .card-actions {
+  background-color: var(--layout-bg) !important;
+  background: var(--layout-bg) !important;
+  border-color: var(--card-border) !important;
+}
+[data-theme="gris"] .letter-btn {
+  color: var(--card-text-muted) !important;
+}
+[data-theme="gris"] .letter-btn:hover {
+  background: var(--layout-bg) !important;
+  color: var(--accent-blue-light) !important;
+}
+
+[data-theme="salvia"] th, [data-theme="salvia"] td, [data-theme="salvia"] tr, [data-theme="salvia"] .filaElemento, [data-theme="salvia"] .infoItem, [data-theme="salvia"] .p-card-body, [data-theme="salvia"] .card-actions {
+  border-color: var(--card-border) !important;
+}
+[data-theme="salvia"] .vehicle-info-mini, [data-theme="salvia"] .card-actions {
+  background-color: var(--layout-bg) !important;
+  background: var(--layout-bg) !important;
+  border-color: var(--card-border) !important;
+}
+[data-theme="salvia"] .letter-btn {
+  color: var(--card-text-muted) !important;
+}
+[data-theme="salvia"] .letter-btn:hover {
+  background: var(--layout-bg) !important;
+  color: var(--primary-color) !important;
+}
+
+/* --- SOBREESCRITURAS DE BOTONES Y ENLACES --- */
+[data-theme="salvia"] .btn-primary, [data-theme="salvia"] .botonGuardarPrimario, [data-theme="salvia"] .botonAgregar, [data-theme="salvia"] .btnAccionPrincipal, [data-theme="salvia"] .botonEditar, [data-theme="salvia"] .botonAcciones .btnEditar, [data-theme="salvia"] .btn-add-passenger, [data-theme="salvia"] .btn-search-header {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+  color: white !important;
+}
+
+[data-theme="salvia"] .botonVerTodos, [data-theme="salvia"] .botonAccion, [data-theme="salvia"] .btnAuxiliar, [data-theme="salvia"] .btnAccionSecundario, [data-theme="salvia"] .botonDetalles, [data-theme="salvia"] .action-btn:hover, [data-theme="salvia"] .p-actions button:hover {
+  color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  background-color: var(--layout-bg) !important;
+}
+
+
+[data-theme="salvia"] .contactoItem {
+  color: var(--primary-color) !important;
+}
+
+/* ============================================================
+   BLOQUE MAESTRO: OVERRIDE COMPLETO DE TODAS LAS PÁGINAS
+   Cubre cada elemento blanco detectado en: Auditoría, Conductores,
+   Configuración, Dashboard, Notificaciones, Pasajeros, Perfil,
+   Quejas, Vehículos.
+   ============================================================ */
+
+/* ── OSCURO ─────────────────────────────────────────── */
+[data-theme="oscuro"] .auditoria-controls-card,
+[data-theme="oscuro"] .search-box-audit input,
+[data-theme="oscuro"] .filter-btn-audit,
+[data-theme="oscuro"] .audit-card-body,
+[data-theme="oscuro"] .admin-ip-badge,
+[data-theme="oscuro"] .audit-empty-state,
+[data-theme="oscuro"] .refresh-audit-btn,
+[data-theme="oscuro"] .timeline-indicator-node,
+[data-theme="oscuro"] .conductor-card,
+[data-theme="oscuro"] .vehicle-info-mini,
+[data-theme="oscuro"] .ordenamientoSelect,
+[data-theme="oscuro"] .buscadorContainer,
+[data-theme="oscuro"] .menuDesplegable,
+[data-theme="oscuro"] .botonFecha,
+[data-theme="oscuro"] .tarjetaEstadistica,
+[data-theme="oscuro"] .graficos,
+[data-theme="oscuro"] .tarjetaLista,
+[data-theme="oscuro"] .estadisticasRapidas,
+[data-theme="oscuro"] .n-btn-secondary,
+[data-theme="oscuro"] .sim-menu,
+[data-theme="oscuro"] .n-search-box input,
+[data-theme="oscuro"] .n-card,
+[data-theme="oscuro"] .n-empty-state,
+[data-theme="oscuro"] .n-modal,
+[data-theme="oscuro"] .n-modal-header,
+[data-theme="oscuro"] .n-preview-box,
+[data-theme="oscuro"] .form-group select,
+[data-theme="oscuro"] .form-group textarea,
+[data-theme="oscuro"] .passenger-card-v2,
+[data-theme="oscuro"] .p-actions button,
+[data-theme="oscuro"] .empty-state-dashboard,
+[data-theme="oscuro"] .tarjetaPrincipal,
+[data-theme="oscuro"] .modalContenido,
+[data-theme="oscuro"] .inputEstilizado,
+[data-theme="oscuro"] .selectEstilizado,
+[data-theme="oscuro"] .selectEstilizado option,
+[data-theme="oscuro"] .botonCancelar,
+[data-theme="oscuro"] .tarjetaFormulario,
+[data-theme="oscuro"] .pieTarjeta,
+[data-theme="oscuro"] .tarjetaActividad,
+[data-theme="oscuro"] .tagTiempo,
+[data-theme="oscuro"] .botonVerLogs,
+[data-theme="oscuro"] .q-sync-btn,
+[data-theme="oscuro"] .q-search-box input,
+[data-theme="oscuro"] .q-filters,
+[data-theme="oscuro"] .q-table-wrapper,
+[data-theme="oscuro"] .q-modal,
+[data-theme="oscuro"] .q-modal-header,
+[data-theme="oscuro"] .q-modal-footer,
+[data-theme="oscuro"] .q-copy-btn,
+[data-theme="oscuro"] .q-btn-secondary,
+[data-theme="oscuro"] .q-info-card,
+[data-theme="oscuro"] .q-message-box,
+[data-theme="oscuro"] .n-id-badge,
+[data-theme="oscuro"] .stat-card,
+[data-theme="oscuro"] .filter-group,
+[data-theme="oscuro"] .filter-btn,
+[data-theme="oscuro"] .vehicle-card,
+[data-theme="oscuro"] .driver-info,
+[data-theme="oscuro"] .action-btn.deactivate,
+[data-theme="oscuro"] .view-details-btn,
+[data-theme="oscuro"] .close-modal-btn,
+[data-theme="oscuro"] .doc-modal-content,
+[data-theme="oscuro"] .doc-modal-header,
+[data-theme="oscuro"] .doc-validation-sidebar,
+[data-theme="oscuro"] .validation-item,
+[data-theme="oscuro"] .form-group-admin input,
+[data-theme="oscuro"] .form-group-admin select,
+[data-theme="oscuro"] .file-label,
+[data-theme="oscuro"] .file-label-full,
+[data-theme="oscuro"] .cancel-btn-admin,
+[data-theme="oscuro"] .btn-secundario,
+[data-theme="oscuro"] .add-vehicle-section-white,
+[data-theme="oscuro"] .search-wrapper input,
+[data-theme="oscuro"] .pagination-btn,
+[data-theme="oscuro"] .page-num,
+[data-theme="oscuro"] .pagination-container {
+  background-color: var(--card-background) !important;
+  background: var(--card-background) !important;
+  border-color: var(--card-border) !important;
+  color: var(--card-text) !important;
+}
+
+/* ── GRIS ───────────────────────────────────────────── */
+[data-theme="gris"] .auditoria-controls-card,
+[data-theme="gris"] .search-box-audit input,
+[data-theme="gris"] .filter-btn-audit,
+[data-theme="gris"] .audit-card-body,
+[data-theme="gris"] .admin-ip-badge,
+[data-theme="gris"] .audit-empty-state,
+[data-theme="gris"] .refresh-audit-btn,
+[data-theme="gris"] .timeline-indicator-node,
+[data-theme="gris"] .conductor-card,
+[data-theme="gris"] .vehicle-info-mini,
+[data-theme="gris"] .ordenamientoSelect,
+[data-theme="gris"] .buscadorContainer,
+[data-theme="gris"] .menuDesplegable,
+[data-theme="gris"] .botonFecha,
+[data-theme="gris"] .tarjetaEstadistica,
+[data-theme="gris"] .graficos,
+[data-theme="gris"] .tarjetaLista,
+[data-theme="gris"] .estadisticasRapidas,
+[data-theme="gris"] .n-btn-secondary,
+[data-theme="gris"] .sim-menu,
+[data-theme="gris"] .n-search-box input,
+[data-theme="gris"] .n-card,
+[data-theme="gris"] .n-empty-state,
+[data-theme="gris"] .n-modal,
+[data-theme="gris"] .n-modal-header,
+[data-theme="gris"] .n-preview-box,
+[data-theme="gris"] .form-group select,
+[data-theme="gris"] .form-group textarea,
+[data-theme="gris"] .passenger-card-v2,
+[data-theme="gris"] .p-actions button,
+[data-theme="gris"] .empty-state-dashboard,
+[data-theme="gris"] .tarjetaPrincipal,
+[data-theme="gris"] .modalContenido,
+[data-theme="gris"] .inputEstilizado,
+[data-theme="gris"] .selectEstilizado,
+[data-theme="gris"] .selectEstilizado option,
+[data-theme="gris"] .botonCancelar,
+[data-theme="gris"] .tarjetaFormulario,
+[data-theme="gris"] .pieTarjeta,
+[data-theme="gris"] .tarjetaActividad,
+[data-theme="gris"] .tagTiempo,
+[data-theme="gris"] .botonVerLogs,
+[data-theme="gris"] .q-sync-btn,
+[data-theme="gris"] .q-search-box input,
+[data-theme="gris"] .q-filters,
+[data-theme="gris"] .q-table-wrapper,
+[data-theme="gris"] .q-modal,
+[data-theme="gris"] .q-modal-header,
+[data-theme="gris"] .q-modal-footer,
+[data-theme="gris"] .q-copy-btn,
+[data-theme="gris"] .q-btn-secondary,
+[data-theme="gris"] .q-info-card,
+[data-theme="gris"] .q-message-box,
+[data-theme="gris"] .n-id-badge,
+[data-theme="gris"] .stat-card,
+[data-theme="gris"] .filter-group,
+[data-theme="gris"] .filter-btn,
+[data-theme="gris"] .vehicle-card,
+[data-theme="gris"] .driver-info,
+[data-theme="gris"] .action-btn.deactivate,
+[data-theme="gris"] .view-details-btn,
+[data-theme="gris"] .close-modal-btn,
+[data-theme="gris"] .doc-modal-content,
+[data-theme="gris"] .doc-modal-header,
+[data-theme="gris"] .doc-validation-sidebar,
+[data-theme="gris"] .validation-item,
+[data-theme="gris"] .form-group-admin input,
+[data-theme="gris"] .form-group-admin select,
+[data-theme="gris"] .file-label,
+[data-theme="gris"] .file-label-full,
+[data-theme="gris"] .cancel-btn-admin,
+[data-theme="gris"] .btn-secundario,
+[data-theme="gris"] .add-vehicle-section-white,
+[data-theme="gris"] .search-wrapper input,
+[data-theme="gris"] .pagination-btn,
+[data-theme="gris"] .page-num,
+[data-theme="gris"] .pagination-container {
+  background-color: var(--card-background) !important;
+  background: var(--card-background) !important;
+  border-color: var(--card-border) !important;
+  color: var(--card-text) !important;
+}
+
+/* ── SALVIA ─────────────────────────────────────────── */
+[data-theme="salvia"] .auditoria-controls-card,
+[data-theme="salvia"] .search-box-audit input,
+[data-theme="salvia"] .filter-btn-audit,
+[data-theme="salvia"] .audit-card-body,
+[data-theme="salvia"] .admin-ip-badge,
+[data-theme="salvia"] .audit-empty-state,
+[data-theme="salvia"] .refresh-audit-btn,
+[data-theme="salvia"] .timeline-indicator-node,
+[data-theme="salvia"] .conductor-card,
+[data-theme="salvia"] .vehicle-info-mini,
+[data-theme="salvia"] .ordenamientoSelect,
+[data-theme="salvia"] .buscadorContainer,
+[data-theme="salvia"] .menuDesplegable,
+[data-theme="salvia"] .botonFecha,
+[data-theme="salvia"] .tarjetaEstadistica,
+[data-theme="salvia"] .graficos,
+[data-theme="salvia"] .tarjetaLista,
+[data-theme="salvia"] .estadisticasRapidas,
+[data-theme="salvia"] .n-btn-secondary,
+[data-theme="salvia"] .sim-menu,
+[data-theme="salvia"] .n-search-box input,
+[data-theme="salvia"] .n-card,
+[data-theme="salvia"] .n-empty-state,
+[data-theme="salvia"] .n-modal,
+[data-theme="salvia"] .n-modal-header,
+[data-theme="salvia"] .n-preview-box,
+[data-theme="salvia"] .form-group select,
+[data-theme="salvia"] .form-group textarea,
+[data-theme="salvia"] .passenger-card-v2,
+[data-theme="salvia"] .p-actions button,
+[data-theme="salvia"] .empty-state-dashboard,
+[data-theme="salvia"] .tarjetaPrincipal,
+[data-theme="salvia"] .modalContenido,
+[data-theme="salvia"] .inputEstilizado,
+[data-theme="salvia"] .selectEstilizado,
+[data-theme="salvia"] .selectEstilizado option,
+[data-theme="salvia"] .botonCancelar,
+[data-theme="salvia"] .tarjetaFormulario,
+[data-theme="salvia"] .pieTarjeta,
+[data-theme="salvia"] .tarjetaActividad,
+[data-theme="salvia"] .tagTiempo,
+[data-theme="salvia"] .botonVerLogs,
+[data-theme="salvia"] .q-sync-btn,
+[data-theme="salvia"] .q-search-box input,
+[data-theme="salvia"] .q-filters,
+[data-theme="salvia"] .q-table-wrapper,
+[data-theme="salvia"] .q-modal,
+[data-theme="salvia"] .q-modal-header,
+[data-theme="salvia"] .q-modal-footer,
+[data-theme="salvia"] .q-copy-btn,
+[data-theme="salvia"] .q-btn-secondary,
+[data-theme="salvia"] .q-info-card,
+[data-theme="salvia"] .q-message-box,
+[data-theme="salvia"] .n-id-badge,
+[data-theme="salvia"] .stat-card,
+[data-theme="salvia"] .filter-group,
+[data-theme="salvia"] .filter-btn,
+[data-theme="salvia"] .vehicle-card,
+[data-theme="salvia"] .driver-info,
+[data-theme="salvia"] .action-btn.deactivate,
+[data-theme="salvia"] .view-details-btn,
+[data-theme="salvia"] .close-modal-btn,
+[data-theme="salvia"] .doc-modal-content,
+[data-theme="salvia"] .doc-modal-header,
+[data-theme="salvia"] .doc-validation-sidebar,
+[data-theme="salvia"] .validation-item,
+[data-theme="salvia"] .form-group-admin input,
+[data-theme="salvia"] .form-group-admin select,
+[data-theme="salvia"] .file-label,
+[data-theme="salvia"] .file-label-full,
+[data-theme="salvia"] .cancel-btn-admin,
+[data-theme="salvia"] .btn-secundario,
+[data-theme="salvia"] .add-vehicle-section-white,
+[data-theme="salvia"] .search-wrapper input,
+[data-theme="salvia"] .pagination-btn,
+[data-theme="salvia"] .page-num,
+[data-theme="salvia"] .pagination-container {
+  background-color: var(--card-background) !important;
+  background: var(--card-background) !important;
+  border-color: var(--card-border) !important;
+  color: var(--card-text) !important;
+}
+
+/* --- Tablas de Quejas / Auditoría: filas y hover --- */
+[data-theme="oscuro"] .q-row,
+[data-theme="oscuro"] .q-table td,
+[data-theme="oscuro"] .q-table tr { background-color: var(--card-background) !important; border-color: var(--card-border) !important; color: var(--card-text) !important; }
+[data-theme="oscuro"] .q-row:hover { background-color: var(--sidebar-hover-bg) !important; }
+
+[data-theme="gris"] .q-row,
+[data-theme="gris"] .q-table td,
+[data-theme="gris"] .q-table tr { background-color: var(--card-background) !important; border-color: var(--card-border) !important; color: var(--card-text) !important; }
+[data-theme="gris"] .q-row:hover { background-color: var(--sidebar-hover-bg) !important; }
+
+[data-theme="salvia"] .q-row,
+[data-theme="salvia"] .q-table td,
+[data-theme="salvia"] .q-table tr { background-color: var(--card-background) !important; border-color: var(--card-border) !important; color: var(--card-text) !important; }
+[data-theme="salvia"] .q-row:hover { background-color: var(--sidebar-hover-bg) !important; }
+
+/* --- Skeleton loaders adaptados al tema --- */
+[data-theme="oscuro"] .skeleton-pulse,
+[data-theme="gris"] .skeleton-pulse,
+[data-theme="salvia"] .skeleton-pulse {
+  background: linear-gradient(90deg, var(--card-border) 25%, var(--card-background) 50%, var(--card-border) 75%) !important;
+  background-size: 200% 100% !important;
+}
+
+/* --- Textos específicos de subpáginas --- */
+[data-theme="oscuro"] .stat-label, [data-theme="gris"] .stat-label, [data-theme="salvia"] .stat-label,
+[data-theme="oscuro"] .stat-value, [data-theme="gris"] .stat-value, [data-theme="salvia"] .stat-value,
+[data-theme="oscuro"] .driver-text .label, [data-theme="gris"] .driver-text .label, [data-theme="salvia"] .driver-text .label,
+[data-theme="oscuro"] .driver-text .name, [data-theme="gris"] .driver-text .name, [data-theme="salvia"] .driver-text .name,
+[data-theme="oscuro"] .card-title-row h3, [data-theme="gris"] .card-title-row h3, [data-theme="salvia"] .card-title-row h3,
+[data-theme="oscuro"] .q-user-name, [data-theme="gris"] .q-user-name, [data-theme="salvia"] .q-user-name,
+[data-theme="oscuro"] .q-full-text, [data-theme="gris"] .q-full-text, [data-theme="salvia"] .q-full-text,
+[data-theme="oscuro"] .q-info-item, [data-theme="gris"] .q-info-item, [data-theme="salvia"] .q-info-item,
+[data-theme="oscuro"] .q-modal-title-row h2, [data-theme="gris"] .q-modal-title-row h2, [data-theme="salvia"] .q-modal-title-row h2,
+[data-theme="oscuro"] .doc-modal-header h2, [data-theme="gris"] .doc-modal-header h2, [data-theme="salvia"] .doc-modal-header h2,
+[data-theme="oscuro"] .vehiculos-header h1, [data-theme="gris"] .vehiculos-header h1, [data-theme="salvia"] .vehiculos-header h1,
+[data-theme="oscuro"] .validation-item span, [data-theme="gris"] .validation-item span, [data-theme="salvia"] .validation-item span,
+[data-theme="oscuro"] .form-group-admin label, [data-theme="gris"] .form-group-admin label, [data-theme="salvia"] .form-group-admin label {
+  color: var(--card-text) !important;
+}
+
+/* ============================================================
+   DETALLES DE PULIDO: COMPLETA ALINEACIÓN DE LOS 4 TEMAS
+   ============================================================ */
+
+/* --- BOTONES Y COMPONENTES TEMA-AWARE --- */
+.add-vehicle-btn,
+.submit-btn-admin,
+.btn-primario,
+.approve-doc-btn,
+.btnAccionPrincipal,
+.botonGuardarPrimario,
+.botonAgregar,
+.botonEditar,
+.botonVerLogs,
+.q-btn-primary,
+.n-action-btn.view,
+.btn-primary,
+.submit-btn,
+.btn-confirmar,
+.botonEditPerfil,
+.botonGuardar {
+  background: var(--accent-blue) !important;
+  color: white !important;
+  border: none !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.add-vehicle-btn:hover,
+.submit-btn-admin:hover:not(:disabled),
+.btn-primario:hover:not(:disabled),
+.approve-doc-btn:hover,
+.btnAccionPrincipal:hover,
+.botonGuardarPrimario:hover,
+.botonAgregar:hover,
+.botonEditar:hover,
+.botonVerLogs:hover,
+.q-btn-primary:hover,
+.n-action-btn.view:hover,
+.btn-primary:hover,
+.botonEditPerfil:hover,
+.botonGuardar:hover {
+  background: var(--accent-blue-light) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* --- SWITCH TOGGLES EN PERFIL Y CONFIGURACIÓN --- */
+input:checked + .slider {
+  background-color: var(--accent-blue) !important;
+}
+
+/* --- LINKS Y BOTONES AUXILIARES TEMA-AWARE --- */
+.enlaceVolver,
+.botonVerLogs {
+  color: var(--accent-blue) !important;
+  border-color: var(--card-border) !important;
+}
+
+.botonVerLogs:hover {
+  background-color: var(--layout-bg) !important;
+}
+
+/* --- PANELES DE INFORMACIÓN Y BANNERS --- */
+.bannerInfoSistema {
+  background: var(--accent-blue) !important;
+  border: 1px solid var(--accent-blue-light) !important;
+  color: white !important;
+}
+
+/* --- CONTENEDORES DE ICONOS DE CONFIGURACIÓN --- */
+[data-theme="oscuro"] .iconoTituloWrap,
+[data-theme="gris"] .iconoTituloWrap,
+[data-theme="salvia"] .iconoTituloWrap {
+  background: var(--layout-bg) !important;
+  border: 1px solid var(--card-border) !important;
+}
+
+/* --- BORDES Y FILAS EXTRAS EN PERFIL --- */
+[data-theme="oscuro"] .encabezadoTarjeta, [data-theme="oscuro"] .itemAjuste,
+[data-theme="gris"] .encabezadoTarjeta, [data-theme="gris"] .itemAjuste,
+[data-theme="salvia"] .encabezadoTarjeta, [data-theme="salvia"] .itemAjuste {
+  border-color: var(--card-border) !important;
+}
+
+/* --- INDICADORES DE LÍNEA DE TIEMPO EN PERFIL --- */
+[data-theme="oscuro"] .eventoTiempo::before,
+[data-theme="gris"] .eventoTiempo::before,
+[data-theme="salvia"] .eventoTiempo::before {
+  border-color: var(--card-background) !important;
+  box-shadow: 0 0 0 2px var(--card-border) !important;
+}
+
+[data-theme="oscuro"] .lineaTiempo::before,
+[data-theme="gris"] .lineaTiempo::before,
+[data-theme="salvia"] .lineaTiempo::before {
+  background: var(--card-border) !important;
+}
+
+/* --- MOTEADO DE ICONOS DE ESTADÍSTICA (VEHÍCULOS Y PERFIL) --- */
+[data-theme="oscuro"] .stat-icon.fleet, [data-theme="oscuro"] .iconoEstadistica { background: rgba(59, 130, 246, 0.15) !important; color: #60A5FA !important; }
+[data-theme="oscuro"] .stat-icon.active { background: rgba(22, 163, 74, 0.15) !important; color: #4ADE80 !important; }
+[data-theme="oscuro"] .stat-icon.pending { background: rgba(234, 88, 12, 0.15) !important; color: #FB923C !important; }
+[data-theme="oscuro"] .stat-icon.alert { background: rgba(156, 163, 175, 0.15) !important; color: #9CA3AF !important; }
+
+[data-theme="gris"] .stat-icon.fleet, [data-theme="gris"] .iconoEstadistica { background: rgba(30, 41, 59, 0.1) !important; color: #1E293B !important; }
+[data-theme="gris"] .stat-icon.active { background: rgba(22, 163, 74, 0.15) !important; color: #16A34A !important; }
+[data-theme="gris"] .stat-icon.pending { background: rgba(234, 88, 12, 0.15) !important; color: #EA580C !important; }
+[data-theme="gris"] .stat-icon.alert { background: rgba(148, 163, 184, 0.15) !important; color: #475569 !important; }
+
+[data-theme="salvia"] .stat-icon.fleet, [data-theme="salvia"] .iconoEstadistica { background: rgba(20, 83, 45, 0.15) !important; color: #16A34A !important; }
+[data-theme="salvia"] .stat-icon.active { background: rgba(22, 163, 74, 0.15) !important; color: #15803D !important; }
+[data-theme="salvia"] .stat-icon.pending { background: rgba(234, 88, 12, 0.15) !important; color: #C2410C !important; }
+[data-theme="salvia"] .stat-icon.alert { background: rgba(74, 96, 91, 0.15) !important; color: #4A605B !important; }
+
+/* --- ACTIVE SELECTS & TABS TEMA-AWARE --- */
+.filter-btn.active,
+.filter-btn-audit.active,
+.n-tab-btn.active {
+  background-color: var(--accent-blue) !important;
+  color: white !important;
+}
+
+[data-theme="salvia"] .cajaColor.seleccionado {
+  border-color: #16A34A !important;
+}
+

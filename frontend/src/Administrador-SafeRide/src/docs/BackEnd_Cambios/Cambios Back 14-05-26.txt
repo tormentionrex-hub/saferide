@@ -1,0 +1,93 @@
+================================================================================
+ GUÍA MAESTRA DE ARQUITECTURA Y CAMBIOS - BACKEND SAFERIDE
+================================================================================
+
+Este documento detalla la lógica de ingeniería, el funcionamiento de los roles
+y las reglas de negocio que gobiernan el sistema SafeRide tras las 
+actualizaciones del 14/05/2026.
+
+--------------------------------------------------------------------------------
+1. ECOSISTEMA DE ROLES Y SEGURIDAD
+--------------------------------------------------------------------------------
+
+El sistema ahora opera bajo una jerarquía estricta de tres roles (User.js):
+
+* PASAJERO: Acceso limitado a la App móvil para solicitar viajes.
+* CONDUCTOR: Acceso a la App móvil para aceptar viajes y gestionar SU vehículo.
+* ADMIN: Acceso total al Dashboard. Posee "Llaves Maestras".
+
+[LÓGICA DE PODER]: 
+En 'vehicleRoutes.js', implementamos 'authorize("conductor", "admin")'. 
+Esto significa que el Admin puede "hacerse pasar" por un conductor para 
+corregir datos, subir fotos de marchamos o registrar autos nuevos. 
+Antes, el Admin estaba bloqueado (Error 403) porque el sistema pensaba 
+que solo el dueño del auto podía tocar sus datos.
+
+--------------------------------------------------------------------------------
+2. MOTOR DE GESTIÓN VEHICULAR (NUEVA INTELIGENCIA)
+--------------------------------------------------------------------------------
+
+Hemos pasado de un sistema de "un solo auto por persona" a un "gestor de flota".
+
+[LÓGICA UPSERT (Evitar Conflictos)]:
+Ubicación: vehicleController.js (Líneas 21-35)
+Antes: Si intentabas guardar un auto para un conductor que ya tenía uno, 
+       el sistema lanzaba un Error 409 y se bloqueaba.
+Ahora: El sistema detecta si ya existe el registro. Si existe, lo ACTUALIZA 
+       automáticamente. Si no existe, lo CREA. 
+       Resultado: El botón "Guardar" del Admin Panel nunca falla.
+
+[REGLAS DE NEGOCIO ESTRICTAS (Validaciones)]:
+* PLACAS: El backend ahora fuerza '.toUpperCase()'. No importa si escribes 
+  "abc123" o "ABC123", en la base de datos siempre quedará estandarizado.
+* CAPACIDAD: Validado entre 1 y 7 pasajeros.
+* AÑO: Validado desde 1900 hasta el año actual + 1.
+
+--------------------------------------------------------------------------------
+3. FLUJO DE APROBACIÓN Y ESTADOS (CONTROL TOTAL)
+--------------------------------------------------------------------------------
+
+El campo 'isActive' es ahora el corazón del control administrativo:
+
+* REGISTRO INICIAL: Cuando un conductor registra su auto desde la App móvil, 
+  el vehículo puede entrar en estado 'isActive: false' (Pendiente).
+* REVISIÓN DE DOCUMENTOS: Tú, como Admin, recibes la 'vehicleImage' (foto 
+  del marchamo/seguro). 
+* ACTIVACIÓN: Al usar el nuevo endpoint 'PATCH /vehicles/:id/status', cambias 
+  el estado a 'true'. 
+  IMPORTANTE: Hasta que no hagas esto, el conductor no aparecerá en el motor 
+  de búsqueda de viajes de los pasajeros. Seguridad 100%.
+
+--------------------------------------------------------------------------------
+4. OPTIMIZACIÓN DE BÚSQUEDA Y RENDERIZADO
+--------------------------------------------------------------------------------
+
+[BÚSQUEDA REGEX (Búsqueda "Borrosa")]:
+Ubicación: userController.js (Líneas 21-27)
+Propósito: Implementamos '$options: "i"' en MongoDB. Esto ignora mayúsculas 
+y minúsculas. Además, al quitar el ancla de inicio, el Admin puede buscar 
+por apellidos, dominios de correo (ej: "@gmail") o nombres parciales.
+
+[PAGINACIÓN SIMÉTRICA 3x3]:
+Ubicación: userController.js (Línea 12)
+Configuración: 'limit = 9'. 
+Razonamiento: El diseño de tarjetas del Dashboard está optimizado para 
+cuadrículas de 3 columnas. Enviar 9 resultados por página garantiza que 
+cada "hoja" del panel esté siempre llena y balanceada visualmente.
+
+--------------------------------------------------------------------------------
+5. INTEGRACIÓN CON INFRAESTRUCTURA (IMÁGENES)
+--------------------------------------------------------------------------------
+
+Todas las fotos (perfil, marchamos, vehículos) se procesan a través de 
+'blobService.js'. 
+* Las imágenes se suben a la nube (Cloudinary/Azure) y el backend solo guarda 
+  la URL final. 
+* Esto mantiene la base de datos ligera y rápida, delegando el peso de los 
+  archivos a servidores especializados.
+
+================================================================================
+RESUMEN FINAL: El backend ahora es un sistema administrativo profesional. 
+Garantiza persistencia de datos, seguridad de roles y una experiencia fluida 
+para el administrador del sistema SafeRide.
+================================================================================
