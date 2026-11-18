@@ -1,0 +1,318 @@
+================================================================================
+ESTADO ACTUAL DEL BACKEND: REVERTIDO TOTALMENTE (GUÍA COMPLETA DE MEJORAS)
+================================================================================
+FECHA DE REVERSIÓN: 2026-05-12
+ESTADO: EL BACKEND SE ENCUENTRA EN SU ESTADO ORIGINAL.
+--------------------------------------------------------------------------------
+Este documento sirve como bitácora técnica de las mejoras implementadas y 
+posteriormente revertidas. Úsalo como manual para implementarlas en el futuro.
+================================================================================
+
+--------------------------------------------------------------------------------
+1. ARCHIVO: saferide-backend/src/controllers/userController.js
+--------------------------------------------------------------------------------
+
+A) SECCIÓN: Listado General de Usuarios (Función: getAllUsers)
+   - LÍNEA APROX: 27
+   - CÓDIGO ORIGINAL:
+     const users = await User.find(query)
+         .select("-password -refreshToken")
+         .limit(limit * 1)
+         .skip((page - 1) * limit)
+         .sort({ createdAt: -1 });
+
+   - CÓDIGO PARA IMPLEMENTAR:
+     const users = await User.find(query)
+         .select("-password -refreshToken")
+         .populate('vehicle') // <--- CLAVE PARA EL PANEL ADMIN
+         .limit(limit * 1)
+         .skip((page - 1) * limit)
+         .sort({ createdAt: -1 });
+
+   - POR QUÉ: Permite que el Panel Admin reciba los datos del vehículo (placa, marca) 
+     al mismo tiempo que los datos del usuario, evitando 50 llamadas extra a la API.
+
+B) SECCIÓN: Seguridad y Permisos de Perfil (updateUser y uploadProfileImage)
+   - LÍNEA APROX: 131 y 184
+   - CÓDIGO ORIGINAL:
+     if (req.user._id.toString() !== id && req.user.type !== 'administrador') { ... }
+
+   - CÓDIGO PARA IMPLEMENTAR:
+     if (req.user._id.toString() !== id && req.user.type !== 'administrador' && req.user.type !== 'admin') { ... }
+
+   - POR QUÉ: Permite que el rol 'admin' pueda editar perfiles de conductores. El 
+     backend original solo permitía al dueño o a un rol llamado 'administrador'.
+
+--------------------------------------------------------------------------------
+2. ARCHIVO: saferide-backend/src/controllers/vehicleController.js
+--------------------------------------------------------------------------------
+
+A) SECCIÓN: Registro de Vehículos por Admin (Función: createVehicle)
+   - LÍNEA APROX: 10
+   - CÓDIGO ORIGINAL:
+     const vehicle = await Vehicle.create({ ...req.body, driver_id: req.user._id });
+
+   - CÓDIGO PARA IMPLEMENTAR:
+     const { driver_id } = req.body;
+     const targetDriverId = (req.user.type === 'admin' || req.user.type === 'administrador') && driver_id 
+         ? driver_id : req.user._id;
+     const vehicle = await Vehicle.create({ ...req.body, driver_id: targetDriverId });
+
+   - POR QUÉ: Permite que el Admin registre el auto de un nuevo conductor. Antes, 
+     el backend obligaba a que el creador fuera el mismo conductor.
+
+B) SECCIÓN: Actualización de Placas y Capacidad (Función: updateVehicle)
+   - LÍNEA APROX: 84
+   - CÓDIGO ORIGINAL:
+     const allowedUpdates = ['brand', 'model', 'color', 'year'];
+
+   - CÓDIGO PARA IMPLEMENTAR:
+     const allowedUpdates = ['brand', 'model', 'color', 'year', 'capacity', 'license_plate'];
+
+   - POR QUÉ: Habilita la edición de la placa y la capacidad de asientos, campos 
+     que antes el backend ignoraba durante las actualizaciones.
+
+C) SECCIÓN: Permisos sobre Vehículos (updateVehicle y uploadVehicleImage)
+   - CAMBIO: Añadir verificación de Admin.
+   - CÓDIGO:
+     const isAdmin = req.user.type === 'admin' || req.user.type === 'administrador';
+     if (vehicle.driver_id.toString() !== req.user._id.toString() && !isAdmin) { ... }
+
+--------------------------------------------------------------------------------
+3. ARCHIVO: saferide-backend/src/routes/vehicleRoutes.js
+--------------------------------------------------------------------------------
+
+A) SECCIÓN: Autorización de Rutas (Middleware)
+   - RUTAS: POST '/', PUT '/:id', POST '/:id/image'
+   - CÓDIGO PARA IMPLEMENTAR:
+     router.post('/', authorize('conductor', 'admin', 'administrador'), ...);
+
+   - POR QUÉ: Abre las puertas del servidor para que las peticiones del Panel 
+     Administrativo no sean rechazadas con un error 403.
+
+================================================================================
+AFECTACIÓN POR REVERSIÓN (ESTADO ACTUAL):
+================================================================================
+1. LENTITUD: El panel debe hacer peticiones N+1 para obtener datos del vehículo.
+2. REGISTRO MANUAL: El administrador no puede registrar autos; el conductor 
+   debe hacerlo solo desde su App móvil.
+3. DATOS ESTÁTICOS: La placa y la capacidad de asientos no se pueden corregir.
+4. ACCESO DENEGADO: Intentar editar un perfil ajeno dará error 403 Forbidden.
+================================================================================
+
+================================================================================
+COMPATIBILIDAD CON APP MÓVIL (REACT NATIVE)
+================================================================================
+Si decides implementar estos cambios, NO afectarán a la App móvil:
+1. Los conductores seguirán pudiendo editar su propia info como siempre.
+2. Se mantiene la seguridad: un conductor NO puede editar a otro.
+3. La App móvil ahora podría permitir editar la placa si así se desea.
+================================================================================
+
+================================================================================
+GUÍA RÁPIDA DE REPLICACIÓN (COPY-PASTE)
+================================================================================
+
+1. ARCHIVO: src/controllers/userController.js
+   ------------------------------------------
+   - BUSCAR: .select("-password -refreshToken").limit(limit * 1)
+   - REEMPLAZAR POR: .select("-password -refreshToken").populate('vehicle').limit(limit * 1)
+
+   - BUSCAR (updateUser/image): if (req.user._id.toString() !== id && req.user.type !== 'administrador')
+   - REEMPLAZAR POR: if (req.user._id.toString() !== id && req.user.type !== 'administrador' && req.user.type !== 'admin')
+
+2. ARCHIVO: src/controllers/vehicleController.js
+   ---------------------------------------------
+   - BUSCAR (createVehicle): const vehicle = await Vehicle.create({ ...req.body, driver_id: req.user._id });
+   - REEMPLAZAR POR: const { driver_id } = req.body; const targetDriverId = (req.user.type === 'admin' || req.user.type === 'administrador') && driver_id ? driver_id : req.user._id; const vehicle = await Vehicle.create({ ...req.body, driver_id: targetDriverId });
+
+   - BUSCAR (updateVehicle): const allowedUpdates = ['brand', 'model', 'color', 'year'];
+   - REEMPLAZAR POR: const allowedUpdates = ['brand', 'model', 'color', 'year', 'capacity', 'license_plate'];
+
+   - BUSCAR (permisos update): if (vehicle.driver_id.toString() !== req.user._id.toString())
+   - REEMPLAZAR POR: const isAdmin = req.user.type === 'admin' || req.user.type === 'administrador'; if (vehicle.driver_id.toString() !== req.user._id.toString() && !isAdmin)
+
+3. ARCHIVO: src/routes/vehicleRoutes.js
+   ------------------------------------
+   - BUSCAR: authorize('conductor')
+   - REEMPLAZAR POR: authorize('conductor', 'admin', 'administrador')
+================================================================================
+
+
+# PROMPT DE IMPLEMENTACIÓN: MEJORAS ADMINISTRATIVAS BACKEND
+
+Copia y pega este mensaje completo a tu asistente de IA para habilitar las funciones del Panel Administrativo de SafeRide:
+
+---
+
+"Hola. Necesito que realices una serie de modificaciones técnicas en el backend de SafeRide (Node.js/Express) para habilitar la gestión completa de conductores desde el Panel Administrativo.
+
+Toda la información necesaria, incluyendo los archivos afectados, las líneas de código y las justificaciones técnicas, se encuentra detallada en el archivo:
+`/Users/davidbarrantesmontero/Desktop/Proyectos FWD/SafeRide Mac /Admin_Saferide/backend_changes_log.txt`
+
+### TAREAS ESPECÍFICAS A REALIZAR:
+
+1. **Controlador de Usuarios (`userController.js`):**
+   - Implementa el '.populate('vehicle')' en la función `getAllUsers`.
+   - Modifica `updateUser` y `uploadProfileImage` para incluir el rol 'admin' en la verificación de permisos jerárquicos.
+
+2. **Controlador de Vehículos (`vehicleController.js`):**
+   - Ajusta `createVehicle` para permitir que un administrador asigne un vehículo a un conductor mediante el `driver_id`.
+   - Expande `allowedUpdates` en `updateVehicle` para permitir la edición de placa (`license_plate`) y capacidad (`capacity`).
+   - Añade el permiso de administrador para editar y subir imágenes de cualquier vehículo.
+
+3. **Rutas de Vehículos (`vehicleRoutes.js`):**
+   - Actualiza el middleware `authorize` para incluir los roles 'admin' y 'administrador' en las rutas de creación, actualización y carga de imágenes.
+
+### REQUISITOS IMPORTANTES:
+- Asegúrate de importar correctamente el servicio de almacenamiento usando `require('../services/blobService')`.
+- No alteres la seguridad de los conductores normales; ellos deben seguir pudiendo editar solo su propia información.
+- Una vez aplicados los cambios, verifica que el servidor se reinicie sin errores.
+
+Por favor, lee el archivo `backend_changes_log.txt` antes de empezar para ver el código exacto 'Antes/Después' que debes aplicar."
+
+---
+
+CAMBIOS PARA EL Dashboard
+
+# Resumen Técnico de Cambios — Backend (saferide-backend)
+
+Este documento detalla los cambios realizados en el código del servidor para soportar las nuevas funcionalidades del Dashboard Administrativo.
+
+## 1. Métricas Globales por Rol
+Se modificó el controlador de métricas para que el Dashboard pueda mostrar el conteo exacto de usuarios según su tipo (`admin`, `conductor`, `pasajero`), en lugar de solo métricas de viajes.
+
+**Archivo:** `src/controllers/metricsController.js`
+
+```javascript
+// Antes: Solo contaba conductores y total general
+// Después: Conteo desglosado por cada tipo de usuario activo
+exports.getGlobalMetrics = async (req, res, next) => {
+  try {
+    const totalMetrics = await Metrics.aggregate([ ... ]); // Suma de kms, rides, etc.
+
+    // NUEVO: Conteos por rol
+    const totalUsers = await require('../models').User.countDocuments({ isActive: true });
+    const totalDrivers = await require('../models').User.countDocuments({ type: 'conductor', isActive: true });
+    const totalPassengers = await require('../models').User.countDocuments({ type: 'pasajero', isActive: true });
+    const totalAdmins = await require('../models').User.countDocuments({ type: 'admin', isActive: true });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...totalMetrics[0],
+        totalUsers,
+        totalDrivers,
+        totalPassengers,
+        totalAdmins
+      },
+    });
+  } catch (error) { ... }
+};
+```
+
+## 2. Configuración de Entorno Local
+Se redirigió la base de datos principal para evitar conflictos con el equipo de desarrollo.
+
+**Archivo:** `.env`
+
+```env
+# Cambio de SafeRideN a SafeRide_Local_Dev
+COSMOS_CONNECTION_STRING=mongodb://127.0.0.1:27017
+COSMOS_DATABASE=SafeRide_Local_Dev
+```
+
+## 3. Script de Seeding Automatizado
+Se creó un script robusto para poblar la base de datos local con datos realistas y coherentes.
+
+**Archivo:** `seed.js`
+
+### Características principales:
+- **Validación de Modelos:** Asegura que los teléfonos tengan 8 dígitos y las empresas coincidan con el enum de Mongoose (`Intel`, `Cargill`, `Deloitte`, etc.).
+- **Distribución Equitativa:** Configurado para insertar 15 pasajeros, 5 conductores y 3 administradores.
+- **Métricas de Simulación:** Genera registros en la colección `Metrics` para que los gráficos del dashboard no aparezcan vacíos.
+
+```javascript
+// Generación de administradores con empresas válidas
+const adminsData = [
+    {
+        name: 'Naomy Admin',
+        email: 'admin.seed@saferide.cr',
+        phone: '88880000',
+        type: 'admin',
+        company: 'Intel' // Validado contra el modelo User
+    },
+    // ... otros admins
+];
+```
+
+## 4. Limpieza de Datos Seed
+Se implementó un script para eliminar únicamente los datos de prueba sin afectar los registros reales del equipo.
+
+**Archivo:** `seed.clean.js`
+
+```javascript
+// Busca usuarios con el prefijo "seed_" para eliminarlos de SafeRideN
+const usuarios = await db.collection('users').deleteMany({
+    username: { $regex: /^(conductor|pasajero)_seed_/ }
+});
+```
+
+---
+*Documento técnico de referencia para el equipo de desarrollo.*
+
+
+# Resumen de Trabajo — SafeRide Admin Dashboard
+
+Este documento detalla las mejoras, refactorizaciones y nuevas funcionalidades implementadas en el panel administrativo de SafeRide.
+
+## 🎨 Frontend (Administrador-SafeRide)
+
+### 1. Refactorización Estética y Nomenclatura
+- **Español camelCase:** Se renombraron todas las clases CSS y referencias en el JSX a español en formato camelCase (ej: `dashboardContent`, `tarjetaLista`, `estadoVerde`) para mantener la coherencia del código base según la preferencia del usuario.
+- **Ajustes de Diseño:** Se optimizó el layout del Dashboard para que sea más limpio y premium, incluyendo micro-animaciones en los botones de acción.
+
+### 2. Funcionalidades del Dashboard
+- **Integración con Cloudinary:** Implementación de la función `getDefaultImagen` para validar URLs de Cloudinary y proporcionar un fallback local (`DefaultImageUser.png`).
+- **Gráficos Dinámicos:** 
+  - El gráfico de **Actividad Semanal** ahora reacciona al volumen de viajes en la base de datos.
+  - El gráfico de **Usuarios por Rol** muestra el desglose real de Pasajeros, Conductores y Administradores.
+  - El gráfico de **Pagos** simula una distribución basada en los datos reales del sistema.
+- **Sincronización de Métricas:** Se vincularon los contadores principales (Total Usuarios, Viajes, etc.) directamente con la respuesta del backend.
+
+### 3. Correcciones Críticas (Bug Fixes)
+- Se reparó el error de desestructuración en `useAuth`.
+- Se implementó correctamente el alias para `handleLogout` (`cerrarSesion`).
+- Se corrigieron los colores de los estados (badges) para que soporten tanto el idioma inglés de la DB como las nuevas clases CSS.
+
+---
+
+## ⚙️ Backend (saferide-backend)
+
+### 1. Controladores y Rutas
+- **Métricas Globales:** Se actualizó el controlador `metricsController.js` para realizar conteos precisos de usuarios desglosados por rol (`admin`, `conductor`, `pasajero`) en lugar de métricas de uso generales.
+- **Configuración Local:** Se configuró el `.env` para apuntar a la base de datos local `SafeRide_Local_Dev`, permitiendo el desarrollo sin afectar los datos compartidos del equipo.
+
+### 2. Sistema de Datos de Prueba (Seeding)
+- **`seed.js`:** Script avanzado que inyecta datos realistas en MongoDB local:
+  - 15 Pasajeros.
+  - 5 Conductores + 5 Vehículos.
+  - 3 Administradores (Naomy, Soporte, Gerencia).
+  - 15 Reservas, 10 Reseñas, 10 Notificaciones y 5 registros de Métricas.
+- **Validaciones de Seguridad:** El seed asegura que los teléfonos tengan 8 dígitos y las empresas pertenezcan al `enum` permitido por el modelo `User`.
+- **`seed.clean.js`:** Herramienta para limpiar datos de prueba de la base de datos compartida sin tocar los datos reales.
+
+---
+
+## 📂 Estructura de Base de Datos Local
+- **BD:** `SafeRide_Local_Dev`
+- **URI:** `mongodb://127.0.0.1:27017`
+
+### Credenciales de Prueba
+- **Email Admin:** `admin.seed@saferide.cr`
+- **Email Pasajero:** `pasajero1.seed@saferide.cr`
+- **Password:** `SafeRide2024!`
+
+---
+*Documento generado automáticamente por Antigravity AI.*
+

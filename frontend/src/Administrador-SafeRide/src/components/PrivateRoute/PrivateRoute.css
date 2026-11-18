@@ -1,0 +1,16 @@
+/* ============================================
+   PrivateRoute.css — Estilos de ruta privada
+   ============================================ */
+
+.contenedorCargando {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.indicadorCargando {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+}

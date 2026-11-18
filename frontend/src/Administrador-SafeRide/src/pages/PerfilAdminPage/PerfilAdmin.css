@@ -1,0 +1,820 @@
+/* =============================================
+   PerfilAdmin.css
+   ============================================= */
+.contenedorPerfil {
+    padding: 20px 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+    background-color: #ebeef5;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+
+}
+
+
+/* ==================================================
+* Enlace Volver 
+*  ===== */ 
+
+.enlaceVolver {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #2563EB;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 20px;
+    transition: transform 0.2s;
+    text-transform: uppercase;
+}
+
+.enlaceVolver:hover {
+    transform: translateX(-5px);
+}
+
+
+/* ==================================================
+* Tarjeta principal
+*  ===== */ 
+
+.tarjetaPrincipal {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 20px;
+    padding: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.082);
+}
+
+.contenedorIzquierdo {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.contenedorUser {
+    position: relative;
+    width: 100px;
+    height: 100px;
+}
+
+.imagenUser {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #F1F5F9;
+}
+
+.checkVerificado {
+    position: absolute;
+    bottom: -2px;
+    right: 2px;
+    background: #10B981;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid white;
+}
+
+.conteinerInfo h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.insigniaEstado {
+    font-size: 14px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.PuestoAdmin {
+    color: #64748B;
+    font-size: 17px;
+    margin: 4px 0 10px 0;
+}
+
+.DetallesInfo {
+    display: flex;
+    gap: 20px;
+    color: #535f70;
+    font-size: 15px;
+}
+
+.detalleItem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.botonEditPerfil {
+    background: #0056D2;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.botonEditPerfil:hover {
+    background: #0045A8;
+}
+
+/* ==================================================
+* Modal de Edicion
+*  ===== */ 
+
+.overlayModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modalContenido {
+    background: white;
+    width: 90%;
+    max-width: 700px;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.281);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Estilos para la barra de desplazamiento (Scrollbar) */
+.modalContenido::-webkit-scrollbar {
+    width: 16px;
+}
+
+.modalContenido::-webkit-scrollbar-track {
+    background: #f0f4f7;
+    border-radius: 0 20px 20px 0;
+}
+
+.modalContenido::-webkit-scrollbar-thumb {
+    background: #b9c1ca;
+    border-radius: 10px;
+    border: 2px solid #f1f5f9;
+    transition: all 0.2s ease;
+}
+
+.modalContenido::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+
+.encabezadoTarjeta{
+    display: flex;
+    justify-content: space-between; 
+    align-items: center;
+    padding: 30px 30px;
+    border-bottom: 1px solid #cad6e2;
+}
+
+.encabezadoTarjeta h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0d1936;
+    margin-bottom: 4px;
+}
+
+.encabezadoTarjeta p {
+    font-size: 14px;
+    color: #5a6779;
+    margin: 0;
+}
+
+.encabezadoTarjeta button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #94A3B8;
+    transition: color 0.2s;
+}
+
+.encabezadoTarjeta button:hover {
+    color: #446cef;
+}
+
+.seccionFotoModal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #cad6e2;
+}
+
+.contenedorFoto {
+    position: relative;
+    width: 140px;
+    height: 140px;
+}
+
+.foto {
+    width: 110%;
+    height: 110%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #F8FAFC;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.178);
+}
+
+.btnCambiarFoto {
+    position: absolute;
+    bottom: -10px;
+    right: -10px;
+    background: #2563EB;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 3px solid white;
+    transition: transform 0.2s;
+}
+
+.btnCambiarFoto:hover {
+    transform: scale(1.1);
+}
+
+.seccionFotoModal p {
+    font-size: 13px;
+    margin-top: 14px;
+    color: #64748B;
+}
+
+.contenedorUsername{
+    margin-bottom: 20px;
+}
+
+.cuadriculaCampos {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 20px;
+}
+
+.grupoInput {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.grupoInputEmpresa {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-top: 15px;
+}
+
+.contenedorSelectEmpresa {
+    position: relative;
+    margin-top: 8px;
+    width: 100%;
+    max-width: 450px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+
+.labelInput {
+    font-size: 15px;
+    font-weight: 600;
+    color: #0F172A;
+}
+
+.inputEstilizado {
+    background: #F1F5F9;
+    border: 1px solid #E2E8F0;
+    padding: 12px 16px;
+    border-radius: 10px;
+    color: #334155;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.selectEstilizado {
+    background: #F1F5F9;
+    border: 1px solid #E2E8F0;
+    padding: 12px 16px;
+    border-radius: 10px;
+    color: #334155;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.selectEstilizado option {
+    font-size: 15px;
+    background: #F1F5F9;
+    color: #334155;
+}
+
+
+.inputEstilizado:focus {
+    background: white;
+    border-color: #2563EB;
+    box-shadow: 0 0 0 4px rgba(37, 100, 235, 0.055);
+}
+
+.selectEstilizado:focus {
+    background: white;
+    border-color: #2563EB;
+    box-shadow: 0 0 0 4px rgba(37, 100, 235, 0.055);
+}
+
+
+.botonCancelar {
+    background: #F1F5F9;
+    color: #64748B;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.botonCancelar:hover {
+    background: #E2E8F0;
+    color: #0F172A;
+}
+
+.botonGuardar {
+    background: #0056D2;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 86, 210, 0.2);
+    transition: all 0.2s;
+}
+
+.botonGuardar:hover {
+    background: #023b8b;
+}
+
+
+
+/* ==================================================
+* Fila de Estadísticas
+*  ===== */ 
+.filaEstadisticas {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.tarjetaEstadistica {
+    background: white;
+    border: 1px solid #dae0e9;
+    border-radius: 16px;
+    padding: 23px;
+}
+
+.estadisticaEncabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.iconoEstadistica {
+    width: 36px;
+    height: 36px;
+    background: #EFF6FF;
+    color: #2563EB;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.estadisticaEtiqueta {
+    color: #64748B;
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.estadisticaValor {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0F172A;
+}
+
+/* Cuerpo del Perfil */
+.cuerpoPerfil {
+    display: grid;
+    grid-template-columns: 1.8fr 1fr;
+    gap: 2rem;
+}
+
+.columnaIzquierda {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.tarjetaFormulario {
+    background: white;
+    border: 1px solid #E2E8F0;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+
+.contenidoTarjeta {
+    padding: 2rem;
+}
+
+/* Security Settings Items */
+.itemAjuste {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid #F1F5F9;
+}
+
+.itemAjuste:last-child {
+    border-bottom: none;
+}
+
+.infoAjuste h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #0F172A;
+    margin: 0 0 4px 0;
+}
+
+.infoAjuste p {
+    font-size: 0.85rem;
+    color: #64748B;
+    margin: 0;
+}
+
+/* Pie de Tarjeta */
+.pieTarjeta {
+    padding: 1.5rem 2rem;
+    background: #F8FAFC;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* Actividad Reciente */
+.tarjetaActividad {
+    background: white;
+    border: 1px solid #E2E8F0;
+    border-radius: 20px;
+    padding: 2rem;
+}
+
+.lineaTiempo {
+    margin-top: 2rem;
+    position: relative;
+    padding-left: 30px;
+}
+
+.lineaTiempo::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 5px;
+    bottom: 5px;
+    width: 2px;
+    background: #E2E8F0;
+}
+
+.eventoTiempo {
+    position: relative;
+    margin-bottom: 2.5rem;
+}
+
+.eventoTiempo::before {
+    content: '';
+    position: absolute;
+    left: -30px;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #E2E8F0;
+    border: 3px solid white;
+    box-shadow: 0 0 0 2px #E2E8F0;
+    z-index: 1;
+}
+
+.eventoTiempo.azul::before { background: #2563EB; box-shadow: 0 0 0 2px #DBEAFE; }
+.eventoTiempo.rojo::before { background: #EF4444; box-shadow: 0 0 0 2px #FEE2E2; }
+
+.infoEvento h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #0F172A;
+    margin: 0 0 4px 0;
+}
+
+.infoEvento p {
+    font-size: 0.8rem;
+    color: #64748B;
+    margin: 0 0 8px 0;
+}
+
+.tagTiempo {
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: #F1F5F9;
+    color: #64748B;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.botonVerLogs {
+    width: 100%;
+    background: white;
+    border: 1px solid #E2E8F0;
+    padding: 12px;
+    border-radius: 12px;
+    color: #2563EB;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: 1rem;
+}
+
+/* Switch Toggle */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.switch input { opacity: 0; width: 0; height: 0; }
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #E2E8F0;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider { background-color: #2563EB; }
+input:checked + .slider:before { transform: translateX(20px); }
+
+@media (max-width: 1200px) {
+    .cuerpoPerfil { grid-template-columns: 1fr; }
+    .filaEstadisticas { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 768px) {
+    .cuadriculaCampos { grid-template-columns: 1fr; }
+    .filaEstadisticas { grid-template-columns: 1fr; }
+}
+
+/* ─── Secciones: Preferencias y Seguridad ─────────────────── */
+.tarjetaConfig {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid #E2E8F0;
+}
+
+.tituloSeccion {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #F1F5F9;
+    color: #2563EB;
+}
+
+.tituloSeccion h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #0F172A;
+    font-weight: 700;
+}
+
+.tituloSeccion p {
+    margin: 2px 0 0;
+    font-size: 0.82rem;
+    color: #64748B;
+}
+
+/* ─── Preferencias ─── */
+.listaPreferencias {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.itemPreferencia {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 10px;
+    border-radius: 8px;
+    transition: background 0.15s;
+}
+
+.itemPreferencia:hover {
+    background: #F8FAFC;
+}
+
+.iconoPreferencia {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #EFF6FF;
+    color: #2563EB;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.textoPreferencia {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.labelPreferencia {
+    font-weight: 600;
+    color: #0F172A;
+    font-size: 0.9rem;
+}
+
+.descPreferencia {
+    font-size: 0.78rem;
+    color: #64748B;
+}
+
+/* Toggle switch */
+.switch {
+    position: relative;
+    width: 42px;
+    height: 22px;
+    background: #CBD5E1;
+    border: none;
+    border-radius: 11px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+    padding: 0;
+}
+
+.switch.is-on { background: #2563EB; }
+
+.switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.switch.is-on::after { transform: translateX(20px); }
+
+/* ─── Seguridad ─── */
+.listaSeguridad {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.itemSeguridad {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.itemSeguridad:hover {
+    background: #F8FAFC;
+    border-color: #CBD5E1;
+}
+
+.itemSeguridad--danger:hover {
+    background: #FEF2F2;
+    border-color: #FCA5A5;
+}
+
+.iconoSeguridad {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #EFF6FF;
+    color: #2563EB;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.iconoSeguridad--danger {
+    background: #FEF2F2;
+    color: #DC2626;
+}
+
+.textoSeguridad {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.labelSeguridad {
+    font-weight: 600;
+    color: #0F172A;
+    font-size: 0.9rem;
+}
+
+.descSeguridad {
+    font-size: 0.78rem;
+    color: #64748B;
+}
+
+.ctaSeguridad {
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: #2563EB;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: #EFF6FF;
+}
+
+.ctaSeguridad--danger {
+    color: #DC2626;
+    background: #FEF2F2;
+}

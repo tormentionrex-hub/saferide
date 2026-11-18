@@ -1,0 +1,433 @@
+/* ==========================================================================
+   🔒 ESTILOS PREMIUM PARA EL MÓDULO DE AUDITORÍA (SAFERIDE)
+   ========================================================================== */
+
+.auditoria-container {
+  padding: 30px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #0F172A;
+  background: #F8FAFC;
+  min-height: 100vh;
+  will-change: auto;
+}
+
+/* ── ENCABEZADO ─────────────────────────────────────────────────────────── */
+.auditoria-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.auditoria-header h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #0F172A;
+  letter-spacing: -0.5px;
+  margin: 0 0 4px 0;
+}
+
+.auditoria-subtitle {
+  font-size: 14px;
+  color: #64748B;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Botón de actualizar */
+.refresh-audit-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #FFFFFF;
+  color: #334155;
+  border: 1px solid #E2E8F0;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.refresh-audit-btn:hover:not(:disabled) {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+  transform: translateY(-1px);
+}
+
+.refresh-audit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Animación de spin para el cargador */
+.spin-animation {
+  animation: spinAudit 1s linear infinite;
+}
+
+@keyframes spinAudit {
+  to { transform: rotate(360deg); }
+}
+
+/* ── CONTROLES Y FILTROS ────────────────────────────────────────────────── */
+.auditoria-controls-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid #E2E8F0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 35px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+}
+
+/* Buscador */
+.search-box-audit {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.search-icon-audit {
+  position: absolute;
+  left: 14px;
+  color: #94A3B8;
+}
+
+.search-box-audit input {
+  width: 100%;
+  padding: 12px 16px 12px 42px;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #0F172A;
+  background: #F8FAFC;
+  transition: all 0.2s ease;
+}
+
+.search-box-audit input:focus {
+  outline: none;
+  background: #FFFFFF;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+/* Lista de filtros por tipo */
+.severity-filters-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-btn-audit {
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-btn-audit:hover {
+  background: #F8FAFC;
+  color: #334155;
+}
+
+.filter-btn-audit.active {
+  border-color: transparent;
+  color: #FFFFFF;
+}
+
+.filter-btn-audit.all.active { background: #334155; }
+.filter-btn-audit.info.active { background: #3B82F6; }
+.filter-btn-audit.warning.active { background: #F59E0B; }
+.filter-btn-audit.critical.active { background: #EF4444; }
+
+/* ── LINEA DE TIEMPO (TIMELINE) ─────────────────────────────────────────── */
+.audit-timeline-container {
+  position: relative;
+  width: 100%;
+}
+
+/* Espina vertical del timeline */
+.timeline-spine {
+  position: absolute;
+  left: 28px;
+  top: 15px;
+  bottom: 15px;
+  width: 2px;
+  background: #E2E8F0;
+  z-index: 1;
+}
+
+.audit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  z-index: 2;
+  position: relative;
+}
+
+/* Tarjeta individual */
+.audit-card-item {
+  display: flex;
+  position: relative;
+  padding-left: 65px;
+}
+
+/* Nodo indicador en la espina */
+.timeline-indicator-node {
+  position: absolute;
+  left: 14px;
+  top: 18px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FFFFFF;
+  border: 2px solid #CBD5E1;
+  z-index: 5;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.node-critical {
+  border-color: #EF4444;
+  color: #EF4444;
+  background: #FEF2F2;
+}
+
+.node-warning {
+  border-color: #F59E0B;
+  color: #F59E0B;
+  background: #FEF3C7;
+}
+
+.node-info {
+  border-color: #3B82F6;
+  color: #3B82F6;
+  background: #EFF6FF;
+}
+
+/* Cuerpo de la tarjeta de auditoria */
+.audit-card-body {
+  flex: 1;
+  background: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid #E2E8F0;
+  padding: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+  will-change: transform, box-shadow;
+  transform: translateZ(0); /* Aceleración GPU */
+}
+
+.audit-card-body:hover {
+  transform: translateY(-3px) translateZ(0);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+}
+
+/* Bandas decorativas en base a severidad */
+.card-critical .audit-card-body { border-left: 4px solid #EF4444; }
+.card-warning .audit-card-body { border-left: 4px solid #F59E0B; }
+.card-info .audit-card-body { border-left: 4px solid #3B82F6; }
+
+/* Fila Superior: Info del Admin e IP */
+.audit-card-meta-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-email-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-avatar-mini {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #E2E8F0;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Outfit', 'Inter', sans-serif;
+}
+
+.admin-email-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.admin-ip-badge {
+  font-size: 12px;
+  color: #64748B;
+  background: #F1F5F9;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-family: monospace;
+}
+
+/* Fila de la acción principal */
+.audit-action-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.audit-badge-action {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  letter-spacing: 0.5px;
+}
+
+.badge-critical { background: #FEF2F2; color: #EF4444; }
+.badge-warning { background: #FEF3C7; color: #D97706; }
+.badge-info { background: #EFF6FF; color: #3B82F6; }
+
+.audit-target-label {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.audit-target-label strong {
+  color: #334155;
+}
+
+/* Descripción del evento */
+.audit-details-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #334155;
+  margin: 0 0 16px 0;
+  font-weight: 500;
+}
+
+/* Pie de la tarjeta */
+.audit-card-footer {
+  display: flex;
+  gap: 20px;
+  border-top: 1px solid #F1F5F9;
+  padding-top: 12px;
+  font-size: 12px;
+  color: #94A3B8;
+  font-weight: 500;
+}
+
+.audit-time-stamp,
+.audit-device-stamp {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Iconos de severidad */
+.log-icon-critico { color: #EF4444; }
+.log-icon-advertencia { color: #D97706; }
+.log-icon-info { color: #3B82F6; }
+
+/* ── CARGADORES Y ESTADOS VACÍOS ────────────────────────────────────────── */
+.audit-loading-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  gap: 16px;
+}
+
+.audit-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3.5px solid rgba(0, 0, 0, 0.05);
+  border-top-color: #3B82F6;
+  border-radius: 50%;
+  animation: spinAudit 0.8s linear infinite;
+}
+
+.audit-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid #E2E8F0;
+  padding: 60px 20px;
+  text-align: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+}
+
+.empty-shield-icon {
+  color: #94A3B8;
+  margin-bottom: 16px;
+}
+
+.audit-empty-state h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0 0 6px 0;
+}
+
+.audit-empty-state p {
+  font-size: 14px;
+  color: #64748B;
+  margin: 0;
+  max-width: 400px;
+  line-height: 1.4;
+}
+
+/* Adaptación responsiva */
+@media (max-width: 640px) {
+  .auditoria-container {
+    padding: 15px;
+  }
+  
+  .timeline-spine {
+    left: 18px;
+  }
+  
+  .audit-card-item {
+    padding-left: 45px;
+  }
+  
+  .timeline-indicator-node {
+    left: 4px;
+    width: 26px;
+    height: 26px;
+  }
+  
+  .audit-card-meta-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .admin-ip-badge {
+    align-self: flex-start;
+  }
+}
