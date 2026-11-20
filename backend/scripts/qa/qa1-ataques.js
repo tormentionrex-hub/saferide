@@ -1258,7 +1258,7 @@ async function register(type, suffix) {
     // --- GET /bookings/admin/summary
     r = await call('GET', '/bookings/admin/summary', admin.token);
     const sm = r.body?.data || {};
-    const sumStatus = Object.values(sm.byStatus || {}).reduce((a, b) => a + b, 0);
+    const sumStatus = Object.entries(sm.byStatus || {}).filter(([k]) => k !== 'cancelledTotal').reduce((a, [, b]) => a + b, 0);
     check('H20l resumen: forma y conteos consistentes', `${r.status}/${['charged', 'paid', 'pending', 'waived', 'paidUsd'].every(k => typeof sm.amounts?.[k] === 'number')}/${sumStatus === sm.totalBookings}`, '200/true/true');
     const dbPending = await db.collection('bookings').aggregate([{ $match: { status: 'completed', payment_status: 'pending', payment_type: { $ne: 'gifted' } } }, { $group: { _id: null, s: { $sum: '$charged_amount' } } }]).toArray();
     check('H20m monto pendiente = suma real en la base', sm.amounts?.pending, Math.round((dbPending[0]?.s || 0) * 100) / 100);
@@ -1307,6 +1307,31 @@ async function register(type, suffix) {
     let modelErr = null;
     try { await new BookingModel({ ride_id: oid(rideR), passenger_id: oid(hpo.id), offered_amount: 300000, charged_amount: 300000 }).validate(); } catch (e) { modelErr = Object.keys(e.errors || {}).sort().join(','); }
     check('H20y el modelo también lo rechaza', modelErr, 'charged_amount,offered_amount');
+  }
+
+
+  // H21 Ronda 6: "Canceladas" trae las dos grafías (cancelled y canceled).
+  {
+    let pass;
+    const hpo = extra.find(u => u.email.startsWith('qa.pasajero.hpo.'));
+    const cOld = await db.collection('bookings').findOne({ passenger_id: oid(hpo.id), status: 'cancelled' });
+    const cNew = await db.collection('bookings').insertOne({ ride_id: oid(rideH), passenger_id: oid(hpo.id), status: 'canceled', payment_status: 'waived', payment_type: 'normal', seats_booked: 1, charged_amount: 0, createdAt: new Date(), updatedAt: new Date() });
+    const ids = async (q) => ((await call('GET', `/bookings?limit=1000&search=${encodeURIComponent(hpo.email)}&${q}`, admin.token)).body?.data || []).map(b => b._id);
+    const a = await ids('status=cancelled');
+    const b = await ids('status=canceled');
+    check('H21a status=cancelled trae también las "canceled"', `${a.includes(String(cOld?._id))}/${a.includes(String(cNew.insertedId))}`, 'true/true');
+    check('H21b status=canceled trae lo mismo que status=cancelled', JSON.stringify([...b].sort()) === JSON.stringify([...a].sort()) && b.length === 2, true);
+    r = await call('GET', '/bookings/admin/summary', admin.token);
+    const st = r.body?.data?.byStatus || {};
+    const dbCanc = await db.collection('bookings').countDocuments({ status: { $in: ['cancelled', 'canceled'] } });
+    check('H21c resumen: cancelledTotal = cancelled + canceled = base (campos viejos intactos)', `${typeof st.cancelled}/${typeof st.canceled}/${st.cancelledTotal === st.cancelled + st.canceled}/${st.cancelledTotal === dbCanc}`, 'number/number/true/true');
+    pass = [];
+    for (const q of ['status=Cancelled', 'status=cancelled%20', 'status=cancelled&status=canceled', 'status=canceld']) {
+      const x = await call('GET', '/bookings?' + q, admin.token); if (x.status !== 400) pass.push(q + ':' + x.status);
+    }
+    check('H21d variantes mal escritas o repetidas del filtro (4 variantes)', pass.join(' ') || 'todos 400', 'todos 400');
+    r = await call('GET', '/bookings?status=cancelled&limit=100', hp3.token);
+    check('H21e el pasajero con status=cancelled sigue viendo solo las suyas', (r.body?.data || []).every(x => String(x.passenger_id?._id || x.passenger_id) === hp3.id), true);
   }
 
   // ---------- limpieza ----------

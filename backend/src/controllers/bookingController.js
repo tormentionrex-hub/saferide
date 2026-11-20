@@ -193,6 +193,10 @@ exports.getAllBookings = async (req, res, next) => {
 
     // Listado global del panel: filtros cerrados (validados en la ruta).
     const { payment_status, payment_type, payment_method, from, to, search, userId } = req.query;
+    // En la base conviven 'cancelled' y 'canceled' (la cancelación de una
+    // reserva confirmada usa la segunda): el filtro "Canceladas" del panel
+    // debe traer las dos, pida la que pida.
+    if (status === 'cancelled' || status === 'canceled') query.status = { $in: ['cancelled', 'canceled'] };
     if (payment_status) query.payment_status = payment_status;
     if (payment_type) query.payment_type = payment_type;
     if (payment_method) query.payment_method = payment_method;
@@ -301,7 +305,11 @@ exports.getBookingsSummary = async (req, res, next) => {
           waived: round(t.waived),
           paidUsd: round(t.paidUsd),
         },
-        byStatus: counts(agg.byStatus, ['pending', 'confirmed', 'completed', 'cancelled', 'canceled', 'deny'], 'unknown'),
+        byStatus: (() => {
+          const s = counts(agg.byStatus, ['pending', 'confirmed', 'completed', 'cancelled', 'canceled', 'deny'], 'unknown');
+          // Total de canceladas con las dos grafías; los dos campos se mantienen.
+          return { ...s, cancelledTotal: s.cancelled + s.canceled };
+        })(),
         byPaymentStatus: counts(agg.byPaymentStatus, ['pending', 'paid', 'waived'], 'unknown'),
         byPaymentMethod: counts(agg.byPaymentMethod, ['cash', 'sinpe', 'card', 'paypal', 'google_pay', 'apple_pay', 'none'], 'none'),
         byPaymentType: counts(agg.byPaymentType, ['normal', 'gifted'], 'normal'),
