@@ -189,10 +189,14 @@ const router = express.Router();
 
 // Validation rules
 const bookingValidation = [
-  body('ride_id').isMongoId().withMessage('Invalid ride ID'),
+  body('ride_id').isString().isMongoId().withMessage('Invalid ride ID'),
   body('seats_booked').optional().isInt({ min: 1, max: 7 }).withMessage('Seats must be between 1 and 7'),
   body('offered_amount').optional().isFloat({ min: 0 }).withMessage('offered_amount must be a non-negative number'),
   body('payment_method').optional({ nullable: true }).isIn(['cash', 'sinpe', 'card', 'paypal']).withMessage('Invalid payment method'),
+  // Textos libres: tipo y largo. Un objeto reventaba en .trim() (500) y no
+  // había tope de tamaño (el modelo también lo limita).
+  body('passenger_origin').optional({ nullable: true }).isString().isLength({ max: 300 }),
+  body('passenger_destination').optional({ nullable: true }).isString().isLength({ max: 300 }),
 ];
 
 // All routes require authentication
@@ -208,7 +212,14 @@ router.get('/ride/:rideId', bookingController.getBookingsByRide);
 router.get('/driver/me', authorize('conductor'), bookingController.getMyDriverBookings);
 router.delete('/:id', bookingController.cancelBooking);
 router.patch('/:id/canceled', bookingController.canceledBooking);
-router.patch('/:id/status', authorize('conductor', 'admin', 'pasajero'), bookingController.updateBookingStatus);
+// Solo estados conocidos y de tipo texto: un objeto o un array no llega al
+// controlador (que además comprueba quién puede hacer cada transición).
+const statusValidation = [
+  body('status').isString().isIn(['pending', 'confirmed', 'cancelled', 'canceled', 'completed', 'deny'])
+    .withMessage('Invalid status'),
+  body('apply_penalty').optional().isBoolean({ strict: true }),
+];
+router.patch('/:id/status', authorize('conductor', 'admin', 'pasajero'), statusValidation, validate, bookingController.updateBookingStatus);
 router.patch('/:id/payment', authorize('conductor', 'admin'), bookingController.updatePaymentStatus);
 
 module.exports = router;

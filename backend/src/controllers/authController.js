@@ -17,12 +17,38 @@ const transporter = nodemailer.createTransport({
 // obtiene un token que le permita abrir sesión.
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
+// Un código de verificación admite pocos intentos: se reserva el intento de
+// forma atómica ($inc con tope) ANTES de comparar, así ni siquiera una ráfaga
+// de peticiones en paralelo pasa del límite. Al agotarse, el código deja de
+// servir y hay que pedir otro. Devuelve el documento si el código es correcto.
+const MAX_CODE_ATTEMPTS = 5;
+// Tiempo para terminar el registro después de verificar el correo.
+const VERIFIED_CODE_TTL_MS = 30 * 60 * 1000;
+const checkVerificationCode = async (email, code) => {
+    // Solo texto: un objeto ({ $ne: ... }) nunca debe llegar a la consulta.
+    if (typeof email !== 'string' || typeof code !== 'string') return null;
+    const entry = await VerificationCode.findOneAndUpdate(
+        // $exists:false cubre los códigos creados antes de existir el campo.
+        // verifiedAt: null -> un código ya verificado (reservado para el
+        // registro) no se vuelve a aceptar aquí.
+        { email, verifiedAt: null, $or: [{ attempts: { $lt: MAX_CODE_ATTEMPTS } }, { attempts: { $exists: false } }] },
+        { $inc: { attempts: 1 } },
+        { new: true, sort: { createdAt: -1 } }
+    );
+    if (!entry) return null;
+    if (entry.code !== code) {
+        if (entry.attempts >= MAX_CODE_ATTEMPTS) await VerificationCode.deleteOne({ _id: entry._id });
+        return null;
+    }
+    return entry;
+};
+
 // Helper function to generate access and refresh tokens.
 // typ distingue ambos tokens: comparten secreto, y sin esta marca un refresh
 // token (7 días) se aceptaba también como access token.
-const generateTokens = (userId) => {
+const generateTokens = (userId, tv = 0) => {
     const accessToken = jwt.sign(
-        { userId, typ: 'access' },
+        { userId, typ: 'access', tv },
         process.env.JWT_SECRET,
         // 1 h: el logout no revoca el access token (JWT), así que su vida debe
         // ser corta; la app lo renueva sola con el refresh token.
@@ -32,7 +58,7 @@ const generateTokens = (userId) => {
     // jti aleatorio: dos refresh firmados en el mismo segundo salían
     // idénticos y la rotación no podía invalidar el anterior.
     const refreshToken = jwt.sign(
-        { userId, typ: 'refresh', jti: crypto.randomUUID() },
+        { userId, typ: 'refresh', tv, jti: crypto.randomUUID() },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
     );
@@ -48,9 +74,10 @@ const generateTokens = (userId) => {
 exports.register = async (req, res, next) =>{
     try {
         const { name, username, email, phone, password, company, work_schedule, type}= req.body;
+        const normalizedEmail = email.toLowerCase().trim();
         // Check if the user already exists
         const existingUser = await User.findOne(
-           { $or: [{ email: email.toLowerCase().trim() }, {username}]}
+           { $or: [{ email: normalizedEmail }, {username}]}
         );
         if (existingUser) {
             return res.status(409).json({
@@ -59,8 +86,41 @@ exports.register = async (req, res, next) =>{
             });
         }
 
-        // Create a new user
-        const user = await User.create({
+        // El correo debe estar verificado: sin esto cualquiera registraba una
+        // dirección corporativa ajena (o inventada) y el filtro de correos
+        // corporativos no servía. La app hace send-verification-code ->
+        // verify-code -> register; verify-code deja el código marcado como
+        // verificado y aquí se reclama de forma atómica (usedAt), así que un
+        // código sirve para un solo registro aunque lleguen dos a la vez.
+        // El admin del panel registra usuarios en su nombre (con su token) y
+        // no pasa por el código: después les manda la invitación.
+        const isAdmin = req.user?.type === 'admin';
+        let claimed = null;
+        if (!isAdmin) {
+            claimed = await VerificationCode.findOneAndUpdate(
+                {
+                    email: normalizedEmail,
+                    verifiedAt: { $ne: null },
+                    usedAt: null,
+                    expiresAt: { $gt: new Date() },
+                },
+                { $set: { usedAt: new Date() } },
+                { new: true, sort: { verifiedAt: -1 } }
+            );
+            if (!claimed) {
+                return res.status(403).json({
+                    success: false,
+                    code: 'EMAIL_NOT_VERIFIED',
+                    message: 'Verifica tu correo con el código antes de crear la cuenta.',
+                });
+            }
+        }
+
+        // Create a new user. Si falla (validación, duplicado en carrera), el
+        // código se libera para que la persona pueda corregir y reintentar.
+        let user;
+        try {
+            user = await User.create({
             name,
             username,
             email,
@@ -71,7 +131,12 @@ exports.register = async (req, res, next) =>{
             // El registro público nunca crea administradores (esos salen del seed).
             type: type === 'conductor' ? 'conductor' : 'pasajero',
 
-        });
+            });
+        } catch (createError) {
+            if (claimed) await VerificationCode.updateOne({ _id: claimed._id }, { $set: { usedAt: null } });
+            throw createError;
+        }
+        if (claimed) await VerificationCode.deleteOne({ _id: claimed._id });
 
         //Generate tokens
         const { accessToken, refreshToken} = generateTokens(user._id);
@@ -104,7 +169,7 @@ exports.login = async (req, res, next) => {
         const { email, password } = req.body;
 
         // Find user and include password field
-        const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+password');
+        const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+password +tokenVersion');
 
         // Permitimos login a usuarios con isActive=false (cuenta limitada por
         // trustScore=0). El frontend recibe el flag isActive en la respuesta
@@ -129,7 +194,7 @@ exports.login = async (req, res, next) => {
         }
 
         // Generate tokens
-        const { accessToken, refreshToken} = generateTokens(user._id);
+        const { accessToken, refreshToken} = generateTokens(user._id, user.tokenVersion || 0);
 
         // Save refresh token
         user.refreshToken = hashToken(refreshToken);
@@ -173,7 +238,9 @@ exports.refreshToken = async (req, res, next) => {
         }
 
         // 2. Generar el nuevo par de tokens antes del update.
-        const tokens = generateTokens(decoded.userId);
+        // El nuevo par hereda la versión de sesión del refresh; el filtro de
+        // abajo exige que siga siendo la vigente.
+        const tokens = generateTokens(decoded.userId, decoded.tv || 0);
 
         // 3. Validar y rotar en una sola operación atómica.
         //    - El filtro exige que el refreshToken guardado en DB coincida
@@ -189,7 +256,15 @@ exports.refreshToken = async (req, res, next) => {
         //    Se acepta también el token en claro para no cerrar las sesiones
         //    abiertas antes de guardar hashes; al rotar queda solo el hash.
         const updated = await User.findOneAndUpdate(
-            { _id: decoded.userId, refreshToken: { $in: [hashToken(refreshToken), refreshToken] } },
+            {
+                _id: decoded.userId,
+                refreshToken: { $in: [hashToken(refreshToken), refreshToken] },
+                // La versión de sesión del refresh debe ser la vigente (los
+                // usuarios sin el campo están en la versión 0) y la cuenta no
+                // puede estar eliminada.
+                tokenVersion: decoded.tv ? decoded.tv : { $in: [0, null] },
+                deletedAt: null,
+            },
             { refreshToken: hashToken(tokens.refreshToken) },
             { new: true }
         );
@@ -265,9 +340,13 @@ exports.updatePassword = async (req, res, next) => {
         // Verify current password
         const isPasswordValid = await user.comparePassword(currentPassword);
 
+        // 403 y no 401: la app y el panel tratan todo 401 como sesión
+        // vencida (refrescan y, si se repite, cierran la sesión), así que una
+        // contraseña actual mal escrita terminaba sacando al usuario.
         if (!isPasswordValid) {
-            return res.status(401).json({
+            return res.status(403).json({
                 success: false,
+                code: 'WRONG_PASSWORD',
                 message: 'Current password is incorrect',
             });
         }
@@ -284,15 +363,44 @@ exports.updatePassword = async (req, res, next) => {
         next(error);
     }
 };
+// @desc Cerrar la sesión en todos los dispositivos
+// @route POST /api/v1/auth/logout-all
+// @access Private
+//
+// Sube la versión de sesión (tv): todo access token emitido antes deja de
+// valer en verifyToken aunque no haya vencido, y se borra el refresh token
+// guardado. Incluye la sesión desde la que se llama (el panel cierra la suya
+// después). Atómico con $inc para que dos llamadas no se pisen.
+exports.logoutAll = async (req, res, next) => {
+    try {
+        await User.updateOne(
+            { _id: req.user._id },
+            { $inc: { tokenVersion: 1 }, $set: { refreshToken: null } }
+        );
+        res.status(200).json({
+            success: true,
+            message: 'All sessions closed',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc Send verification code to email
 // @route POST /api/v1/auth/send-verification-code
 // @access Public
 exports.sendVerificationCode = async (req, res, next) => {
     try {
         const { email } = req.body;
+        // Segunda barrera (la ruta ya lo valida): solo texto llega a la consulta.
+        if (typeof email !== 'string') {
+            return res.status(400).json({ success: false, message: 'Email válido requerido' });
+        }
 
         // Generate 6-digit code
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        // crypto.randomInt y no Math.random: el código protege la recuperación
+        // de contraseña y debe salir de un generador criptográfico.
+        const code = crypto.randomInt(100000, 1000000).toString();
 
         // Save to database (delete existing codes for this email first)
         await VerificationCode.deleteMany({ email });
@@ -356,17 +464,23 @@ exports.resetPassword = async (req, res, next) => {
             return res.status(200).json({ success: true, message: 'Contraseña restablecida exitosamente.' });
         }
 
-        const verification = await VerificationCode.findOne({ email: normalizedEmail, code });
+        const verification = await checkVerificationCode(normalizedEmail, code);
         if (!verification) {
             return res.status(400).json({ success: false, message: 'Código inválido o expirado.' });
         }
 
-        const user = await User.findOne({ email: normalizedEmail });
+        const user = await User.findOne({ email: normalizedEmail }).select('+tokenVersion');
         if (!user) {
             return res.status(404).json({ success: false, message: 'Usuario no encontrado.' });
         }
 
         user.password = newPassword;
+        // Restablecer la contraseña cierra las sesiones abiertas: el refresh
+        // token guardado se borra y la versión de sesión sube, así que ni el
+        // refresh ni el access token anteriores (aunque no haya vencido su
+        // hora) sirven a quien tuviera la cuenta.
+        user.refreshToken = null;
+        user.tokenVersion = (user.tokenVersion || 0) + 1;
         await user.save();
 
         await VerificationCode.deleteOne({ _id: verification._id });
@@ -432,14 +546,20 @@ exports.verifyCode = async (req, res, next) => {
         const { email, code } = req.body;
 
         // --- BACKDOOR DE DESARROLLO PARA PRUEBAS (CÓDIGO MAESTRO) ---
+        // Solo en development. Deja el correo verificado igual que un código
+        // real, porque register ahora lo exige.
         if ((process.env.NODE_ENV === 'development') && code === '000000') {
+            await VerificationCode.create({
+                email, code, verifiedAt: new Date(),
+                expiresAt: new Date(Date.now() + VERIFIED_CODE_TTL_MS),
+            });
             return res.status(200).json({
                 success: true,
                 message: 'Código maestro verificado exitosamente (modo desarrollo).',
             });
         }
 
-        const verification = await VerificationCode.findOne({ email, code });
+        const verification = await checkVerificationCode(email, code);
 
         if (!verification) {
             return res.status(400).json({
@@ -448,8 +568,14 @@ exports.verifyCode = async (req, res, next) => {
             });
         }
 
-        // Delete the code after successful verification (one-time use)
-        await VerificationCode.deleteOne({ _id: verification._id });
+        // El código queda verificado (no se borra): register lo exige y lo
+        // consume. checkVerificationCode ignora los verificados, así que no
+        // se puede volver a verificar ni usar para restablecer la contraseña.
+        // Se da un margen para terminar el registro (elegir el rol).
+        await VerificationCode.updateOne(
+            { _id: verification._id },
+            { $set: { verifiedAt: new Date(), expiresAt: new Date(Date.now() + VERIFIED_CODE_TTL_MS) } }
+        );
 
         res.status(200).json({
             success: true,

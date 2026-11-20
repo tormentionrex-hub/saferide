@@ -1,9 +1,10 @@
 const express = require('express');
 const { body } = require('express-validator');
 const authController = require('../controllers/authController');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, optionalAuth } = require('../middleware/auth');
 const validate = require('../middleware/validation');
-const { authLimiter } = require('../middleware/rateLimiter');
+const { isSafeText, SAFE_TEXT_MESSAGE } = require('../utils/safeText');
+const { authLimiter, sendCodeIpLimiter, sendCodeEmailLimiter, deleteAccountIpLimiter, deleteAccountUserLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -126,8 +127,8 @@ const PERSONAL_EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outloo
 
 // Validation rules
 const registerValidation = [
-  body('name').trim().isLength({ min: 4 }).withMessage('Name must be at least 4 characters'),
-  body('username').trim().isLength({ min: 4 }).withMessage('Username must be at least 4 characters'),
+  body('name').isString().trim().isLength({ min: 4, max: 100 }).withMessage('Name must be 4-100 characters').custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
+  body('username').isString().trim().isLength({ min: 4, max: 50 }).withMessage('Username must be 4-50 characters').custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
   body('email').isString().isEmail().normalizeEmail().withMessage('Invalid email address')
     .custom((value) => {
       // SafeRide es carpooling corporativo: la app ya rechaza estos dominios
@@ -423,31 +424,52 @@ const loginValidation = [
 ];
 
 const passwordValidation = [
-  body('currentPassword').notEmpty().withMessage('Current password is required'),
-  body('newPassword')
+  body('currentPassword').isString().notEmpty().withMessage('Current password is required'),
+  body('newPassword').isString()
     .isLength({ min: 8 }).withMessage('New password must be at least 8 characters')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
     .withMessage('Password must contain uppercase, lowercase, number and special character'),
 ];
 
 // Routes
-router.post('/register', authLimiter, registerValidation, validate, authController.register);
+// optionalAuth: si quien registra es un admin del panel (con su token), no se
+// exige el código de verificación del correo (ver authController.register).
+router.post('/register', authLimiter, optionalAuth, registerValidation, validate, authController.register);
 router.post('/login', authLimiter, loginValidation, validate, authController.login);
 router.post('/refresh', authController.refreshToken);
 router.post('/logout', verifyToken, authController.logout);
 router.get('/me', verifyToken, authController.getMe);
-router.post('/send-verification-code', authLimiter, authController.sendVerificationCode);
-router.post('/verify-code', authLimiter, authController.verifyCode);
+// isString en email y código: sin validar, un body como
+// { email: { "$ne": null } } llegaba tal cual a la consulta de Mongo. En
+// send-verification-code borraba los códigos pendientes de TODOS los usuarios
+// y en verify-code { code: { "$ne": "x" } } daba por bueno cualquier código.
+// Mismo normalizeEmail que reset-password para que el correo guardado y el
+// buscado coincidan.
+router.post('/send-verification-code', authLimiter, sendCodeIpLimiter, [
+  body('email').isString().isEmail().normalizeEmail().withMessage('Email válido requerido'),
+], validate, sendCodeEmailLimiter, authController.sendVerificationCode);
+router.post('/verify-code', authLimiter, [
+  body('email').isString().isEmail().normalizeEmail().withMessage('Email válido requerido'),
+  body('code').isString().isLength({ min: 6, max: 6 }).withMessage('Código debe ser de 6 dígitos'),
+], validate, authController.verifyCode);
 router.post('/reset-password', authLimiter, [
   body('email').isString().isEmail().normalizeEmail().withMessage('Email válido requerido'),
   body('code').isString().isLength({ min: 6, max: 6 }).withMessage('Código debe ser de 6 dígitos'),
-  body('newPassword')
+  body('newPassword').isString()
     .isLength({ min: 8 }).withMessage('La contraseña debe tener al menos 8 caracteres')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
     .withMessage('La contraseña debe contener mayúscula, minúscula, número y carácter especial'),
 ], validate, authController.resetPassword);
 router.post('/push-token', verifyToken, authController.updatePushToken);
 router.patch('/notification-preferences', verifyToken, authController.updateNotificationPreferences);
-router.put('/password', verifyToken, passwordValidation, validate, authController.updatePassword);
+// PUT /password (app) y PATCH /change-password (panel) son la misma acción y
+// el mismo controlador. Los intentos fallidos comparten el tope con DELETE
+// /users/me: adivinar la contraseña con un token robado cuesta lo mismo por
+// cualquiera de las tres rutas.
+const passwordChange = [verifyToken, deleteAccountIpLimiter, deleteAccountUserLimiter, passwordValidation, validate, authController.updatePassword];
+router.put('/password', ...passwordChange);
+router.patch('/change-password', ...passwordChange);
+// Cierra la sesión en todos los dispositivos (sube la versión de sesión).
+router.post('/logout-all', verifyToken, authController.logoutAll);
 
 module.exports = router;

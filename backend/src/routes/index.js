@@ -54,6 +54,9 @@ router.use('/metrics', metricsRoutes);
 router.use('/location', locationRoutes);
 router.use('/paypal', paypalRoutes);
 router.use('/maps', mapsRoutes);
+// Panel de admin: revisión de documentos y registro de auditoría.
+router.use('/documents', require('./documentRoutes'));
+router.use('/audit-logs', require('./auditRoutes'));
 
 // [SAFESCORE-AGENT] — Endpoints admin del agente (visibilidad de jobs y stats)
 try {

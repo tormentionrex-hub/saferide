@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const { COMPANIES } = require('../config/companies');
 const bcrypt = require('bcryptjs');
+const { safeTextValidator } = require('../utils/safeText');
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -8,6 +9,10 @@ const userSchema = new mongoose.Schema({
         required: [true, 'Name is required'],
         trim: true,
         minlength: [4, 'Name must be at least 4 characters'],
+        // Tope de largo: sin él se guardaba un nombre de 1 MB que luego
+        // viaja en cada viaje, reserva y notificación.
+        maxlength: [100, 'Name cannot exceed 100 characters'],
+        validate: safeTextValidator('name'),
     },
     username: {
         type: String,
@@ -15,6 +20,7 @@ const userSchema = new mongoose.Schema({
         unique: true,
         trim: true,
         minlength: [4, 'Username must be at least 4 characters'],
+        validate: safeTextValidator('username'),
     },
     email: {
         type: String,
@@ -93,6 +99,15 @@ const userSchema = new mongoose.Schema({
         unique: true,
         sparse: true,
     },
+    // Versión de las sesiones. Va dentro de cada token (claim tv) y sube al
+    // restablecer la contraseña por código: los tokens anteriores dejan de
+    // valer (ver middleware/auth), así que si alguien más tenía la sesión la
+    // pierde al recuperar la cuenta.
+    tokenVersion: {
+        type: Number,
+        default: 0,
+        select: false,
+    },
     // Fecha en que el usuario eliminó su cuenta (datos ya anonimizados).
     deletedAt: {
         type: Date,
@@ -150,6 +165,9 @@ userSchema.pre('save', async function(next){
 
 // Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword) {
+    // Un valor que no es texto (número, objeto, array) no es una contraseña
+    // válida; bcrypt lanzaba y el endpoint respondía 500.
+    if (typeof candidatePassword !== 'string' || typeof this.password !== 'string') return false;
     return await bcrypt.compare(candidatePassword, this.password);
 };
 
@@ -158,6 +176,7 @@ userSchema.methods.toPublicJSON = function() {
     const obj = this.toObject();
     delete obj.password;
     delete obj.refreshToken;
+    delete obj.tokenVersion;
     delete obj.__v;
     return obj;
 };

@@ -607,6 +607,15 @@ exports.updateBookingStatus = async (req, res, next) => {
         message: 'Solo puedes cancelar tu propia reserva.',
       });
     }
+    // Y solo una reserva todavía activa. Cancelar una 'completed' con el cobro
+    // pendiente la sacaba de la deuda (las reglas de "cobro pendiente" buscan
+    // status 'completed') y el pasajero volvía a reservar sin pagar.
+    if (passengerOnly && !['pending', 'confirmed'].includes(booking.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'This booking cannot be cancelled',
+      });
+    }
     const ride = booking.ride_id;
 
     // Con el viaje en marcha, el pasajero solo puede cancelar un viaje
@@ -621,6 +630,15 @@ exports.updateBookingStatus = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: 'El viaje ya salió: la reserva no se puede cancelar.',
+      });
+    }
+
+    // Una reserva solo se confirma desde 'pending': pasar una cancelada o
+    // rechazada directo a 'confirmed' no descontaba asientos (sobreventa).
+    if (status === 'confirmed' && !['pending', 'confirmed'].includes(booking.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Only pending bookings can be confirmed',
       });
     }
 
@@ -700,7 +718,11 @@ exports.updateBookingStatus = async (req, res, next) => {
 
     // Only drivers and admins can override payment fields — passengers cannot manipulate these
     if (!passengerOnly) {
-      if (payment_status && ['pending', 'paid', 'waived'].includes(payment_status)) {
+      // Un pago ya confirmado no se revierte por aquí (misma regla que
+      // PATCH /:id/payment); se ignora el cambio para no romper el rechazo,
+      // que siempre manda 'waived'.
+      if (payment_status && ['pending', 'paid', 'waived'].includes(payment_status)
+          && !(booking.payment_status === 'paid' && payment_status !== 'paid')) {
         booking.payment_status = payment_status;
       }
       if (payment_type && ['normal', 'gifted'].includes(payment_type)) {

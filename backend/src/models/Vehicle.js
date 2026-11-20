@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { safeTextValidator } = require('../utils/safeText');
 
 const vehicleSchema = new mongoose.Schema({
     driver_id: {
@@ -10,11 +11,15 @@ const vehicleSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Brand is required'],
         trim: true,
+        maxlength: 50,
+        validate: safeTextValidator('brand'),
     },
     model: {
         type: String,
         required: [true, 'Model is required'],
         trim: true,
+        maxlength: 50,
+        validate: safeTextValidator('model'),
     },
     license_plate: {
         type: String,
@@ -28,6 +33,8 @@ const vehicleSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Color is required'],
         trim: true,
+        maxlength: 30,
+        validate: safeTextValidator('color'),
     },
     year: {
         type: Number,

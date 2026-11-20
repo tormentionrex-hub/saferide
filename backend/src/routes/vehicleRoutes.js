@@ -4,6 +4,10 @@ const multer = require('multer');
 const vehicleController = require('../controllers/vehicleController');
 const { verifyToken, authorize } = require('../middleware/auth');
 const validate = require('../middleware/validation');
+const { isSafeText, SAFE_TEXT_MESSAGE } = require('../utils/safeText');
+const { param } = require('express-validator');
+const documentController = require('../controllers/documentController');
+const { isCloudinaryUrl, DOC_TYPES } = documentController;
 
 const router = express.Router();
 
@@ -12,21 +16,68 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
+    // Imágenes sí, SVG no: es XML con scripts y el blob se publica con el
+    // content-type que manda el cliente. El error lleva 400 (no 500).
+    const type = String(file.mimetype || '').toLowerCase();
+    if (type.startsWith('image/') && !type.includes('svg') && !type.includes('xml')) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed'));
+      const err = new Error('Only image files are allowed');
+      err.statusCode = 400;
+      cb(err);
     }
   },
 });
 
 // Validation rules
+// isString en los textos: sin validar el tipo, license_plate: ['ABC123']
+// llegaba al controlador y reventaba en .toUpperCase() con un 500.
+// isSafeText: marca, modelo y color no admiten < > ni caracteres de control.
 const vehicleValidation = [
-  body('brand').trim().notEmpty().withMessage('Brand is required'),
-  body('model').trim().notEmpty().withMessage('Model is required'),
-  body('license_plate').matches(/^[A-Z0-9]{6}$/).withMessage('License plate must be 6 characters'),
-  body('color').trim().notEmpty().withMessage('Color is required'),
+  body('brand').isString().trim().notEmpty().isLength({ max: 50 }).withMessage('Brand is required')
+    .custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
+  body('model').isString().trim().notEmpty().isLength({ max: 50 }).withMessage('Model is required')
+    .custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
+  body('license_plate').isString().matches(/^[A-Z0-9]{6}$/).withMessage('License plate must be 6 characters'),
+  body('color').isString().trim().notEmpty().isLength({ max: 30 }).withMessage('Color is required')
+    .custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
   body('year').isInt({ min: 1900, max: new Date().getFullYear() + 1 }),
+  // Datos de la póliza que manda la app al registrar el vehículo (antes se
+  // ignoraban). El certificado solo se acepta como URL https de Cloudinary,
+  // que es donde la app lo sube; queda como documento 'poliza' pendiente.
+  body('insurance_certificate').optional({ nullable: true }).custom(isCloudinaryUrl)
+    .withMessage('insurance_certificate must be a Cloudinary https URL'),
+  body('policy_number').optional({ nullable: true }).isString().trim().isLength({ max: 40 })
+    .custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
+  body('insurance_expiry').optional({ nullable: true }).isString().isISO8601(),
+];
+
+// Documentos del vehículo: imágenes (sin SVG) o PDF, hasta 5 MB. El
+// controlador además comprueba los primeros bytes del archivo.
+const DOC_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const uploadDocument = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 5 },
+  fileFilter: (req, file, cb) => {
+    if (DOC_MIMES.includes(String(file.mimetype || '').toLowerCase())) return cb(null, true);
+    const err = new Error('Only JPEG, PNG, WEBP or PDF files are allowed');
+    err.statusCode = 400;
+    cb(err);
+  },
+});
+// Un archivo de más de 5 MB es un 413 claro, no un 500.
+const documentUpload = (req, res, next) => uploadDocument.single('file')(req, res, (err) => {
+  if (err && err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ success: false, message: 'File too large (max 5 MB)' });
+  if (err && err.name === 'MulterError') return res.status(400).json({ success: false, message: 'Invalid upload' });
+  next(err);
+});
+const documentUploadValidation = [
+  param('id').isMongoId().withMessage('Invalid vehicle ID'),
+  body('type').isString().isIn(DOC_TYPES).withMessage('Invalid document type'),
+];
+const documentDeleteValidation = [
+  param('id').isMongoId().withMessage('Invalid vehicle ID'),
+  param('docId').custom((v) => /^[0-9a-f]{24}$/i.test(v) || DOC_TYPES.includes(v)).withMessage('Invalid document'),
 ];
 
 // All routes require authentication
@@ -179,7 +230,19 @@ router.get('/:id', vehicleController.getVehicleById);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.put('/:id', authorize('conductor', 'admin'), vehicleController.updateVehicle);
+// Mismos tipos al editar (todo opcional).
+const vehicleUpdateValidation = [
+  body('brand').optional().isString().trim().notEmpty().isLength({ max: 50 })
+    .custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
+  body('model').optional().isString().trim().notEmpty().isLength({ max: 50 })
+    .custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
+  body('license_plate').optional().isString().matches(/^[A-Z0-9]{6}$/),
+  body('color').optional().isString().trim().notEmpty().isLength({ max: 30 })
+    .custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
+  body('year').optional().isInt({ min: 1900, max: new Date().getFullYear() + 1 }),
+  body('capacity').optional().isInt({ min: 1, max: 7 }),
+];
+router.put('/:id', authorize('conductor', 'admin'), vehicleUpdateValidation, validate, vehicleController.updateVehicle);
 
 /**
  * @swagger
@@ -244,6 +307,11 @@ router.post('/:id/image', authorize('conductor', 'admin'), upload.single('image'
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.delete('/:id', vehicleController.deleteVehicle);
+
+// Documentos del vehículo: solo el conductor dueño sube y borra (el
+// controlador lo comprueba); la revisión es de admin en /documents.
+router.post('/:id/documents', authorize('conductor'), documentUpload, documentUploadValidation, validate, documentController.uploadVehicleDocument);
+router.delete('/:id/documents/:docId', authorize('conductor'), documentDeleteValidation, validate, documentController.deleteVehicleDocument);
 
 /**
  * @swagger

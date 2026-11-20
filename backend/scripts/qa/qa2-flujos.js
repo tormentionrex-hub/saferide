@@ -6,7 +6,11 @@ require(BE + '/node_modules/dotenv').config({ path: BE + '/.env', quiet: true })
 const { DateTime } = require(BE + '/node_modules/luxon');
 const mongoose = require(BE + '/node_modules/mongoose');
 
-const base = 'http://localhost:8080/api/v1';
+// Destino parametrizable para correr contra otra instancia: QA_ORIGIN (por
+// defecto el backend local en 8080) y QA_DB (por defecto SafeRide-Prueba).
+const ORIGIN = process.env.QA_ORIGIN || 'http://localhost:8080';
+const DB = process.env.QA_DB || 'SafeRide-Prueba';
+const base = ORIGIN + '/api/v1';
 const tag = Date.now().toString(36);
 const PW = 'Qa!Prueba1';
 const results = [];
@@ -23,17 +27,29 @@ function check(name, got, expected, extra = '') {
   const ok = Array.isArray(expected) ? expected.includes(got) : got === expected;
   results.push({ name, expected: Array.isArray(expected) ? expected.join('/') : expected, got, ok, extra });
 }
+// El registro exige un correo verificado (send-verification-code ->
+// verify-code -> register, igual que la app). El código se lee de la base de
+// prueba, así que no depende del código maestro de desarrollo.
+let dbRef = null;
+async function verifyEmail(email) {
+  await call('POST', '/auth/send-verification-code', null, { email });
+  const v = await dbRef.collection('verificationcodes').findOne({ email: email.toLowerCase(), verifiedAt: null, code: { $ne: '000000' } });
+  const r = await call('POST', '/auth/verify-code', null, { email, code: v?.code || 'x' });
+  if (r.status !== 200) throw new Error('verify-code ' + email + ': ' + r.status);
+}
 async function register(type, suffix) {
-  const email = `qa2.${type}.${suffix}.${tag}@intel.com`;
-  const r = await call('POST', '/auth/register', null, { name: `QA2 ${type} ${suffix}`, username: `qa2_${type}_${suffix}_${tag}`, email, phone: '88881111', password: PW, company: 'Intel', work_schedule: '8-5', type });
+  const email = `qa.f2.${type}.${suffix}.${tag}@intel.com`;
+  await verifyEmail(email);
+  const r = await call('POST', '/auth/register', null, { name: `(QA) f2 ${type} ${suffix}`, username: `qa2_${type}_${suffix}_${tag}`, email, phone: '88881111', password: PW, company: 'Intel', work_schedule: '8-5', type });
   if (r.status !== 201) throw new Error('register: ' + r.text.slice(0, 200));
-  return { id: r.body.data.user._id || r.body.data.user.id, token: r.body.data.accessToken, refresh: r.body.data.refreshToken, email, name: `QA2 ${type} ${suffix}` };
+  return { id: r.body.data.user._id || r.body.data.user.id, token: r.body.data.accessToken, refresh: r.body.data.refreshToken, email, name: `(QA) f2 ${type} ${suffix}` };
 }
 const notifTypes = async (token) => ((await call('GET', '/notifications?limit=100', token)).body?.data || []).map(n => n.type);
 
 (async () => {
-  await mongoose.connect('mongodb://127.0.0.1:27017/SafeRide-Prueba');
+  await mongoose.connect('mongodb://127.0.0.1:27017/' + DB);
   const db = mongoose.connection.db;
+  dbRef = db;
   const oid = (x) => new mongoose.Types.ObjectId(x);
   const now = DateTime.now().setZone('America/Costa_Rica');
   const today = now.toFormat('yyyy-MM-dd');
@@ -41,14 +57,15 @@ const notifTypes = async (token) => ((await call('GET', '/notifications?limit=10
   const rideBody = (seats, h = 2) => ({ origin: { name: 'San José centro', coordinates: { lat: 9.9325, lng: -84.0796 } }, destination: { name: 'Intel Belén', coordinates: { lat: 9.978, lng: -84.19 } }, fecha: today, hora: inH(h), available_seats: seats, distance_km: 15, duration_minutes: 30 });
 
   // ---------- 0. verificación por correo (dev: código maestro) ----------
-  let r = await call('POST', '/auth/send-verification-code', null, { email: `qa2.verif.${tag}@intel.com` });
+  let r = await call('POST', '/auth/send-verification-code', null, { email: `qa.f2.verif.${tag}@intel.com` });
   check('0.1 enviar código', r.status, 200);
-  r = await call('POST', '/auth/verify-code', null, { email: `qa2.verif.${tag}@intel.com`, code: '000000' });
+  r = await call('POST', '/auth/verify-code', null, { email: `qa.f2.verif.${tag}@intel.com`, code: '000000' });
   check('0.2 verificar código maestro (dev)', r.status, 200);
-  const realCode = await db.collection('verificationcodes').findOne({ email: `qa2.verif.${tag}@intel.com` });
-  r = await call('POST', '/auth/verify-code', null, { email: `qa2.verif.${tag}@intel.com`, code: realCode?.code || '111111' });
+  // El código maestro deja su propio registro verificado; el real es el otro.
+  const realCode = await db.collection('verificationcodes').findOne({ email: `qa.f2.verif.${tag}@intel.com`, code: { $ne: '000000' } });
+  r = await call('POST', '/auth/verify-code', null, { email: `qa.f2.verif.${tag}@intel.com`, code: realCode?.code || '111111' });
   check('0.3 verificar código real', r.status, 200, 'código en BD: ' + !!realCode);
-  r = await call('POST', '/auth/verify-code', null, { email: `qa2.verif.${tag}@intel.com`, code: realCode?.code || '111111' });
+  r = await call('POST', '/auth/verify-code', null, { email: `qa.f2.verif.${tag}@intel.com`, code: realCode?.code || '111111' });
   check('0.4 reutilizar el mismo código', r.status, [400, 401, 410], 'status ' + r.status);
 
   // ---------- 1. actores ----------
@@ -275,6 +292,47 @@ const notifTypes = async (token) => ((await call('GET', '/notifications?limit=10
   r = await call('DELETE', '/users/me', P2.token, { password: PW });
   check('12.2 pasajero con cobro pendiente no puede eliminar cuenta', r.status, 409);
 
+
+  // ---------- 11. panel: documentos, revisión, auditoría y borrado definitivo ----------
+  const ADM = (await call('POST', '/auth/login', null, { email: 'naomy.admin@saferide.cr', password: 'SafeRide2024!' })).body?.data?.accessToken;
+  const DD = await register('conductor', 'docs');
+  r = await call('POST', '/vehicles', DD.token, {
+    brand: 'Toyota', model: 'Yaris', license_plate: 'QF' + tag.slice(-4).toUpperCase().replace(/[^A-Z0-9]/g, '4'), color: 'Blanco', year: 2022, capacity: 4,
+    policy_number: 'INS-777', insurance_expiry: '2027-01-31T00:00:00.000Z',
+    insurance_certificate: 'https://res.cloudinary.com/demo/image/upload/v1700000000/insurance_cert_qa.jpg',
+  });
+  check('11.1 conductor registra vehículo con certificado de póliza (como la app)', r.status, 201);
+  r = await call('GET', `/documents/driver/${DD.id}`, DD.token);
+  const polDoc = (r.body?.data || [])[0];
+  check('11.2 la póliza queda pendiente y el conductor la ve', `${polDoc?.type}/${polDoc?.status}`, 'poliza/pending');
+  r = await call('GET', '/documents/admin/pending?limit=200', ADM);
+  check('11.3 el admin la ve en pendientes', (r.body?.data || []).some(d => d._id === polDoc?._id), true);
+  r = await call('PATCH', `/documents/${polDoc?._id}/review`, ADM, { action: 'reject', reason: 'No se lee la placa' });
+  check('11.4 el admin la rechaza con motivo', `${r.status}/${r.body?.data?.status}/${r.body?.data?.rejectionReason}`, '200/rejected/No se lee la placa');
+  r = await call('PATCH', `/documents/${polDoc?._id}/review`, ADM, { action: 'approve' });
+  check('11.5 y luego la aprueba', `${r.status}/${r.body?.data?.status}`, '200/approved');
+  r = await call('GET', `/documents/driver/${DD.id}`, DD.token);
+  check('11.6 el conductor ve su póliza aprobada', r.body?.data?.[0]?.status, 'approved');
+  r = await call('GET', '/documents/admin/pending?limit=200', ADM);
+  check('11.7 ya no está en pendientes', (r.body?.data || []).some(d => d._id === polDoc?._id), false);
+  r = await call('POST', `/documents/${polDoc?._id}/reprocess`, ADM);
+  check('11.8 reprocesar sin servicio de análisis responde 503 claro', `${r.status}/${r.body?.code}`, '503/ANALYSIS_NOT_CONFIGURED');
+  const vDD = (await call('GET', `/vehicles/driver/${DD.id}`, DD.token)).body?.data?._id;
+  r = await call('PATCH', `/vehicles/${vDD}/status`, ADM, { isActive: false });
+  r = await call('GET', '/audit-logs?limit=100', ADM);
+  const logs = r.body?.data || [];
+  const has = (a, t) => logs.some(l => l.action === a && String(l.targetId) === String(t));
+  check('11.9 auditoría: rechazo, aprobación y desactivación del vehículo', `${has('DOCUMENT_REJECTED', polDoc?._id)}/${has('DOCUMENT_APPROVED', polDoc?._id)}/${has('VEHICLE_REJECTED', vDD)}`, 'true/true/true');
+  check('11.10 la auditoría trae el correo del admin y no secretos', `${logs.find(l => l.action === 'DOCUMENT_APPROVED')?.adminEmail}/${/password|eyJ[\w-]+\./i.test(r.text)}`, 'naomy.admin@saferide.cr/false');
+  r = await call('DELETE', `/users/${DD.id}/hard`, ADM);
+  check('11.11 borrado definitivo de un conductor sin viajes', `${r.status}/${r.body?.data?.mode}`, '200/deleted');
+  const ddDocs = await db.collection('vehicledocuments').countDocuments({ driver_id: oid(DD.id) });
+  const ddVeh = await db.collection('vehicles').countDocuments({ driver_id: oid(DD.id) });
+  check('11.12 se borraron su vehículo y sus documentos', `${ddVeh}/${ddDocs}`, '0/0');
+  r = await call('GET', '/audit-logs?action=USER_HARD_DELETED&limit=20', ADM);
+  check('11.13 el borrado quedó en la auditoría', (r.body?.data || []).some(l => String(l.targetId) === String(DD.id)), true);
+  await db.collection('auditlogs').deleteMany({ targetId: { $in: [oid(DD.id), oid(polDoc?._id || '000000000000000000000000'), oid(vDD || '000000000000000000000000')] } });
+
   // ---------- limpieza ----------
   const emails = [D, P1, P2, P3, X].map(u => u.email);
   const users = await db.collection('users').find({ email: { $in: emails } }).toArray();
@@ -287,7 +345,7 @@ const notifTypes = async (token) => ((await call('GET', '/notifications?limit=10
   await db.collection('notifications').deleteMany({ user_id: { $in: ids } });
   await db.collection('metrics').deleteMany({ user_id: { $in: ids } });
   await db.collection('trusthistories').deleteMany({ user_id: { $in: ids } });
-  await db.collection('verificationcodes').deleteMany({ email: `qa2.verif.${tag}@intel.com` });
+  await db.collection('verificationcodes').deleteMany({ email: { $regex: `.${tag}@` } });
   await db.collection('users').deleteMany({ _id: { $in: ids } });
 
   const fails = results.filter(x => !x.ok);

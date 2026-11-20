@@ -5,6 +5,8 @@ const Booking = require('../models/Bookings');
 // para sandbox; en producción la tasa debe venir del entorno.
 const DEFAULT_CRC_PER_USD = 510;
 const ELECTRONIC_METHODS = ['paypal', 'card', 'google_pay', 'apple_pay'];
+// Formato de los IDs de orden de PayPal (17 caracteres hoy; margen por si cambia).
+const ORDER_ID = /^[A-Z0-9]{8,36}$/;
 
 const getCrcPerUsd = () => {
   const rate = Number(process.env.PAYPAL_CRC_PER_USD);
@@ -175,6 +177,15 @@ exports.captureOrder = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Order ID and Booking ID are required' });
     }
 
+    // El orderId se pega en la URL de la API de PayPal, que se llama con el
+    // token del comercio. Sin validarlo, un valor como
+    // "../../payments/captures/X/refund" hacía que el servidor ejecutara otra
+    // operación de PayPal (un reembolso) y, como esa respuesta también dice
+    // COMPLETED, la reserva quedaba pagada. Los IDs de orden son alfanuméricos.
+    if (typeof orderId !== 'string' || !ORDER_ID.test(orderId)) {
+      return res.status(400).json({ success: false, message: 'Invalid order ID' });
+    }
+
     const booking = await Booking.findById(bookingId);
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
@@ -191,7 +202,9 @@ exports.captureOrder = async (req, res, next) => {
     const accessToken = await generateAccessToken();
     const baseUrl = process.env.PAYPAL_API_BASE;
 
-    const response = await fetch(`${baseUrl}/v2/checkout/orders/${orderId}/capture`, {
+    // encodeURIComponent: segunda barrera por si el formato del orderId se
+    // relajara algún día; un "/" o ".." nunca llega a la ruta de PayPal.
+    const response = await fetch(`${baseUrl}/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -203,28 +216,53 @@ exports.captureOrder = async (req, res, next) => {
 
     // La orden debe pertenecer a esta reserva: evita reutilizar el pago de
     // otra reserva más barata.
+    // Es obligatorio: una respuesta sin purchase_units no es la captura de
+    // una orden de esta reserva y no se acepta como pago.
     const unit = data.purchase_units?.[0];
-    if (unit?.reference_id && unit.reference_id !== bookingId.toString()) {
+    // Además, la respuesta debe ser de la misma orden que se pidió capturar.
+    if (data.status === 'COMPLETED'
+        && (data.id !== orderId || unit?.reference_id !== bookingId.toString())) {
       console.error('PayPal Capture Error: order/booking mismatch', { orderId, bookingId });
       return res.status(400).json({ success: false, message: 'Order does not match booking' });
     }
 
     if (data.status === 'COMPLETED') {
       const capture = unit?.payments?.captures?.[0];
+      // El monto capturado debe cubrir el de la reserva. La orden también la
+      // puede crear el cliente con el client-id público (lo hace el SDK de
+      // PayPal), así que no basta con que el reference_id coincida: sin esto
+      // se podía pagar 0.01 USD un viaje de ₡5000. Tolerancia de un centavo.
+      const capturedUsd = Number(capture?.amount?.value);
+      const expectedUsd = toUsd(getBookingAmountCrc(booking));
+      // La captura misma debe estar COMPLETED: una orden puede quedar
+      // COMPLETED con la captura en PENDING (fondos sin acreditar).
+      if (capture?.status !== 'COMPLETED' || capture?.amount?.currency_code !== 'USD' || !Number.isFinite(capturedUsd)
+          || capturedUsd + 0.01 < expectedUsd) {
+        console.error('PayPal Capture Error: amount mismatch', { orderId, bookingId, capturedUsd, expectedUsd });
+        return res.status(400).json({ success: false, message: 'Captured amount does not match booking' });
+      }
       // Un pago electrónico capturado no necesita la revisión manual del
       // conductor: queda pagado y revisado, y el pasajero se libera de
       // WaitingPaymentConfirmation de inmediato.
-      booking.payment_status = 'paid';
-      booking.payment_method = method;
-      booking.payment_reference = orderId;
-      booking.paid_amount_usd = capture?.amount?.value ? Number(capture.amount.value) : null;
-      booking.payment_reviewed_at = new Date();
-      await booking.save();
+      // Escritura condicional y atómica: solo la reserva de este pasajero y
+      // solo si todavía no estaba pagada (dos capturas en paralelo no la
+      // escriben dos veces).
+      const paid = await Booking.findOneAndUpdate(
+        { _id: booking._id, passenger_id: req.user._id, payment_status: { $ne: 'paid' } },
+        { $set: {
+          payment_status: 'paid',
+          payment_method: method,
+          payment_reference: orderId,
+          paid_amount_usd: capturedUsd,
+          payment_reviewed_at: new Date(),
+        } },
+        { new: true }
+      );
 
       return res.status(200).json({
         success: true,
-        message: 'Payment captured successfully',
-        data: booking,
+        message: paid ? 'Payment captured successfully' : 'Booking already paid',
+        data: paid || await Booking.findById(booking._id),
       });
     }
 
@@ -232,7 +270,9 @@ exports.captureOrder = async (req, res, next) => {
     return res.status(400).json({
       success: false,
       message: 'Payment not completed or failed',
-      data: data,
+      // Solo el estado: la respuesta completa de PayPal es interna (enlaces
+      // de la API, datos del pagador) y no tiene por qué llegar al cliente.
+      data: { status: data.status || null, name: data.name || null },
     });
   } catch (error) {
     console.error('captureOrder Error:', error);

@@ -11,4 +11,6 @@ module.exports = {
   Metrics: require('./Metics'),
   VerificationCode: require('./VerificationCode'),
   TrustHistory: require('./TrustHistory'),
+  AuditLog: require('./AuditLog'),
+  VehicleDocument: require('./VehicleDocument'),
 };

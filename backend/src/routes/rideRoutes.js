@@ -4,6 +4,7 @@ const rideController = require('../controllers/rideController');
 const { verifyToken, authorize, optionalAuth, requireActive } = require('../middleware/auth');
 const validate = require('../middleware/validation');
 const tz = require('../utils/timeZone');
+const { straightLineKm, MIN_POINT_SEPARATION_KM } = require('../utils/geo');
 
 const router = express.Router();
 
@@ -317,10 +318,10 @@ const router = express.Router();
 
 // Validation rules
 const rideValidation = [
-  body('origin.name').trim().notEmpty().withMessage('Origin name is required'),
+  body('origin.name').isString().trim().notEmpty().isLength({ max: 300 }).withMessage('Origin name is required'),
   body('origin.coordinates.lat').isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
   body('origin.coordinates.lng').isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
-  body('destination.name').trim().notEmpty().withMessage('Destination name is required'),
+  body('destination.name').isString().trim().notEmpty().isLength({ max: 300 }).withMessage('Destination name is required'),
   body('destination.coordinates.lat').isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
   body('destination.coordinates.lng').isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
   body('fecha')
@@ -350,12 +351,29 @@ const rideValidation = [
       return true;
     }),
   body('available_seats').isInt({ min: 1, max: 7 }).withMessage('Seats must be between 1 and 7'),
-  body('distance_km').optional().isFloat({ min: 0 }),
-  body('duration_minutes').optional().isInt({ min: 0 }),
+  // Ruta real y con sentido: la app calcula la ruta con Google y no publica
+  // con menos de 0,5 km (MIN_RIDE_KM). Antes se aceptaba origen = destino con
+  // distancia 0 y precio 0. Topes: 500 km cubre todo el país; 24 h de viaje.
+  body('distance_km').isFloat({ min: 0.5, max: 500 }).withMessage('distance_km must be between 0.5 and 500'),
+  body('duration_minutes').isInt({ min: 1, max: 1440 }).withMessage('duration_minutes must be between 1 and 1440'),
+  // La app cobra ₡270 por km (≤ ₡135 000 a 500 km); el tope deja margen.
+  body('suggested_price').optional().isFloat({ min: 0, max: 250000 }).withMessage('suggested_price must be between 0 and 250000'),
+  body('destination.coordinates.lng').custom((value, { req }) => {
+    const km = straightLineKm(req.body.origin?.coordinates, req.body.destination?.coordinates);
+    if (!(km >= MIN_POINT_SEPARATION_KM)) throw new Error('Origen y destino deben ser lugares distintos');
+    // La distancia por carretera nunca es menor que la distancia en línea
+    // recta (margen del 20 % por redondeo de coordenadas).
+    if (Number(req.body.distance_km) < km * 0.8) throw new Error('distance_km no corresponde a la ruta');
+    return true;
+  }),
 ];
 
 // Public routes (with optional auth)
 router.get('/', optionalAuth, rideController.getAllRides);
+// Monitoreo del panel (sondeo cada 8 s): viajes en curso con la última
+// posición del conductor. Solo admin. Va antes de /:id para que
+// "in-progress" no se lea como un id.
+router.get('/in-progress', verifyToken, authorize('admin'), rideController.getInProgressRides);
 router.get('/:id', optionalAuth, rideController.getRideById);
 
 // Protected routes
