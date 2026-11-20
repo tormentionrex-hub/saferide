@@ -95,7 +95,7 @@ Tomadas en un Samsung Galaxy A34 real con Expo Go durante las pruebas de la entr
 
 ## Capturas del panel de administración
 
-Tomadas en el navegador con datos de prueba, a 1440 × 900.
+Tomadas en el navegador con datos de prueba, a 1440 × 900 y reducidas a 1280 px de ancho.
 
 ### Acceso y vista general
 
