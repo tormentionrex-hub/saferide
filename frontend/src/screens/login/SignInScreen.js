@@ -58,7 +58,11 @@ export default function SignInScreen({ navigation }) {
     const passwordFocusAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        // Create an infinite loop for background
+        // Create an infinite loop for background.
+        // isInteraction: false — en web no hay driver nativo y cada timing
+        // abriría un "interaction handle" que nunca se libera (el loop es
+        // infinito y SignIn queda montada debajo del dashboard), bloqueando
+        // InteractionManager.runAfterInteractions en Métricas y Dashboard.
         Animated.loop(
             Animated.sequence([
                 Animated.timing(fadeAnim, {
@@ -66,12 +70,14 @@ export default function SignInScreen({ navigation }) {
                     duration: 5000,
                     easing: Easing.inOut(Easing.ease),
                     useNativeDriver: true,
+                    isInteraction: false,
                 }),
                 Animated.timing(fadeAnim, {
                     toValue: 0,
                     duration: 5000,
                     easing: Easing.inOut(Easing.ease),
                     useNativeDriver: true,
+                    isInteraction: false,
                 }),
             ])
         ).start();

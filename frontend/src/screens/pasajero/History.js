@@ -29,6 +29,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { moderateScale } from '../../utils/responsive';
 import { formatCRC } from '../../utils/currency';
+import { getInitials } from '../../utils/initials';
 const { width } = Dimensions.get('window');
 
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -232,7 +233,13 @@ const HistoryItem = memo(({ item, theme, calculateArrivalTime, handleContact }) 
     const day = dateObj.day || '--';
     const month = getShortMonthNameES(dateObj);
 
-    const totalPaid = (ride.suggested_price || 0) * (item.seats_booked || 1);
+    // Lo que se le cobró al pasajero (charged_amount: su oferta aceptada, 0 si fue
+    // cortesía). Antes se mostraba el precio sugerido del viaje × asientos, que no
+    // coincide con lo pagado cuando el pasajero ofreció otro monto.
+    const charged = Number(item.charged_amount);
+    const totalPaid = item.charged_amount != null && Number.isFinite(charged)
+        ? charged
+        : (ride.suggested_price || 0) * (item.seats_booked || 1);
     const originCoords = ride.origin?.coordinates;
     const destCoords = ride.destination?.coordinates;
 
@@ -329,7 +336,7 @@ const HistoryItem = memo(({ item, theme, calculateArrivalTime, handleContact }) 
                     ) : (
                         <View style={[styles.avatarMini, { backgroundColor: theme.accent + '22', justifyContent: 'center', alignItems: 'center' }]}>
                             <Text style={{ color: theme.accent, fontSize: moderateScale(14), fontFamily: 'Poppins-Bold' }}>
-                                {(ride.driver_id?.name || '?').charAt(0).toUpperCase()}
+                                {getInitials(ride.driver_id?.name, 1)}
                             </Text>
                         </View>
                     )}

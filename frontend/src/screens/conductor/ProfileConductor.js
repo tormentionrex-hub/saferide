@@ -31,6 +31,8 @@ import { useCustomAlert } from '../../context/CustomAlertContext';
 
 import { moderateScale } from '../../utils/responsive';
 import { useCompanies } from '../../services/companiesService';
+import { getInitials } from '../../utils/initials';
+import { validatePersonName, NAME_MAX } from '../../utils/nameValidation';
 
 const CAR_DATA = { //ESTOS SON LOS AUTOS EN GENERAL
     Acura: ['MDX', 'RDX', 'TLX', 'TSX', 'Integra'],
@@ -196,8 +198,9 @@ const ProfileConductor = ({ navigation, route }) => {
             }
 
             // 3. Validar formato de nombre
-            if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$/.test(editForm.name.trim())) {
-                showAlert('Formato Inválido', 'El nombre solo puede contener letras y espacios.', 'error');
+            const nameError = validatePersonName(editForm.name);
+            if (nameError) {
+                showAlert('Formato Inválido', nameError, 'error');
                 setUpdating(false);
                 return;
             }
@@ -248,7 +251,7 @@ const ProfileConductor = ({ navigation, route }) => {
 
         } catch (error) {
             console.error('Error al actualizar perfil:', error?.response?.data?.message || error?.message || 'unknown error');
-            const msg = error.response?.data?.message || error.message || 'No se pudo actualizar el perfil. Revisa tu conexión.';
+            const msg = error.response?.data?.errors?.[0]?.message || error.response?.data?.message || error.message || 'No se pudo actualizar el perfil. Revisa tu conexión.';
             showAlert('Actualización Fallida', msg, 'error');
         } finally {
             setUpdating(false);
@@ -338,9 +341,7 @@ const ProfileConductor = ({ navigation, route }) => {
         );
     }
 
-    const initials = userData?.name
-        ? userData.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-        : '?';
+    const initials = getInitials(userData?.name);
 
 
 
@@ -536,7 +537,7 @@ const ProfileConductor = ({ navigation, route }) => {
                                 Toca para cambiar la foto
                             </Text>
 
-                            <ModalInput label="NOMBRE COMPLETO" icon="person-outline" value={editForm.name}
+                            <ModalInput label="NOMBRE COMPLETO" icon="person-outline" value={editForm.name} maxLength={NAME_MAX}
                                 onChangeText={t => setEditForm(prev => ({ ...prev, name: t }))}
                                 placeholder="Tu nombre" theme={theme} />
 

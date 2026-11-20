@@ -26,6 +26,9 @@ import { formatCRC } from '../../utils/currency';
 /**
  * Pantalla para que los conductores publiquen un nuevo viaje con geolocalización avanzada.
  */
+// Distancia mínima entre origen y destino para publicar.
+const MIN_RIDE_KM = 0.5;
+
 const PublishRide = ({ navigation, route }) => {
     const { theme } = useDriverTheme();
     const si = useScrollIndicator();
@@ -125,6 +128,21 @@ const PublishRide = ({ navigation, route }) => {
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             showSweetAlert('warning', 'Campos incompletos', 'Por favor selecciona el origen, destino y la hora de salida.');
+            return;
+        }
+
+        // Sin ruta calculada (o con origen = destino) el viaje saldría con
+        // distancia 0 y precio ₡0.
+        if (calculatingRoute) return;
+        if (!routeInfo || !(Number(routeInfo.distance_km) >= MIN_RIDE_KM)) {
+            setErrors({ origen: 'Revisar', destino: 'Revisar' });
+            showSweetAlert(
+                'warning',
+                'Ruta inválida',
+                routeInfo
+                    ? `El origen y el destino deben estar separados al menos ${MIN_RIDE_KM} km.`
+                    : 'No se pudo calcular la ruta entre el origen y el destino. Vuelve a seleccionarlos.'
+            );
             return;
         }
 
@@ -392,14 +410,16 @@ const PublishRide = ({ navigation, route }) => {
                     minimumDate={new Date()}
                     maximumDate={mostrarCalendario ? new Date(new Date().setHours(23, 59, 59, 999)) : undefined}
                     onChange={(_event, date) => {
-                        if (Platform.OS === 'android') {
+                        // Android y web (diálogo de web-mocks/datetimepicker) se cierran
+                        // solos al elegir; iOS usa el spinner inline con botón "Listo".
+                        if (Platform.OS !== 'ios') {
                             setMostrarCalendario(false);
                             setMostrarHora(false);
                         }
                         if (date) {
                             if (mostrarCalendario) {
                                 setFechaSeleccionada(date);
-                                if (Platform.OS === 'android') setTimeout(() => setMostrarHora(true), 100);
+                                if (Platform.OS !== 'ios') setTimeout(() => setMostrarHora(true), 100);
                             } else {
                                 setHoraSeleccionada(date);
                             }

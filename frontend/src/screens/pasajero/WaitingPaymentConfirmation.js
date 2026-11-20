@@ -66,18 +66,23 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
     useEffect(() => {
         const loop = (val, delay) =>
             Animated.loop(
+                // isInteraction: false y delay como opción (no Animated.delay,
+                // que siempre corre en JS): un loop infinito no debe retener
+                // "interaction handles" (en web bloquearía runAfterInteractions).
                 Animated.sequence([
-                    Animated.delay(delay),
                     Animated.timing(val, {
                         toValue: 1,
                         duration: 2200,
+                        delay,
                         easing: Easing.out(Easing.ease),
                         useNativeDriver: true,
+                        isInteraction: false,
                     }),
                     Animated.timing(val, {
                         toValue: 0,
                         duration: 0,
                         useNativeDriver: true,
+                        isInteraction: false,
                     }),
                 ]),
             );
@@ -87,8 +92,8 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
 
         Animated.loop(
             Animated.sequence([
-                Animated.timing(dotsAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-                Animated.timing(dotsAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
+                Animated.timing(dotsAnim, { toValue: 1, duration: 700, useNativeDriver: true, isInteraction: false }),
+                Animated.timing(dotsAnim, { toValue: 0, duration: 700, useNativeDriver: true, isInteraction: false }),
             ]),
         ).start();
     }, []);

@@ -12,6 +12,7 @@ import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
 import { devLog } from '../../utils/devLog';
+import { getInitials } from '../../utils/initials';
 const { width } = Dimensions.get('window');
 
 const SearchRide = ({ navigation }) => {
@@ -158,10 +159,6 @@ const SearchRide = ({ navigation }) => {
         }, [navigation])
     );
 
-    const getInitials = (name) => {
-        if (!name) return '?';
-        return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-    };
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>

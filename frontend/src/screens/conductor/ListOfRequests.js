@@ -549,6 +549,16 @@ const ListOfRequests = ({ route, navigation }) => {
     const [refreshing, setRefreshing] = useState(false);
     const [startRideVisible, setStartRideVisible] = useState(false);
     const [startRideLoading, setStartRideLoading] = useState(false);
+    // Solicitud que se está aceptando/rechazando: bloquea el doble toque (antes
+    // salían dos PATCH /status y el segundo respondía 409).
+    const decidingRef = useRef(null);
+    const [decidingId, setDecidingId] = useState(null);
+    const withDecisionLock = (fn) => async (bookingId) => {
+        if (decidingRef.current) return;
+        decidingRef.current = bookingId;
+        setDecidingId(bookingId);
+        try { await fn(bookingId); } finally { decidingRef.current = null; setDecidingId(null); }
+    };
     const [confirmedCount, setConfirmedCount] = useState(0);
     const [withdrawalVisible, setWithdrawalVisible] = useState(false);
     const [successModalVisible, setSuccessModalVisible] = useState(false);
@@ -721,7 +731,7 @@ const ListOfRequests = ({ route, navigation }) => {
         };
     }, [specificRideId]);
 
-    const handleAccept = async (bookingId) => {
+    const handleAccept = withDecisionLock(async (bookingId) => {
         try {
             // Verificar estado actual antes de proceder
             const checkRes = await api.get(`/bookings/${bookingId}`);
@@ -750,9 +760,9 @@ const ListOfRequests = ({ route, navigation }) => {
         } catch (e) {
             Alert.alert('Error', e.response?.data?.message || 'No se pudo aceptar la solicitud.');
         }
-    };
+    });
 
-    const handleDeny = async (bookingId) => {
+    const handleDeny = withDecisionLock(async (bookingId) => {
         try {
             // Verificar estado actual antes de proceder
             const checkRes = await api.get(`/bookings/${bookingId}`);
@@ -776,7 +786,7 @@ const ListOfRequests = ({ route, navigation }) => {
         } catch (e) {
             Alert.alert('Error', e.response?.data?.message || 'No se pudo rechazar la solicitud.');
         }
-    };
+    });
 
     const handleStartRide = async () => {
         if (!specificRideId) return;
@@ -935,14 +945,16 @@ const ListOfRequests = ({ route, navigation }) => {
                     {isPending && (
                         <View style={styles.btnGroup}>
                             <TouchableOpacity
-                                style={[styles.acceptBtn, { backgroundColor: theme.accent }]}
+                                style={[styles.acceptBtn, { backgroundColor: theme.accent }, decidingId && { opacity: 0.6 }]}
                                 onPress={() => handleAccept(item._id)}
+                                disabled={Boolean(decidingId)}
                             >
                                 <Text style={styles.btnText}>Aceptar</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.denyBtn]}
+                                style={[styles.denyBtn, decidingId && { opacity: 0.6 }]}
                                 onPress={() => handleDeny(item._id)}
+                                disabled={Boolean(decidingId)}
                             >
                                 <Text style={styles.btnText}>Rechazar</Text>
                             </TouchableOpacity>

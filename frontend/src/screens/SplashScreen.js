@@ -67,10 +67,20 @@ export default function SplashScreen({ navigation }) {
         // _skipRedirect evita que el interceptor de 401 nos saque a SignIn por
         // su cuenta — esta pantalla decide la ruta al final de la animación.
         // Timeout absoluto de 5s: si la red va lenta, caemos al fallback local.
+        // Sin ningún token guardado no hay sesión que validar: se evita el
+        // GET /auth/me → 401 (y el logout que dispara) en cada arranque.
+        const hasStoredSession = Promise.all([
+            tokenStorage.getAccessToken(),
+            tokenStorage.getRefreshToken(),
+        ])
+            .then(([access, refresh]) => Boolean(access || refresh))
+            .catch(() => true);
         const sessionCheckPromise = Promise.race([
-            api.get('/auth/me', { _skipRedirect: true })
-                .then((res) => ({ ok: true, user: res.data?.data }))
-                .catch(() => ({ ok: false })),
+            hasStoredSession.then((hasSession) => (hasSession
+                ? api.get('/auth/me', { _skipRedirect: true })
+                    .then((res) => ({ ok: true, user: res.data?.data }))
+                    .catch(() => ({ ok: false }))
+                : { ok: false })),
             new Promise((resolve) => setTimeout(() => resolve({ ok: false }), 5000)),
         ]);
 

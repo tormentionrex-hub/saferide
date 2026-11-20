@@ -28,6 +28,7 @@ import { useNotifications } from '../../hooks/useNotifications';
 
 import { moderateScale } from '../../utils/responsive';
 import { devLog } from '../../utils/devLog';
+import { getInitials } from '../../utils/initials';
 // Obtenemos dimensiones de la pantalla para garantizar responsividad
 const { height, width } = Dimensions.get('window');
 
@@ -214,7 +215,7 @@ const DashboardPasajero = ({ navigation, route }) => {
                         ) : (
                             <View style={[styles.profileImg, { backgroundColor: theme.accent + '22', justifyContent: 'center', alignItems: 'center' }]}>
                                 <Text style={{ color: theme.accent, fontSize: moderateScale(20), fontFamily: 'Poppins-Bold' }}>
-                                    {userName ? userName.charAt(0).toUpperCase() : '?'}
+                                    {getInitials(userName, 1)}
                                 </Text>
                             </View>
                         )}

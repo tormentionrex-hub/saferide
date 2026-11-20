@@ -105,6 +105,7 @@ import BottomNavigationBarAlt from '../../components/BottomNavigationDriver';
 
 import { moderateScale } from '../../utils/responsive';
 import { devLog } from '../../utils/devLog';
+import { getInitials } from '../../utils/initials';
 const TripInProgressDriver = ({ route, navigation }) => {
     const { theme } = useDriverTheme();
     const { showAlert } = useCustomAlert();
@@ -661,7 +662,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
                         ) : (
                             <View style={[styles.passengerAvatar, styles.passengerAvatarFallback]}>
                                 <Text style={styles.passengerAvatarInitials}>
-                                    {passenger?.name ? passenger.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '?'}
+                                    {getInitials(passenger?.name)}
                                 </Text>
                             </View>
                         )}

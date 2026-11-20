@@ -5,7 +5,19 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 
-const MapPlaceholder = ({ style, children, ...props }) => (
+// forwardRef + métodos vacíos: las pantallas llaman mapRef.current.animateToRegion /
+// fitToCoordinates; sin ellos, en web BuscarViaje lanzaba "animateToRegion is not a function".
+const MapPlaceholder = React.forwardRef(({ style, children, ...props }, ref) => {
+  React.useImperativeHandle(ref, () => ({
+    animateToRegion: () => {},
+    animateCamera: () => {},
+    fitToCoordinates: () => {},
+    fitToElements: () => {},
+    fitToSuppliedMarkers: () => {},
+    setCamera: () => {},
+    getCamera: async () => ({ center: { latitude: 0, longitude: 0 }, zoom: 0, heading: 0, pitch: 0 }),
+  }), []);
+  return (
   <View
     style={[
       { backgroundColor: '#e8eaed', alignItems: 'center', justifyContent: 'center', minHeight: 120 },
@@ -16,7 +28,9 @@ const MapPlaceholder = ({ style, children, ...props }) => (
     <Text style={{ color: '#5f6368' }}>Mapa disponible solo en la app móvil</Text>
     {children}
   </View>
-);
+  );
+});
+MapPlaceholder.displayName = "MapPlaceholder";
 
 const Noop = () => null;
 

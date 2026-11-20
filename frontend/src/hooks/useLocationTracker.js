@@ -55,7 +55,16 @@ export const useLocationTracker = (inTrip = false) => {
         return () => {
             isMounted = false;
             if (locationSubscription.current) {
-                locationSubscription.current.remove();
+                // expo-location 19.0.8 lanza "LocationEventEmitter.removeSubscription is not
+                // a function" al quitar la última suscripción (el emisor de módulos nuevos
+                // no tiene ese método). La excepción dentro del cleanup tumbaba la pantalla
+                // al finalizar el viaje; el watch ya quedó anulado por removeWatchAsync.
+                try {
+                    locationSubscription.current.remove();
+                } catch (e) {
+                    devLog('No se pudo quitar la suscripción de GPS:', e?.message);
+                }
+                locationSubscription.current = null;
             }
         };
     }, [inTrip]);

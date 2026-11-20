@@ -55,18 +55,24 @@ const NotificationBell = ({
 
         const makeLoop = (val, delay) =>
             Animated.loop(
+                // isInteraction: false + delay como opción (no Animated.delay,
+                // que siempre corre en JS): un loop infinito no debe retener
+                // "interaction handles", o bloquea runAfterInteractions (en web
+                // para siempre, porque ahí no existe el driver nativo).
                 Animated.sequence([
-                    Animated.delay(delay),
                     Animated.timing(val, {
                         toValue: 1,
                         duration: 1800,
+                        delay,
                         easing: Easing.out(Easing.ease),
                         useNativeDriver: true,
+                        isInteraction: false,
                     }),
                     Animated.timing(val, {
                         toValue: 0,
                         duration: 0,
                         useNativeDriver: true,
+                        isInteraction: false,
                     }),
                 ])
             );
