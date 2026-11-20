@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import { authService } from '../../services/authService';
+import { describeLoginError } from '../../utils/apiErrors';
 import { registerForPushNotifications } from '../../services/pushNotificationService';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -220,7 +221,9 @@ export default function SignInScreen({ navigation }) {
                 });
             }, 2500);
         } catch (error) {
-            const msg = error.response?.data?.message || 'Correo o contraseña incorrectos.';
+            // Distingue credenciales incorrectas (401/403) de servidor caído o sin
+            // red: antes ambos decían «Correo o contraseña incorrectos.».
+            const msg = describeLoginError(error);
             setEmailError(msg);
         } finally {
             setLoading(false);

@@ -1,6 +1,7 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import api from '../services/api';
 import Swal from 'sweetalert2';
+import { classifyApiError, describeLoginError } from '../utils/apiErrors';
 
 const AuthContext = createContext();
 
@@ -17,6 +18,10 @@ const clearStoredSession = () => {
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    // Sesión guardada que no se pudo validar porque el servidor no respondió
+    // (sin red, caído o 5xx). No es un cierre de sesión: se conserva el token y
+    // PrivateRoute ofrece reintentar en vez de mandar al login.
+    const [connectionError, setConnectionError] = useState(null);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -28,6 +33,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const fetchUserProfile = async () => {
+        setConnectionError(null);
         try {
             const response = await api.get('/auth/me');
 
@@ -39,10 +45,17 @@ export const AuthProvider = ({ children }) => {
             }
         } catch (error) {
             console.error('Error fetching profile:', error);
+            const kind = classifyApiError(error);
+            if (kind === 'network' || kind === 'server') {
+                setConnectionError(kind);
+            }
+            // 401/403 ya los resolvió el interceptor (refresh o cierre real de sesión).
         } finally {
             setLoading(false);
         }
     };
+
+    const retrySession = () => { setLoading(true); fetchUserProfile(); };
 
     const login = async (email, password) => {
         try {
@@ -67,10 +80,7 @@ export const AuthProvider = ({ children }) => {
                 return { success: true, user: user };
             }
         } catch (error) {
-            return {
-                success: false,
-                message: error.response?.data?.message || 'Error al iniciar sesión'
-            };
+            return { success: false, message: describeLoginError(error) };
         }
     };
 
@@ -109,7 +119,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, setUser, login, cerrarSesion, loading }}>
+        <AuthContext.Provider value={{ user, setUser, login, cerrarSesion, loading, connectionError, retrySession }}>
             {children}
         </AuthContext.Provider>
     );
