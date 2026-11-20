@@ -15,3 +15,15 @@ describe('getInitials', () => {
         expect(getInitials(name, max)).toBe(expected);
     });
 });
+
+describe('getFirstName', () => {
+    const { getFirstName } = require('../src/utils/initials');
+    test.each([
+        ['(QA) Conductor Arquitecto', 'QA'],
+        ['María José', 'María'],
+        ['  ¡Ana!  Vega', 'Ana'],
+        ['123 Luis', 'Luis'],
+        ['', 'Conductor'],
+        [null, 'Conductor'],
+    ])('%p → %p', (n, e) => expect(getFirstName(n, 'Conductor')).toBe(e));
+});

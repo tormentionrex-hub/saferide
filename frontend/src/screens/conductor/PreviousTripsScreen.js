@@ -16,7 +16,7 @@ import {
     Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Image } from 'expo-image';
@@ -34,6 +34,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { moderateScale } from '../../utils/responsive';
 import { devLog } from '../../utils/devLog';
 import { formatCRC } from '../../utils/currency';
+import { isRideRated } from '../../utils/ratedRides';
 const { width } = Dimensions.get('window');
 
 const MONTHS_SHORT_ES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
@@ -43,7 +44,32 @@ const getShortMonthNameES = (dt) => {
 };
 
 // Memoized Trip Item for better performance
-const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handlePaymentToggle }) => {
+// "Calificar" para pasajeros de viajes completados que el conductor aún no
+// calificó (la pantalla de calificación sale una sola vez al terminar).
+const RatePassengerLater = memo(({ rideId, passenger, theme, onRate }) => {
+    const [pending, setPending] = useState(false);
+    // Revisar otra vez al volver a la pantalla (tras calificar desaparece).
+    const isFocused = useIsFocused();
+    useEffect(() => {
+        let alive = true;
+        if (passenger.status !== 'completed' || !rideId || !passenger.passengerId) { setPending(false); return undefined; }
+        isRideRated(String(rideId), String(passenger.passengerId)).then((rated) => { if (alive) setPending(!rated); });
+        return () => { alive = false; };
+    }, [rideId, passenger.passengerId, passenger.status, isFocused]);
+    if (!pending) return null;
+    return (
+        <TouchableOpacity
+            style={[styles.contactBtn, { backgroundColor: '#FFB80020' }]}
+            onPress={() => onRate(rideId, passenger)}
+            accessibilityRole="button"
+            accessibilityLabel={`Calificar a ${passenger.name}`}
+        >
+            <Ionicons name="star-outline" size={18} color="#E0A100" />
+        </TouchableOpacity>
+    );
+});
+
+const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handlePaymentToggle, onRatePassenger }) => {
     const isCancelled = item.status === 'cancelled';
     const statusColor = isCancelled ? '#FF3B30' : '#4CD964';
     const arrivalTime = calculateArrivalTime(item.fecha, item.hora, item.duration_minutes);
@@ -196,6 +222,7 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handl
                                                 <Text style={[styles.paymentBadgeText, { color: '#FF3B30' }]}>No pagado</Text>
                                             </TouchableOpacity>
                                         ) : null}
+                                        <RatePassengerLater rideId={item._id} passenger={p} theme={theme} onRate={onRatePassenger} />
                                         <TouchableOpacity 
                                             style={[styles.contactBtn, { backgroundColor: '#25D366' + '20' }]}
                                             onPress={() => handleContact('whatsapp', p.phone)}
@@ -220,6 +247,7 @@ const TripItem = memo(({ item, theme, calculateArrivalTime, handleContact, handl
 });
 
 export default function PreviousTripsScreen() {
+    const navigation = useNavigation();
     const { theme } = useDriverTheme();
     const insets = useSafeAreaInsets();
     const { showAlert } = useCustomAlert();
@@ -270,6 +298,8 @@ export default function PreviousTripsScreen() {
                     // "No pagado" (misma funcionalidad reutilizada).
                     const passengers = rawBookings.map(b => ({
                         bookingId: b._id,
+                        passengerId: b.passenger_id?._id || b.passenger_id,
+                        status: b.status,
                         name: b.passenger_id?.name || 'Pasajero',
                         image: b.passenger_id?.profileImage,
                         phone: b.passenger_id?.phone,
@@ -541,6 +571,17 @@ export default function PreviousTripsScreen() {
         );
     };
 
+    const handleRatePassenger = useCallback((rideId, p) => {
+        navigation.navigate('RatePassenger', {
+            rideId,
+            passengerId: p.passengerId,
+            passengerName: p.name,
+            passengerImage: p.image,
+            bookingId: p.bookingId,
+            bookingStatus: p.status,
+        });
+    }, [navigation]);
+
     const renderTripItem = useCallback(({ item }) => (
         <TripItem 
             item={item} 
@@ -548,8 +589,9 @@ export default function PreviousTripsScreen() {
             calculateArrivalTime={calculateArrivalTime} 
             handleContact={handleContact}
             handlePaymentToggle={handlePaymentToggle}
+            onRatePassenger={handleRatePassenger}
         />
-    ), [theme, calculateArrivalTime, handleContact, handlePaymentToggle]);
+    ), [theme, calculateArrivalTime, handleContact, handlePaymentToggle, handleRatePassenger]);
 
     const renderFooter = () => {
         if (displayLimit >= filteredTrips.length) return <View style={{ height: 40 }} />;

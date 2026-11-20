@@ -14,7 +14,7 @@ import ScreenHeader from '../../components/ScreenHeader';
 
 import { moderateScale } from '../../utils/responsive';
 import { devLog } from '../../utils/devLog';
-import { getInitials } from '../../utils/initials';
+import { getInitials, getFirstName } from '../../utils/initials';
 const CancelConfirmationModal = ({ visible, onConfirm, onCancel, theme }) => {
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -638,7 +638,7 @@ const WaitingForTheStart = ({ route, navigation }) => {
                                     </View>
                                 )}
                                 <Text style={[styles.bentoValue, { color: theme.text }]} numberOfLines={1}>
-                                    {rideData?.driver_id?.name?.split(' ')[0] || 'Conductor'}
+                                    {getFirstName(rideData?.driver_id?.name, 'Conductor')}
                                 </Text>
                                 <View style={styles.bentoRatingRow}>
                                     <Ionicons name="star" size={12} color="#F59E0B" />

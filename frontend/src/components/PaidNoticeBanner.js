@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View, Easing } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getFirstName } from '../utils/initials';
 
 const AUTO_DISMISS_MS = 9000;
 
@@ -50,7 +51,7 @@ const PaidNoticeBanner = ({ notice, onDismiss, topInset = 0 }) => {
     }, []);
 
     if (!notice) return null;
-    const firstName = (notice.passengerName || 'Tu pasajero').split(' ')[0];
+    const firstName = getFirstName(notice.passengerName, 'Tu pasajero');
 
     return (
         <Animated.View

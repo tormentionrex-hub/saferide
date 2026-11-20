@@ -13,3 +13,13 @@ export const getInitials = (name, max = 2, fallback = '?') => {
 };
 
 export default getInitials;
+
+// Primer nombre "de verdad": la primera palabra que tiene letras, sin
+// símbolos alrededor. "(QA) Conductor Arquitecto" → "QA", "María José" → "María".
+export const getFirstName = (name, fallback = '') => {
+    for (const w of String(name ?? '').split(/\s+/)) {
+        const clean = w.replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
+        if (clean) return clean;
+    }
+    return fallback;
+};

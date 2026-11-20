@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import passengerBookingsCache from '../../services/passengerBookingsCache';
@@ -30,6 +30,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { moderateScale } from '../../utils/responsive';
 import { formatCRC } from '../../utils/currency';
 import { getInitials } from '../../utils/initials';
+import { isRideRated } from '../../utils/ratedRides';
 const { width } = Dimensions.get('window');
 
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -224,7 +225,44 @@ const pendingStyles = StyleSheet.create({
 });
 
 // Memoized History Item for better performance
-const HistoryItem = memo(({ item, theme, calculateArrivalTime, handleContact }) => {
+// Botón "Calificar al conductor" en viajes completados que aún no se calificaron.
+// Antes la calificación solo salía una vez al terminar el viaje y se perdía si
+// la persona recargaba o no estaba en la pantalla de espera.
+const RateLaterButton = memo(({ item, theme, onRate }) => {
+    const ride = item.ride_id;
+    const driverId = ride?.driver_id?._id || ride?.driver_id;
+    const [pending, setPending] = useState(false);
+    // Revisar otra vez al volver a la pantalla (tras calificar desaparece).
+    const isFocused = useIsFocused();
+    useEffect(() => {
+        let alive = true;
+        if (item.status !== 'completed' || !ride?._id || !driverId) { setPending(false); return undefined; }
+        isRideRated(String(ride._id), String(driverId)).then((rated) => { if (alive) setPending(!rated); });
+        return () => { alive = false; };
+    }, [item.status, ride?._id, driverId, isFocused]);
+    if (!pending) return null;
+    return (
+        <TouchableOpacity
+            style={[rateLaterStyles.btn, { borderColor: theme.accent }]}
+            onPress={() => onRate(item)}
+            accessibilityRole="button"
+            accessibilityLabel="Calificar al conductor de este viaje"
+        >
+            <Ionicons name="star-outline" size={16} color={theme.accent} />
+            <Text style={[rateLaterStyles.text, { color: theme.accent }]}>Calificar al conductor</Text>
+        </TouchableOpacity>
+    );
+});
+
+const rateLaterStyles = StyleSheet.create({
+    btn: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+        marginTop: 12, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5,
+    },
+    text: { fontFamily: 'Poppins-SemiBold', fontSize: moderateScale(13) },
+});
+
+const HistoryItem = memo(({ item, theme, calculateArrivalTime, handleContact, onRate }) => {
     const ride = item.ride_id;
     if (!ride || !ride.fecha) return null;
 
@@ -364,6 +402,7 @@ const HistoryItem = memo(({ item, theme, calculateArrivalTime, handleContact }) 
                     </TouchableOpacity>
                 </View>
             </View>
+            <RateLaterButton item={item} theme={theme} onRate={onRate} />
         </View>
     );
 });
@@ -629,14 +668,27 @@ const History = ({ navigation }) => {
         );
     };
 
+    const handleRate = useCallback((item) => {
+        const ride = item.ride_id;
+        navigation.navigate('RateDriver', {
+            rideId: ride?._id,
+            driverId: ride?.driver_id?._id || ride?.driver_id,
+            driverName: ride?.driver_id?.name,
+            driverImage: ride?.driver_id?.profileImage,
+            bookingId: item._id,
+            bookingStatus: item.status,
+        });
+    }, [navigation]);
+
     const renderItem = useCallback(({ item }) => (
         <HistoryItem
             item={item}
             theme={theme}
             calculateArrivalTime={calculateArrivalTime}
             handleContact={handleContact}
+            onRate={handleRate}
         />
-    ), [theme, calculateArrivalTime, handleContact]);
+    ), [theme, calculateArrivalTime, handleContact, handleRate]);
 
     // Empty/Footer extraídos a referencias estables: antes se pasaban como
     // arrow functions inline en el JSX del FlatList, lo que provocaba que el

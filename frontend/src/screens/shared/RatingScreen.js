@@ -9,6 +9,7 @@ import { useDriverTheme } from '../../context/DriverThemeContext';
 import api from '../../services/api';
 import StarRating from '../../components/StarRating';
 import TripCompletedOverlay from '../../components/TripCompletedOverlay';
+import { markRideRated, isAlreadyReviewedError } from '../../utils/ratedRides';
 
 const RATING_LABELS = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'];
 
@@ -48,6 +49,7 @@ const RatingScreen = ({
     const [comment, setComment] = useState('');
     const [loading, setLoading] = useState(false);
     const [submitError, setSubmitError] = useState(null);
+    const submittingRef = useRef(false);
     const [isFocused, setIsFocused] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
 
@@ -75,10 +77,14 @@ const RatingScreen = ({
     };
 
     const handleSubmit = async () => {
+        // El estado loading tarda un render en deshabilitar el botón: el ref corta
+        // el doble toque en el mismo instante (antes salían dos POST).
+        if (submittingRef.current) return;
         if (rating === 0) {
             Alert.alert('Selecciona una calificación', 'Por favor selecciona al menos 1 estrella.');
             return;
         }
+        submittingRef.current = true;
         setLoading(true);
         setSubmitError(null);
         // Extraer IDs asegurando que sean strings (por si vienen como objetos poblados)
@@ -94,13 +100,26 @@ const RatingScreen = ({
 
 
         try {
-            const response = await api.post('/reviews/direct-submit', payload);
+            await api.post('/reviews/direct-submit', payload);
+            await markRideRated(cleanRideId, cleanRevieweeId);
             triggerSuccessModal(onSuccess);
         } catch (error) {
+            // Ya estaba calificado (p. ej. desde otro dispositivo o desde el
+            // Historial): no es un error para la persona.
+            if (isAlreadyReviewedError(error)) {
+                await markRideRated(cleanRideId, cleanRevieweeId);
+                setLoading(false);
+                submittingRef.current = false;
+                Alert.alert('Ya calificaste este viaje', 'Tu calificación anterior se mantiene.');
+                onSuccess?.();
+                return;
+            }
             console.error('Error al enviar reseña:', error.response?.data || error.message);
-            const errorMessage = error.response?.data?.message || 'No se pudo enviar la calificación';
+            const data = error.response?.data;
+            const errorMessage = data?.errors?.[0]?.message || data?.message || 'No se pudo enviar la calificación';
             setSubmitError(errorMessage);
             setLoading(false);
+            submittingRef.current = false;
             Alert.alert('Error', errorMessage);
         }
     };

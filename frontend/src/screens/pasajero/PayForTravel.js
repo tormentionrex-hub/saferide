@@ -38,6 +38,9 @@ const PayForTravel = ({ route, navigation }) => {
 
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(true);
+    // Método con el que el pasajero dice que pagó. undefined = aún no tocó
+    // ninguno (se usa el de la reserva); null = deseleccionó.
+    const [method, setMethod] = useState(undefined);
 
     // Back (header + hardware) → DashboardPasajero siempre.
     const navigateToDashboard = useCallback(() => {
@@ -116,13 +119,33 @@ const PayForTravel = ({ route, navigation }) => {
         });
     };
 
+    // Método de la reserva: 'cash' | 'sinpe' | electrónicos | null. El parámetro
+    // 'efectivo' es el valor histórico de la app.
+    const bookedMethod = booking?.payment_method
+        || (paymentMethod === 'efectivo' ? 'cash' : paymentMethod === 'sinpe' ? 'sinpe' : null);
+    const preselected = bookedMethod === 'cash' || bookedMethod === 'sinpe' ? bookedMethod : null;
+    const chosen = method === undefined ? preselected : method;
+
     const handleContinue = () => {
+        // "Continuar" confirma un pago fuera de la app (efectivo o SINPE). El
+        // pago en línea se hace con su propio botón y se confirma solo.
+        if (!chosen) {
+            showAlert('Elige cómo pagaste', 'Selecciona Efectivo o SINPE Móvil antes de continuar.', 'warning');
+            return;
+        }
+        if (chosen !== 'cash' && chosen !== 'sinpe') {
+            showAlert('Pago en línea', 'Usa el botón «Pagar en línea» para completar este pago.', 'info');
+            return;
+        }
+        const confirmedMethod = chosen === 'cash' ? 'efectivo' : 'sinpe';
         // En CustomAlert: confirmText (botón "Sí") dispara onConfirm,
         // cancelText (botón "Aún no") dispara onClose. Por eso la navegación
         // va en onConfirm y onClose se deja en null.
         showAlert(
             '¿Confirmar pago?',
-            '¿Estás seguro que ya realizaste el pago correspondiente?',
+            chosen === 'cash'
+                ? `¿Ya le entregaste ${formatCRC(amount)} en efectivo al conductor?`
+                : `¿Ya enviaste ${formatCRC(amount)} por SINPE Móvil al conductor?`,
             'warning',
             'Sí',
             null,
@@ -134,7 +157,7 @@ const PayForTravel = ({ route, navigation }) => {
                     driverId,
                     driverName,
                     driverImage,
-                    paymentMethod,
+                    paymentMethod: confirmedMethod,
                     chargedAmount: amount,
                 };
                 // Marcamos que el pasajero ya tocó Continuar. Si vuelve a
@@ -225,6 +248,9 @@ const PayForTravel = ({ route, navigation }) => {
                     driverPhone={driverPhone}
                     driverName={driverName}
                     onPayPal={handlePayPalDirect}
+                    showCash
+                    initialSelected={preselected}
+                    onSelectedChange={setMethod}
                 />
 
                 {/* Botones de acción */}

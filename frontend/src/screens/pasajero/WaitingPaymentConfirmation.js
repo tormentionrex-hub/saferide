@@ -15,6 +15,7 @@ import BottomNavigationBar from '../../components/BottomNavigationBar';
 import { moderateScale } from '../../utils/responsive';
 import { devLog } from '../../utils/devLog';
 import { formatCRC } from '../../utils/currency';
+import { getFirstName } from '../../utils/initials';
 const POLL_INTERVAL_MS = 3000;
 
 const WaitingPaymentConfirmation = ({ route, navigation }) => {
@@ -220,8 +221,9 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
 
     // 'tarjeta' es el valor histórico; el checkout en línea envía el método real.
     const isOnline = ['tarjeta', 'card', 'paypal', 'google_pay', 'apple_pay'].includes(paymentMethod);
-    const methodLabel = paymentMethod === 'paypal' ? 'PayPal' : isOnline ? 'tarjeta' : 'efectivo';
-    const methodIcon = paymentMethod === 'paypal' ? 'logo-paypal' : isOnline ? 'card-outline' : 'cash-outline';
+    const isSinpe = paymentMethod === 'sinpe';
+    const methodLabel = paymentMethod === 'paypal' ? 'PayPal' : isOnline ? 'tarjeta' : isSinpe ? 'SINPE Móvil' : 'efectivo';
+    const methodIcon = paymentMethod === 'paypal' ? 'logo-paypal' : isOnline ? 'card-outline' : isSinpe ? 'phone-portrait-outline' : 'cash-outline';
 
     const ringStyle = (anim) => ({
         opacity: anim.interpolate({ inputRange: [0, 1], outputRange: [0.55, 0] }),
@@ -278,7 +280,7 @@ const WaitingPaymentConfirmation = ({ route, navigation }) => {
                 </View>
 
                 <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-                    {driverName ? `${driverName.split(' ')[0]} ` : 'Tu conductor '}
+                    {driverName ? `${getFirstName(driverName, 'Tu conductor')} ` : 'Tu conductor '}
                     está confirmando si recibió tu pago en {methodLabel}.
                 </Text>
 

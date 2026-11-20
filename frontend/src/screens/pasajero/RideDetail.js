@@ -16,6 +16,9 @@ import ReviewsList from '../../components/ReviewsList';
 import { moderateScale } from '../../utils/responsive';
 import { formatCRC } from '../../utils/currency';
 import { getInitials } from '../../utils/initials';
+// Tope del monto ofrecido (POST /bookings: offered_amount ≤ 250 000).
+const MAX_OFFER_CRC = 250000;
+
 const PAYMENT_OPTIONS = [
     { id: 'efectivo', label: 'Efectivo', icon: 'cash-outline' },
     { id: 'tarjeta',  label: 'Tarjeta',  icon: 'card-outline' },
@@ -166,6 +169,11 @@ const RideDetail = ({ route, navigation }) => {
 
             const parsedAmount = parseInt(offeredAmount, 10);
             const safeAmount = isNaN(parsedAmount) || parsedAmount < 0 ? 0 : parsedAmount;
+            // Mismo tope que el backend (y que el precio de un viaje).
+            if (safeAmount > MAX_OFFER_CRC) {
+                showAlert('Monto muy alto', `El monto máximo que puedes ofrecer es ${formatCRC(MAX_OFFER_CRC)}.`, 'warning');
+                return;
+            }
 
             await AsyncStorage.setItem('paymentMethod', paymentMethod);
 
@@ -187,7 +195,8 @@ const RideDetail = ({ route, navigation }) => {
                 navigation.navigate('ScreenSaver', { bookingId: response.data.data._id });
             }
         } catch (error) {
-            showAlert('Error', error.response?.data?.message || 'Error al solicitar unirse al viaje.', 'error');
+            const data = error.response?.data;
+            showAlert('Error', data?.errors?.[0]?.message || data?.message || 'Error al solicitar unirse al viaje.', 'error');
         } finally {
             submittingRef.current = false;
             setSubmitting(false);
@@ -316,7 +325,7 @@ const RideDetail = ({ route, navigation }) => {
                                 keyboardType="numeric"
                                 placeholder="0"
                                 placeholderTextColor={theme.textSecondary}
-                                maxLength={7}
+                                maxLength={6}
                             />
                         </View>
                         <Text style={[styles.offerHint, { color: theme.textSecondary }]}>

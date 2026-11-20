@@ -6,10 +6,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useDriverTheme } from '../context/DriverThemeContext';
 import { useCustomAlert } from '../context/CustomAlertContext';
 import { formatCRC } from '../utils/currency';
+import { getFirstName } from '../utils/initials';
 
 const PAYPAL_BLUE = '#003087';
 const PAYPAL_YELLOW = '#FFC439';
 const SINPE_PURPLE = '#5A2A82';
+const CASH_GREEN = '#16A34A';
 
 const PaymentMethodCards = ({
     amount = 0,
@@ -17,10 +19,26 @@ const PaymentMethodCards = ({
     driverName = 'Conductor',
     onPayPal,
     sectionTitle = 'Elige tu método de pago',
+    // showCash: ofrecer "Efectivo" (viaje recién terminado; no aplica a cobros
+    // pendientes de otro día). initialSelected: método preseleccionado (p. ej.
+    // el que eligió al reservar). onSelectedChange: avisa al padre qué eligió,
+    // para que la pantalla de espera diga el método correcto.
+    showCash = false,
+    initialSelected = null,
+    onSelectedChange,
 }) => {
     const { theme } = useDriverTheme();
     const { showAlert } = useCustomAlert();
-    const [selected, setSelected] = useState(null);
+    const [selected, setSelectedState] = useState(
+        initialSelected === 'cash' && !showCash ? null : initialSelected
+    );
+    // Fuera del updater de useState: avisar al padre dentro del updater dispara
+    // "Cannot update a component while rendering a different component".
+    const setSelected = (updater) => {
+        const next = typeof updater === 'function' ? updater(selected) : updater;
+        setSelectedState(next);
+        onSelectedChange?.(next);
+    };
 
     const handleCopyPhone = async () => {
         try {
@@ -39,7 +57,7 @@ const PaymentMethodCards = ({
         const cleanPhone = driverPhone.replace(/[^\d+]/g, '');
         const finalPhone = cleanPhone.startsWith('+') ? cleanPhone : '+506' + cleanPhone;
         const msg = encodeURIComponent(
-            `Hola ${driverName.split(' ')[0]}, ya realicé el pago pendiente del viaje por SINPE Móvil por un monto de ${formatCRC(amount)}. ¿Podrías confirmarlo desde tu app? ¡Gracias!`
+            `Hola ${getFirstName(driverName, 'conductor')}, ya realicé el pago pendiente del viaje por SINPE Móvil por un monto de ${formatCRC(amount)}. ¿Podrías confirmarlo desde tu app? ¡Gracias!`
         );
         const url = `https://wa.me/${finalPhone.replace('+', '')}?text=${msg}`;
         Linking.openURL(url).catch(() =>
@@ -51,6 +69,40 @@ const PaymentMethodCards = ({
         <View>
             {!!sectionTitle && (
                 <Text style={[styles.sectionTitle, { color: theme.text }]}>{sectionTitle}</Text>
+            )}
+
+            {/* Efectivo */}
+            {showCash && (
+                <TouchableOpacity
+                    style={[
+                        styles.methodCard,
+                        {
+                            backgroundColor: theme.surface,
+                            borderColor: selected === 'cash' ? CASH_GREEN : theme.border,
+                            borderWidth: selected === 'cash' ? 2 : 1,
+                        },
+                    ]}
+                    onPress={() => setSelected(prev => prev === 'cash' ? null : 'cash')}
+                    activeOpacity={0.85}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: selected === 'cash' }}
+                >
+                    <View style={[styles.methodIcon, { backgroundColor: CASH_GREEN }]}>
+                        <Ionicons name="cash-outline" size={22} color="#fff" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <Text style={[styles.methodTitle, { color: theme.text }]}>Efectivo</Text>
+                        <Text style={[styles.methodSub, { color: theme.textSecondary }]}>
+                            Paga {formatCRC(amount)} al conductor en mano
+                        </Text>
+                    </View>
+                    <View style={[
+                        styles.radio,
+                        { borderColor: selected === 'cash' ? CASH_GREEN : theme.textSecondary },
+                    ]}>
+                        {selected === 'cash' && <View style={[styles.radioDot, { backgroundColor: CASH_GREEN }]} />}
+                    </View>
+                </TouchableOpacity>
             )}
 
             {/* SINPE */}
