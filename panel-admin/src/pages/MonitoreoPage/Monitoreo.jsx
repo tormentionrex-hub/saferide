@@ -24,6 +24,23 @@ const driverIcon = L.divIcon({
   iconAnchor: [18, 18],
 });
 
+// Una posición más vieja que esto ya no es "en vivo": la app del conductor
+// envía su ubicación cada ~10 s durante el viaje (useLocationTracker), así que
+// 5 minutos sin datos significa que perdió señal o cerró la app. Antes se
+// marcaban "En vivo" viajes cuya última posición tenía días.
+const LIVE_LOCATION_MAX_AGE_MS = 5 * 60 * 1000;
+
+// 'live' (posición reciente) | 'stale' (hay posición pero vieja) | 'none'.
+const locationStatus = (ride, now = Date.now()) => {
+  const loc = ride?.last_location;
+  if (!loc || loc.lat == null || loc.lng == null) return 'none';
+  const t = new Date(loc.updated_at).getTime();
+  if (!Number.isFinite(t)) return 'stale';
+  return now - t <= LIVE_LOCATION_MAX_AGE_MS ? 'live' : 'stale';
+};
+
+const STATUS_LABEL = { live: 'En vivo', stale: 'Sin señal', none: 'Sin GPS' };
+
 // Devuelve [lat, lng] o null. Acepta last_location o destination como fallback.
 const ridePosition = (r) => {
   if (r.last_location?.lat != null && r.last_location?.lng != null) {
@@ -73,7 +90,7 @@ const MapController = ({ rides, focusId }) => {
 
 const RideListItem = ({ ride, selected, onClick }) => {
   const pos = ridePosition(ride);
-  const hasLocation = !!ride.last_location;
+  const status = locationStatus(ride);
   return (
     <button
       type="button"
@@ -93,9 +110,9 @@ const RideListItem = ({ ride, selected, onClick }) => {
           <span className="monitor-item-name">{ride.driver?.name || 'Sin conductor'}</span>
           <span className="monitor-item-plate">{ride.vehicle?.license_plate || '—'}</span>
         </div>
-        <span className={`monitor-item-pulse ${hasLocation ? 'is-live' : 'is-stale'}`}>
+        <span className={`monitor-item-pulse ${status === 'live' ? 'is-live' : 'is-stale'}`}>
           <span className="pulse-dot" />
-          {hasLocation ? 'En vivo' : 'Sin GPS'}
+          {STATUS_LABEL[status]}
         </span>
       </div>
 
@@ -154,10 +171,11 @@ const MonitoreoPage = () => {
 
   const stats = useMemo(() => {
     const total = rides.length;
-    const withGps = ridesWithPosition.length;
+    // "Con señal" = posición reciente; una posición de hace días no cuenta.
+    const withGps = rides.filter((r) => locationStatus(r) === 'live').length;
     const passengers = rides.reduce((sum, r) => sum + (r.passenger_count || 0), 0);
     return { total, withGps, withoutGps: total - withGps, passengers };
-  }, [rides, ridesWithPosition]);
+  }, [rides]);
 
   return (
     <div className="monitor-container">

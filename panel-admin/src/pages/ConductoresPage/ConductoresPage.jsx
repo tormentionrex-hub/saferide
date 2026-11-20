@@ -11,10 +11,11 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   Users, Car, Search, Plus, Truck, Star, Zap, Eye, Edit, Trash2, CheckCircle, Mail, Phone,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  FileCheck
+  FileCheck, UserX
 } from 'lucide-react';
 import driverService from '../../services/driverService';
 import documentService from '../../services/documentService';
+import { isDeletedUser } from '../../utils/deletedAccounts';
 import DriverProfileModal from '../../components/DriverProfileModal';
 import Swal from 'sweetalert2';
 import { toast } from 'react-hot-toast';
@@ -158,6 +159,16 @@ const ConductoresPage = () => {
   const [sortOrder, setSortOrder] = useState('desc'); // 'desc' = más nuevos primero, 'asc' = más viejos primero
   const [docFlagsByDriver, setDocFlagsByDriver] = useState({}); // driverId -> 'rejected' | 'needs_review' | 'pending'
   const [showOnlyWithDocIssues, setShowOnlyWithDocIssues] = useState(false);
+  // Cuentas anonimizadas ("Usuario eliminado"): ocultas salvo que se pidan.
+  const [showDeleted, setShowDeleted] = useState(false);
+  // El ref lo lee la carga al instante (el estado se actualiza en el siguiente render).
+  const showDeletedRef = useRef(false);
+  const toggleShowDeleted = () => {
+    showDeletedRef.current = !showDeletedRef.current;
+    setShowDeleted(showDeletedRef.current);
+    setCurrentPage(1);
+    loadDrivers();
+  };
 
 
   const loadDrivers = useCallback(async () => {
@@ -169,7 +180,8 @@ const ConductoresPage = () => {
         initial: selectedLetter,
         page: currentPage,
         limit: 9,
-        sort: sortOrder
+        sort: sortOrder,
+        ...(showDeletedRef.current ? { includeDeleted: 'true' } : {}),
       });
 
 
@@ -368,12 +380,13 @@ const ConductoresPage = () => {
   // su teléfono termina en 3.
   const filteredDrivers = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return drivers;
-    return drivers.filter(d => {
+    const visible = showDeleted ? drivers : drivers.filter(d => !isDeletedUser(d));
+    if (!term) return visible;
+    return visible.filter(d => {
       const haystack = `${d.name || ''} ${d.username || ''} ${d.email || ''}`.toLowerCase();
       return haystack.includes(term);
     });
-  }, [drivers, searchTerm]);
+  }, [drivers, searchTerm, showDeleted]);
 
   // Lógica para generar números de página con elipsis (...)
   const getPageNumbers = useMemo(() => {
@@ -451,6 +464,17 @@ const ConductoresPage = () => {
             {Object.keys(docFlagsByDriver).length > 0 && (
               <span className="btn-doc-filter-count">{Object.keys(docFlagsByDriver).length}</span>
             )}
+          </button>
+
+          <button
+            type="button"
+            className={`btn-doc-filter ${showDeleted ? 'is-active' : ''}`}
+            onClick={toggleShowDeleted}
+            aria-pressed={showDeleted}
+            title="Incluir cuentas eliminadas (anonimizadas)"
+          >
+            <UserX size={16} />
+            Mostrar eliminados
           </button>
 
           <button className="btn-add-passenger" onClick={() => handleOpenModal(null)}>

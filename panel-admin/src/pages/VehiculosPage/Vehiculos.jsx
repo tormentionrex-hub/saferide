@@ -4,8 +4,9 @@ import {
   CheckCircle, AlertCircle, Clock, ShieldCheck,
   Eye, Check, X, Upload,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  Bot
+  Bot, UserX
 } from 'lucide-react';
+import { isDeletedUser } from '../../utils/deletedAccounts';
 import vehicleService from '../../services/vehicleService';
 import driverService from '../../services/driverService';
 import documentService from '../../services/documentService';
@@ -53,6 +54,8 @@ const VehiculosPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // all, active, pending
+  // Vehículos de conductores eliminados (cuenta anonimizada): ocultos salvo que se pidan.
+  const [showDeleted, setShowDeleted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({
@@ -267,13 +270,14 @@ const VehiculosPage = () => {
   // aunque el backend tarde o falle.
   const filteredVehicles = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return vehicles;
-    return vehicles.filter(v => {
+    const visible = showDeleted ? vehicles : vehicles.filter(v => !isDeletedUser(v.driver_id));
+    if (!term) return visible;
+    return visible.filter(v => {
       const driverName = typeof v.driver_id === 'object' ? (v.driver_id?.name || '') : '';
       const haystack = `${v.license_plate || ''} ${v.brand || ''} ${v.model || ''} ${v.color || ''} ${v.year || ''} ${driverName}`.toLowerCase();
       return haystack.includes(term);
     });
-  }, [vehicles, searchTerm]);
+  }, [vehicles, searchTerm, showDeleted]);
 
   // Lógica de números de página
   const getPageNumbers = useMemo(() => {
@@ -427,6 +431,16 @@ const VehiculosPage = () => {
           >
             Pendientes
           </button>
+          <button
+            type="button"
+            className={`filter-btn ${showDeleted ? 'active' : ''}`}
+            onClick={() => setShowDeleted(v => !v)}
+            aria-pressed={showDeleted}
+            title="Incluir vehículos de conductores eliminados"
+          >
+            <UserX size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />
+            Mostrar eliminados
+          </button>
         </div>
       </div>
 
@@ -515,7 +529,11 @@ const VehiculosPage = () => {
                   </div>
                   <div className="driver-text">
                     <span className="label">Conductor:</span>
-                    <span className="name">{vehicle.driver_id?.name || 'Sin asignar'}</span>
+                    <span className="name">
+                      {isDeletedUser(vehicle.driver_id)
+                        ? <span style={{ color: '#B91C1C' }}>Conductor eliminado</span>
+                        : (vehicle.driver_id?.name || 'Sin asignar')}
+                    </span>
                   </div>
                 </div>
 

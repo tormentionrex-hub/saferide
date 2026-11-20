@@ -71,16 +71,16 @@ const Dashboard = () => {
         const CargarDatos = async () => {
             try {
                 // /metrics/global solo trae totalUsers y totalDrivers; pedimos los admins
-                // y las bookings aparte porque el backend no expone esos agregados.
-                // Para los admins leemos pagination.total con limit=1 (no necesitamos docs).
-                // Para los pagos pedimos hasta 1000 bookings y contamos payment_status
-                // localmente; cuando el backend exponga /metrics/payments, sustituir esto.
+                // aparte. Para los admins leemos pagination.total con limit=1 (no
+                // necesitamos docs). Los pagos salen de /bookings/admin/summary.
                 const [metricasRes, vehiculosRes, usuariosRes, adminsRes, bookingsRes] = await Promise.all([
                     api.get('/metrics/global').catch(() => ({ data: { data: {} } })),
                     api.get('/vehicles?limit=5').catch(() => ({ data: { data: [] } })),
                     api.get('/users?limit=5').catch(() => ({ data: { data: [] } })),
                     api.get('/users?type=admin&limit=1').catch(() => ({ data: { pagination: { total: 0 } } })),
-                    api.get('/bookings?limit=1000').catch(() => ({ data: { data: [] } }))
+                    // Conteo por estado de pago desde el resumen del backend (antes se
+                    // pedían 1000 reservas para contarlas en el navegador).
+                    api.get('/bookings/admin/summary').catch(() => ({ data: { data: null } }))
                 ]);
 
                 setMetricas(metricasRes.data?.data || {});
@@ -88,13 +88,12 @@ const Dashboard = () => {
                 setUsuarios(usuariosRes.data?.data || usuariosRes.data?.data?.docs || []);
                 setTotalAdmins(adminsRes.data?.pagination?.total || 0);
 
-                const bookingsList = bookingsRes.data?.data?.docs || bookingsRes.data?.data || [];
-                const paymentCounts = bookingsList.reduce((acc, b) => {
-                    const s = b.payment_status;
-                    if (s === 'paid' || s === 'pending' || s === 'waived') acc[s] += 1;
-                    return acc;
-                }, { paid: 0, pending: 0, waived: 0 });
-                setPayments(paymentCounts);
+                const byPay = bookingsRes.data?.data?.byPaymentStatus || {};
+                setPayments({
+                    paid: Number(byPay.paid) || 0,
+                    pending: Number(byPay.pending) || 0,
+                    waived: Number(byPay.waived) || 0,
+                });
 
                 setLoading(false);
 

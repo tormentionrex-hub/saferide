@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   Users, Search, Plus, Mail, Star, Activity,
   Eye, Edit, CheckCircle, Briefcase, Phone,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, PowerOff
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, PowerOff, UserX
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { toast } from 'react-hot-toast';
 
 import passengerService from '../../services/passengerService';
+import { isDeletedUser } from '../../utils/deletedAccounts';
 import DriverProfileModal from '../../components/DriverProfileModal';
 import DefaultImageUser from '../../imgs/DefaultImageUser.png';
 
@@ -260,6 +261,16 @@ const PasajerosPage = () => {
   const [searchTerm, setSearch] = useState('');
   const [selectedLetter, setSelectedLetter] = useState('');
   const [sortOrder, setSortOrder] = useState('desc'); // desc: nuevos primero | asc: viejos primero
+  // Cuentas anonimizadas ("Usuario eliminado"): ocultas salvo que se pidan.
+  const [showDeleted, setShowDeleted] = useState(false);
+  // El ref lo lee la carga al instante (el estado se actualiza en el siguiente render).
+  const showDeletedRef = useRef(false);
+  const toggleShowDeleted = () => {
+    showDeletedRef.current = !showDeletedRef.current;
+    setShowDeleted(showDeletedRef.current);
+    setCurrentPage(1);
+    loadPassengers();
+  };
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -309,6 +320,7 @@ const PasajerosPage = () => {
         page: currentPage,
         limit: PAGE_LIMIT,
         sort: sortOrder,
+        ...(showDeletedRef.current ? { includeDeleted: 'true' } : {}),
       });
 
       // Descartamos respuestas obsoletas (race entre filtros).
@@ -433,12 +445,13 @@ const PasajerosPage = () => {
   // p.ej. buscar "3" matcheaba pasajeros cuyo teléfono contenía un 3.
   const filteredPassengers = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return passengers;
-    return passengers.filter(p => {
+    const visible = showDeleted ? passengers : passengers.filter(p => !isDeletedUser(p));
+    if (!term) return visible;
+    return visible.filter(p => {
       const haystack = `${p.name || ''} ${p.username || ''} ${p.email || ''} ${p.company || ''}`.toLowerCase();
       return haystack.includes(term);
     });
-  }, [passengers, searchTerm]);
+  }, [passengers, searchTerm, showDeleted]);
 
   // ── Handlers de filtros ────────────────────────────────────
   // Búsqueda y filtro alfabético son mutuamente excluyentes: al activar uno
@@ -489,6 +502,17 @@ const PasajerosPage = () => {
               <option value="asc">Más viejos primero</option>
             </select>
           </div>
+
+          <button
+            type="button"
+            className={`btn-doc-filter ${showDeleted ? 'is-active' : ''}`}
+            onClick={toggleShowDeleted}
+            aria-pressed={showDeleted}
+            title="Incluir cuentas eliminadas (anonimizadas)"
+          >
+            <UserX size={16} />
+            Mostrar eliminados
+          </button>
 
           <button className="btn-add-passenger" onClick={() => openModal(null, 'info')}>
             <Plus size={18} /> Nuevo Pasajero
