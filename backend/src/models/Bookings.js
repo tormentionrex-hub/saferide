@@ -34,14 +34,17 @@ const bookingSchema = new mongoose.Schema({
     default: 0,
     min: [0, 'Distance cannot be negative'],
   },
+  // Mismo tope que el precio de un viaje (₡250 000), también en la ruta.
   offered_amount: {
     type: Number,
     min: 0,
+    max: [250000, 'Offered amount cannot exceed 250000'],
   },
   charged_amount: {
     type: Number,
     default: 0,
     min: [0, 'Charged amount cannot be negative'],
+    max: [250000, 'Charged amount cannot exceed 250000'],
   },
   payment_status: {
     type: String,

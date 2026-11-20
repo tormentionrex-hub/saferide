@@ -1,4 +1,5 @@
-const { Booking, Ride, Notification } = require('../models');
+const { Booking, Ride, Notification, User } = require('../models');
+const { escapeRegex } = require('../utils/safeText');
 // IMPORTANTE: usamos el servicio real (services/notificationService), no el worker.
 // El servicio crea el registro en BD Y dispara el push del SO respetando user.optIn.
 // El worker antiguo solo guardaba en BD sin push, y antes se llamaba además de un
@@ -161,34 +162,149 @@ exports.createBooking = async (req, res, next) => {
 //Function to get all bookings
 exports.getAllBookings = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, status, userId } = req.query;
+    const isAdmin = req.user.type === 'admin';
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    // Tope: 100 para la app (usa 5 o 10) y 1000 para el panel (el inicio pide
+    // limit=1000; para totales conviene /bookings/admin/summary).
+    const limit = Math.min(isAdmin ? 1000 : 100, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const { status } = req.query;
     const query = {};
-
     if (status) query.status = status;
 
-    // If not admin, only show user's own bookings
-    if (req.user.type !== 'admin') {
+    // El pasajero solo ve sus reservas, con la misma forma de siempre (la app
+    // lee ride_id completo).
+    if (!isAdmin) {
       query.passenger_id = req.user._id;
-    } else if (userId) {
-      query.passenger_id = userId;
+      const [bookings, count] = await Promise.all([
+        Booking.find(query)
+          .populate('ride_id')
+          .populate('passenger_id', 'name username rating profileImage')
+          .limit(limit)
+          .skip((page - 1) * limit)
+          .sort({ createdAt: -1 }),
+        Booking.countDocuments(query),
+      ]);
+      return res.status(200).json({
+        success: true,
+        data: bookings,
+        pagination: { total: count, page, pages: Math.ceil(count / limit) },
+      });
     }
-    // Fetch bookings with pagination
-    const bookings = await Booking.find(query)
-      .populate('ride_id')
-      .populate('passenger_id', 'name username rating profileImage')
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .sort({ createdAt: -1 });
 
-    const count = await Booking.countDocuments(query);
-    // Return paginated results
+    // Listado global del panel: filtros cerrados (validados en la ruta).
+    const { payment_status, payment_type, payment_method, from, to, search, userId } = req.query;
+    if (payment_status) query.payment_status = payment_status;
+    if (payment_type) query.payment_type = payment_type;
+    if (payment_method) query.payment_method = payment_method;
+    if (userId) query.passenger_id = userId;
+    if (from || to) {
+      query.createdAt = {};
+      if (from) query.createdAt.$gte = new Date(from);
+      if (to) query.createdAt.$lte = new Date(to);
+    }
+    // Búsqueda por nombre o correo del pasajero o del conductor: el texto se
+    // escapa y se busca literal; se resuelve a IDs antes de filtrar reservas.
+    if (search) {
+      const rx = new RegExp(escapeRegex(search.trim()), 'i');
+      const users = await User.find({ $or: [{ name: rx }, { email: rx }] }).select('_id').limit(500).lean();
+      const userIds = users.map(u => u._id);
+      const rideIds = await Ride.find({ driver_id: { $in: userIds } }).distinct('_id');
+      const match = { $or: [{ passenger_id: { $in: userIds } }, { ride_id: { $in: rideIds } }] };
+      if (query.passenger_id) {
+        query.$and = [match];
+      } else {
+        Object.assign(query, match);
+      }
+    }
+
+    const [bookings, count] = await Promise.all([
+      Booking.find(query)
+        // Solo lo que una tabla necesita: nada de teléfonos, tokens ni hashes.
+        .select('ride_id passenger_id status seats_booked offered_amount charged_amount payment_status payment_type payment_method paid_amount_usd payment_reviewed_at distance_km createdAt')
+        .populate('passenger_id', 'name email profileImage')
+        .populate({
+          path: 'ride_id',
+          select: 'origin.name destination.name fecha hora status suggested_price driver_id',
+          populate: { path: 'driver_id', select: 'name email profileImage' },
+        })
+        .sort({ createdAt: req.query.sort === 'asc' ? 1 : -1, _id: 1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      Booking.countDocuments(query),
+    ]);
     res.status(200).json({
       success: true,
       data: bookings,
-      pagination: {
-        total: count,
-        page: parseInt(page),
-        pages: Math.ceil(count / limit),
+      pagination: { total: count, page, pages: Math.ceil(count / limit) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Totales de reservas y pagos para el panel (página de Pagos)
+// @route   GET /api/v1/bookings/admin/summary?from&to
+// @access  Private/Admin
+//
+// Montos en colones (charged_amount). charged = viajes completados;
+// paid = marcado como pagado; pending = completado y sin pagar (sin contar
+// regalados); waived = eximido. paidUsd suma lo cobrado por PayPal en USD.
+exports.getBookingsSummary = async (req, res, next) => {
+  try {
+    const match = {};
+    if (req.query.from || req.query.to) {
+      match.createdAt = {};
+      if (req.query.from) match.createdAt.$gte = new Date(req.query.from);
+      if (req.query.to) match.createdAt.$lte = new Date(req.query.to);
+    }
+    const amount = { $ifNull: ['$charged_amount', 0] };
+    const sumIf = (cond) => ({ $sum: { $cond: [cond, amount, 0] } });
+    const [agg] = await Booking.aggregate([
+      { $match: match },
+      {
+        $facet: {
+          totals: [{
+            $group: {
+              _id: null,
+              count: { $sum: 1 },
+              charged: sumIf({ $eq: ['$status', 'completed'] }),
+              paid: sumIf({ $eq: ['$payment_status', 'paid'] }),
+              pending: sumIf({ $and: [{ $eq: ['$status', 'completed'] }, { $eq: ['$payment_status', 'pending'] }, { $ne: ['$payment_type', 'gifted'] }] }),
+              waived: sumIf({ $eq: ['$payment_status', 'waived'] }),
+              paidUsd: { $sum: { $ifNull: ['$paid_amount_usd', 0] } },
+            },
+          }],
+          byStatus: [{ $group: { _id: '$status', n: { $sum: 1 } } }],
+          byPaymentStatus: [{ $group: { _id: '$payment_status', n: { $sum: 1 } } }],
+          byPaymentMethod: [{ $group: { _id: '$payment_method', n: { $sum: 1 } } }],
+          byPaymentType: [{ $group: { _id: '$payment_type', n: { $sum: 1 } } }],
+        },
+      },
+    ]);
+    const counts = (rows, keys, nullKey) => {
+      const out = Object.fromEntries(keys.map(k => [k, 0]));
+      for (const r of rows) out[r._id === null || r._id === undefined ? nullKey : r._id] = r.n;
+      return out;
+    };
+    const t = agg.totals[0] || {};
+    const round = (n) => Math.round((n || 0) * 100) / 100;
+    res.status(200).json({
+      success: true,
+      data: {
+        totalBookings: t.count || 0,
+        amounts: {
+          currency: 'CRC',
+          charged: round(t.charged),
+          paid: round(t.paid),
+          pending: round(t.pending),
+          waived: round(t.waived),
+          paidUsd: round(t.paidUsd),
+        },
+        byStatus: counts(agg.byStatus, ['pending', 'confirmed', 'completed', 'cancelled', 'canceled', 'deny'], 'unknown'),
+        byPaymentStatus: counts(agg.byPaymentStatus, ['pending', 'paid', 'waived'], 'unknown'),
+        byPaymentMethod: counts(agg.byPaymentMethod, ['cash', 'sinpe', 'card', 'paypal', 'google_pay', 'apple_pay', 'none'], 'none'),
+        byPaymentType: counts(agg.byPaymentType, ['normal', 'gifted'], 'normal'),
       },
     });
   } catch (error) {

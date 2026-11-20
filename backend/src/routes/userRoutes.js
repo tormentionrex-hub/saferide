@@ -3,7 +3,7 @@ const multer = require('multer');
 const userController = require('../controllers/userController');
 const { verifyToken, authorize } = require('../middleware/auth');
 const { COMPANIES } = require('../config/companies');
-const { body, param } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const validate = require('../middleware/validation');
 const { isSafeText, SAFE_TEXT_MESSAGE } = require('../utils/safeText');
 const { deleteAccountIpLimiter, deleteAccountUserLimiter } = require('../middleware/rateLimiter');
@@ -90,7 +90,18 @@ router.use(verifyToken);
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
  */
-router.get('/', authorize('admin'), userController.getAllUsers);
+// Filtros del listado del panel con tipo y valores cerrados. includeDeleted
+// es la única forma de ver cuentas eliminadas o anonimizadas.
+router.get('/', authorize('admin'), [
+  query('page').optional().isInt({ min: 1, max: 100000 }),
+  query('limit').optional().isInt({ min: 1, max: 10000 }),
+  query('type').optional().isString().isIn(['pasajero', 'conductor', 'admin']),
+  query('company').optional().isString().isLength({ max: 100 }),
+  query('search').optional().isString().isLength({ max: 60 }),
+  // El panel manda initial y search vacíos cuando no hay filtro.
+  query('initial').optional().isString().isLength({ max: 2 }),
+  query('includeDeleted').optional().isString().isIn(['true', 'false']),
+], validate, userController.getAllUsers);
 
 /**
  * @swagger

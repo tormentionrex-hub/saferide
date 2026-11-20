@@ -1210,6 +1210,105 @@ async function register(type, suffix) {
     check('H19V el dueño borra un documento pendiente', `${r.status}/${!!(await db.collection('vehicledocuments').findOne({ _id: pend.insertedId }))}`, '200/false');
   }
 
+
+  // H20 Ronda 5: listado global de reservas, resumen de pagos, cuentas
+  // eliminadas en los listados y tope de offered_amount.
+  {
+    let pass;
+    // --- GET /bookings (pasajero: solo las suyas, forma de siempre)
+    r = await call('GET', '/bookings?limit=50', hp1.token);
+    check('H20a pasajero: solo sus reservas y ride_id completo (forma de la app)', `${r.status}/${(r.body?.data || []).every(b => String(b.passenger_id?._id || b.passenger_id) === hp1.id)}/${'available_seats' in (r.body?.data?.[0]?.ride_id || {})}`, '200/true/true');
+    pass = [];
+    for (const q of [`userId=${hp2.id}`, 'payment_status=pending', `search=${encodeURIComponent(hp2.email)}`, 'limit=1000']) {
+      const x = await call('GET', '/bookings?' + q, hp1.token);
+      if (x.status !== 200 || !(x.body?.data || []).every(b => String(b.passenger_id?._id || b.passenger_id) === hp1.id)) pass.push(q + ':' + x.status);
+    }
+    check('H20b pasajero no ve reservas ajenas con filtros de admin (4 variantes)', pass.join(' ') || 'solo las suyas', 'solo las suyas');
+    r = await call('GET', '/bookings?limit=500', hp1.token);
+    check('H20c tope de 100 para la app', (r.body?.data || []).length <= 100 && r.body?.pagination?.pages >= 1, true);
+
+    // --- GET /bookings (admin)
+    pass = [];
+    for (const q of ['status=XX', 'payment_status=pending&payment_status=paid', 'limit=5000', 'from=ayer', 'search=' + 'x'.repeat(61), 'sort=up', 'userId=abc', 'payment_method=bitcoin', 'payment_type=free', 'page=0']) {
+      const x = await call('GET', '/bookings?' + q, admin.token); if (x.status !== 400) pass.push(q.slice(0, 30) + ':' + x.status);
+    }
+    check('H20d filtros inválidos del listado (10 variantes)', pass.join(' | ') || 'todos 400', 'todos 400');
+    const total = (await call('GET', '/bookings?limit=1', admin.token)).body?.pagination?.total;
+    pass = [];
+    for (const s of ['.*', '(a+)+$', '^', '[a-z]', '\\', '|']) {
+      const t0 = Date.now();
+      const x = await call('GET', '/bookings?limit=5&search=' + encodeURIComponent(s), admin.token);
+      if (x.status !== 200 || x.body?.pagination?.total === total || Date.now() - t0 > 3000) pass.push(JSON.stringify(s) + ':' + x.status + '/' + x.body?.pagination?.total);
+    }
+    check('H20e búsqueda con metacaracteres de regex: se busca literal (6 variantes)', pass.join(' ') || 'literal', 'literal');
+    r = await call('GET', '/bookings?limit=50&search=' + encodeURIComponent('(QA) pasajero h1'), admin.token);
+    check('H20f búsqueda por nombre del pasajero (con paréntesis)', (r.body?.data || []).some(b => b._id === bH1), true);
+    r = await call('GET', '/bookings?limit=50&search=' + encodeURIComponent(hd1.email.toUpperCase()), admin.token);
+    check('H20g búsqueda por correo del conductor (mayúsculas)', (r.body?.data || []).some(b => b._id === bH1), true);
+    r = await call('GET', '/bookings?limit=200', admin.token);
+    check('H20h listado del panel sin teléfonos, contraseñas ni tokens', /"phone"|password|refreshToken|tokenVersion|expoPushToken|currentLocation/.test(r.text), false);
+    const b0 = (r.body?.data || []).find(b => b._id === bH1);
+    check('H20i reserva con pasajero, conductor y viaje poblados (campos de tabla)', `${!!b0?.passenger_id?.name}/${!!b0?.passenger_id?.email}/${!!b0?.ride_id?.driver_id?.name}/${!!b0?.ride_id?.origin?.name}`, 'true/true/true/true');
+    r = await call('GET', '/bookings?limit=200&payment_status=pending&status=completed', admin.token);
+    check('H20j filtros combinados', (r.body?.data || []).every(b => b.payment_status === 'pending' && b.status === 'completed') && r.body.data.length > 0, true);
+    r = await call('GET', '/bookings?limit=50&sort=asc', admin.token);
+    const ds = (r.body?.data || []).map(b => new Date(b.createdAt).getTime());
+    check('H20k orden por fecha ascendente', ds.every((d, i) => i === 0 || d >= ds[i - 1]), true);
+
+    // --- GET /bookings/admin/summary
+    r = await call('GET', '/bookings/admin/summary', admin.token);
+    const sm = r.body?.data || {};
+    const sumStatus = Object.values(sm.byStatus || {}).reduce((a, b) => a + b, 0);
+    check('H20l resumen: forma y conteos consistentes', `${r.status}/${['charged', 'paid', 'pending', 'waived', 'paidUsd'].every(k => typeof sm.amounts?.[k] === 'number')}/${sumStatus === sm.totalBookings}`, '200/true/true');
+    const dbPending = await db.collection('bookings').aggregate([{ $match: { status: 'completed', payment_status: 'pending', payment_type: { $ne: 'gifted' } } }, { $group: { _id: null, s: { $sum: '$charged_amount' } } }]).toArray();
+    check('H20m monto pendiente = suma real en la base', sm.amounts?.pending, Math.round((dbPending[0]?.s || 0) * 100) / 100);
+    pass = [];
+    for (const [who, tok] of [['pasajero', hp1.token], ['conductor', dA.token], ['sin token', null], ['firma ajena', jwt.sign({ userId: X, typ: 'access' }, 'otro-secreto')]]) {
+      const x = await call('GET', '/bookings/admin/summary', tok); if (![401, 403].includes(x.status)) pass.push(who + ':' + x.status);
+    }
+    check('H20n resumen para no-admin (4 variantes)', pass.join(' ') || 'todos 401/403', 'todos 401/403');
+    r = await call('GET', '/bookings/admin/summary?from=ayer', admin.token);
+    check('H20o resumen con fecha inválida', r.status, 400);
+
+    // --- GET /users sin cuentas eliminadas por defecto
+    const hidden = await db.collection('users').findOne({ deletedAt: { $ne: null } });
+    r = await call('GET', '/users?limit=10000', admin.token);
+    check('H20p listado de usuarios oculta las cuentas eliminadas', (r.body?.data || []).some(u => u.deletedAt), false);
+    r = await call('GET', '/users?limit=10000&includeDeleted=true', admin.token);
+    check('H20q con includeDeleted=true sí aparecen', !hidden || (r.body?.data || []).some(u => u._id === String(hidden._id)), true);
+    pass = [];
+    for (const q of ['includeDeleted=yes', 'includeDeleted=true&includeDeleted=true', 'type=root', 'limit=20000', 'initial=abc']) {
+      const x = await call('GET', '/users?' + q, admin.token); if (x.status !== 400) pass.push(q + ':' + x.status);
+    }
+    check('H20r filtros inválidos de /users (5 variantes)', pass.join(' ') || 'todos 400', 'todos 400');
+    pass = [];
+    for (const q of ['search=.*', 'search=(a%2B)%2B%24', 'initial=(', 'initial=[', 'search=%5C']) {
+      const x = await call('GET', '/users?limit=5&' + q, admin.token); if (x.status !== 200 || (q === 'search=.*' && x.body?.pagination?.total > 0)) pass.push(q + ':' + x.status + '/' + x.body?.pagination?.total);
+    }
+    check('H20s búsqueda e inicial con metacaracteres: literal y sin 500 (5 variantes)', pass.join(' ') || 'ok', 'ok');
+    r = await call('GET', '/users?includeDeleted=true', hp1.token);
+    check('H20t pasajero no lista usuarios', r.status, 403);
+    r = await call('GET', '/users?search=&initial=&limit=9', admin.token);
+    check('H20u filtros vacíos del panel siguen funcionando', r.status, 200);
+
+    // --- offered_amount con tope (ruta + modelo)
+    const hpo = await hReg('pasajero', 'hpo');
+    pass = [];
+    for (const v of [250001, 1e9, '250000.5', 1e308]) {
+      const x = await call('POST', '/bookings', hpo.token, { ride_id: rideR, seats_booked: 1, offered_amount: v }); if (x.status !== 400) pass.push(v + ':' + x.status);
+    }
+    check('H20v offered_amount por encima de ₡250 000 (4 variantes)', pass.join(' ') || 'todos 400', 'todos 400');
+    r = await call('POST', '/bookings', hpo.token, { ride_id: rideR, seats_booked: 1, offered_amount: 250000 });
+    check('H20w ₡250 000 exactos sí', r.status, 201);
+    await call('DELETE', `/bookings/${r.body?.data?._id}`, hpo.token);
+    r = await call('POST', '/bookings', hpo.token, { ride_id: rideR, seats_booked: 1, offered_amount: 300000 });
+    check('H20x al volver a solicitar tras cancelar, tampoco', r.status, 400);
+    const BookingModel = require(BE + '/src/models/Bookings');
+    let modelErr = null;
+    try { await new BookingModel({ ride_id: oid(rideR), passenger_id: oid(hpo.id), offered_amount: 300000, charged_amount: 300000 }).validate(); } catch (e) { modelErr = Object.keys(e.errors || {}).sort().join(','); }
+    check('H20y el modelo también lo rechaza', modelErr, 'charged_amount,offered_amount');
+  }
+
   // ---------- limpieza ----------
   await db.collection('verificationcodes').deleteMany({ email: { $regex: `.${tag}@` } });
   const emails = [pA, pB, dA, dB, ...racers, ...extra].map(u => u.email).concat([`qa.mass.${tag}@intel.com`]);

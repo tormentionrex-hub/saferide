@@ -333,6 +333,25 @@ const notifTypes = async (token) => ((await call('GET', '/notifications?limit=10
   check('11.13 el borrado quedó en la auditoría', (r.body?.data || []).some(l => String(l.targetId) === String(DD.id)), true);
   await db.collection('auditlogs').deleteMany({ targetId: { $in: [oid(DD.id), oid(polDoc?._id || '000000000000000000000000'), oid(vDD || '000000000000000000000000')] } });
 
+
+  // ---------- 12. panel: reservas y pagos ----------
+  r = await call('GET', `/bookings?limit=100&search=${encodeURIComponent(P2.email)}`, ADM);
+  const p2b = r.body?.data || [];
+  check('12.1 el admin busca las reservas de P2 por correo', p2b.length > 0 && p2b.every(b => b.passenger_id?.email === P2.email || b.ride_id?.driver_id?.email === P2.email), true);
+  check('12.2 cada reserva trae pasajero, conductor y viaje para la tabla', !!(p2b[0]?.passenger_id?.name && p2b[0]?.ride_id?.driver_id?.name && p2b[0]?.ride_id?.destination?.name), true);
+  r = await call('GET', `/bookings?limit=100&search=${encodeURIComponent(D.email)}&status=completed`, ADM);
+  check('12.3 reservas completadas de los viajes del conductor', (r.body?.data || []).length > 0 && r.body.data.every(b => b.status === 'completed'), true);
+  r = await call('GET', '/bookings/admin/summary', ADM);
+  const sum = r.body?.data;
+  const all = await db.collection('bookings').find({}).project({ status: 1, payment_status: 1, payment_type: 1, charged_amount: 1 }).toArray();
+  const s = (f) => Math.round(all.filter(f).reduce((a, b) => a + (b.charged_amount || 0), 0) * 100) / 100;
+  check('12.4 resumen de pagos = totales reales de la base',
+    `${sum?.totalBookings}/${sum?.amounts?.charged}/${sum?.amounts?.paid}/${sum?.amounts?.pending}/${sum?.amounts?.waived}`,
+    `${all.length}/${s(b => b.status === 'completed')}/${s(b => b.payment_status === 'paid')}/${s(b => b.status === 'completed' && b.payment_status === 'pending' && b.payment_type !== 'gifted')}/${s(b => b.payment_status === 'waived')}`);
+  check('12.5 conteos por estado de pago suman el total', Object.values(sum?.byPaymentStatus || {}).reduce((a, b) => a + b, 0), all.length);
+  r = await call('GET', '/bookings?status=completed&limit=5', P2.token);
+  check('12.6 P2 en la app sigue viendo solo sus reservas', (r.body?.data || []).every(b => String(b.passenger_id?._id || b.passenger_id) === String(P2.id)), true);
+
   // ---------- limpieza ----------
   const emails = [D, P1, P2, P3, X].map(u => u.email);
   const users = await db.collection('users').find({ email: { $in: emails } }).toArray();

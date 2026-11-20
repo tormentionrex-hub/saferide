@@ -25,4 +25,9 @@ const safeTextValidator = (field) => ({
   message: SAFE_TEXT_MESSAGE,
 });
 
-module.exports = { UNSAFE_TEXT, isSafeText, SAFE_TEXT_MESSAGE, safeTextValidator };
+// Para buscar texto con $regex: lo que manda el usuario se escapa y se busca
+// literal. Sin esto, "a.*" o "(a+)+$" llegaban como expresión regular a Mongo
+// (resultados de más y riesgo de ReDoS).
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+module.exports = { UNSAFE_TEXT, isSafeText, SAFE_TEXT_MESSAGE, safeTextValidator, escapeRegex };

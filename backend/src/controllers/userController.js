@@ -4,6 +4,7 @@ const { uploadToBlob, deleteFromBlob } = require("../services/blobService");
 const trustService = require("../services/trustService");
 const notificationService = require("../services/notificationService");
 const { recordAudit } = require("../services/auditService");
+const { escapeRegex } = require("../utils/safeText");
 
 // Motivos que impiden borrar una cuenta (la propia o, desde el panel, la de
 // otro): viajes o reservas en curso y cobros pendientes. Devuelve null si se
@@ -59,34 +60,41 @@ const anonymizeUser = async (user) => {
 //Function to get all users
 exports.getAllUsers = async (req, res, next) => {
     try {
-        const { page = 1, limit = 9, type, company, search, initial } = req.query;
-        // Build query object
-        const query = {};
+        const { type, company, search, initial } = req.query;
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        // El panel pide hasta 10000 (exportar pasajeros); ese es el tope.
+        const limit = Math.min(10000, Math.max(1, parseInt(req.query.limit, 10) || 9));
+        // Las cuentas eliminadas o anonimizadas no aparecen en los listados
+        // salvo que el admin las pida explícitamente (includeDeleted=true).
+        const notDeleted = req.query.includeDeleted === 'true' ? {} : { deletedAt: null };
+        const query = { ...notDeleted };
         // Add filters if provided
         if (type) query.type = type;
         if (company) query.company = company;
+        // initial y search se escapan: se buscan literales, no como regex.
         if (initial) {
-            query.name = { $regex: `^${initial}`, $options: "i" };
+            query.name = { $regex: `^${escapeRegex(initial)}`, $options: "i" };
         }
         if (search) {
+            const rx = escapeRegex(search);
             query.$or = [
-                { name: { $regex: search, $options: "i" } },
-                { username: { $regex: search, $options: "i" } },
-                { email: { $regex: search, $options: "i" } },
+                { name: { $regex: rx, $options: "i" } },
+                { username: { $regex: rx, $options: "i" } },
+                { email: { $regex: rx, $options: "i" } },
             ];
         }
         // Fetch users with pagination
         const users = await User.find(query)
             .select("-password -refreshToken")
-            .limit(limit * 1)
+            .limit(limit)
             .skip((page - 1) * limit)
             .sort({ createdAt: -1, _id: 1 });
         const count = await User.countDocuments(query);
         
         // Get global stats (ignoring pagination and search filters, just by type)
         const globalStats = {
-            total: await User.countDocuments({ type: query.type || 'pasajero' }),
-            active: await User.countDocuments({ type: query.type || 'pasajero', isActive: true })
+            total: await User.countDocuments({ ...notDeleted, type: query.type || 'pasajero' }),
+            active: await User.countDocuments({ ...notDeleted, type: query.type || 'pasajero', isActive: true })
         };
 
         // Respond with users and pagination info

@@ -1,5 +1,5 @@
 const express = require('express');
-const { body } = require('express-validator');
+const { body, query } = require('express-validator');
 const bookingController = require('../controllers/bookingController');
 const { verifyToken, authorize, requireActive } = require('../middleware/auth');
 const validate = require('../middleware/validation');
@@ -191,7 +191,8 @@ const router = express.Router();
 const bookingValidation = [
   body('ride_id').isString().isMongoId().withMessage('Invalid ride ID'),
   body('seats_booked').optional().isInt({ min: 1, max: 7 }).withMessage('Seats must be between 1 and 7'),
-  body('offered_amount').optional().isFloat({ min: 0 }).withMessage('offered_amount must be a non-negative number'),
+  // Mismo tope que el precio de un viaje (ruta y modelo).
+  body('offered_amount').optional().isFloat({ min: 0, max: 250000 }).withMessage('offered_amount must be between 0 and 250000'),
   body('payment_method').optional({ nullable: true }).isIn(['cash', 'sinpe', 'card', 'paypal']).withMessage('Invalid payment method'),
   // Textos libres: tipo y largo. Un objeto reventaba en .trim() (500) y no
   // había tope de tamaño (el modelo también lo limita).
@@ -203,7 +204,28 @@ const bookingValidation = [
 router.use(verifyToken);
 
 router.post('/', requireActive, bookingValidation, validate, bookingController.createBooking);
-router.get('/', bookingController.getAllBookings);
+// Filtros del listado: valores cerrados y con tipo. El pasajero ve solo sus
+// reservas; el resto de filtros (búsqueda, pago, fechas) es del panel.
+const BOOKING_STATUSES = ['pending', 'confirmed', 'cancelled', 'canceled', 'completed', 'deny'];
+const listValidation = [
+  query('page').optional().isInt({ min: 1, max: 100000 }),
+  query('limit').optional().isInt({ min: 1, max: 1000 }),
+  query('status').optional().isString().isIn(BOOKING_STATUSES),
+  query('payment_status').optional().isString().isIn(['pending', 'paid', 'waived']),
+  query('payment_type').optional().isString().isIn(['normal', 'gifted']),
+  query('payment_method').optional().isString().isIn(['cash', 'sinpe', 'paypal', 'card', 'google_pay', 'apple_pay']),
+  query('from').optional().isString().isISO8601(),
+  query('to').optional().isString().isISO8601(),
+  query('search').optional().isString().trim().isLength({ max: 60 }),
+  query('sort').optional().isString().isIn(['asc', 'desc']),
+  query('userId').optional().isString().isMongoId(),
+];
+router.get('/', listValidation, validate, bookingController.getAllBookings);
+// Totales para la página de Pagos del panel. Antes de /:id.
+router.get('/admin/summary', authorize('admin'), [
+  query('from').optional().isString().isISO8601(),
+  query('to').optional().isString().isISO8601(),
+], validate, bookingController.getBookingsSummary);
 router.get('/:id', bookingController.getBookingById);
 router.get('/passenger/:passengerId', bookingController.getBookingsByPassenger);
 router.get('/ride/:rideId', bookingController.getBookingsByRide);
