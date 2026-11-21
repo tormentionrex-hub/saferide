@@ -10,6 +10,8 @@
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "db:init": "node src/scripts/initDatabase.js",
+    "db:seed:admin": "node src/scripts/seedAdmin.js",
+    "db:seed:demo": "node src/scripts/seedDemo.js",
     "qa:ataques": "node scripts/qa/qa1-ataques.js",
     "qa:flujos": "node scripts/qa/qa2-flujos.js",
     "job:metrics": "node -e 'require(\"./src/jobs\").calculateMetricsJob().then(() => process.exit(0))'",

@@ -7,21 +7,21 @@ const { Notification } = require('../models');
 //Function to get user notifications
 exports.getNotifications = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status } = req.query;
-    const query = { user_id: req.user._id };
+    const { page = 1, limit = 20, status, scope } = req.query;
+    const globalScope = req.user.type === 'admin' && scope === 'all';
+    const query = globalScope ? {} : { user_id: req.user._id };
+    const unreadQuery = globalScope ? { status: 'unread' } : { user_id: req.user._id, status: 'unread' };
 
     if (status) query.status = status;
     // Fetch notifications with pagination
     const notifications = await Notification.find(query)
+      .populate('user_id', 'name email username')
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ date: -1 });
     // Get total count for pagination
     const count = await Notification.countDocuments(query);
-    const unreadCount = await Notification.countDocuments({
-      user_id: req.user._id,
-      status: 'unread',
-    });
+    const unreadCount = await Notification.countDocuments(unreadQuery);
 
     res.status(200).json({
       success: true,
@@ -55,7 +55,8 @@ exports.markAsRead = async (req, res, next) => {
     }
 
     // Check if user owns the notification
-    if (notification.user_id.toString() !== req.user._id.toString()) {
+    const isOwner = notification.user_id.toString() === req.user._id.toString();
+    if (!isOwner && req.user.type !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
@@ -81,10 +82,12 @@ exports.markAsRead = async (req, res, next) => {
 //Function to mark all notifications as read
 exports.markAllAsRead = async (req, res, next) => {
   try {
-    await Notification.updateMany(
-      { user_id: req.user._id, status: 'unread' },
-      { status: 'read' }
-    );
+    const globalScope = req.user.type === 'admin' && req.query.scope === 'all';
+    const query = globalScope
+      ? { status: 'unread' }
+      : { user_id: req.user._id, status: 'unread' };
+
+    await Notification.updateMany(query, { status: 'read' });
     // Respond successfully
     res.status(200).json({
       success: true,
@@ -112,7 +115,8 @@ exports.deleteNotification = async (req, res, next) => {
     }
 
     // Check if user owns the notification
-    if (notification.user_id.toString() !== req.user._id.toString()) {
+    const isOwner = notification.user_id.toString() === req.user._id.toString();
+    if (!isOwner && req.user.type !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Access denied',

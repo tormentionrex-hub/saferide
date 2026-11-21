@@ -10,7 +10,19 @@ const router = express.Router();
 const notificationValidation = [
   body('user_id').isMongoId().withMessage('Invalid user ID'),
   body('message').trim().notEmpty().withMessage('Message is required'),
-  body('type').isIn(['booking_confirmed', 'booking_cancelled', 'ride_reminder', 'ride_completed', 'review_request', 'system']),
+  body('type').isIn([
+    'booking_confirmed',
+    'booking_cancelled',
+    'booking_pending',
+    'booking_denied',
+    'ride_reminder',
+    'ride_started',
+    'ride_completed',
+    'ride_cancelled',
+    'review_request',
+    'system',
+    'trust_score_updated',
+  ]),
 ];
 
 // All routes require authentication

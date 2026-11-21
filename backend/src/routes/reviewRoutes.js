@@ -49,6 +49,8 @@ router.get('/user/:userId', optionalAuth, reviewController.getReviewsByUser);
 // Protected routes
 router.use(verifyToken);
 
+router.get('/', authorize('admin'), reviewController.getAllReviews);
+
 /**
  * @swagger
  * /reviews:

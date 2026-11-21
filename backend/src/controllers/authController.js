@@ -26,15 +26,15 @@ const generateTokens = (userId) => {
         process.env.JWT_SECRET,
         // 1 h: el logout no revoca el access token (JWT), así que su vida debe
         // ser corta; la app lo renueva sola con el refresh token.
-        { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+        { expiresIn: process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRE || '1h' }
     );
 
     // jti aleatorio: dos refresh firmados en el mismo segundo salían
     // idénticos y la rotación no podía invalidar el anterior.
     const refreshToken = jwt.sign(
         { userId, typ: 'refresh', jti: crypto.randomUUID() },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+        process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || process.env.REFRESH_TOKEN_EXPIRE || '7d' }
     );
 
     return { accessToken, refreshToken };
@@ -167,7 +167,7 @@ exports.refreshToken = async (req, res, next) => {
 
         // 1. Verificar firma y expiración del refresh token. Si falla,
         //    cae al catch y devolvemos 401.
-        const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET);
         if (decoded.typ === 'access') {
             return res.status(401).json({ success: false, message: 'Invalid refresh token' });
         }
