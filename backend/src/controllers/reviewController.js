@@ -18,6 +18,41 @@ const recalculateUserRating = async (userId) => {
   await User.findByIdAndUpdate(userId, { rating: Math.round(avg * 100) / 100 });
 };
 
+exports.getAllReviews = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 20, rating, search } = req.query;
+    const query = {};
+
+    if (rating) query.rating = Number(rating);
+    if (search) {
+      const regex = new RegExp(String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      query.comment = regex;
+    }
+
+    const [reviews, count] = await Promise.all([
+      Review.find(query)
+        .populate('reviewer_id reviewee_id', 'name username profileImage')
+        .populate('ride_id', 'origin destination fecha hora')
+        .sort({ date: -1 })
+        .limit(Number(limit))
+        .skip((Number(page) - 1) * Number(limit)),
+      Review.countDocuments(query),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: reviews,
+      pagination: {
+        total: count,
+        page: Number(page),
+        pages: Math.ceil(count / Number(limit)),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 //Function to create a review
 exports.createReview = async (req, res, next) => {
   try {

@@ -117,7 +117,8 @@ exports.getAllRides = async (req, res, next) => {
       status = 'scheduled',
     } = req.query;
 
-    const query = { status };
+    const normalizedStatus = status === 'in_progress' ? 'in progress' : status;
+    const query = { status: normalizedStatus };
 
     // Filter by origin (approximate location) - ~5km radius (0.045 degrees)
     if (origin) {
