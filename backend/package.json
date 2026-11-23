@@ -43,7 +43,6 @@
     "@cerebras/cerebras_cloud_sdk": "^1.64.1",
     "@google/generative-ai": "^0.21.0",
     "bcryptjs": "^3.0.2",
-    "bull": "^4.16.5",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -60,18 +59,28 @@
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
-    "nodemailer": "^8.0.3",
+    "nodemailer": "^10.6.1",
     "passport": "^0.7.0",
-    "passport-azure-ad": "^4.3.5",
     "passport-http-bearer": "^1.0.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "eslint": "^9.39.0",
     "jest": "^30.2.0",
     "nodemon": "^3.1.10",
     "supertest": "^7.1.4"
+  },
+  "overrides": {
+    "@jest/reporters": {
+      "glob": "^14.0.6"
+    },
+    "jest-config": {
+      "glob": "^14.0.6"
+    },
+    "jest-runtime": {
+      "glob": "^14.0.6"
+    }
   }
 }

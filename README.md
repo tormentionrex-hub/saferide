@@ -60,13 +60,13 @@ credenciales que no deben publicarse.
 Estado al 23 de noviembre de 2026.
 
 <p align="center">
-  <img src="docs/progreso-proyecto.png" alt="Progreso del proyecto: aplicación móvil 94 %, backend 93 %, panel de administrador 90 %" width="900">
+  <img src="docs/progreso-proyecto.png" alt="Progreso del proyecto: aplicación móvil 94 %, backend 95 %, panel de administrador 90 %" width="900">
 </p>
 
 | Parte | Progreso |
 |---|---|
 | Aplicación móvil (frontend) | **94 %** |
-| Backend | **93 %** |
+| Backend | **95 %** |
 | Panel de administrador | **90 %** |
 
 ### Qué falta para llegar al 100 %
@@ -78,13 +78,11 @@ Estado al 23 de noviembre de 2026.
 4. Publicar en Google Play y App Store; requiere las cuentas de desarrollador de cada tienda.
 5. Probar la subida real de las fotos de los 6 documentos en un teléfono; en el navegador se simuló la subida.
 
-**Backend (93 %)**
+**Backend (95 %)**
 1. Publicarlo en la nube con dominio HTTPS y la base de producción.
 2. Guardar las fotos de los documentos en almacenamiento privado (Azure Blob). Hoy la app las sube a Cloudinary
    y quedan con un enlace público: para cédulas y licencias es un riesgo de privacidad (urgente).
 3. Lectura automática de las fotos de los documentos; hoy se validan los datos con reglas.
-4. Actualizar 6 dependencias con vulnerabilidades conocidas, ninguna crítica.
-5. Reparar una prueba vieja de inicio de sesión que apunta a la base real.
 
 **Panel de administrador (90 %)**
 1. Publicarlo en un hosting con dominio propio.
@@ -420,6 +418,7 @@ npm run sync-complaints     # opcional: agente local de quejas (necesita SUPPORT
 
 ```bash
 cd frontend    && npm test             # 81 pruebas unitarias de la app
+cd backend     && npm test             # 29 pruebas unitarias y de sesión del backend (MongoDB local)
 cd backend     && npm run qa:ataques   # 354 casos: permisos, inyección, carreras, tokens, límites, archivos
 cd backend     && npm run qa:flujos    # 125 casos: ciclo de viaje, reservas, pagos, reseñas, documentos, auditoría
 cd Administrador-SafeRide && npm run build        # compilación del panel
@@ -519,8 +518,9 @@ Lo que depende de cuentas, credenciales o dinero, y por eso no se activó en est
 Deuda técnica conocida:
 - El tiempo de espera de una solicitud se calcula con el reloj del teléfono, y todo se probó en Expo Go, no en
   el binario final de EAS.
-- Seis vulnerabilidades de dependencias del backend (zod, nodemailer, bull, passport-azure-ad) y cuatro del
-  agente de quejas del panel (nodemailer, semver) requieren versiones mayores que pueden romper código.
+- El backend no tiene vulnerabilidades conocidas en sus dependencias (se actualizaron nodemailer y zod y se
+  quitaron bull y passport-azure-ad, que no se usaban). El agente de quejas del panel conserva cuatro
+  (nodemailer, semver) que requieren versiones mayores.
 - El panel tiene 25 avisos del revisor de código, sobre todo patrones de hooks de React sin un bug
   identificado.
 - Qué viajes ya calificó cada persona se recuerda en el dispositivo; en otro dispositivo, el botón de
