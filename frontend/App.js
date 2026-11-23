@@ -30,6 +30,7 @@ import AjustesConductor from './src/screens/conductor/AjustesConductor';
 import ProfileConductor from './src/screens/conductor/ProfileConductor';
 import RegisterVehicleStep1 from './src/screens/conductor/RegisterVehicleStep1';
 import RegisterVehicleStep2 from './src/screens/conductor/RegisterVehicleStep2';
+import DocumentosConductor from './src/screens/conductor/DocumentosConductor';
 import ListOfDrivers from './src/screens/pasajero/ListOfDrivers';
 import PasajeroProfileScreen from './src/screens/pasajero/PasajeroProfileScreen';
 import CustomizeApp from './src/screens/pasajero/CustomizeApp';
@@ -179,6 +180,7 @@ export default function App() {
             <Stack.Screen name="DriverMetrics" component={DriverMetrics} options={{ animation: 'slide_from_right', headerShown: false }} />
             <Stack.Screen name="RegisterVehicleStep1" component={RegisterVehicleStep1} options={{ animation: 'slide_from_right', headerShown: false }} />
             <Stack.Screen name="RegisterVehicleStep2" component={RegisterVehicleStep2} options={{ animation: 'slide_from_right', headerShown: false }} />
+            <Stack.Screen name="DocumentosConductor" component={DocumentosConductor} options={{ animation: 'slide_from_right', headerShown: false }} />
 
             <Stack.Screen
               name="PasajeroProfileScreen"

@@ -41,6 +41,8 @@ export default function DashboardConductor({ route, navigation }) {
     const insets = useSafeAreaInsets();
     const [userName, setUserName] = useState('Conductor');
     const [hasVehicle, setHasVehicle] = useState(null); // null = cargando
+    // Vehículo registrado pero inactivo hasta aprobar los 6 documentos: { approvedCount }.
+    const [pendingVehicle, setPendingVehicle] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [userPhoto, setUserPhoto] = useState(null);
     const [frequentRoutes, setFrequentRoutes] = useState([]);
@@ -117,6 +119,17 @@ export default function DashboardConductor({ route, navigation }) {
             // force=true: siempre consultar el API al regresar, nunca usar caché
             const hasVehicleRes = await sessionCache.getVehicleStatus(true);
             setHasVehicle(hasVehicleRes);
+            if (!hasVehicleRes) {
+                try {
+                    const ap = await api.get('/vehicles/me/approval');
+                    const d = ap.data?.data;
+                    setPendingVehicle(d?.vehicle ? { approvedCount: (d.details || []).filter(x => x.approved).length } : null);
+                } catch (_) {
+                    setPendingVehicle(null);
+                }
+            } else {
+                setPendingVehicle(null);
+            }
 
             // ── Cargar rutas frecuentes del conductor ──
             try {
@@ -210,7 +223,9 @@ export default function DashboardConductor({ route, navigation }) {
 
                             <Text style={[styles.titleModal, { color: theme.dark ? '#EEEEFF' : '#1C1C1E' }]}>Acceso Bloqueado</Text>
                             <Text style={[styles.subtitleModal, { color: theme.dark ? '#7A7A9D' : '#6B7280' }]}>
-                                Para aplicar esta acción, primero debes registrar un vehículo.
+                                {pendingVehicle
+                                    ? 'Tu vehículo se activa cuando tus 6 documentos estén aprobados.'
+                                    : 'Para aplicar esta acción, primero debes registrar un vehículo.'}
                             </Text>
 
                             <View style={[styles.dividerModal, { backgroundColor: theme.dark ? 'rgba(116,143,255,0.15)' : 'rgba(75,104,255,0.1)' }]} />
@@ -218,10 +233,10 @@ export default function DashboardConductor({ route, navigation }) {
                             <TouchableOpacity
                                 style={[styles.primaryBtnModal, { backgroundColor: theme.accent }]}
                                 activeOpacity={0.85}
-                                onPress={() => { setShowModal(false); navigation.navigate('RegisterVehicleStep1'); }}
+                                onPress={() => { setShowModal(false); navigation.navigate(pendingVehicle ? 'DocumentosConductor' : 'RegisterVehicleStep1'); }}
                             >
-                                <Ionicons name="car-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
-                                <Text style={styles.primaryBtnTextModal}>Registrar Vehículo</Text>
+                                <Ionicons name={pendingVehicle ? 'document-text-outline' : 'car-outline'} size={18} color="#fff" style={{ marginRight: 8 }} />
+                                <Text style={styles.primaryBtnTextModal}>{pendingVehicle ? 'Ver mis documentos' : 'Registrar Vehículo'}</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -280,17 +295,19 @@ export default function DashboardConductor({ route, navigation }) {
                                 <View style={[styles.lockIconCircle, { backgroundColor: theme.iconCircleBg }]}>
                                     <Ionicons name="lock-closed" size={28} color={theme.accent} />
                                 </View>
-                                <Text style={[styles.lockTitle, { color: theme.text }]}>Vehículo requerido</Text>
+                                <Text style={[styles.lockTitle, { color: theme.text }]}>{pendingVehicle ? 'Vehículo en revisión' : 'Vehículo requerido'}</Text>
                                 <Text style={[styles.lockSub, { color: theme.textSecondary }]}>
-                                    Para publicar y gestionar viajes debes registrar tu vehículo primero.
+                                    {pendingVehicle
+                                        ? `Tienes ${pendingVehicle.approvedCount} de 6 documentos aprobados. Cuando estén los 6, podrás publicar y gestionar viajes.`
+                                        : 'Para publicar y gestionar viajes debes registrar tu vehículo primero.'}
                                 </Text>
                                 <TouchableOpacity
                                     style={[styles.lockBtn, { backgroundColor: theme.accent }]}
-                                    onPress={() => navigation.navigate('RegisterVehicleStep1')}
+                                    onPress={() => navigation.navigate(pendingVehicle ? 'DocumentosConductor' : 'RegisterVehicleStep1')}
                                     activeOpacity={0.85}
                                 >
-                                    <Ionicons name="car-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
-                                    <Text style={styles.lockBtnText}>Registrar Vehículo</Text>
+                                    <Ionicons name={pendingVehicle ? 'document-text-outline' : 'car-outline'} size={18} color="#fff" style={{ marginRight: 8 }} />
+                                    <Text style={styles.lockBtnText}>{pendingVehicle ? 'Subir documentos' : 'Registrar Vehículo'}</Text>
                                 </TouchableOpacity>
                             </View>
                         )}

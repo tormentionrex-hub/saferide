@@ -1212,6 +1212,38 @@ async function register(type, suffix) {
     const pend = await db.collection('documents').insertOne({ driver_id: oid(hdd.id), vehicle_id: oid(vD), type: 'marchamo', fileUrl: 'https://res.cloudinary.com/demo/image/upload/m.jpg', source: 'app_registration', status: 'pending', createdAt: new Date(), updatedAt: new Date() });
     r = await call('DELETE', `/vehicles/${vD}/documents/${pend.insertedId}`, hdd.token);
     check('H19V el dueño borra un documento pendiente', `${r.status}/${!!(await db.collection('documents').findOne({ _id: pend.insertedId }))}`, '200/false');
+
+    // --- H22: documentos por URL desde la app y estado del vehículo propio
+    const cUrl = 'https://res.cloudinary.com/demo/image/upload/v1/h22_doc.jpg';
+    pass = [];
+    for (const [who, tok, want] of [['otro conductor', dA.token, 403], ['pasajero', hp2.token, 403], ['admin', admin.token, 403], ['sin token', null, 401]]) {
+      const x = await call('POST', `/vehicles/${vD}/documents/url`, tok, { type: 'rtv', fileUrl: cUrl, extractedData: {} });
+      if (x.status !== want) pass.push(who + ':' + x.status);
+    }
+    check('H22a registrar documento en vehículo ajeno o sin rol (4 variantes)', pass.join(' ') || 'ok', 'ok');
+    pass = [];
+    for (const b of [
+      { type: 'pasaporte', fileUrl: cUrl }, { type: ['rtv'], fileUrl: cUrl }, { type: 'rtv', fileUrl: 'https://evil.example/x.jpg' },
+      { type: 'rtv', fileUrl: 'http://res.cloudinary.com/demo/image/upload/x.jpg' }, { type: 'rtv', fileUrl: 'javascript:alert(1)' },
+      { type: 'rtv', fileUrl: cUrl, extractedData: ['a'] }, { type: 'rtv', fileUrl: cUrl, extractedData: 'texto' }, { type: 'rtv' },
+    ]) {
+      const x = await call('POST', `/vehicles/${vD}/documents/url`, hdd.token, b); if (x.status !== 400) pass.push(JSON.stringify(b).slice(0, 50) + ':' + x.status);
+    }
+    check('H22b tipo, URL y datos inválidos (8 variantes)', pass.join(' | ') || 'todos 400', 'todos 400');
+    r = await call('POST', `/vehicles/${vD}/documents/url`, hdd.token, { type: 'rtv', fileUrl: cUrl,
+      extractedData: { rtvNumber: '<img src=x onerror=alert(1)>', licensePlate: 'ABC123', extra: 'no va', expiryDate: '2099-01-01', $where: '1' } });
+    const h22doc = r.body?.data?._id ? await db.collection('documents').findOne({ _id: oid(r.body.data._id) }) : null;
+    check('H22c datos con HTML o campos ajenos se descartan', `${r.status}/${Object.keys(h22doc?.extractedData || {}).sort().join(',')}`, ['201/expiryDate,licensePlate', '400/']);
+    r = await call('POST', `/vehicles/${notFound}/documents/url`, hdd.token, { type: 'rtv', fileUrl: cUrl });
+    const r2 = await call('POST', '/vehicles/abc/documents/url', hdd.token, { type: 'rtv', fileUrl: cUrl });
+    check('H22d vehículo inexistente / id inválido', `${r.status}/${r2.status}`, '404/400');
+    pass = [];
+    for (const [who, tok, want] of [['pasajero', hp2.token, 403], ['admin', admin.token, 403], ['sin token', null, 401]]) {
+      const x = await call('GET', '/vehicles/me/approval', tok); if (x.status !== want) pass.push(who + ':' + x.status);
+    }
+    check('H22e estado del vehículo propio: solo conductores (3 variantes)', pass.join(' ') || 'ok', 'ok');
+    r = await call('GET', '/vehicles/me/approval', hdd.token);
+    check('H22f el conductor ve su vehículo y sus 6 documentos, sin datos de otros', `${r.status}/${r.body?.data?.vehicle?._id === vD}/${(r.body?.data?.details || []).length}/${/password|refreshToken|"phone"|"email"/.test(r.text)}`, '200/true/6/false');
   }
 
 

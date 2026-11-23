@@ -230,3 +230,85 @@ exports.createRegistrationDocument = async (vehicle, { insurance_certificate, po
 };
 
 exports.DOC_TYPES = DOC_TYPES;
+
+// ---------------------------------------------------------------------------
+// Documentos que el conductor registra desde la app: la app sube la foto a
+// Cloudinary (igual que el certificado de la póliza) y aquí se guarda la URL
+// con los datos que declara. Se valida al momento con el motor de reglas y se
+// sincroniza la aprobación del vehículo (se activa con los 6 aprobados).
+// ---------------------------------------------------------------------------
+
+// Datos que acepta cada tipo (los que lee documentValidationService).
+const EXTRACTED_FIELDS = {
+  cedula: ['documentNumber', 'fullName', 'expiryDate'],
+  licencia: ['licenseNumber', 'licenseClass', 'fullName', 'documentNumber', 'expiryDate'],
+  poliza: ['policyNumber', 'insurer', 'policyHolder', 'licensePlate', 'expiryDate'],
+  marchamo: ['licensePlate', 'vehicleBrand', 'vehicleModel', 'vehicleYear', 'marchamoYear', 'expiryDate'],
+  rtv: ['rtvNumber', 'licensePlate', 'vehicleBrand', 'vehicleModel', 'expiryDate'],
+  tarjeta_circulacion: ['fullName', 'licensePlate', 'vehicleBrand', 'vehicleModel'],
+};
+exports.EXTRACTED_FIELDS = EXTRACTED_FIELDS;
+
+// Solo los campos del tipo, como texto corto y sin < > ni caracteres de control.
+const cleanExtractedData = (type, data) => {
+  const out = {};
+  for (const key of EXTRACTED_FIELDS[type] || []) {
+    const value = data?.[key];
+    if (value === undefined || value === null || value === '') continue;
+    const text = String(value).trim().slice(0, 80);
+    if (text && !/[<>\u0000-\u001F\u007F]/.test(text)) out[key] = text;
+  }
+  return out;
+};
+
+// @desc   Registrar un documento con la URL de Cloudinary que subió la app
+// @route  POST /api/v1/vehicles/:id/documents/url
+// @access Private (solo el conductor dueño del vehículo)
+exports.registerDocumentByUrl = async (req, res, next) => {
+  try {
+    const vehicle = await Vehicle.findById(req.params.id).select('driver_id');
+    if (!vehicle) return res.status(404).json({ success: false, message: 'Vehicle not found' });
+    if (vehicle.driver_id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+    const { type, fileUrl } = req.body;
+    // Un documento aprobado no se reemplaza desde la app: lo decide un admin.
+    const latest = await Document.findOne({ driver_id: vehicle.driver_id, type }).sort({ createdAt: -1, _id: -1 });
+    if (latest?.status === 'approved') {
+      return res.status(409).json({ success: false, code: 'DOCUMENT_APPROVED', message: 'Este documento ya está aprobado' });
+    }
+    const document = new Document({
+      driver_id: vehicle.driver_id,
+      vehicle_id: vehicle._id,
+      type,
+      fileUrl,
+      mimeType: /\.pdf$/i.test(fileUrl) ? 'application/pdf' : 'image/jpeg',
+      source: 'app_registration',
+      extractedData: cleanExtractedData(type, req.body.extractedData),
+    });
+    await documentValidationService.validateDocument(document);
+    await document.save();
+    // Los envíos anteriores del mismo tipo que seguían esperando revisión ya no
+    // aplican: se cierran para que no queden en la cola del administrador.
+    await Document.updateMany(
+      { driver_id: vehicle.driver_id, type, _id: { $ne: document._id }, status: { $in: ['pending', 'processing', 'needs_review'] } },
+      { $set: { status: 'rejected', rejectionReason: 'Reemplazado por un envío más reciente' } }
+    );
+    const vehicleApproval = await syncVehicleApproval(vehicle.driver_id, vehicle._id);
+    res.status(201).json({
+      success: true,
+      message: 'Documento registrado',
+      data: {
+        _id: document._id,
+        type: document.type,
+        status: document.status,
+        rejectionReason: document.rejectionReason,
+        extractedData: document.extractedData,
+        createdAt: document.createdAt,
+      },
+      approval: { approved: vehicleApproval.approved, details: vehicleApproval.details },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

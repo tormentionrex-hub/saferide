@@ -360,14 +360,61 @@ const notifTypes = async (token) => ((await call('GET', '/notifications?limit=10
   r = await call('GET', '/bookings?status=completed&limit=5', P2.token);
   check('12.6 P2 en la app sigue viendo solo sus reservas', (r.body?.data || []).every(b => String(b.passenger_id?._id || b.passenger_id) === String(P2.id)), true);
 
+  // ---------- 13. app: el conductor nuevo sube sus 6 documentos y el vehículo se activa ----------
+  const DN = await register('conductor', 'docs2');
+  const yearNow = new Date().getFullYear();
+  const futureIso = new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString();
+  const plateN = 'Q5' + tag.slice(-4).toUpperCase().replace(/[^A-Z0-9]/g, '5');
+  r = await call('POST', '/vehicles', DN.token, { brand: 'Toyota', model: 'Corolla', license_plate: plateN, color: 'Gris', year: 2021, capacity: 4,
+    policy_number: 'INS-555', insurance_expiry: futureIso, insurance_certificate: 'https://res.cloudinary.com/demo/image/upload/v1/poliza_qa.jpg' });
+  const vN = r.body?.data?._id;
+  check('13.1 el vehículo nuevo queda inactivo hasta aprobar los documentos', `${r.status}/${r.body?.data?.isActive}`, '201/false');
+  r = await call('GET', `/vehicles/driver/${DN.id}`, DN.token);
+  check('13.2 por /vehicles/driver/:id todavía no aparece (solo activos)', r.status, 404);
+  r = await call('GET', '/vehicles/me/approval', DN.token);
+  check('13.3 /vehicles/me/approval muestra el vehículo pendiente y los 6 documentos',
+    `${r.status}/${r.body?.data?.vehicle?._id === vN}/${r.body?.data?.approved}/${(r.body?.data?.details || []).length}`, `200/true/false/6`);
+  check('13.4 la póliza del registro ya está y le faltan datos (revisión manual)',
+    (r.body?.data?.details || []).find(d => d.type === 'poliza')?.status, ['needs_review', 'pending']);
+  const url = (n) => `https://res.cloudinary.com/demo/image/upload/v1/${n}_${tag}.jpg`;
+  const docsN = {
+    cedula: { documentNumber: '1-2345-6789', fullName: DN.name, expiryDate: futureIso },
+    licencia: { licenseNumber: '1-2345-6789', licenseClass: 'B1', fullName: DN.name, documentNumber: '1-2345-6789', expiryDate: futureIso },
+    poliza: { policyNumber: 'INS-555', insurer: 'INS', policyHolder: DN.name, licensePlate: plateN, expiryDate: futureIso },
+    marchamo: { licensePlate: plateN, vehicleBrand: 'Toyota', vehicleModel: 'Corolla', vehicleYear: '2021', marchamoYear: String(yearNow), expiryDate: futureIso },
+    rtv: { rtvNumber: 'RTV-12345', licensePlate: plateN, vehicleBrand: 'Toyota', vehicleModel: 'Corolla', expiryDate: futureIso },
+  };
+  const st = {};
+  for (const [type, extractedData] of Object.entries(docsN)) {
+    const x = await call('POST', `/vehicles/${vN}/documents/url`, DN.token, { type, fileUrl: url(type), extractedData });
+    st[type] = `${x.status}/${x.body?.data?.status}`;
+  }
+  check('13.5 cinco documentos con datos correctos quedan aprobados al momento', Object.values(st).every(v => v === '201/approved'), true, JSON.stringify(st));
+  r = await call('POST', `/vehicles/${vN}/documents/url`, DN.token, { type: 'tarjeta_circulacion', fileUrl: url('tarjeta'),
+    extractedData: { fullName: DN.name, licensePlate: 'ZZZ999', vehicleBrand: 'Toyota', vehicleModel: 'Corolla' } });
+  check('13.6 una placa que no coincide se rechaza con motivo', `${r.status}/${r.body?.data?.status}/${/Placa/.test(r.body?.data?.rejectionReason || '')}`, '201/rejected/true');
+  r = await call('GET', '/vehicles/me/approval', DN.token);
+  check('13.7 el vehículo sigue inactivo con 5 de 6', `${r.body?.data?.approved}/${(r.body?.data?.details || []).filter(d => d.approved).length}`, 'false/5');
+  r = await call('POST', `/vehicles/${vN}/documents/url`, DN.token, { type: 'tarjeta_circulacion', fileUrl: url('tarjeta2'),
+    extractedData: { fullName: DN.name, licensePlate: plateN, vehicleBrand: 'Toyota', vehicleModel: 'Corolla' } });
+  check('13.8 al reenviar la tarjeta correcta se aprueban los 6 y el vehículo se activa', `${r.status}/${r.body?.data?.status}/${r.body?.approval?.approved}`, '201/approved/true');
+  r = await call('GET', `/vehicles/driver/${DN.id}`, DN.token);
+  check('13.9 el vehículo ya aparece activo para el conductor', `${r.status}/${r.body?.data?.isActive}`, '200/true');
+  r = await call('POST', `/vehicles/${vN}/documents/url`, DN.token, { type: 'cedula', fileUrl: url('cedula2'), extractedData: docsN.cedula });
+  check('13.10 un documento aprobado no se reemplaza desde la app', `${r.status}/${r.body?.code}`, '409/DOCUMENT_APPROVED');
+  r = await call('GET', '/documents/admin/pending?limit=200', ADM);
+  check('13.11 el admin ya no tiene pendientes de este conductor', (r.body?.data || []).some(d => String(d.driver_id?._id || d.driver_id) === String(DN.id)), false);
+
   // ---------- limpieza ----------
-  const emails = [D, P1, P2, P3, X].map(u => u.email);
+  const emails = [D, P1, P2, P3, X, DN].map(u => u.email);
   const users = await db.collection('users').find({ email: { $in: emails } }).toArray();
   const ids = users.map(u => u._id);
   const rides = await db.collection('rides').find({ driver_id: { $in: ids } }).toArray();
   await db.collection('bookings').deleteMany({ $or: [{ passenger_id: { $in: ids } }, { ride_id: { $in: rides.map(x => x._id) } }] });
   await db.collection('rides').deleteMany({ driver_id: { $in: ids } });
   await db.collection('vehicles').deleteMany({ driver_id: { $in: ids } });
+  await db.collection('documents').deleteMany({ driver_id: { $in: ids } });
+  await db.collection('auditlogs').deleteMany({ details: { $regex: ids.map(String).join('|') || 'x^' } });
   await db.collection('reviews').deleteMany({ $or: [{ reviewer_id: { $in: ids } }, { reviewee_id: { $in: ids } }] });
   await db.collection('notifications').deleteMany({ user_id: { $in: ids } });
   await db.collection('metrics').deleteMany({ user_id: { $in: ids } });

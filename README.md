@@ -60,28 +60,28 @@ credenciales que no deben publicarse.
 Estado al 23 de noviembre de 2026.
 
 <p align="center">
-  <img src="docs/progreso-proyecto.png" alt="Progreso del proyecto: aplicación móvil 92 %, backend 93 %, panel de administrador 90 %" width="900">
+  <img src="docs/progreso-proyecto.png" alt="Progreso del proyecto: aplicación móvil 94 %, backend 93 %, panel de administrador 90 %" width="900">
 </p>
 
 | Parte | Progreso |
 |---|---|
-| Aplicación móvil (frontend) | **92 %** |
+| Aplicación móvil (frontend) | **94 %** |
 | Backend | **93 %** |
 | Panel de administrador | **90 %** |
 
 ### Qué falta para llegar al 100 %
 
-**Aplicación móvil (92 %)**
-1. Pantalla para que el conductor suba sus 6 documentos (cédula, licencia, póliza, marchamo, RTV y tarjeta
-   de circulación). El panel exige los 6 aprobados para activar el vehículo y hoy la app solo envía la póliza.
-2. Generar la app instalable y probarla en teléfonos reales; hasta ahora se probó en Expo Go.
-3. Activar los pagos en línea: PayPal y tarjeta están listos en beta, falta la cuenta de comercio.
-4. Clave de Google Maps de producción para el mapa nativo.
-5. Publicar en Google Play y App Store.
+**Aplicación móvil (94 %)**
+1. Generar la app instalable y probarla en teléfonos reales; hasta ahora se probó en Expo Go.
+2. Activar los pagos en línea: PayPal y tarjeta están listos en beta, falta la cuenta de comercio.
+3. Clave de Google Maps de producción para el mapa nativo.
+4. Publicar en Google Play y App Store; requiere las cuentas de desarrollador de cada tienda.
+5. Probar la subida real de las fotos de los 6 documentos en un teléfono; en el navegador se simuló la subida.
 
 **Backend (93 %)**
 1. Publicarlo en la nube con dominio HTTPS y la base de producción.
-2. Almacenamiento privado de archivos (Azure Blob) para guardar los documentos que suben los conductores.
+2. Guardar las fotos de los documentos en almacenamiento privado (Azure Blob). Hoy la app las sube a Cloudinary
+   y quedan con un enlace público: para cédulas y licencias es un riesgo de privacidad (urgente).
 3. Lectura automática de las fotos de los documentos; hoy se validan los datos con reglas.
 4. Actualizar 6 dependencias con vulnerabilidades conocidas, ninguna crítica.
 5. Reparar una prueba vieja de inicio de sesión que apunta a la base real.
@@ -283,7 +283,10 @@ flowchart LR
   El agente local de correo (`scripts/sync_complaints.cjs`) queda como herramienta opcional: lee el correo de
   soporte, usa Gemini para clasificar y proponer respuestas, escucha solo en `127.0.0.1` y solo responde a
   quien escribió.
-- **Documentos:** un trabajo programado valida cada 10 minutos los documentos pendientes con reglas (datos
+- **Documentos del conductor:** desde la app, en "Mis documentos" (al terminar de registrar el vehículo, en el
+  inicio o en el perfil), el conductor sube la foto de cada uno de los 6 documentos con sus datos. Se validan al
+  momento y el vehículo se activa solo cuando los 6 están aprobados; lo que no coincide queda para el administrador.
+- **Validación:** un trabajo programado valida cada 10 minutos los documentos pendientes con reglas (datos
   presentes, fechas vigentes, que coincidan con el conductor y el vehículo). Lo que no se puede decidir solo
   queda para revisión manual del administrador.
 - **Auditoría:** se registran los inicios de sesión del panel, la revisión de documentos y quejas, la
@@ -416,9 +419,9 @@ npm run sync-complaints     # opcional: agente local de quejas (necesita SUPPORT
 ### 4. Pruebas
 
 ```bash
-cd frontend    && npm test             # 75 pruebas unitarias de la app
-cd backend     && npm run qa:ataques   # 348 casos: permisos, inyección, carreras, tokens, límites, archivos
-cd backend     && npm run qa:flujos    # 114 casos: ciclo de viaje, reservas, pagos, reseñas, documentos, auditoría
+cd frontend    && npm test             # 81 pruebas unitarias de la app
+cd backend     && npm run qa:ataques   # 354 casos: permisos, inyección, carreras, tokens, límites, archivos
+cd backend     && npm run qa:flujos    # 125 casos: ciclo de viaje, reservas, pagos, reseñas, documentos, auditoría
 cd Administrador-SafeRide && npm run build        # compilación del panel
 ```
 
