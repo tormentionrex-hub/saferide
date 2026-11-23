@@ -60,23 +60,24 @@ credenciales que no deben publicarse.
 Estado al 23 de noviembre de 2026.
 
 <p align="center">
-  <img src="docs/progreso-proyecto.png" alt="Progreso del proyecto: aplicación móvil 94 %, backend 95 %, panel de administrador 90 %" width="900">
+  <img src="docs/progreso-proyecto.png" alt="Progreso del proyecto: aplicación móvil 95 %, backend 95 %, panel de administrador 90 %" width="900">
 </p>
 
 | Parte | Progreso |
 |---|---|
-| Aplicación móvil (frontend) | **94 %** |
+| Aplicación móvil (frontend) | **95 %** |
 | Backend | **95 %** |
 | Panel de administrador | **90 %** |
 
 ### Qué falta para llegar al 100 %
 
-**Aplicación móvil (94 %)**
+**Aplicación móvil (95 %)**
 1. Generar la app instalable y probarla en teléfonos reales; hasta ahora se probó en Expo Go.
 2. Activar los pagos en línea: PayPal y tarjeta están listos en beta, falta la cuenta de comercio.
 3. Clave de Google Maps de producción para el mapa nativo.
 4. Publicar en Google Play y App Store; requiere las cuentas de desarrollador de cada tienda.
-5. Probar la subida real de las fotos de los 6 documentos en un teléfono; en el navegador se simuló la subida.
+5. Confirmar la subida de fotos en un teléfono real (Expo Go). Ya se probó en un teléfono simulado (Pixel 7, con
+   toques) con subida real a Cloudinary: los 6 documentos quedaron aprobados y el vehículo se activó.
 
 **Backend (95 %)**
 1. Publicarlo en la nube con dominio HTTPS y la base de producción.
