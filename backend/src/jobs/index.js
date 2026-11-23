@@ -3,4 +3,5 @@ module.exports = {
   calculateMetricsJob: require('./calculateMetrics'),
   cleanupExpiredRidesJob: require('./cleanupExpiredRides'),
   sendRideRemindersJob: require('./sendRideReminders'),
+  validateDocumentsJob: require('./validateDocuments'),
 };

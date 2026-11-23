@@ -117,7 +117,7 @@ const TripInProgressDriver = ({ route, navigation }) => {
     const mapRef = useRef(null);
 
     // Activamos el rastreo GPS en tiempo real para el driver
-    const { location: driverLocation, errorMsg: locationError } = useLocationTracker(true);
+    const { location: driverLocation, errorMsg: locationError } = useLocationTracker();
 
     const [loading, setLoading] = useState(true);
     const [bookingData, setBookingData] = useState(null);

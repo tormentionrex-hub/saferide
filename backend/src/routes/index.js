@@ -10,6 +10,11 @@ const metricsRoutes = require('./metricsRoutes');
 const locationRoutes = require('./locationRoutes');
 const paypalRoutes = require('./paypalRoutes');
 const mapsRoutes = require('./mapsRoutes');
+const complaintRoutes = require('./complaintRoutes');
+const auditRoutes = require('./auditRoutes');
+const documentRoutes = require('./documentRoutes');
+const settingsRoutes = require('./settingsRoutes');
+const monitoringRoutes = require('./monitoringRoutes');
 
 const router = express.Router();
 
@@ -54,9 +59,11 @@ router.use('/metrics', metricsRoutes);
 router.use('/location', locationRoutes);
 router.use('/paypal', paypalRoutes);
 router.use('/maps', mapsRoutes);
-// Panel de admin: revisión de documentos y registro de auditoría.
-router.use('/documents', require('./documentRoutes'));
-router.use('/audit-logs', require('./auditRoutes'));
+router.use('/complaints', complaintRoutes);
+router.use('/audit-logs', auditRoutes);
+router.use('/documents', documentRoutes);
+router.use('/settings', settingsRoutes);
+router.use('/monitoring', monitoringRoutes);
 
 // [SAFESCORE-AGENT] — Endpoints admin del agente (visibilidad de jobs y stats)
 try {

@@ -4,9 +4,11 @@ const notificationService = {
   /**
    * Obtiene todas las notificaciones del administrador
    */
-  getNotifications: async () => {
+  getNotifications: async (params = {}) => {
     try {
-      const response = await api.get('/notifications');
+      const response = await api.get('/notifications', {
+        params: { scope: 'all', limit: 200, ...params },
+      });
       return response.data;
     } catch (error) {
       console.error('Error al obtener notificaciones:', error);
@@ -32,7 +34,9 @@ const notificationService = {
    */
   markAllAsRead: async () => {
     try {
-      const response = await api.patch('/notifications/read-all');
+      const response = await api.patch('/notifications/read-all', {}, {
+        params: { scope: 'all' },
+      });
       return response.data;
     } catch (error) {
       console.error('Error al marcar todas las notificaciones como leídas:', error);

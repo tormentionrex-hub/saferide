@@ -178,6 +178,39 @@
   cursor: not-allowed;
 }
 
+.read-only-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  background: #F8FAFC;
+}
+
+.read-only-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.read-only-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0F172A;
+  word-break: break-word;
+}
+
+.read-only-close {
+  background: #475569;
+}
+
+.read-only-close:hover {
+  background: #334155;
+}
+
 .username-input-wrapper {
   position: relative;
   display: flex;

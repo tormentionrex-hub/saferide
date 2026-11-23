@@ -24,30 +24,14 @@ const driverIcon = L.divIcon({
   iconAnchor: [18, 18],
 });
 
-// Una posición más vieja que esto ya no es "en vivo": la app del conductor
-// envía su ubicación cada ~10 s durante el viaje (useLocationTracker), así que
-// 5 minutos sin datos significa que perdió señal o cerró la app. Antes se
-// marcaban "En vivo" viajes cuya última posición tenía días.
-const LIVE_LOCATION_MAX_AGE_MS = 5 * 60 * 1000;
-
-// 'live' (posición reciente) | 'stale' (hay posición pero vieja) | 'none'.
-const locationStatus = (ride, now = Date.now()) => {
-  const loc = ride?.last_location;
-  if (!loc || loc.lat == null || loc.lng == null) return 'none';
-  const t = new Date(loc.updated_at).getTime();
-  if (!Number.isFinite(t)) return 'stale';
-  return now - t <= LIVE_LOCATION_MAX_AGE_MS ? 'live' : 'stale';
-};
-
-const STATUS_LABEL = { live: 'En vivo', stale: 'Sin señal', none: 'Sin GPS' };
-
-// Devuelve [lat, lng] o null. Acepta last_location o destination como fallback.
+// Devuelve [lat, lng] o null. La posición live viene de User.currentLocation.
 const ridePosition = (r) => {
-  if (r.last_location?.lat != null && r.last_location?.lng != null) {
-    return [r.last_location.lat, r.last_location.lng];
+  if (r.location?.lat != null && r.location?.lng != null) {
+    return [r.location.lat, r.location.lng];
   }
-  if (r.destination?.lat != null && r.destination?.lng != null) {
-    return [r.destination.lat, r.destination.lng];
+  const origin = r.origin?.coordinates;
+  if (origin?.lat != null && origin?.lng != null) {
+    return [origin.lat, origin.lng];
   }
   return null;
 };
@@ -90,7 +74,7 @@ const MapController = ({ rides, focusId }) => {
 
 const RideListItem = ({ ride, selected, onClick }) => {
   const pos = ridePosition(ride);
-  const status = locationStatus(ride);
+  const hasLocation = !!ride.location;
   return (
     <button
       type="button"
@@ -110,9 +94,9 @@ const RideListItem = ({ ride, selected, onClick }) => {
           <span className="monitor-item-name">{ride.driver?.name || 'Sin conductor'}</span>
           <span className="monitor-item-plate">{ride.vehicle?.license_plate || '—'}</span>
         </div>
-        <span className={`monitor-item-pulse ${status === 'live' ? 'is-live' : 'is-stale'}`}>
+        <span className={`monitor-item-pulse ${ride.location?.isLive ? 'is-live' : 'is-stale'}`}>
           <span className="pulse-dot" />
-          {STATUS_LABEL[status]}
+          {hasLocation ? (ride.location.isLive ? 'En vivo' : 'Sin señal') : 'Sin GPS'}
         </span>
       </div>
 
@@ -129,7 +113,7 @@ const RideListItem = ({ ride, selected, onClick }) => {
 
       <div className="monitor-item-footer">
         <span className="monitor-item-vehicle">{ride.vehicle?.brand || ''} {ride.vehicle?.model || ''}</span>
-        <span className="monitor-item-time">{ride.last_location?.updated_at ? timeAgo(ride.last_location.updated_at) : timeAgo(ride.started_at)}</span>
+        <span className="monitor-item-time">{timeAgo(ride.location?.updatedAt ?? ride.startedAt)}</span>
       </div>
     </button>
   );
@@ -151,7 +135,7 @@ const MonitoreoPage = () => {
   // — los toasts globales ya los maneja AdminLayout.
   const { rides, loading, error, refresh } = useInProgressRides({
     enabled: true,
-    intervalMs: 8000,
+    intervalMs: 5000,
     notify: false,
   });
 
@@ -171,23 +155,22 @@ const MonitoreoPage = () => {
 
   const stats = useMemo(() => {
     const total = rides.length;
-    // "Con señal" = posición reciente; una posición de hace días no cuenta.
-    const withGps = rides.filter((r) => locationStatus(r) === 'live').length;
-    const passengers = rides.reduce((sum, r) => sum + (r.passenger_count || 0), 0);
+    const withGps = ridesWithPosition.length;
+    const passengers = rides.reduce((sum, r) => sum + (r.passengerCount || 0), 0);
     return { total, withGps, withoutGps: total - withGps, passengers };
-  }, [rides]);
+  }, [rides, ridesWithPosition]);
 
   return (
     <div className="monitor-container">
       <header className="monitor-header">
         <div className="monitor-header-text">
           <h1>Monitoreo en Tiempo Real</h1>
-          <p>Viajes activos y última posición conocida de cada conductor. Actualización cada 8 s.</p>
+          <p>Viajes activos y última posición conocida de cada conductor. Actualización cada 5 s.</p>
         </div>
         <div className="monitor-header-actions">
-          <div className={`monitor-status ${loading ? 'is-loading' : ''}`}>
+          <div className={`monitor-status ${loading ? 'is-loading' : ''} ${error ? 'is-error' : ''}`}>
             <Activity size={14} />
-            <span>{loading ? 'Actualizando…' : 'En línea'}</span>
+            <span>{loading ? 'Actualizando…' : error ? 'Sin conexión' : 'En línea'}</span>
           </div>
           <button type="button" className="monitor-refresh" onClick={refresh} disabled={loading}>
             <RefreshCcw size={14} /> Actualizar
@@ -213,7 +196,7 @@ const MonitoreoPage = () => {
           <div className="monitor-list">
             {error && (
               <div className="monitor-error">
-                No se pudo cargar la lista. ¿El endpoint /rides/in-progress ya existe en el backend?
+                No se pudo cargar la lista de viajes en curso.
               </div>
             )}
             {!error && rides.length === 0 && !loading && (
@@ -272,9 +255,9 @@ const MonitoreoPage = () => {
                           {r.origin?.name || '—'} → {r.destination?.name || '—'}
                         </span>
                         <span className="popup-time">
-                          {r.last_location?.updated_at
-                            ? `Última posición ${timeAgo(r.last_location.updated_at)}`
-                            : `Iniciado ${timeAgo(r.started_at)}`}
+                          {r.location?.updatedAt
+                            ? `Última posición ${timeAgo(r.location.updatedAt)}`
+                            : `Iniciado ${timeAgo(r.startedAt)}`}
                         </span>
                       </div>
                     </Popup>

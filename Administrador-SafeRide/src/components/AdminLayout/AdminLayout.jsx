@@ -1,5 +1,5 @@
 import { useState, useCallback, memo, useEffect, useRef } from 'react';
-import { Link, useLocation, Outlet } from 'react-router-dom';
+import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 
 // Contextos
 import { useAuth } from '../../context/AuthContext';
@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import IconSafeRide from '../../imgs/IconSafeRide.png';
 import DefaultImageUser from '../../imgs/DefaultImageUser.png';
-
+import { Toaster } from 'react-hot-toast';
 
 // Services
 import notificationService from '../../services/notificationService';
@@ -31,9 +31,6 @@ const NavItem = memo(({ to, icon: Icon, label, active, onClick, badge }) => (
   </Link>
 ));
 
-// ───────────────────────────────────────────────────────────────────────────────────────────────────
-import complaintsData from '../../data/complaints.json';
-
 const AdminLayout = () => {
 
   const { user, cerrarSesion } = useAuth();
@@ -41,24 +38,18 @@ const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [usuariosOpen, setUsuariosOpen] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const navigate = useNavigate();
   const menuRef = useRef(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
   // Monitoreo en tiempo real (controlado por toggle en PerfilAdmin → localStorage).
-  // El hook polea /rides/in-progress cada 8 s y dispara toast por cada viaje nuevo.
   const monitoringEnabled = useMonitoringEnabled();
-  useInProgressRides({ enabled: monitoringEnabled, intervalMs: 8000, notify: true });
+  useInProgressRides({ enabled: monitoringEnabled, intervalMs: 5000, notify: true });
 
   const loadUnreadCount = useCallback(async () => {
     try {
-      const res = await notificationService.getNotifications();
-      const list = res?.data || [];
-      const backendUnread = list.filter(n => n.status === 'unread').length;
-
-      const readComplaints = JSON.parse(localStorage.getItem('readComplaints') || '[]');
-      const complaintsUnread = (complaintsData || []).filter(q => q.status === 'Pendiente' && !readComplaints.includes(`complaint_${q.id}`)).length;
-
-      setUnreadCount(backendUnread + complaintsUnread);
+      const res = await notificationService.getNotifications({ limit: 1 });
+      setUnreadCount(Number(res?.unreadCount) || 0);
     } catch {
       setUnreadCount(0);
     }
@@ -107,6 +98,7 @@ const AdminLayout = () => {
 
   return (
     <div className="dashboardContent">
+      <Toaster position="top-right" />
 
       {/* --- SIDEBAR PERSISTENTE --- */}
       <aside className={sidebarOpen ? 'open' : ''}>

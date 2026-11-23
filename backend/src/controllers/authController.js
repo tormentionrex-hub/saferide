@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
-const { User, VerificationCode } = require('../models');
+const { User, VerificationCode, AuditLog } = require('../models');
 
 // Configure nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -16,6 +16,21 @@ const transporter = nodemailer.createTransport({
 // Solo se guarda el hash del refresh token: si alguien lee la base, no
 // obtiene un token que le permita abrir sesión.
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+
+const recordAudit = async (req, action, adminEmail, details) => {
+    try {
+        await AuditLog.create({
+            adminEmail: String(adminEmail || 'desconocido').toLowerCase().trim(),
+            ipAddress: req.ip || req.socket?.remoteAddress || 'N/A',
+            action,
+            targetType: 'user',
+            details,
+            userAgent: req.get('user-agent') || 'N/A',
+        });
+    } catch (error) {
+        console.error('[audit] no se pudo registrar:', error.message);
+    }
+};
 
 // Un código de verificación admite pocos intentos: se reserva el intento de
 // forma atómica ($inc con tope) ANTES de comparar, así ni siquiera una ráfaga
@@ -43,6 +58,7 @@ const checkVerificationCode = async (email, code) => {
     return entry;
 };
 
+
 // Helper function to generate access and refresh tokens.
 // typ distingue ambos tokens: comparten secreto, y sin esta marca un refresh
 // token (7 días) se aceptaba también como access token.
@@ -52,15 +68,15 @@ const generateTokens = (userId, tv = 0) => {
         process.env.JWT_SECRET,
         // 1 h: el logout no revoca el access token (JWT), así que su vida debe
         // ser corta; la app lo renueva sola con el refresh token.
-        { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+        { expiresIn: process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRE || '1h' }
     );
 
     // jti aleatorio: dos refresh firmados en el mismo segundo salían
     // idénticos y la rotación no podía invalidar el anterior.
     const refreshToken = jwt.sign(
         { userId, typ: 'refresh', tv, jti: crypto.randomUUID() },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+        process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || process.env.REFRESH_TOKEN_EXPIRE || '7d' }
     );
 
     return { accessToken, refreshToken };
@@ -177,6 +193,7 @@ exports.login = async (req, res, next) => {
         // para lecturas y para completar viajes existentes. Solo se rechaza
         // si las credenciales no son válidas.
         if (!user) {
+            await recordAudit(req, 'LOGIN_FAILED', email, `Intento de inicio de sesión con correo no registrado: ${email}`);
             return res.status(401).json({
                 success: false,
                 message: 'Invalid credentials',
@@ -187,6 +204,7 @@ exports.login = async (req, res, next) => {
         const isPasswordValid = await user.comparePassword(password);
 
         if (!isPasswordValid) {
+            await recordAudit(req, 'LOGIN_FAILED', email, `Contraseña incorrecta para ${email}`);
             return res.status(401).json({
                 success: false,
                 message: 'Invalid credentials',
@@ -199,6 +217,10 @@ exports.login = async (req, res, next) => {
         // Save refresh token
         user.refreshToken = hashToken(refreshToken);
         await user.save();
+
+        if (user.type === 'admin') {
+            await recordAudit(req, 'LOGIN_SUCCESS', user.email, 'Inicio de sesión administrativo correcto');
+        }
 
         res.status(200).json({
             success: true,
@@ -232,7 +254,7 @@ exports.refreshToken = async (req, res, next) => {
 
         // 1. Verificar firma y expiración del refresh token. Si falla,
         //    cae al catch y devolvemos 401.
-        const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET);
         if (decoded.typ === 'access') {
             return res.status(401).json({ success: false, message: 'Invalid refresh token' });
         }

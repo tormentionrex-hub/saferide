@@ -34,13 +34,13 @@ const upload = multer({
 // llegaba al controlador y reventaba en .toUpperCase() con un 500.
 // isSafeText: marca, modelo y color no admiten < > ni caracteres de control.
 const vehicleValidation = [
-  body('brand').isString().trim().notEmpty().isLength({ max: 50 }).withMessage('Brand is required')
-    .custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
-  body('model').isString().trim().notEmpty().isLength({ max: 50 }).withMessage('Model is required')
-    .custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
-  body('license_plate').isString().matches(/^[A-Z0-9]{6}$/).withMessage('License plate must be 6 characters'),
-  body('color').isString().trim().notEmpty().isLength({ max: 30 }).withMessage('Color is required')
-    .custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
+  body('brand').isString().trim().notEmpty().isLength({ max: 50 }).withMessage('Brand is required').custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
+  body('model').isString().trim().notEmpty().isLength({ max: 50 }).withMessage('Model is required').custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
+  body('license_plate')
+    .customSanitizer((value) => String(value || '').replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 6))
+    .matches(/^(?=.*[0-9])[A-Z0-9]{6}$/)
+    .withMessage('La placa debe tener 6 caracteres alfanuméricos e incluir al menos un número'),
+  body('color').isString().trim().notEmpty().isLength({ max: 30 }).withMessage('Color is required').custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
   body('year').isInt({ min: 1900, max: new Date().getFullYear() + 1 }),
   // Datos de la póliza que manda la app al registrar el vehículo (antes se
   // ignoraban). El certificado solo se acepta como URL https de Cloudinary,

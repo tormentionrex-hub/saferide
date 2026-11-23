@@ -12,7 +12,7 @@ import {
     User, FileUser, Mail, Building2, Check, Users,
     ArrowLeft, Camera, X, Phone, Car, Leaf, MapPin,
     Bell, AlertTriangle, Activity, Send,
-    Shield, KeyRound, LogOut, Smartphone
+    Shield, KeyRound, LogOut
 } from 'lucide-react';
 import './PerfilAdmin.css';
 import Swal from 'sweetalert2';
@@ -216,7 +216,7 @@ const PerfilAdmin = () => {
                 return;
             }
 
-            if (!/^[\p{L}\p{M}0-9\s.\-'’()]+$/u.test(datosPerfil.name)) {
+            if (!/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s.\-']+$/.test(datosPerfil.name)) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
@@ -314,8 +314,6 @@ const PerfilAdmin = () => {
                 const cnf = document.getElementById('cnf-pwd').value;
                 if (!cur || !nu || !cnf)  { Swal.showValidationMessage('Todos los campos son obligatorios'); return false; }
                 if (nu.length < 8)        { Swal.showValidationMessage('La nueva contraseña debe tener al menos 8 caracteres'); return false; }
-                // Misma regla que el backend (authRoutes.passwordValidation).
-                if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(nu)) { Swal.showValidationMessage('Usa mayúscula, minúscula, número y un símbolo (@$!%*?&)'); return false; }
                 if (nu === cur)           { Swal.showValidationMessage('La nueva contraseña debe ser distinta a la actual'); return false; }
                 if (nu !== cnf)           { Swal.showValidationMessage('Las contraseñas no coinciden'); return false; }
                 return { currentPassword: cur, newPassword: nu };
@@ -323,43 +321,11 @@ const PerfilAdmin = () => {
         });
         if (!pwds) return;
         try {
-            await api.patch('/auth/change-password', pwds);
+            await api.put('/auth/password', pwds);
             Swal.fire({ icon: 'success', title: 'Contraseña actualizada', timer: 2000, showConfirmButton: false });
         } catch (err) {
-            // 403 WRONG_PASSWORD: la contraseña actual no coincide. Es un 403 (no
-            // 401) para que el interceptor no lo trate como sesión vencida.
-            const data = err.response?.data || {};
-            const msg = data.code === 'WRONG_PASSWORD'
-                ? 'La contraseña actual no es correcta. Tu sesión sigue abierta.'
-                : err.response?.status === 400
-                    ? (data.errors?.[0]?.message || data.message || 'La nueva contraseña no cumple los requisitos.')
-                    : err.response?.status === 429
-                        ? 'Demasiados intentos. Espera unos minutos e intenta de nuevo.'
-                        : 'No se pudo cambiar la contraseña. Revisa tu conexión.';
+            const msg = err.response?.data?.message || err.message;
             Swal.fire({ icon: 'error', title: 'No se pudo cambiar', text: msg, confirmButtonColor: '#EF4444' });
-        }
-    };
-
-    const handleCerrarSesionTodos = async () => {
-        const r = await Swal.fire({
-            icon: 'warning',
-            title: '¿Cerrar todas las sesiones?',
-            text: 'Tu sesión se cerrará en todos los dispositivos. Tendrás que volver a iniciar sesión aquí también.',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, cerrar todo',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#EF4444',
-            cancelButtonColor: '#64748B',
-        });
-        if (!r.isConfirmed) return;
-        try {
-            await api.post('/auth/logout-all', {});
-            // logout-all ya invalidó todos los tokens (también este): limpiar local
-            // e ir a /login sin otra confirmación ni otro POST /auth/logout.
-            cerrarSesion({ skipConfirm: true, skipRemote: true });
-        } catch (err) {
-            const msg = err.response?.data?.message || 'No se pudo cerrar las sesiones. Revisa tu conexión.';
-            Swal.fire({ icon: 'error', title: 'No se pudo cerrar todas las sesiones', text: msg, confirmButtonColor: '#EF4444' });
         }
     };
 
@@ -375,8 +341,7 @@ const PerfilAdmin = () => {
             cancelButtonColor: '#64748B',
         });
         if (!r.isConfirmed) return;
-        // Ya se confirmó aquí: no volver a preguntar.
-        cerrarSesion({ skipConfirm: true });
+        cerrarSesion();
     };
 
     if (!user) return <div className="contenedorPerfil">Cargando...</div>;
@@ -682,7 +647,7 @@ const PerfilAdmin = () => {
                     <Shield size={18} />
                     <div>
                         <h2>Seguridad</h2>
-                        <p>Gestiona tu contraseña y las sesiones activas.</p>
+                        <p>Gestiona tu contraseña y cierra tu sesión actual.</p>
                     </div>
                 </div>
                 <div className="listaSeguridad">
@@ -693,15 +658,6 @@ const PerfilAdmin = () => {
                             <span className="descSeguridad">Recomendamos hacerlo cada 90 días.</span>
                         </div>
                         <span className="ctaSeguridad">Cambiar</span>
-                    </button>
-
-                    <button type="button" className="itemSeguridad" onClick={handleCerrarSesionTodos}>
-                        <div className="iconoSeguridad"><Smartphone size={18} /></div>
-                        <div className="textoSeguridad">
-                            <span className="labelSeguridad">Cerrar sesión en todos los dispositivos</span>
-                            <span className="descSeguridad">Útil si perdiste un equipo o sospechás de acceso no autorizado.</span>
-                        </div>
-                        <span className="ctaSeguridad">Cerrar todo</span>
                     </button>
 
                     <button type="button" className="itemSeguridad itemSeguridad--danger" onClick={handleCerrarSesion}>

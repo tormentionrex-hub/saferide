@@ -77,7 +77,8 @@ const notifTypes = async (token) => ((await call('GET', '/notifications?limit=10
   r = await call('POST', '/vehicles', D.token, { brand: 'Toyota', model: 'Corolla', license_plate: ('Q2' + tag).slice(0, 6).toUpperCase().replace(/[^A-Z0-9]/g, '0'), color: 'Gris', year: 2021, capacity: 4 });
   check('1.1 vehículo', r.status, 201);
   r = await call('GET', `/vehicles/driver/${D.id}`, P1.token);
-  check('1.2 pasajero ve el vehículo del conductor', r.status, 200);
+  // Desde dev (nov 2026) solo ve el vehículo el pasajero con una reserva activa con ese conductor.
+  check('1.2 pasajero sin reserva no ve el vehículo del conductor', r.status, 403);
 
   // ---------- 2. publicar, reservar, confirmar ----------
   r = await call('POST', '/rides', D.token, rideBody(3));
@@ -98,6 +99,11 @@ const notifTypes = async (token) => ((await call('GET', '/notifications?limit=10
   check('2.7 confirmar P2', r.status, 200);
   r = await call('PATCH', `/bookings/${b3._id}/status`, D.token, { status: 'deny' });
   check('2.8 rechazar P3', r.status, 200);
+  r = await call('GET', `/vehicles/driver/${D.id}`, P1.token);
+  // El vehículo nuevo queda inactivo hasta aprobar sus 6 documentos (404); lo que importa es que el permiso pasa (no 403).
+  check('2.8b el pasajero confirmado tiene permiso de ver el vehículo del conductor', r.status, [200, 404]);
+  r = await call('GET', `/vehicles/driver/${D.id}`, P3.token);
+  check('2.8c el pasajero rechazado no lo ve', r.status, 403);
   check('2.9 asientos 3 -> 1', (await db.collection('rides').findOne({ _id: oid(ride) })).available_seats, 1);
   check('2.10 P1 notificado de confirmación', (await notifTypes(P1.token)).includes('booking_confirmed'), true);
   check('2.11 P3 notificado del rechazo', (await notifTypes(P3.token)).includes('booking_denied'), true);
@@ -231,7 +237,8 @@ const notifTypes = async (token) => ((await call('GET', '/notifications?limit=10
   const t1 = (await db.collection('users').findOne({ _id: oid(D.id) })).trustScore;
   check('8.2 conductor cancela viaje EN CURSO: TrustScore baja', `${t0}->${t1}`, `${t0}->${t0 - 1}`);
   check('8.3 pasajero notificado y reserva cancelada', (await db.collection('bookings').findOne({ _id: oid(bf._id) })).status, ['cancelled', 'canceled']);
-  check('8.4 el conductor ya no puede enviar GPS', (await call('POST', '/location/update', D.token, { lat: 9.9, lng: -84.1, inTrip: true })).status, 403);
+  // Desde dev (nov 2026) el conductor publica su propia posición aunque no tenga viaje (Monitoreo).
+  check('8.4 el conductor sin viaje solo actualiza su propia posición', (await call('POST', '/location/update', D.token, { lat: 9.9, lng: -84.1, inTrip: true })).status, 200);
 
   // ---------- 9. notificaciones ----------
   r = await call('GET', '/notifications', P1.token);
@@ -297,11 +304,12 @@ const notifTypes = async (token) => ((await call('GET', '/notifications?limit=10
   const ADM = (await call('POST', '/auth/login', null, { email: 'naomy.admin@saferide.cr', password: 'SafeRide2024!' })).body?.data?.accessToken;
   const DD = await register('conductor', 'docs');
   r = await call('POST', '/vehicles', DD.token, {
-    brand: 'Toyota', model: 'Yaris', license_plate: 'QF' + tag.slice(-4).toUpperCase().replace(/[^A-Z0-9]/g, '4'), color: 'Blanco', year: 2022, capacity: 4,
+    brand: 'Toyota', model: 'Yaris', license_plate: 'Q4' + tag.slice(-4).toUpperCase().replace(/[^A-Z0-9]/g, '4'), color: 'Blanco', year: 2022, capacity: 4,
     policy_number: 'INS-777', insurance_expiry: '2027-01-31T00:00:00.000Z',
     insurance_certificate: 'https://res.cloudinary.com/demo/image/upload/v1700000000/insurance_cert_qa.jpg',
   });
   check('11.1 conductor registra vehículo con certificado de póliza (como la app)', r.status, 201);
+  const vDD = r.body?.data?._id;
   r = await call('GET', `/documents/driver/${DD.id}`, DD.token);
   const polDoc = (r.body?.data || [])[0];
   check('11.2 la póliza queda pendiente y el conductor la ve', `${polDoc?.type}/${polDoc?.status}`, 'poliza/pending');
@@ -316,22 +324,22 @@ const notifTypes = async (token) => ((await call('GET', '/notifications?limit=10
   r = await call('GET', '/documents/admin/pending?limit=200', ADM);
   check('11.7 ya no está en pendientes', (r.body?.data || []).some(d => d._id === polDoc?._id), false);
   r = await call('POST', `/documents/${polDoc?._id}/reprocess`, ADM);
-  check('11.8 reprocesar sin servicio de análisis responde 503 claro', `${r.status}/${r.body?.code}`, '503/ANALYSIS_NOT_CONFIGURED');
-  const vDD = (await call('GET', `/vehicles/driver/${DD.id}`, DD.token)).body?.data?._id;
+  check('11.8 reprocesar corre la validación local del documento', `${r.status}/${!!r.body?.data?.validation}`, '200/true');
   r = await call('PATCH', `/vehicles/${vDD}/status`, ADM, { isActive: false });
   r = await call('GET', '/audit-logs?limit=100', ADM);
   const logs = r.body?.data || [];
-  const has = (a, t) => logs.some(l => l.action === a && String(l.targetId) === String(t));
+  // La auditoría guarda el id del objetivo dentro del detalle.
+  const has = (a, t) => logs.some(l => l.action === a && String(l.details || '').includes(String(t)));
   check('11.9 auditoría: rechazo, aprobación y desactivación del vehículo', `${has('DOCUMENT_REJECTED', polDoc?._id)}/${has('DOCUMENT_APPROVED', polDoc?._id)}/${has('VEHICLE_REJECTED', vDD)}`, 'true/true/true');
   check('11.10 la auditoría trae el correo del admin y no secretos', `${logs.find(l => l.action === 'DOCUMENT_APPROVED')?.adminEmail}/${/password|eyJ[\w-]+\./i.test(r.text)}`, 'naomy.admin@saferide.cr/false');
   r = await call('DELETE', `/users/${DD.id}/hard`, ADM);
   check('11.11 borrado definitivo de un conductor sin viajes', `${r.status}/${r.body?.data?.mode}`, '200/deleted');
-  const ddDocs = await db.collection('vehicledocuments').countDocuments({ driver_id: oid(DD.id) });
+  const ddDocs = await db.collection('documents').countDocuments({ driver_id: oid(DD.id) });
   const ddVeh = await db.collection('vehicles').countDocuments({ driver_id: oid(DD.id) });
   check('11.12 se borraron su vehículo y sus documentos', `${ddVeh}/${ddDocs}`, '0/0');
   r = await call('GET', '/audit-logs?action=USER_HARD_DELETED&limit=20', ADM);
-  check('11.13 el borrado quedó en la auditoría', (r.body?.data || []).some(l => String(l.targetId) === String(DD.id)), true);
-  await db.collection('auditlogs').deleteMany({ targetId: { $in: [oid(DD.id), oid(polDoc?._id || '000000000000000000000000'), oid(vDD || '000000000000000000000000')] } });
+  check('11.13 el borrado quedó en la auditoría', (r.body?.data || []).some(l => String(l.details || '').includes(String(DD.id))), true);
+  await db.collection('auditlogs').deleteMany({ details: { $regex: [DD.id, polDoc?._id, vDD].filter(Boolean).map(String).join('|') } });
 
 
   // ---------- 12. panel: reservas y pagos ----------

@@ -1,34 +1,37 @@
 const { AuditLog } = require('../models');
 
-// @desc   Registro de auditoría de acciones de admin
-// @route  GET /api/v1/audit-logs?page&limit&action&targetType&adminId&from&to
-// @access Private/Admin
-//
-// Forma que lee el panel (AuditoriaPage): _id, action, adminEmail, details,
-// targetType, ipAddress, userAgent, createdAt. Más reciente primero.
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 exports.getAuditLogs = async (req, res, next) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
-    const q = {};
-    if (req.query.action) q.action = req.query.action;
-    if (req.query.targetType) q.targetType = req.query.targetType;
-    if (req.query.adminId) q.admin_id = req.query.adminId;
-    if (req.query.from || req.query.to) {
-      q.createdAt = {};
-      if (req.query.from) q.createdAt.$gte = new Date(req.query.from);
-      if (req.query.to) q.createdAt.$lte = new Date(req.query.to);
+    const { page = 1, limit = 100, action, search } = req.query;
+    const query = {};
+
+    if (action) query.action = action;
+    if (search) {
+      const regex = new RegExp(escapeRegex(search), 'i');
+      query.$or = [
+        { adminEmail: regex },
+        { details: regex },
+        { action: regex },
+        { ipAddress: regex },
+      ];
     }
-    const [data, total] = await Promise.all([
-      AuditLog.find(q)
-        .select('_id action adminEmail details targetType targetId ipAddress userAgent createdAt')
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .lean(),
-      AuditLog.countDocuments(q),
+
+    const [logs, count] = await Promise.all([
+      AuditLog.find(query).sort({ createdAt: -1 }).limit(Number(limit)).skip((Number(page) - 1) * Number(limit)),
+      AuditLog.countDocuments(query),
     ]);
-    res.status(200).json({ success: true, data, pagination: { total, page, pages: Math.ceil(total / limit) } });
+
+    res.status(200).json({
+      success: true,
+      data: logs,
+      pagination: {
+        total: count,
+        page: Number(page),
+        pages: Math.ceil(count / Number(limit)),
+      },
+    });
   } catch (error) {
     next(error);
   }

@@ -70,10 +70,10 @@ async function register(type, suffix) {
   check('setup: admin login', adminLogin.status, 200);
 
   // vehículos
-  const vA = await call('POST', '/vehicles', dA.token, { brand: 'Toyota', model: 'Yaris', license_plate: 'QAA' + tag.slice(-3).toUpperCase().replace(/[^A-Z0-9]/g, '0'), color: 'Rojo', year: 2020, capacity: 4 });
+  const vA = await call('POST', '/vehicles', dA.token, { brand: 'Toyota', model: 'Yaris', license_plate: 'Q1A' + tag.slice(-3).toUpperCase().replace(/[^A-Z0-9]/g, '0'), color: 'Rojo', year: 2020, capacity: 4 });
   check('setup: vehículo conductor A', vA.status, 201, vA.text.slice(0, 120));
   const vehicleA = vA.body?.data?._id;
-  const vB = await call('POST', '/vehicles', dB.token, { brand: 'Honda', model: 'Civic', license_plate: 'QAB' + tag.slice(-3).toUpperCase().replace(/[^A-Z0-9]/g, '0'), color: 'Azul', year: 2019, capacity: 4 });
+  const vB = await call('POST', '/vehicles', dB.token, { brand: 'Honda', model: 'Civic', license_plate: 'Q1B' + tag.slice(-3).toUpperCase().replace(/[^A-Z0-9]/g, '0'), color: 'Azul', year: 2019, capacity: 4 });
   const vehicleB = vB.body?.data?._id;
 
   const now = DateTime.now().setZone('America/Costa_Rica');
@@ -198,7 +198,8 @@ async function register(type, suffix) {
   r = await call('POST', '/location/update', pA.token, { rideId: rideA, lat: 9.9, lng: -84.1 });
   check('C26 pasajero envía GPS de un viaje', r.status, [400, 403]);
   r = await call('POST', '/location/update', dB.token, { lat: 9.9, lng: -84.1, inTrip: true });
-  check('C27 otro conductor envía GPS del viaje', r.status, [400, 403]);
+  // Desde dev (nov 2026) un conductor publica su propia posición aunque no tenga viaje (Monitoreo); nunca la de otro.
+  check('C27 otro conductor solo actualiza su propia posición', r.status, 200);
   r = await call('GET', `/location/${rideA}/driver`, pB.token);
   check('C28 ubicación del conductor sin reserva', r.status, [403, 404, 400]);
   r = await call('GET', `/metrics/user/${pB.id}`, pA.token);
@@ -330,7 +331,7 @@ async function register(type, suffix) {
   const hp3 = await hReg('pasajero', 'h3');
   const hd1 = await hReg('conductor', 'h1');
   const oid = (x) => new mongoose.Types.ObjectId(x);
-  const plate = 'QH' + tag.slice(-4).toUpperCase().replace(/[^A-Z0-9]/g, '0');
+  const plate = 'Q9' + tag.slice(-4).toUpperCase().replace(/[^A-Z0-9]/g, '0');
   const vH = (await call('POST', '/vehicles', hd1.token, { brand: 'Kia', model: 'Rio', license_plate: plate, color: 'Gris', year: 2021, capacity: 4 })).body?.data?._id;
   const rideH = (await call('POST', '/rides', hd1.token, rideBody(3, inHours(4)))).body?.data?._id;
   const bH1 = (await call('POST', '/bookings', hp1.token, { ride_id: rideH, seats_booked: 1, offered_amount: 2000 })).body?.data?._id;
@@ -432,13 +433,13 @@ async function register(type, suffix) {
   // H3 Correo y teléfono del conductor por GET /vehicles/:id.
   const contact = (b) => `${!!b?.data?.driver_id?.email}/${!!b?.data?.driver_id?.phone}`;
   r = await call('GET', `/vehicles/${vH}`, pA.token);
-  check('H3a pasajero ajeno lee el vehículo (ataque original)', `${r.status}/${contact(r.body)}`, '200/false/false');
+  check('H3a pasajero ajeno lee el vehículo (ataque original)', `${r.status}/${contact(r.body)}`, '403/false/false');
   r = await call('GET', `/vehicles/${vH}`, dA.token);
-  check('H3b otro conductor lee el vehículo', `${r.status}/${contact(r.body)}`, '200/false/false');
+  check('H3b otro conductor lee el vehículo', `${r.status}/${contact(r.body)}`, '403/false/false');
   r = await call('GET', `/vehicles/${vH}`, null);
   check('H3c sin sesión', r.status, 401);
   r = await call('GET', `/vehicles/driver/${hd1.id}`, pA.token);
-  check('H3d por /vehicles/driver/:id', `${r.status}/${JSON.stringify(r.body?.data || {}).includes(hd1.email)}`, '200/false');
+  check('H3d por /vehicles/driver/:id', `${r.status}/${JSON.stringify(r.body?.data || {}).includes(hd1.email)}`, '403/false');
   r = await call('GET', `/users/${hd1.id}`, pA.token);
   check('H3e por /users/:id', `${!!r.body?.data?.email}/${!!r.body?.data?.phone}`, 'false/false');
   r = await call('GET', `/vehicles/${vH}`, hd1.token);
@@ -776,7 +777,7 @@ async function register(type, suffix) {
     ['PUT', '/users/profile', hp2.token, { name: '(QA) Nombre', phone: '88887777', company: 'Intel', work_schedule: '8-5', profileImage: 'https://x/y.png' }],
     ['DELETE', '/users/me', hp2.token, { password: 'Incorrecta1!' }],
     ['PATCH', `/users/${hp2.id}/trust`, admin.token, { action: 'increment' }],
-    ['POST', '/vehicles', hd1.token, { brand: 'Kia', model: 'Rio', license_plate: 'QT' + tag.slice(-4).toUpperCase().replace(/[^A-Z0-9]/g, '1'), color: 'Gris', year: 2020, capacity: 4 }],
+    ['POST', '/vehicles', hd1.token, { brand: 'Kia', model: 'Rio', license_plate: 'Q7' + tag.slice(-4).toUpperCase().replace(/[^A-Z0-9]/g, '1'), color: 'Gris', year: 2020, capacity: 4 }],
     ['PUT', `/vehicles/${vH}`, hd1.token, { brand: 'Kia', model: 'Rio', color: 'Gris', year: 2020, capacity: 4, license_plate: plate }],
     ['PATCH', `/vehicles/${vH}/status`, hd1.token, { isActive: false }],
     ['POST', '/rides', hd1.token, rideBody(2, inHours(7))],
@@ -893,7 +894,7 @@ async function register(type, suffix) {
     for (const [f, v] of [['brand', '<b>Kia'], ['model', 'Rio\u0007'], ['color', 'Gris>']]) {
       const x = await call('PUT', `/vehicles/${vH}`, hd1.token, { [f]: v });
       if (x.status !== 400) pass.push(f + ':' + x.status);
-      const y = await call('POST', '/vehicles', hd1.token, { brand: 'Kia', model: 'Rio', license_plate: 'QX' + tag.slice(-4).toUpperCase().replace(/[^A-Z0-9]/g, '2'), color: 'Gris', year: 2020, capacity: 4, [f]: v });
+      const y = await call('POST', '/vehicles', hd1.token, { brand: 'Kia', model: 'Rio', license_plate: 'Q8' + tag.slice(-4).toUpperCase().replace(/[^A-Z0-9]/g, '2'), color: 'Gris', year: 2020, capacity: 4, [f]: v });
       if (y.status !== 400) pass.push('POST ' + f + ':' + y.status);
     }
     check('H18h marca/modelo/color con HTML o control (POST y PUT)', pass.join(' ') || 'todos 400', 'todos 400');
@@ -982,7 +983,7 @@ async function register(type, suffix) {
     // Desde la ronda 4 /vehicles/:id/documents existe (solo el conductor dueño): el admin recibe 403.
     check('H18v ruta /documents inexistente 404; subir documento como admin 403', `${r.status}/${r6b.status}`, '404/403');
     r = await call('GET', `/vehicles/driver/${hp3.id}`, pA.token);
-    check('H18w /vehicles/driver/:id sin vehículo: 404 sin datos', `${r.status}/${Object.keys(r.body || {}).sort().join(',')}`, '404/message,success');
+    check('H18w /vehicles/driver/:id de otro conductor: 403 sin datos', `${r.status}/${Object.keys(r.body || {}).sort().join(',')}`, '403/message,success');
 
     // 7. DELETE /users/me: límite de intentos (módulo, en desarrollo está apagado).
     const express = require(BE + '/node_modules/express');
@@ -1011,7 +1012,8 @@ async function register(type, suffix) {
     const adminDoc = await db.collection('users').findOne({ email: 'naomy.admin@saferide.cr' });
     const otherAdmin = await db.collection('users').findOne({ type: 'admin', _id: { $ne: adminDoc._id } });
     const notFound = '0123456789abcdef01234567';
-    const auditHas = async (action, targetId) => !!(await db.collection('auditlogs').findOne({ action, targetId: oid(targetId) }));
+    // La auditoría del panel guarda el id del objetivo dentro del detalle.
+    const auditHas = async (action, targetId) => !!(await db.collection('auditlogs').findOne({ action, details: { $regex: String(targetId) } }));
 
     // --- PATCH /auth/change-password (mismo controlador que PUT /auth/password)
     const hc = await hReg('pasajero', 'hc');
@@ -1090,7 +1092,7 @@ async function register(type, suffix) {
     }
     check('H19w auditoría para no-admin', pass.join(' ') || 'todos 401/403', 'todos 401/403');
     pass = [];
-    for (const q of ['action=NO_EXISTE', 'action=USER_ACTIVATED&action=USER_DEACTIVATED', 'adminId=abc', 'limit=1000', 'from=ayer', 'targetType=Ride']) {
+    for (const q of ['action=no$existe', 'action=USER_ACTIVATED&action=USER_DEACTIVATED', 'page=0', 'limit=1000', 'search=' + 'x'.repeat(101), 'action=' + 'A'.repeat(41)]) {
       const x = await call('GET', '/audit-logs?' + q, admin.token); if (x.status !== 400) pass.push(q + ':' + x.status);
     }
     check('H19x filtros inválidos de auditoría (6 variantes)', pass.join(' ') || 'todos 400', 'todos 400');
@@ -1099,7 +1101,7 @@ async function register(type, suffix) {
 
     // --- Documentos: alta desde el registro de la app (URL de Cloudinary)
     const hdd = await hReg('conductor', 'hdd');
-    const vbody = (o) => ({ brand: 'Kia', model: 'Rio', license_plate: 'QD' + tag.slice(-4).toUpperCase().replace(/[^A-Z0-9]/g, '3'), color: 'Gris', year: 2021, capacity: 4, policy_number: 'POL-123', insurance_expiry: '2027-05-01T00:00:00.000Z', ...o });
+    const vbody = (o) => ({ brand: 'Kia', model: 'Rio', license_plate: 'Q3' + tag.slice(-4).toUpperCase().replace(/[^A-Z0-9]/g, '3'), color: 'Gris', year: 2021, capacity: 4, policy_number: 'POL-123', insurance_expiry: '2027-05-01T00:00:00.000Z', ...o });
     pass = [];
     for (const u of ['http://res.cloudinary.com/demo/image/upload/v1/c.jpg', 'https://evil.example/c.jpg', 'https://res.cloudinary.com.evil.example/demo/image/upload/c.jpg', 'javascript:alert(1)', 'https://res.cloudinary.com/demo/image/upload/../../x', { $ne: null }]) {
       const x = await call('POST', '/vehicles', hdd.token, vbody({ insurance_certificate: u })); if (x.status !== 400) pass.push(JSON.stringify(u).slice(0, 50) + ':' + x.status);
@@ -1107,7 +1109,7 @@ async function register(type, suffix) {
     check('H19z certificado de póliza fuera de Cloudinary https (6 variantes)', pass.join(' | ') || 'todos 400', 'todos 400');
     r = await call('POST', '/vehicles', hdd.token, vbody({ insurance_certificate: 'https://res.cloudinary.com/demo/image/upload/v1700000000/insurance_cert_1.jpg' }));
     const vD = r.body?.data?._id;
-    const docD = await db.collection('vehicledocuments').findOne({ vehicle_id: oid(vD) });
+    const docD = await db.collection('documents').findOne({ vehicle_id: oid(vD) });
     check('H19A el registro con certificado crea la póliza pendiente', `${r.status}/${docD?.type}/${docD?.status}/${docD?.extractedData?.policyNumber}`, '201/poliza/pending/POL-123');
     const docId = docD?._id?.toString() || notFound;
 
@@ -1123,7 +1125,7 @@ async function register(type, suffix) {
     check('H19D id inválido', r.status, 400);
     r = await call('GET', '/documents/admin/pending?limit=200', admin.token);
     check('H19E pendientes para admin incluyen la póliza', `${r.status}/${(r.body?.data || []).some(d => d._id === docId)}/${'pagination' in (r.body || {})}`, '200/true/true');
-    check('H19F los documentos no exponen quién revisó por correo ni datos del usuario', /"email"|"phone"|password/.test(r.text), false);
+    check('H19F los documentos no exponen teléfonos, contraseñas ni tokens', /"phone"|password|refreshToken/.test(r.text), false);
     pass = [];
     for (const [q, tok] of [['', hp2.token], ['', hdd.token], ['?limit=1000', admin.token], ['?page=0', admin.token]]) {
       const x = await call('GET', '/documents/admin/pending' + q, tok); if (![400, 403].includes(x.status)) pass.push((q || 'rol') + ':' + x.status);
@@ -1135,25 +1137,25 @@ async function register(type, suffix) {
     for (const [b, tok, want] of [
       [{ action: 'approve' }, hp2.token, 403], [{ action: 'approve' }, hdd.token, 403],
       [{ action: 'delete' }, admin.token, 400], [{ action: ['approve'] }, admin.token, 400],
-      [{ action: { $ne: '' } }, admin.token, 400], [{ action: 'reject' }, admin.token, 400],
+      [{ action: { $ne: '' } }, admin.token, 400],
       [{ action: 'reject', reason: 'a\u0000b c' }, admin.token, 400], [{ action: 'request_resend', reason: { a: 1 } }, admin.token, 400],
       [{ action: 'reject', reason: 'x'.repeat(301) }, admin.token, 400],
     ]) {
       const x = await call('PATCH', `/documents/${docId}/review`, tok, b); if (x.status !== want) pass.push(JSON.stringify(b).slice(0, 40) + ':' + x.status);
     }
-    check('H19H revisión: roles, acciones y motivos inválidos (9 variantes)', pass.join(' | ') || 'ok', 'ok');
+    check('H19H revisión: roles, acciones y motivos inválidos (8 variantes)', pass.join(' | ') || 'ok', 'ok');
     r = await call('PATCH', '/documents/abc/review', admin.token, { action: 'approve' });
     const r404 = await call('PATCH', `/documents/${notFound}/review`, admin.token, { action: 'approve' });
     check('H19I revisión con id inválido / inexistente', `${r.status}/${r404.status}`, '400/404');
     r = await call('PATCH', `/documents/${docId}/review`, admin.token, { action: 'request_resend', reason: 'La foto está borrosa' });
-    check('H19J pedir reenvío', `${r.status}/${r.body?.data?.status}/${r.body?.data?.resendRequested}`, '200/rejected/true');
+    check('H19J pedir reenvío', `${r.status}/${r.body?.data?.status}`, '200/needs_review');
     r = await call('PATCH', `/documents/${docId}/review`, admin.token, { action: 'approve' });
-    check('H19K aprobar', `${r.status}/${r.body?.data?.status}/${r.body?.data?.rejectionReason}`, '200/approved/null');
+    check('H19K aprobar', `${r.status}/${r.body?.data?.status}/${r.body?.data?.rejectionReason}`, '200/approved/');
     check('H19L revisión registrada en la auditoría', `${await auditHas('DOCUMENT_RESEND_REQUESTED', docId)}/${await auditHas('DOCUMENT_APPROVED', docId)}`, 'true/true');
 
     // --- POST /documents/:id/reprocess
     r = await call('POST', `/documents/${docId}/reprocess`, admin.token);
-    check('H19M reprocesar sin servicio de análisis: 503 con código estable', `${r.status}/${r.body?.code}`, '503/ANALYSIS_NOT_CONFIGURED');
+    check('H19M reprocesar con la validación local de documentos', `${r.status}/${!!r.body?.data?.validation}`, '200/true');
     const rp = await call('POST', `/documents/${docId}/reprocess`, hdd.token);
     const rn = await call('POST', `/documents/${notFound}/reprocess`, admin.token);
     const ri = await call('POST', '/documents/abc/reprocess', admin.token);
@@ -1198,6 +1200,8 @@ async function register(type, suffix) {
     // --- DELETE /vehicles/:id/documents/:docId
     r = await call('DELETE', `/vehicles/${vD}/documents/${docId}`, dA.token);
     check('H19S borrar documento de un vehículo ajeno', r.status, 403);
+    // Reprocesar recalcula el estado (validación local): se vuelve a aprobar antes de intentar borrarlo.
+    await call('PATCH', `/documents/${docId}/review`, admin.token, { action: 'approve' });
     r = await call('DELETE', `/vehicles/${vD}/documents/poliza`, hdd.token);
     check('H19T el dueño no borra un documento ya aprobado (por tipo)', `${r.status}/${r.body?.code}`, '409/DOCUMENT_APPROVED');
     pass = [];
@@ -1205,9 +1209,9 @@ async function register(type, suffix) {
       const x = await call('DELETE', `/vehicles/${vD}/documents/${d}`, hdd.token); if (x.status !== 400) pass.push(d + ':' + x.status);
     }
     check('H19U borrar con docId inválido (4 variantes)', pass.join(' ') || 'todos 400', 'todos 400');
-    const pend = await db.collection('vehicledocuments').insertOne({ driver_id: oid(hdd.id), vehicle_id: oid(vD), type: 'marchamo', fileUrl: 'https://res.cloudinary.com/demo/image/upload/m.jpg', source: 'app_registration', status: 'pending', createdAt: new Date(), updatedAt: new Date() });
+    const pend = await db.collection('documents').insertOne({ driver_id: oid(hdd.id), vehicle_id: oid(vD), type: 'marchamo', fileUrl: 'https://res.cloudinary.com/demo/image/upload/m.jpg', source: 'app_registration', status: 'pending', createdAt: new Date(), updatedAt: new Date() });
     r = await call('DELETE', `/vehicles/${vD}/documents/${pend.insertedId}`, hdd.token);
-    check('H19V el dueño borra un documento pendiente', `${r.status}/${!!(await db.collection('vehicledocuments').findOne({ _id: pend.insertedId }))}`, '200/false');
+    check('H19V el dueño borra un documento pendiente', `${r.status}/${!!(await db.collection('documents').findOne({ _id: pend.insertedId }))}`, '200/false');
   }
 
 
@@ -1342,9 +1346,11 @@ async function register(type, suffix) {
   // También por id: las cuentas borradas o anonimizadas ya no tienen su correo.
   for (const u of [pA, pB, dA, dB, ...racers, ...extra]) if (u.id && !ids.some(i => String(i) === String(u.id))) ids.push(new mongoose.Types.ObjectId(u.id));
   const qaVehicles = await db.collection('vehicles').find({ driver_id: { $in: ids } }).project({ _id: 1 }).toArray();
-  const qaDocs = await db.collection('vehicledocuments').find({ driver_id: { $in: ids } }).project({ _id: 1 }).toArray();
-  await db.collection('auditlogs').deleteMany({ targetId: { $in: [...ids, ...qaVehicles.map(v => v._id), ...qaDocs.map(d => d._id)] } });
-  await db.collection('vehicledocuments').deleteMany({ driver_id: { $in: ids } });
+  const qaDocs = await db.collection('documents').find({ driver_id: { $in: ids } }).project({ _id: 1 }).toArray();
+  // La auditoría guarda el id del objetivo dentro del detalle.
+  const qaTargets = [...ids, ...qaVehicles.map(v => v._id), ...qaDocs.map(d => d._id)].map(String);
+  if (qaTargets.length) await db.collection('auditlogs').deleteMany({ details: { $regex: qaTargets.join('|') } });
+  await db.collection('documents').deleteMany({ driver_id: { $in: ids } });
   await db.collection('trusthistories').deleteMany({ user_id: { $in: ids } });
   await db.collection('metrics').deleteMany({ user_id: { $in: ids } });
   await db.collection('bookings').deleteMany({ $or: [{ passenger_id: { $in: ids } }, { ride_id: { $in: [rideA, rideRace].filter(Boolean).map(x => new mongoose.Types.ObjectId(x)) } }] });

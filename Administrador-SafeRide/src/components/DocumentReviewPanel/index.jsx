@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Swal from 'sweetalert2';
-import documentService, { isDocumentsMock, MOCK_ACTION_ERROR } from '../../services/documentService';
+import documentService from '../../services/documentService';
 import './DocumentReviewPanel.css';
 
 const TYPE_META = {
@@ -19,11 +19,11 @@ const TYPE_META = {
 };
 
 const STATUS_META = {
-  pending:      { label: 'En cola',      color: '#64748B', icon: Clock,        bg: '#F1F5F9' },
-  processing:   { label: 'Verificando',  color: '#F59E0B', icon: Loader2,      bg: '#FEF3C7' },
-  approved:     { label: 'Aprobado',     color: '#10B981', icon: CheckCircle2, bg: '#D1FAE5' },
-  rejected:     { label: 'Rechazado',    color: '#EF4444', icon: XCircle,      bg: '#FEE2E2' },
-  needs_review: { label: 'Revisar',      color: '#F59E0B', icon: AlertCircle,  bg: '#FEF3C7' },
+  pending:      { label: 'En cola',        color: '#EF4444', icon: Clock,        bg: '#FEE2E2' },
+  processing:   { label: 'Verificando',    color: '#F59E0B', icon: Loader2,      bg: '#FEF3C7' },
+  approved:     { label: 'Aprobado',       color: '#10B981', icon: CheckCircle2, bg: '#D1FAE5' },
+  rejected:     { label: 'Rechazado',      color: '#EF4444', icon: XCircle,      bg: '#FEE2E2' },
+  needs_review: { label: 'Revisión manual', color: '#F59E0B', icon: AlertCircle,  bg: '#FEF3C7' },
 };
 
 const NOT_UPLOADED = { label: 'Sin subir', color: '#94A3B8', bg: '#F8FAFC', icon: FileText };
@@ -137,24 +137,7 @@ const ComparisonRow = ({ cmp, extracted, driver, vehicle }) => {
   );
 };
 
-const REASON_MIN = 3;
-const REASON_MAX = 300;
-
-// Mensaje claro para cada error del backend de documentos.
-const describeActionError = (err) => {
-  if (err?.message === MOCK_ACTION_ERROR) return MOCK_ACTION_ERROR;
-  const status = err?.response?.status;
-  const data = err?.response?.data || {};
-  if (data.code === 'ANALYSIS_NOT_CONFIGURED') return 'Análisis automático no disponible en este servidor. Revisa el documento manualmente.';
-  if (status === 404) return 'El documento ya no existe. Recarga la lista.';
-  if (status === 403) return 'No tienes permiso para esta acción.';
-  if (status === 400) return data.errors?.[0]?.message || data.message || 'Datos inválidos.';
-  return 'No se pudo completar la acción. Intenta de nuevo.';
-};
-
 const DetailView = ({ doc, driver, vehicle, onAction, busy }) => {
-  // Documentos simulados (VITE_DOCUMENTS_MOCK=true): solo lectura.
-  const locked = isDocumentsMock || Boolean(doc?.isMock);
   const [showOcr, setShowOcr] = useState(false);
   if (!doc) {
     return (
@@ -176,7 +159,7 @@ const DetailView = ({ doc, driver, vehicle, onAction, busy }) => {
             Subido el {fmtDate(doc.createdAt)} ·{' '}
             <span style={{ color: statusMeta.color, fontWeight: 700 }}>{statusMeta.label}</span>
             {doc.validation?.confidence != null && (
-              <> · confianza {(doc.validation.confidence * 100).toFixed(0)}%</>
+              <> · certeza de reglas {(doc.validation.confidence * 100).toFixed(0)}%</>
             )}
           </div>
         </div>
@@ -200,7 +183,7 @@ const DetailView = ({ doc, driver, vehicle, onAction, busy }) => {
       <div className="doc-section-title">Datos extraídos vs datos del sistema</div>
       <div className="cmp-header">
         <span>Campo</span>
-        <span>OCR / Agente</span>
+        <span>Dato del documento</span>
         <span></span>
         <span>Sistema</span>
       </div>
@@ -234,22 +217,17 @@ const DetailView = ({ doc, driver, vehicle, onAction, busy }) => {
       {doc.ocrText && (
         <>
           <button type="button" className="doc-ocr-toggle" onClick={() => setShowOcr(s => !s)}>
-            {showOcr ? 'Ocultar OCR crudo' : 'Ver OCR crudo'}
+            {showOcr ? 'Ocultar texto del documento' : 'Ver texto del documento'}
           </button>
           {showOcr && <pre className="doc-ocr-text">{doc.ocrText}</pre>}
         </>
       )}
 
-      {locked && (
-        <p className="doc-mock-locked" role="note" style={{ margin: '8px 0', color: '#B45309', fontSize: '0.8rem', fontWeight: 600 }}>
-          {MOCK_ACTION_ERROR}
-        </p>
-      )}
       <div className="doc-actions">
         <button
           type="button"
           className="doc-action approve"
-          disabled={busy || locked || doc.status === 'approved'}
+          disabled={busy || doc.status === 'approved'}
           onClick={() => onAction('approve')}
         >
           <CheckCircle2 size={14} /> Aprobar
@@ -257,7 +235,7 @@ const DetailView = ({ doc, driver, vehicle, onAction, busy }) => {
         <button
           type="button"
           className="doc-action reject"
-          disabled={busy || locked || doc.status === 'rejected'}
+          disabled={busy || doc.status === 'rejected'}
           onClick={() => onAction('reject')}
         >
           <XCircle size={14} /> Rechazar
@@ -265,7 +243,7 @@ const DetailView = ({ doc, driver, vehicle, onAction, busy }) => {
         <button
           type="button"
           className="doc-action resend"
-          disabled={busy || locked}
+          disabled={busy}
           onClick={() => onAction('request_resend')}
         >
           <RefreshCcw size={14} /> Pedir reenvío
@@ -273,17 +251,17 @@ const DetailView = ({ doc, driver, vehicle, onAction, busy }) => {
         <button
           type="button"
           className="doc-action reprocess"
-          disabled={busy || locked}
+          disabled={busy}
           onClick={() => onAction('reprocess')}
         >
-          <RefreshCcw size={14} /> Reprocesar
+          <RefreshCcw size={14} /> Validar
         </button>
       </div>
     </div>
   );
 };
 
-const DocumentReviewPanel = ({ driver, vehicle, filterTypes }) => {
+const DocumentReviewPanel = ({ driver, vehicle, filterTypes, onReviewed }) => {
   const driverId = driver?._id;
   const visibleTypes = useMemo(
     () => (Array.isArray(filterTypes) && filterTypes.length > 0
@@ -293,13 +271,9 @@ const DocumentReviewPanel = ({ driver, vehicle, filterTypes }) => {
   );
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeType, setActiveType] = useState(visibleTypes[0]);
+  const [requestedType, setRequestedType] = useState(visibleTypes[0]);
   const [busy, setBusy] = useState(false);
-
-  // Si el subset visible cambia y el tab activo ya no aplica, saltar al primero.
-  useEffect(() => {
-    if (!visibleTypes.includes(activeType)) setActiveType(visibleTypes[0]);
-  }, [visibleTypes, activeType]);
+  const activeType = visibleTypes.includes(requestedType) ? requestedType : visibleTypes[0];
 
   const load = useCallback(async () => {
     if (!driverId) return;
@@ -309,10 +283,7 @@ const DocumentReviewPanel = ({ driver, vehicle, filterTypes }) => {
       setDocs(list);
     } catch (err) {
       console.error('[DocumentReviewPanel] load error:', err);
-      setDocs([]);
-      toast.error(err?.response?.status === 404
-        ? 'El servicio de documentos todavía no está disponible en el backend'
-        : 'No se pudieron cargar los documentos');
+      toast.error('No se pudieron cargar los documentos');
     } finally {
       setLoading(false);
     }
@@ -337,78 +308,58 @@ const DocumentReviewPanel = ({ driver, vehicle, filterTypes }) => {
       toast.error('No hay documento para esta acción');
       return;
     }
-    if (isDocumentsMock || activeDoc.isMock) {
-      toast.error(MOCK_ACTION_ERROR);
-      return;
-    }
     let reason;
     if (action === 'reject' || action === 'request_resend') {
       const { value, isConfirmed } = await Swal.fire({
-        // El panel vive dentro de modales (z-index 99999): sin esto el diálogo del
-        // motivo quedaba detrás del modal y no se podía escribir ni confirmar.
-        customClass: { container: 'swal-over-modal' },
         title: action === 'reject' ? 'Rechazar documento' : 'Pedir reenvío',
         input: 'textarea',
         inputLabel: 'Motivo (lo verá el conductor)',
         inputPlaceholder: 'Ej: la foto está borrosa, no se lee la placa…',
-        inputAttributes: { maxlength: String(REASON_MAX) },
         showCancelButton: true,
         confirmButtonText: action === 'reject' ? 'Rechazar' : 'Enviar solicitud',
         cancelButtonText: 'Cancelar',
-        // Mismas reglas que el backend: motivo obligatorio de 3 a 300 caracteres.
-        inputValidator: (v) => {
-          const r = String(v || '').trim();
-          if (!r) return 'El motivo es obligatorio';
-          if (r.length < REASON_MIN) return `Escribe al menos ${REASON_MIN} caracteres`;
-          if (r.length > REASON_MAX) return `Máximo ${REASON_MAX} caracteres`;
-          return null;
-        },
+        inputValidator: (v) => (!v ? 'El motivo es obligatorio' : null),
       });
       if (!isConfirmed) return;
-      reason = String(value).trim();
+      reason = value;
     }
     setBusy(true);
     try {
-      let updated;
       if (action === 'reprocess') {
-        updated = await documentService.reprocessDocument(activeDoc._id);
-        toast.success('Reprocesando…');
+        await documentService.reprocessDocument(activeDoc._id);
+        toast.success('Validación completada');
       } else {
-        updated = await documentService.reviewDocument(activeDoc._id, { action, reason });
+        await documentService.reviewDocument(activeDoc._id, { action, reason });
         toast.success('Documento actualizado');
       }
-      setDocs(prev => prev.map(d => d._id === updated._id ? { ...d, ...updated } : d));
+      await load();
+      onReviewed?.();
     } catch (err) {
       console.error('[DocumentReviewPanel] action error:', err);
-      toast.error(describeActionError(err));
+      toast.error('No se pudo completar la acción');
     } finally {
       setBusy(false);
     }
   };
 
   const summary = useMemo(() => {
-    const stats = { total: visibleTypes.length, approved: 0, pending: 0, issues: 0, missing: 0 };
+    const stats = { total: visibleTypes.length, reviewed: 0, partial: 0, unseen: 0, missing: 0 };
     for (const t of visibleTypes) {
-      const d = docsByType[t];
-      if (!d) stats.missing++;
-      else if (d.status === 'approved') stats.approved++;
-      else if (['pending', 'processing'].includes(d.status)) stats.pending++;
-      else stats.issues++;
+      const group = documentService.getDocGroup(docsByType[t]);
+      if (group === 'reviewed') stats.reviewed++;
+      else if (group === 'partial') stats.partial++;
+      else if (group === 'unseen') stats.unseen++;
+      else stats.missing++;
     }
     return stats;
   }, [docsByType, visibleTypes]);
 
   return (
     <div className="doc-panel">
-      {isDocumentsMock && (
-        <div role="alert" className="doc-mock-banner" style={{ padding: '10px 14px', marginBottom: 12, borderRadius: 10, background: '#FEF3C7', border: '1px solid #F59E0B', color: '#92400E', fontWeight: 600, fontSize: '0.85rem' }}>
-          Modo demo: estos documentos son SIMULADOS (VITE_DOCUMENTS_MOCK=true). No corresponden al conductor y no se pueden aprobar ni rechazar.
-        </div>
-      )}
       <div className="doc-panel-summary">
-        <span className="sum approved">{summary.approved} aprobados</span>
-        <span className="sum issues">{summary.issues} con observación</span>
-        <span className="sum pending">{summary.pending} en cola</span>
+        <span className="sum reviewed">{summary.reviewed} revisados</span>
+        <span className="sum partial">{summary.partial} parciales</span>
+        <span className="sum unseen">{summary.unseen} sin ver</span>
         <span className="sum missing">{summary.missing} sin subir</span>
       </div>
 
@@ -422,7 +373,7 @@ const DocumentReviewPanel = ({ driver, vehicle, filterTypes }) => {
                   type={type}
                   doc={docsByType[type]}
                   selected={activeType === type}
-                  onSelect={setActiveType}
+                  onSelect={setRequestedType}
                 />
               ))
           }

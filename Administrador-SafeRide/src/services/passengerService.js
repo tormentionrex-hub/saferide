@@ -108,16 +108,6 @@ const passengerService = {
   },
 
   /**
-   * Elimina PERMANENTEMENTE un pasajero del sistema (hard delete).
-   * Esta operación no se puede deshacer. Solo admins.
-   * @param {string} id
-   */
-  hardDeletePassenger: async (id) => {
-    const response = await api.delete(`/users/${id}/hard`);
-    return response.data;
-  },
-
-  /**
    * Sube imagen de perfil del pasajero a Azure Blob Storage.
    * @param {string} id
    * @param {File} imageFile - Archivo de imagen (jpeg/png, max 5MB)

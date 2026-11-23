@@ -3,64 +3,28 @@ import {
   ShieldAlert, Search, ShieldCheck, 
   AlertTriangle, Info, Clock, Monitor, RefreshCw 
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 import api from '../../services/api';
-import { getInitials } from '../../utils/initials';
+import { toast } from 'react-hot-toast';
 import './Auditoria.css';
-
-// Etiquetas y gravedad de las acciones que registra el backend
-// (backend/src/models/AuditLog.js → AUDIT_ACTIONS).
-const ACTION_LABELS = {
-  USER_ACTIVATED: 'Usuario activado',
-  USER_DEACTIVATED: 'Usuario desactivado',
-  USER_TRUST_CHANGED: 'Puntaje de confianza cambiado',
-  USER_HARD_DELETED: 'Usuario eliminado definitivamente',
-  VEHICLE_APPROVED: 'Vehículo aprobado',
-  VEHICLE_REJECTED: 'Vehículo rechazado',
-  DOCUMENT_APPROVED: 'Documento aprobado',
-  DOCUMENT_REJECTED: 'Documento rechazado',
-  DOCUMENT_RESEND_REQUESTED: 'Reenvío de documento solicitado',
-};
-const ACTION_SEVERITY = {
-  USER_HARD_DELETED: 'CRITICAL',
-  USER_DEACTIVATED: 'WARNING',
-  USER_TRUST_CHANGED: 'WARNING',
-  VEHICLE_REJECTED: 'WARNING',
-  DOCUMENT_REJECTED: 'WARNING',
-};
-const TARGET_LABELS = { User: 'Usuario', Vehicle: 'Vehículo', VehicleDocument: 'Documento' };
-const PAGE_SIZE = 50;
 
 const Auditoria = () => {
   const [logs, setLogs] = useState([]);
+  const [totalLogs, setTotalLogs] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState(null);
-  const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
-  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [severityFilter, setSeverityFilter] = useState('ALL'); // ALL, CRITICAL, WARNING, INFO
 
-  // Cargar registros desde la API (o Fallback)
-  const fetchLogs = useCallback(async (nextPage = 1) => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
-    setLoadError(null);
     try {
-      const response = await api.get('/audit-logs', { params: { page: nextPage, limit: PAGE_SIZE } });
-      const data = Array.isArray(response.data?.data) ? response.data.data : [];
-      setLogs(prev => (nextPage === 1 ? data : [...prev, ...data]));
-      setPage(response.data?.pagination?.page || nextPage);
-      setPages(response.data?.pagination?.pages || 1);
-      setTotal(response.data?.pagination?.total ?? data.length);
+      const response = await api.get('/audit-logs', { params: { limit: 200 } });
+      setLogs(response.data?.data || []);
+      setTotalLogs(response.data?.pagination?.total ?? response.data?.data?.length ?? 0);
     } catch (error) {
       console.error('Error fetching audit logs:', error);
-      // Sin datos de ejemplo: si falla se dice, no se inventan registros.
-      const status = error?.response?.status;
-      const msg = status === 403 ? 'No tienes permiso para ver la auditoría.'
-        : 'No se pudo cargar la auditoría. Revisa la conexión con el servidor.';
-      setLoadError(msg);
-      toast.error(msg);
-      if (nextPage === 1) setLogs([]);
+      toast.error('No se pudo conectar con el servidor de auditorías');
+      setLogs([]);
+      setTotalLogs(0);
     } finally {
       setLoading(false);
     }
@@ -71,7 +35,18 @@ const Auditoria = () => {
   }, [fetchLogs]);
 
   // Clasifica la gravedad del log en base al tipo de acción
-  const getActionSeverity = (action) => ACTION_SEVERITY[action] || 'INFO';
+  const getActionSeverity = (action) => {
+    switch (action) {
+      case 'LOGIN_FAILED':
+      case 'TRIP_CANCELLED_MANUALLY':
+        return 'CRITICAL'; // Rojo
+      case 'DRIVER_REJECTED':
+      case 'VEHICLE_REJECTED':
+        return 'WARNING'; // Amarillo
+      default:
+        return 'INFO'; // Azul / Verde
+    }
+  };
 
   // Helper para renderizar los iconos descriptivos de severidad
   const renderSeverityIcon = (severity) => {
@@ -86,7 +61,24 @@ const Auditoria = () => {
   };
 
   // Helper para traducir la etiqueta técnica de la acción a algo amigable
-  const getActionLabel = (action) => ACTION_LABELS[action] || action;
+  const getActionLabel = (action) => {
+    switch (action) {
+      case 'LOGIN_SUCCESS': return 'Inicio Sesión Exitoso';
+      case 'LOGIN_FAILED': return 'Acceso Fallido';
+      case 'DRIVER_APPROVED': return 'Conductor Aprobado';
+      case 'DRIVER_REJECTED': return 'Conductor Rechazado';
+      case 'VEHICLE_APPROVED': return 'Auto Aprobado';
+      case 'VEHICLE_REJECTED': return 'Auto Rechazado';
+      case 'COMPLAINT_CREATED': return 'Queja Registrada';
+      case 'COMPLAINT_RESOLVED': return 'Queja Resuelta';
+      case 'DOCUMENT_APPROVED': return 'Documento Aprobado';
+      case 'DOCUMENT_REJECTED': return 'Documento Rechazado';
+      case 'DOCUMENT_RESEND_REQUESTED': return 'Devolución de Documento Solicitada';
+      case 'DOCUMENT_REPROCESSED': return 'Documento Reprocesado';
+      case 'TRIP_CANCELLED_MANUALLY': return 'Viaje Cancelado Manual';
+      default: return action;
+    }
+  };
 
   // Filtrar y buscar registros en memoria
   const filteredLogs = useMemo(() => {
@@ -95,8 +87,11 @@ const Auditoria = () => {
       const matchesSeverity = severityFilter === 'ALL' || severity === severityFilter;
 
       const query = search.toLowerCase();
-      const matchesSearch = [log.adminEmail, log.details, log.action, getActionLabel(log.action), log.ipAddress]
-        .some(v => String(v || '').toLowerCase().includes(query));
+      const matchesSearch = 
+        log.adminEmail.toLowerCase().includes(query) ||
+        log.details.toLowerCase().includes(query) ||
+        log.action.toLowerCase().includes(query) ||
+        log.ipAddress.includes(query);
 
       return matchesSeverity && matchesSearch;
     });
@@ -129,7 +124,7 @@ const Auditoria = () => {
         </div>
         <button 
           className="refresh-audit-btn" 
-          onClick={() => fetchLogs(1)} 
+          onClick={fetchLogs} 
           disabled={loading}
           title="Actualizar bitácora"
         >
@@ -155,7 +150,7 @@ const Auditoria = () => {
             className={`filter-btn-audit all ${severityFilter === 'ALL' ? 'active' : ''}`}
             onClick={() => setSeverityFilter('ALL')}
           >
-            Todos ({total})
+            Todos ({totalLogs})
           </button>
           <button 
             className={`filter-btn-audit info ${severityFilter === 'INFO' ? 'active' : ''}`}
@@ -179,13 +174,7 @@ const Auditoria = () => {
       </section>
 
       {/* Listado / Línea de tiempo de Logs */}
-      {loadError && !loading && logs.length === 0 ? (
-        <div className="audit-empty-state" role="alert">
-          <ShieldAlert size={48} className="empty-shield-icon" />
-          <h3>No se pudo cargar la auditoría</h3>
-          <p>{loadError}</p>
-        </div>
-      ) : loading && logs.length === 0 ? (
+      {loading ? (
         <div className="audit-loading-wrapper">
           <div className="audit-spinner" />
           <p>Conectando con la bóveda de auditorías...</p>
@@ -210,12 +199,12 @@ const Auditoria = () => {
                     <div className="audit-card-meta-top">
                       <div className="admin-email-tag">
                         <span className="admin-avatar-mini">
-                          {getInitials(log.adminEmail, 1)}
+                          {log.adminEmail.charAt(0).toUpperCase()}
                         </span>
-                        <span className="admin-email-text">{log.adminEmail || '(admin eliminado)'}</span>
+                        <span className="admin-email-text">{log.adminEmail}</span>
                       </div>
                       <div className="admin-ip-badge">
-                        <span>IP: {log.ipAddress || '—'}</span>
+                        <span>IP: {log.ipAddress}</span>
                       </div>
                     </div>
 
@@ -225,7 +214,7 @@ const Auditoria = () => {
                         {getActionLabel(log.action)}
                       </span>
                       <span className="audit-target-label">
-                        Módulo: <strong>{TARGET_LABELS[log.targetType] || log.targetType}</strong>
+                        Módulo: <strong>{log.targetType}</strong>
                       </span>
                     </div>
 
@@ -238,7 +227,7 @@ const Auditoria = () => {
                         <Clock size={12} /> {formatFriendlyDate(log.createdAt)}
                       </span>
                       <span className="audit-device-stamp">
-                        <Monitor size={12} /> {log.userAgent || '—'}
+                        <Monitor size={12} /> {log.userAgent}
                       </span>
                     </div>
                   </div>
@@ -246,18 +235,12 @@ const Auditoria = () => {
               );
             })}
           </div>
-          {page < pages && (
-            <button type="button" className="refresh-audit-btn" style={{ margin: '16px auto', display: 'flex' }}
-              disabled={loading} onClick={() => fetchLogs(page + 1)}>
-              {loading ? 'Cargando…' : `Cargar más (${logs.length} de ${total})`}
-            </button>
-          )}
         </div>
       ) : (
         <div className="audit-empty-state">
           <ShieldCheck size={48} className="empty-shield-icon" />
-          <h3>No se encontraron registros</h3>
-          <p>Ninguna acción de administrador coincide con los filtros o parámetros de búsqueda actuales.</p>
+          <h3>Sin datos de auditoría</h3>
+          <p>No hay registros de auditoría para los filtros seleccionados.</p>
         </div>
       )}
     </div>

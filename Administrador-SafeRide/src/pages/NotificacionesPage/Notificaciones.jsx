@@ -1,9 +1,8 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Bell, AlertTriangle, Mail, CheckCircle, Clock, Trash2, Search, Check
 } from 'lucide-react';
 import notificationService from '../../services/notificationService';
-import complaintsData from '../../data/complaints.json';
 import { toast } from 'react-hot-toast';
 import Swal from 'sweetalert2';
 import './Notificaciones.css';
@@ -13,16 +12,18 @@ const Notificaciones = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'seguros', 'correos', 'sistema'
   const [searchTerm, setSearchTerm] = useState('');
+  const [unreadTotal, setUnreadTotal] = useState(0);
+  const seenIdsRef = useRef(new Set());
 
-  // Cargar notificaciones y quejas reales
+  // Cargar notificaciones reales del backend
   const loadNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Cargar notificaciones del backend real
       let backendList = [];
       try {
         const res = await notificationService.getNotifications();
         backendList = res?.data || [];
+        setUnreadTotal(Number(res?.unreadCount) || 0);
       } catch (err) {
         console.error('Error al cargar notificaciones del backend:', err);
       }
@@ -39,28 +40,10 @@ const Notificaciones = () => {
         return { ...n, category };
       });
 
-      // 2. Mapear quejas del archivo real complaints.json
-      const readComplaints = JSON.parse(localStorage.getItem('readComplaints') || '[]');
-      const complaintsMapped = (complaintsData || []).map(q => {
-        const cId = `complaint_${q.id}`;
-        return {
-          _id: cId,
-          message: `✉️ Nueva Queja de ${q.user} (${q.email}): ${q.subject}`,
-          subject: q.subject,
-          fullMessage: q.fullMessage,
-          type: 'system',
-          status: (q.status === 'Pendiente' && !readComplaints.includes(cId)) ? 'unread' : 'read',
-          createdAt: q.createdAt,
-          category: 'correo',
-          isComplaint: true
-        };
-      });
+      const categorizedBackendSorted = [...categorizedBackend];
+      categorizedBackendSorted.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
 
-      // 3. Combinar y ordenar cronológicamente
-      const combined = [...categorizedBackend, ...complaintsMapped];
-      combined.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
-
-      setNotifications(combined);
+      setNotifications(categorizedBackendSorted);
     } catch (error) {
       console.error('Error en orquestación de notificaciones:', error);
       setNotifications([]);
@@ -69,58 +52,36 @@ const Notificaciones = () => {
     }
   }, []);
 
-  // Cargar notificaciones al iniciar
   useEffect(() => {
     loadNotifications();
   }, [loadNotifications]);
 
-  // Marcar como leída
-  const handleMarkAsRead = async (id) => {
+  // Marcar como leída (silent se usa cuando se marca por estar visible)
+  const handleMarkAsRead = async (id, { silent = false } = {}) => {
     try {
-      if (id.startsWith('complaint_')) {
-        const readList = JSON.parse(localStorage.getItem('readComplaints') || '[]');
-        if (!readList.includes(id)) {
-          localStorage.setItem('readComplaints', JSON.stringify([...readList, id]));
-        }
-        setNotifications(prev => prev.map(n => n._id === id ? { ...n, status: 'read' } : n));
-        toast.success('Queja marcada como leída');
-        window.dispatchEvent(new Event('notificationsUpdated'));
-        return;
-      }
-
       await notificationService.markAsRead(id);
+      const target = notifications.find(n => n._id === id);
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, status: 'read' } : n));
-      toast.success('Notificación marcada como leída');
+      if (target?.status === 'unread') setUnreadTotal(v => Math.max(0, v - 1));
+      if (!silent) toast.success('Notificación marcada como leída');
       window.dispatchEvent(new Event('notificationsUpdated'));
     } catch (err) {
       console.error(err);
-      toast.error('Error al actualizar la notificación en el servidor');
+      seenIdsRef.current.delete(id);
+      if (!silent) toast.error('Error al actualizar la notificación en el servidor');
     }
   };
 
   // Marcar todas como leídas
   const handleMarkAllAsRead = async () => {
     try {
-      const realIds = notifications
-        .filter(n => !n._id.startsWith('complaint_') && n.status === 'unread')
-        .map(n => n._id);
-
-      const complaintIds = notifications
-        .filter(n => n._id.startsWith('complaint_') && n.status === 'unread')
-        .map(n => n._id);
-
-      if (realIds.length > 0) {
-        await notificationService.markAllAsRead();
-      }
-
-      if (complaintIds.length > 0) {
-        const readList = JSON.parse(localStorage.getItem('readComplaints') || '[]');
-        const updatedList = Array.from(new Set([...readList, ...complaintIds]));
-        localStorage.setItem('readComplaints', JSON.stringify(updatedList));
-      }
-
-      setNotifications(prev => prev.map(n => ({ ...n, status: 'read' })));
-      toast.success('Todas las notificaciones y quejas marcadas como leídas');
+      await notificationService.markAllAsRead();
+      setNotifications(prev => {
+        prev.forEach(n => seenIdsRef.current.add(n._id));
+        return prev.map(n => ({ ...n, status: 'read' }));
+      });
+      setUnreadTotal(0);
+      toast.success('Todas las notificaciones marcadas como leídas');
       window.dispatchEvent(new Event('notificationsUpdated'));
     } catch (err) {
       console.error(err);
@@ -128,14 +89,29 @@ const Notificaciones = () => {
     }
   };
 
-  // Eliminar notificación / queja de la lista
+  // Las notificaciones que el admin tiene a la vista se marcan solas
+  useEffect(() => {
+    if (loading || typeof IntersectionObserver === 'undefined') return undefined;
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const id = entry.target.getAttribute('data-id');
+        if (!id || seenIdsRef.current.has(id)) return;
+        seenIdsRef.current.add(id);
+        handleMarkAsRead(id, { silent: true });
+      });
+    }, { threshold: 0.6 });
+
+    document.querySelectorAll('.n-card.unread').forEach(node => observer.observe(node));
+    return () => observer.disconnect();
+  }, [loading, notifications]);
+
+  // Eliminar notificación de la lista
   const handleDeleteNotification = async (id) => {
     try {
       const result = await Swal.fire({
         title: '¿Eliminar notificación?',
-        text: id.startsWith('complaint_') 
-          ? 'Se ocultará esta alerta de queja del panel de notificaciones.' 
-          : 'Esta acción se realizará de forma permanente en la base de datos.',
+        text: 'Esta acción se realizará de forma permanente en la base de datos.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#EF4444',
@@ -146,14 +122,10 @@ const Notificaciones = () => {
       });
 
       if (result.isConfirmed) {
-        if (id.startsWith('complaint_')) {
-          setNotifications(prev => prev.filter(n => n._id !== id));
-          toast.success('Alerta de queja removida');
-          return;
-        }
-
         await notificationService.deleteNotification(id);
+        const target = notifications.find(n => n._id === id);
         setNotifications(prev => prev.filter(n => n._id !== id));
+        if (target?.status === 'unread') setUnreadTotal(v => Math.max(0, v - 1));
         toast.success('Notificación eliminada');
       }
     } catch (err) {
@@ -167,8 +139,7 @@ const Notificaciones = () => {
   // Filtrado y Búsqueda sobre datos reales
   const filteredNotifications = useMemo(() => {
     return notifications.filter(n => {
-      const matchSearch = (n.message || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (n.fullMessage || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchSearch = (n.message || '').toLowerCase().includes(searchTerm.toLowerCase());
       if (activeTab === 'all') return matchSearch;
       if (activeTab === 'seguros') return matchSearch && n.category === 'seguro';
       if (activeTab === 'correos') return matchSearch && n.category === 'correo';
@@ -178,9 +149,7 @@ const Notificaciones = () => {
   }, [notifications, activeTab, searchTerm]);
 
   // Contadores basados estrictamente en datos reales
-  const unreadCount = useMemo(() => {
-    return notifications.filter(n => n.status === 'unread').length;
-  }, [notifications]);
+  const unreadCount = unreadTotal;
 
   // Conversor de fecha a formato amigable
   const timeAgo = (dateStr) => {
@@ -208,7 +177,7 @@ const Notificaciones = () => {
             Centro de Notificaciones
           </h1>
           <p style={{ color: '#64748B', fontSize: '0.85rem' }}>
-            Supervisa alertas críticas de seguros (INS, RTV/Dekra), correos de soporte entrantes y alertas del sistema.
+            Alertas reales de la base de datos. Las que tengas a la vista se marcan solas o usa “Marcar leídas”.
           </p>
         </div>
 
@@ -268,6 +237,7 @@ const Notificaciones = () => {
             return (
               <div
                 key={notif._id}
+                data-id={notif._id}
                 className={`n-card ${notif.status === 'unread' ? 'unread' : 'read'} ${notif.category}`}
               >
                 {/* Indicador visual lateral */}

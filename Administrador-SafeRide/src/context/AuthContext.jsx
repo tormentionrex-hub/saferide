@@ -1,27 +1,21 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import api from '../services/api';
 import Swal from 'sweetalert2';
-import { classifyApiError, describeLoginError } from '../utils/apiErrors';
 
 const AuthContext = createContext();
 
-// El panel es solo para administradores. Una sesión de pasajero o conductor
-// no se guarda: antes quedaba el token/refreshToken y PrivateRoute recargaba
-// la página en bucle (cientos de recargas por segundo).
-const isAdmin = (u) => u?.type === 'admin' || u?.type === 'administrador';
+const ADMIN_ROLE = 'admin';
 
-const clearStoredSession = () => {
+const clearSession = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
 };
 
+const isAdmin = (user) => user?.type === ADMIN_ROLE;
+
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    // Sesión guardada que no se pudo validar porque el servidor no respondió
-    // (sin red, caído o 5xx). No es un cierre de sesión: se conserva el token y
-    // PrivateRoute ofrece reintentar en vez de mandar al login.
-    const [connectionError, setConnectionError] = useState(null);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -33,61 +27,57 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const fetchUserProfile = async () => {
-        setConnectionError(null);
         try {
             const response = await api.get('/auth/me');
+            const profile = response.data?.data;
 
-            if (response.data.success && isAdmin(response.data.data)) {
-                setUser(response.data.data);
-            } else {
-                clearStoredSession();
+            if (!response.data?.success || !isAdmin(profile)) {
+                clearSession();
                 setUser(null);
+                return;
             }
+
+            setUser(profile);
         } catch (error) {
+            clearSession();
+            setUser(null);
             console.error('Error fetching profile:', error);
-            const kind = classifyApiError(error);
-            if (kind === 'network' || kind === 'server') {
-                setConnectionError(kind);
-            }
-            // 401/403 ya los resolvió el interceptor (refresh o cierre real de sesión).
         } finally {
             setLoading(false);
         }
     };
 
-    const retrySession = () => { setLoading(true); fetchUserProfile(); };
-
     const login = async (email, password) => {
         try {
             const response = await api.post('/auth/login', { email, password });
-            if (response.data.success) {
-                const { accessToken, refreshToken, user } = response.data.data;
-                if (!isAdmin(user)) {
-                    // Invalidar en el backend la sesión recién abierta y no guardarla.
-                    await api.post('/auth/logout', {}, {
-                        _skipRefresh: true,
-                        headers: { Authorization: `Bearer ${accessToken}` },
-                    }).catch(() => {});
-                    clearStoredSession();
-                    setUser(null);
-                    return { success: false, notAdmin: true, message: 'No tienes permisos de administrador.' };
-                }
-                localStorage.setItem('token', accessToken);
-                if (refreshToken) {
-                    localStorage.setItem('refreshToken', refreshToken);
-                }
-                setUser(user);
-                return { success: true, user: user };
+            if (!response.data?.success) {
+                return { success: false, message: response.data?.message || 'Credenciales inválidas' };
             }
+
+            const { accessToken, refreshToken, user: loggedInUser } = response.data.data;
+            if (!isAdmin(loggedInUser)) {
+                clearSession();
+                return { success: false, message: 'No tienes permisos de administrador' };
+            }
+
+            clearSession();
+            localStorage.setItem('token', accessToken);
+            if (refreshToken) {
+                localStorage.setItem('refreshToken', refreshToken);
+            }
+            setUser(loggedInUser);
+            return { success: true, user: loggedInUser };
         } catch (error) {
-            return { success: false, message: describeLoginError(error) };
+            clearSession();
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Error al iniciar sesión'
+            };
         }
     };
 
-    // skipConfirm: la pantalla ya pidió confirmación. skipRemote: el token ya
-    // no vale (p. ej. tras /auth/logout-all) y no tiene sentido llamar al backend.
-    const cerrarSesion = async ({ skipConfirm = false, skipRemote = false } = {}) => {
-        const result = skipConfirm ? { isConfirmed: true } : await Swal.fire({
+    const cerrarSesion = async () => {
+        const result = await Swal.fire({
             title: 'Estas por cerrar sesión',
             text: '¿Estas seguro de que quieres cerrar sesión?',
             icon: 'question',
@@ -105,21 +95,18 @@ export const AuthProvider = ({ children }) => {
             // _skipRefresh evita que un access token expirado dispare refresh inútil
             // justo antes de invalidar la sesión.
             try {
-                // {} y no null: axios envía null como el texto "null" y el backend
-                // (express.json estricto) responde 400.
-                if (!skipRemote) await api.post('/auth/logout', {}, { _skipRefresh: true });
+                await api.post('/auth/logout', null, { _skipRefresh: true });
             } catch {
                 /* el logout local procede aunque el backend falle */
             }
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
+            clearSession();
             setUser(null);
             window.location.href = '/login';
         }
     };
 
     return (
-        <AuthContext.Provider value={{ user, setUser, login, cerrarSesion, loading, connectionError, retrySession }}>
+        <AuthContext.Provider value={{ user, setUser, login, cerrarSesion, loading }}>
             {children}
         </AuthContext.Provider>
     );

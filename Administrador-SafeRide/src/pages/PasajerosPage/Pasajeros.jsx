@@ -2,13 +2,12 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   Users, Search, Plus, Mail, Star, Activity,
   Eye, Edit, CheckCircle, Briefcase, Phone,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, PowerOff, UserX
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, PowerOff
 } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { toast } from 'react-hot-toast';
+import { toast, Toaster } from 'react-hot-toast';
 
 import passengerService from '../../services/passengerService';
-import { isDeletedUser } from '../../utils/deletedAccounts';
 import DriverProfileModal from '../../components/DriverProfileModal';
 import DefaultImageUser from '../../imgs/DefaultImageUser.png';
 
@@ -24,6 +23,16 @@ const PAGE_LIMIT = 9;
 const SKELETON_COUNT = 6;
 const SEARCH_DEBOUNCE_MS = 300;
 const INITIAL_STATS = { total: null, activeNow: null, avgRating: null };
+const STATS_CACHE_KEY = 'saferide_passenger_stats';
+
+const readCachedStats = () => {
+  try {
+    const cached = JSON.parse(localStorage.getItem(STATS_CACHE_KEY));
+    return cached && typeof cached === 'object' ? { ...INITIAL_STATS, ...cached } : INITIAL_STATS;
+  } catch {
+    return INITIAL_STATS;
+  }
+};
 
 const SWAL_BASE = {
   showCancelButton: true,
@@ -138,7 +147,7 @@ const PassengerCard = React.memo(({ passenger, index, onEdit, onDelete, onActiva
           <CheckCircle size={18} />
         </button>
       ) : (
-        <button className="action-btn view" title="Ver Historial de Viajes" onClick={() => onView(passenger)}>
+        <button className="action-btn view" title="Ver pasajero" onClick={() => onView(passenger)}>
           <Eye size={18} />
         </button>
       )}
@@ -158,7 +167,7 @@ const StatCard = ({ icon: Icon, color, value, title, subtitle, loading }) => (
   <div className="tarjetaEstadistica">
     <div className="estadisticaHeader">
       <div className={`estadisticaIcono ${color}`}><Icon size={20} /></div>
-      <div className="estadisticaValor">{loading || value == null ? '—' : value}</div>
+      <div className="estadisticaValor">{loading && value == null ? '—' : value}</div>
     </div>
     <div className="estadisticaTitulo">{title}</div>
     <div className="estadisticaFooter">
@@ -254,23 +263,14 @@ const EmptyState = () => (
 const PasajerosPage = () => {
   // ── Data ───────────────────────────────────────────────────
   const [passengers, setPassengers] = useState([]);
-  const [stats, setStats] = useState(INITIAL_STATS);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState(readCachedStats);
+  const [loading, setLoading] = useState(() => !localStorage.getItem(STATS_CACHE_KEY));
 
   // ── Filtros / orden / paginación ──────────────────────────
   const [searchTerm, setSearch] = useState('');
   const [selectedLetter, setSelectedLetter] = useState('');
   const [sortOrder, setSortOrder] = useState('desc'); // desc: nuevos primero | asc: viejos primero
-  // Cuentas anonimizadas ("Usuario eliminado"): ocultas salvo que se pidan.
-  const [showDeleted, setShowDeleted] = useState(false);
-  // El ref lo lee la carga al instante (el estado se actualiza en el siguiente render).
-  const showDeletedRef = useRef(false);
-  const toggleShowDeleted = () => {
-    showDeletedRef.current = !showDeletedRef.current;
-    setShowDeleted(showDeletedRef.current);
-    setCurrentPage(1);
-    loadPassengers();
-  };
+  const [statusFilter, setStatusFilter] = useState('all'); // all | active | inactive
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -278,9 +278,14 @@ const PasajerosPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState('info');
   const [selectedPassenger, setSelectedPassenger] = useState(null);
+  const [modalReadOnly, setModalReadOnly] = useState(false);
 
   // ── Refs ───────────────────────────────────────────────────
   const lastRequestId = useRef(0);
+
+  useEffect(() => {
+    localStorage.setItem(STATS_CACHE_KEY, JSON.stringify(stats));
+  }, [stats]);
 
   // ── Stats globales ─────────────────────────────────────────
   // Pide TODOS los pasajeros (limit alto) solo para calcular el rating
@@ -320,7 +325,7 @@ const PasajerosPage = () => {
         page: currentPage,
         limit: PAGE_LIMIT,
         sort: sortOrder,
-        ...(showDeletedRef.current ? { includeDeleted: 'true' } : {}),
+        isActive: statusFilter === 'all' ? undefined : statusFilter === 'active',
       });
 
       // Descartamos respuestas obsoletas (race entre filtros).
@@ -351,7 +356,7 @@ const PasajerosPage = () => {
     } finally {
       if (requestId === lastRequestId.current) setLoading(false);
     }
-  }, [searchTerm, selectedLetter, currentPage, sortOrder]);
+  }, [searchTerm, selectedLetter, currentPage, sortOrder, statusFilter]);
 
   // ── Efectos ────────────────────────────────────────────────
   // Búsqueda y letra: debounce 300 ms, vuelve a página 1 si cambia.
@@ -362,7 +367,7 @@ const PasajerosPage = () => {
     }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, selectedLetter]);
+  }, [searchTerm, selectedLetter, statusFilter]);
 
   // Cambio de orden: idéntica lógica de reset a página 1.
   useEffect(() => {
@@ -386,14 +391,16 @@ const PasajerosPage = () => {
   }, [loadGlobalStats]);
 
   // ── Handlers de modal ──────────────────────────────────────
-  const openModal = (passenger = null, tab = 'info') => {
+  const openModal = (passenger = null, tab = 'info', readOnly = false) => {
     setSelectedPassenger(passenger);
     setModalTab(tab);
+    setModalReadOnly(readOnly);
     setIsModalOpen(true);
   };
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedPassenger(null);
+    setModalReadOnly(false);
   };
 
   // ── Handlers de acción ─────────────────────────────────────
@@ -445,13 +452,15 @@ const PasajerosPage = () => {
   // p.ej. buscar "3" matcheaba pasajeros cuyo teléfono contenía un 3.
   const filteredPassengers = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    const visible = showDeleted ? passengers : passengers.filter(p => !isDeletedUser(p));
-    if (!term) return visible;
-    return visible.filter(p => {
+    return passengers.filter(p => {
+      const cumpleEstado = statusFilter === 'all'
+        || (statusFilter === 'active' ? p.isActive : !p.isActive);
+      if (!cumpleEstado) return false;
+      if (!term) return true;
       const haystack = `${p.name || ''} ${p.username || ''} ${p.email || ''} ${p.company || ''}`.toLowerCase();
       return haystack.includes(term);
     });
-  }, [passengers, searchTerm, showDeleted]);
+  }, [passengers, searchTerm, statusFilter]);
 
   // ── Handlers de filtros ────────────────────────────────────
   // Búsqueda y filtro alfabético son mutuamente excluyentes: al activar uno
@@ -468,6 +477,7 @@ const PasajerosPage = () => {
   // ── Render ─────────────────────────────────────────────────
   return (
     <>
+      <Toaster position="top-right" />
 
       <div className="page-header">
         <div className="page-header-title">
@@ -484,10 +494,7 @@ const PasajerosPage = () => {
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
             />
-            <button className="btn-search-header" onClick={loadPassengers}>
-              Buscar
-            </button>
-            <div className="search-status-indicator" style={{ right: '85px' }}>
+            <div className="search-status-indicator" style={{ right: '12px' }}>
               {loading && <div className="spinner-mini" />}
             </div>
           </div>
@@ -503,16 +510,18 @@ const PasajerosPage = () => {
             </select>
           </div>
 
-          <button
-            type="button"
-            className={`btn-doc-filter ${showDeleted ? 'is-active' : ''}`}
-            onClick={toggleShowDeleted}
-            aria-pressed={showDeleted}
-            title="Incluir cuentas eliminadas (anonimizadas)"
-          >
-            <UserX size={16} />
-            Mostrar eliminados
-          </button>
+          <div className="ordenamientoContainer">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="ordenamientoSelect"
+              aria-label="Filtrar por estado"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+            </select>
+          </div>
 
           <button className="btn-add-passenger" onClick={() => openModal(null, 'info')}>
             <Plus size={18} /> Nuevo Pasajero
@@ -534,8 +543,8 @@ const PasajerosPage = () => {
                     key={p._id}
                     passenger={p}
                     index={index}
-                    onEdit={(passenger) => openModal(passenger, 'info')}
-                    onView={(passenger) => openModal(passenger, 'history')}
+                    onEdit={(passenger) => openModal(passenger, 'info', false)}
+                    onView={(passenger) => openModal(passenger, 'info', true)}
                     onDelete={handleDelete}
                     onActivate={handleActivate}
                   />
@@ -557,6 +566,7 @@ const PasajerosPage = () => {
         onSaved={() => { loadPassengers(); loadGlobalStats(); }}
         userType="pasajero"
         initialTab={modalTab}
+        readOnly={modalReadOnly}
       />
     </>
   );

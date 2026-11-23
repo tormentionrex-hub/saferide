@@ -289,10 +289,9 @@ const ProfileConductor = ({ navigation, route }) => {
                 return;
             }
 
-            // 3. Validar placa (3 letras + 3 números)
-            const plateRegex = /^[A-Z]{3}[0-9]{3}$/;
-            if (!plateRegex.test(editVehicleForm.licensePlate.toUpperCase())) {
-                showAlert('Placa Inválida', 'La placa debe tener 3 letras seguidas de 3 números (ej: ABC123).', 'error');
+            const plate = String(editVehicleForm.licensePlate || '').replace(/[^a-z0-9]/gi, '').toUpperCase();
+            if (!/^(?=.*[0-9])[A-Z0-9]{6}$/.test(plate)) {
+                showAlert('Placa Inválida', 'La placa debe tener 6 caracteres alfanuméricos e incluir al menos un número (ej: ABC123).', 'error');
                 setUpdating(false);
                 return;
             }
@@ -303,7 +302,7 @@ const ProfileConductor = ({ navigation, route }) => {
                 model: editVehicleForm.model,
                 year: parseInt(editVehicleForm.year),
                 color: editVehicleForm.color,
-                license_plate: editVehicleForm.licensePlate.toUpperCase(),
+                license_plate: plate,
             });
 
             showAlert('¡Listo!', 'Información del vehículo actualizada', 'success');

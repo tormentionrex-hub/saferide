@@ -27,7 +27,7 @@ const vehicleSchema = new mongoose.Schema({
         unique: true,
         uppercase: true,
         trim: true,
-        match: [/^[A-Z0-9]{6}$/, 'License plate must be 6 characters'],
+        match: [/^(?=.*[0-9])[A-Z0-9]{6}$/, 'La placa debe tener 6 caracteres alfanuméricos e incluir al menos un número'],
     },
     color: {
         type: String,

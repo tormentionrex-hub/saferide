@@ -26,14 +26,8 @@ const rideService = {
     }
   },
 
-  /**
-   * Viajes en curso (admin). Endpoint del backend pendiente — ver
-   * docs/Backend_Rides_InProgress_Endpoint.docx. Polling cada 8 s desde el
-   * hook useInProgressRides.
-   * @returns {Promise<{ success: boolean, data: Array }>}
-   */
   getInProgressRides: async () => {
-    const response = await api.get('/rides/in-progress');
+    const response = await api.get('/monitoring/active-rides');
     return response.data;
   },
 };

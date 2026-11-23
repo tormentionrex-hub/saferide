@@ -54,12 +54,6 @@ export const updateTrust = async (id, action) => {
   return res.data;
 };
 
-// Hard delete: elimina al conductor permanentemente. Irrecuperable.
-export const hardDeleteDriver = async (id) => {
-  const res = await api.delete(`/users/${id}/hard`);
-  return res.data;
-};
-
 export const uploadImage = async (id, file) => {
   const formData = new FormData();
   formData.append('image', file);
@@ -78,6 +72,5 @@ export default {
   deleteDriver,
   activateDriver,
   updateTrust,
-  hardDeleteDriver,
   uploadImage
 };

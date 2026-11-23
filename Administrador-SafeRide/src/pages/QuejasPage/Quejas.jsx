@@ -17,31 +17,21 @@
 //O que lleguen a un Drive o algo 
 
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   AlertCircle, Search, Filter, Mail, User, Clock,
-  ChevronRight, MessageSquare, Flag,
-  CheckCircle, Copy, RefreshCw,
-  ChevronUp, ChevronDown
+  ChevronRight, MessageSquare, Flag, Car, MapPin, CalendarDays, CreditCard,
+  CheckCircle, Copy, RefreshCw, ChevronUp, ChevronDown
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { toast, Toaster } from 'react-hot-toast';
 import Swal from 'sweetalert2';
 
-import complaintsData from '../../data/complaints.json';
+import api from '../../services/api';
 import './Quejas.css';
 
-// Servidor local del agente de quejas (scripts/sync_complaints.cjs).
-const AGENT_URL = (import.meta.env.VITE_COMPLAINTS_AGENT_URL || 'http://localhost:3001').replace(/\/+$/, '');
-// Debe coincidir con MAX_MESSAGE_LENGTH del servidor del agente.
-const MAX_REPLY_LENGTH = 5000;
-// El agente exige esta cabecera (protección CSRF; ver sync_complaints.cjs).
-const agentFetch = (path, options = {}) => fetch(`${AGENT_URL}${path}`, {
-  ...options,
-  headers: { ...(options.headers || {}), 'X-SafeRide-Panel': '1' },
-});
-
 const QuejasPage = () => {
-  const [quejas, setQuejas] = useState(complaintsData);
+  const [quejas, setQuejas] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('Todos');
   const [selectedQueja, setSelectedQueja] = useState(null);
@@ -53,13 +43,14 @@ const QuejasPage = () => {
   // Filtrado dinámico
   const filteredQuejas = useMemo(() => {
     return quejas.filter(q => {
-      const matchSearch = q.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        q.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        q.subject.toLowerCase().includes(searchTerm.toLowerCase());
+      const term = searchTerm.toLowerCase();
+      const matchSearch = (q.user || q.email || '').toLowerCase().includes(term) ||
+        (q._id || q.id || '').toLowerCase().includes(term) ||
+        (q.subject || '').toLowerCase().includes(term);
       const matchCategory = filterCategory === 'Todos' || q.category === filterCategory;
       return matchSearch && matchCategory;
     });
-  }, [searchTerm, filterCategory]);
+  }, [quejas, searchTerm, filterCategory]);
 
   const handleOpenDetail = (queja) => {
     setSelectedQueja(queja);
@@ -67,54 +58,36 @@ const QuejasPage = () => {
     setIsModalOpen(true);
   };
 
+  const loadQuejas = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/complaints');
+      setQuejas(response.data?.data || []);
+    } catch (error) {
+      console.error('Error cargando quejas:', error);
+      setQuejas([]);
+      toast.error('No se pudieron cargar las quejas del backend');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadQuejas(); }, []);
+
   const handleSendReply = async () => {
-    if (!selectedQueja || sendingReply) return;
-    const message = replyMessage.trim();
-    if (!message) {
-      toast.error('Escribe una respuesta antes de enviarla', { id: 'reply' });
-      return;
-    }
-    if (message.length > MAX_REPLY_LENGTH) {
-      toast.error(`La respuesta no puede superar ${MAX_REPLY_LENGTH} caracteres`, { id: 'reply' });
-      return;
-    }
+    if (!selectedQueja) return;
     setSendingReply(true);
-    toast.loading('Enviando correo de respuesta...', { id: 'reply' });
+    toast.loading('Enviando respuesta...', { id: 'reply' });
 
     try {
-      const response = await agentFetch(`/api/reply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: selectedQueja.email,
-          subject: selectedQueja.subject,
-          message
-        })
-      });
-
-      if (response.ok) {
-        toast.success('¡Respuesta enviada con éxito!', { id: 'reply' });
-
-        // Auto-resolver
-        try {
-          await agentFetch(`/api/resolve/${encodeURIComponent(selectedQueja.uid)}`, {
-            method: 'POST'
-          });
-          toast.success('Incidencia marcada como atendida');
-        } catch (resolveErr) {
-          console.error('Error auto-resolving:', resolveErr);
-        }
-
-        setReplyMessage('');
-        setIsModalOpen(false);
-        setTimeout(handleSync, 500);
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        toast.error(`Error: ${errData.error || 'No se pudo enviar el correo'}`, { id: 'reply' });
-      }
+      await api.post(`/complaints/${selectedQueja._id}/reply`, { message: replyMessage });
+      toast.success('Respuesta enviada', { id: 'reply' });
+      setReplyMessage('');
+      setIsModalOpen(false);
+      loadQuejas();
     } catch (error) {
-      console.error('Error sending reply:', error);
-      toast.error('El Agente no está respondiendo', { id: 'reply' });
+      console.error('Error enviando respuesta:', error);
+      toast.error('No se pudo enviar la respuesta', { id: 'reply' });
     } finally {
       setSendingReply(false);
     }
@@ -125,48 +98,26 @@ const QuejasPage = () => {
     toast.success('ID copiado al portapapeles');
   };
 
-  // Función para forzar sincronización manual con el Agente
-  const handleSync = async () => {
-    toast.loading('Sincronizando con Gmail...', { id: 'sync' });
-    try {
-      const response = await agentFetch(`/api/sync`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      if (!Array.isArray(data)) throw new Error('Respuesta inesperada del agente');
-      setQuejas(data);
-      toast.success('Sincronización completa', { id: 'sync' });
-    } catch {
-      toast.error('Error: El Agente no está activo', { id: 'sync' });
-    }
-  };
-
   const handleResolve = (queja) => {
     Swal.fire({
       title: '¿Marcar como atendida?',
-      text: `Esto marcará el correo como LEÍDO en Gmail de forma permanente.`,
+      text: 'La queja pasará a estado Atendido.',
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#10B981',
       cancelButtonColor: '#64748B',
-      confirmButtonText: 'Sí, resolver en Gmail',
+      confirmButtonText: 'Sí, marcar atendida',
       cancelButtonText: 'Cancelar'
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await agentFetch(`/api/resolve/${encodeURIComponent(queja.uid)}`, {
-            method: 'POST'
-          });
-
-          if (response.ok) {
-            toast.success('¡Hecho! Marcado como leído en Gmail');
-            setIsModalOpen(false);
-            // Sincronizar para actualizar la lista
-            setTimeout(handleSync, 500);
-          } else {
-            toast.error('Error al resolver en Gmail');
-          }
-        } catch {
-          toast.error('El Agente no está respondiendo');
+          await api.patch(`/complaints/${queja._id}/resolve`);
+          toast.success('Queja marcada como atendida');
+          setIsModalOpen(false);
+          loadQuejas();
+        } catch (error) {
+          console.error('Error resolviendo queja:', error);
+          toast.error('No se pudo actualizar la queja');
         }
       }
     });
@@ -174,6 +125,7 @@ const QuejasPage = () => {
 
   return (
     <div className="quejas-container">
+      <Toaster position="top-right" />
 
       {/* Header local con buscador */}
       <div className="quejas-header-actions">
@@ -205,18 +157,16 @@ const QuejasPage = () => {
         </div>
       </div>
 
-      {/* Badge de pendientes + botón de sincronizar */}
       <div className="q-header-actions">
         <div className="q-stats-summary">
           <div className="q-stat-item">
             <span className="q-stat-val">{quejas.length}</span>
-            <span className="q-stat-lab">Pendientes</span>
+            <span className="q-stat-lab">Registros</span>
           </div>
         </div>
-        <div style={{ width: '1px', height: '28px', background: '#E2E8F0', flexShrink: 0 }} />
-        <button className="q-sync-btn" onClick={handleSync}>
-          <RefreshCw size={15} />
-          Sincronizar Gmail
+        <button className="q-sync-btn" onClick={loadQuejas} disabled={loading}>
+          <RefreshCw size={15} className={loading ? 'spin' : ''} />
+          Actualizar
         </button>
       </div>
 
@@ -224,10 +174,11 @@ const QuejasPage = () => {
       <div className="q-cards-grid animate-fade-in">
         {filteredQuejas.length > 0 ? (
           filteredQuejas.map((q) => {
-            const isExpanded = expandedQuejaId === q.id;
+            const quejaId = q._id || q.id;
+            const isExpanded = expandedQuejaId === quejaId;
             return (
               <div
-                key={q.id}
+                key={quejaId}
                 className={`n-card ${q.status === 'Pendiente' ? 'unread' : 'read'} correo`}
               >
                 {/* Banda dorada decorativa de correo */}
@@ -243,7 +194,7 @@ const QuejasPage = () => {
                     {/* Header de la tarjeta */}
                     <div className="n-card-header-row">
                       <span className="n-id-badge">
-                        {q.id}
+                        {quejaId}
                       </span>
                       <span className={`n-status-tag ${q.status === 'Pendiente' ? 'pendiente' : 'atendido'}`}>
                         {q.status}
@@ -251,7 +202,7 @@ const QuejasPage = () => {
                     </div>
 
                     <p className="n-message">
-                      Nueva Queja de {q.user} ({q.email})
+                      Nueva Queja de {q.user || q.email || 'Usuario'}
                     </p>
 
                     {/* Preview box */}
@@ -260,13 +211,13 @@ const QuejasPage = () => {
                         <strong>Asunto: {q.subject}</strong>
                         <p>
                           {isExpanded
-                            ? q.fullMessage || q.message
-                            : `${(q.fullMessage || q.message).substring(0, 160)}...`}
+                            ? (q.fullMessage || q.message || '')
+                            : `${(q.fullMessage || q.message || '').substring(0, 160)}...`}
                         </p>
                       </div>
                       <button
                         className="n-toggle-preview-btn"
-                        onClick={() => setExpandedQuejaId(prev => prev === q.id ? null : q.id)}
+                        onClick={() => setExpandedQuejaId(prev => prev === quejaId ? null : quejaId)}
                       >
                         {isExpanded ? (
                           <>Ocultar detalles <ChevronUp size={12} /></>
@@ -285,6 +236,12 @@ const QuejasPage = () => {
                       <span className="n-badge-category correo">
                         {q.category}
                       </span>
+                      {(q.ride_id || q.tripOrigin) && (
+                        <span className="n-trip-line">
+                          <Car size={12} />
+                          {q.ride_id?.origin?.name || q.tripOrigin} → {q.ride_id?.destination?.name || q.tripDestination}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -327,7 +284,7 @@ const QuejasPage = () => {
             <div className="q-modal-header">
               <div className="q-modal-title-row">
                 <AlertCircle size={20} color="#EF4444" />
-                <h2>Detalle de Incidencia {selectedQueja.id}</h2>
+                  <h2>Detalle de Incidencia {selectedQueja._id || selectedQueja.id}</h2>
               </div>
               <button className="q-close-btn" onClick={() => setIsModalOpen(false)}>×</button>
             </div>
@@ -361,6 +318,32 @@ const QuejasPage = () => {
                         </button>
                       )}
                     </div>
+                    {(selectedQueja.ride_id || selectedQueja.tripOrigin) && (
+                      <>
+                        <div className="q-info-item">
+                          <MapPin size={16} />
+                          <span>
+                            {selectedQueja.ride_id?.origin?.name || selectedQueja.tripOrigin} →{' '}
+                            {selectedQueja.ride_id?.destination?.name || selectedQueja.tripDestination}
+                          </span>
+                        </div>
+                        <div className="q-info-item">
+                          <CalendarDays size={16} />
+                          <span>{selectedQueja.tripDate || `${selectedQueja.ride_id?.fecha || ''} ${selectedQueja.ride_id?.hora || ''}`.trim()}</span>
+                        </div>
+                        <div className="q-info-item">
+                          <Car size={16} />
+                          <span>Conductor: {selectedQueja.driver_id?.name || 'No disponible'}</span>
+                        </div>
+                        <div className="q-info-item">
+                          <CreditCard size={16} />
+                          <span>
+                            Monto: ₡{selectedQueja.tripPrice ?? selectedQueja.booking_id?.charged_amount ?? selectedQueja.ride_id?.suggested_price ?? 0}
+                            {selectedQueja.booking_id?.payment_status ? ` (${selectedQueja.booking_id.payment_status})` : ''}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -393,7 +376,6 @@ const QuejasPage = () => {
                       className="q-reply-textarea"
                       placeholder="Escribe la respuesta oficial que se enviará por correo..."
                       value={replyMessage}
-                      maxLength={MAX_REPLY_LENGTH}
                       onChange={(e) => setReplyMessage(e.target.value)}
                       style={{
                         width: '100%',

@@ -141,9 +141,9 @@ const processPassenger = async (user) => {
     return 'processed';
 };
 
-// Bulk: recalculate driver metrics for all active conductors.
+// Bulk: recalculate driver metrics for all conductors.
 const calculateDriverMetrics = async () => {
-    const drivers = await User.find({ type: 'conductor', isActive: true }, { _id: 1 });
+    const drivers = await User.find({ type: 'conductor' }, { _id: 1 });
     return runInBatches(drivers, async (driver) => {
         try {
             return await processDriver(driver);
@@ -154,9 +154,9 @@ const calculateDriverMetrics = async () => {
     });
 };
 
-// Bulk: recalculate passenger metrics for all active users (drivers can also be passengers).
+// Bulk: recalculate passenger metrics for all users (drivers can also be passengers).
 const calculatePassengerMetrics = async () => {
-    const users = await User.find({ isActive: true }, { _id: 1 });
+    const users = await User.find({}, { _id: 1 });
     return runInBatches(users, async (user) => {
         try {
             return await processPassenger(user);

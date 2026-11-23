@@ -23,9 +23,9 @@
   border-radius: 999px;
   border: 1px solid;
 }
-.doc-panel-summary .sum.approved { color: #047857; border-color: #A7F3D0; background: #D1FAE5; }
-.doc-panel-summary .sum.issues   { color: #B45309; border-color: #FDE68A; background: #FEF3C7; }
-.doc-panel-summary .sum.pending  { color: #475569; border-color: #CBD5E1; background: #F1F5F9; }
+.doc-panel-summary .sum.reviewed { color: #047857; border-color: #A7F3D0; background: #D1FAE5; }
+.doc-panel-summary .sum.partial  { color: #B45309; border-color: #FDE68A; background: #FEF3C7; }
+.doc-panel-summary .sum.unseen   { color: #B91C1C; border-color: #FCA5A5; background: #FEE2E2; }
 .doc-panel-summary .sum.missing  { color: #64748B; border-color: #E2E8F0; background: #F8FAFC; }
 
 /* ── Layout: lista a la izquierda, detalle a la derecha ──── */
@@ -267,8 +267,3 @@
 }
 .spin { animation: doc-spin 1s linear infinite; }
 @keyframes doc-spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
-
-/* SweetAlert (motivo de rechazo) por encima del modal que contiene el panel. */
-.swal-over-modal {
-  z-index: 100010 !important;
-}

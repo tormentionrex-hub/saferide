@@ -30,11 +30,13 @@ import PaidNoticeBanner from '../../components/PaidNoticeBanner';
 import NotificationBell from '../../components/NotificationBell';
 import NotificationCenterModal from '../../components/NotificationCenterModal';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useLocationTracker } from '../../hooks/useLocationTracker';
 
 import { moderateScale } from '../../utils/responsive';
 import { devLog } from '../../utils/devLog';
 import { getInitials } from '../../utils/initials';
 export default function DashboardConductor({ route, navigation }) {
+    useLocationTracker();
     const { theme } = useDriverTheme();
     const insets = useSafeAreaInsets();
     const [userName, setUserName] = useState('Conductor');

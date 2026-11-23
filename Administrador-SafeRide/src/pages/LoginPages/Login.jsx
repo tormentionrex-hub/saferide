@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, ChevronRight } from 'lucide-react';
@@ -11,12 +11,6 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const { login } = useAuth();
     const navigate = useNavigate();
-
-    // Seguridad: Limpiar campos siempre al entrar
-    useEffect(() => {
-        setEmail('');
-        setPassword('');
-    }, []);
 
     const iniciarSesion = async (e) => {
         e.preventDefault();
@@ -33,23 +27,9 @@ const Login = () => {
         }
 
         try {
-            const result = await login(email, password);
+            const result = await login(email.trim(), password.trim());
 
-            if (result?.notAdmin) {
-                // AuthContext ya cerró y descartó la sesión no-admin.
-                Swal.fire({
-                    icon: "error",
-                    title: "Acceso Denegado",
-                    text: "No tienes permisos de administrador, seras redirigido afuera del sistema.",
-                    confirmButtonText: "Entendido",
-                    confirmButtonColor: "#EF4444"
-                }).then(() => {
-                    window.history.back();
-                });
-                return;
-            }
-
-            if (result?.success) {
+            if (result.success) {
                 Swal.fire({
                     icon: "success",
                     title: "¡Bienvenido!",
@@ -61,7 +41,7 @@ const Login = () => {
                     navigate('/inicio');
                 });
             } else {
-                Swal.fire({ icon: "error", title: "Error", text: result?.message || 'Error al iniciar sesión', confirmButtonColor: "#EF4444" });
+                Swal.fire({ icon: "error", title: "Error", text: result.message, confirmButtonColor: "#EF4444" });
             }
         } catch {
             Swal.fire({ icon: "error", title: "Error", text: "Problema de conexión con el servidor.", confirmButtonColor: "#EF4444" });
@@ -109,11 +89,11 @@ const Login = () => {
                                 <Mail size={18} className="iconoEntrada" />
                                 <input
                                     type="email"
-                                    placeholder="Ejemplo@admin.cr"
+                                    placeholder="admin@saferide.cr"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
-                                    autoComplete="new-password"
+                                    autoComplete="username"
                                 />
                             </div>
                         </div>
@@ -129,7 +109,7 @@ const Login = () => {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
-                                    autoComplete="new-password"
+                                    autoComplete="current-password"
                                 />
                             </div>
                         </div>

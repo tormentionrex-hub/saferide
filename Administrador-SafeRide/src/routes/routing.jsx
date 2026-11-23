@@ -55,7 +55,6 @@ const Routing = () => (
       <Routes>
         {/* ── RUTAS PÚBLICAS ────────────────────────────────── */}
         <Route path="/login"                element={<Login />} />
-        <Route path="/Login"                element={<Login />} />
         <Route path="/recuperarPassword"    element={<RecuperarPassword />} />
         <Route path="/nuevoPassword"        element={<NuevoPassword />} />
 

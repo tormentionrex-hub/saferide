@@ -171,13 +171,13 @@ valida que quien llama sea administrador.
 |---|---|
 | Panel principal | Totales de usuarios, viajes, kilómetros y CO₂, reservas por día, distribución de pagos y usuarios por rol |
 | Pasajeros y Conductores | Buscar, filtrar por inicial, ver el perfil completo, activar o desactivar cuentas, ajustar el TrustScore y borrar definitivamente |
-| Vehículos | Inventario de la flota, aprobar o desactivar vehículos y revisar sus documentos (póliza, RTV, licencia) |
+| Vehículos | Inventario de la flota y revisión de los 6 documentos del conductor (cédula, licencia, póliza, marchamo, RTV y tarjeta de circulación); el vehículo se activa solo cuando los 6 están aprobados |
 | Reservas | Todas las reservas con filtros por estado, pago, método y fechas, y búsqueda por pasajero o conductor |
 | Pagos | Totales cobrados, pagados, pendientes y exonerados, y el detalle de cada cobro |
-| Monitoreo | Mapa con los viajes en curso y la última posición de cada conductor; las posiciones viejas se marcan "Sin señal" |
-| Notificaciones y Quejas | Avisos del sistema y atención de las quejas que llegan por correo |
+| Monitoreo | Mapa con los viajes en curso y la última posición de cada conductor |
+| Notificaciones y Quejas | Avisos del sistema; las quejas se guardan en el backend y se responden o se marcan como atendidas desde el panel |
 | Auditoría | Registro de cada acción sensible de un administrador: quién, qué, sobre qué y cuándo |
-| Configuración y Mi perfil | Estado del sistema, preferencias, cambio de contraseña y cerrar todas las sesiones |
+| Configuración y Mi perfil | Meta mensual de carbono ahorrado, preferencias, cambio de contraseña y cerrar todas las sesiones |
 
 ### Flujo del administrador
 
@@ -193,10 +193,14 @@ flowchart TD
     E --> I[Monitoreo en vivo]
     E --> J[Quejas y Notificaciones]
     F --> F1[Activar, desactivar, ajustar TrustScore o borrar definitivamente]
-    G --> G1[Aprobar o rechazar documentos con motivo]
-    J --> J1[Responder la queja por correo desde el agente local]
+    G --> G0[Validación automática por reglas cada 10 minutos]
+    G0 --> G1[Aprobar, rechazar o pedir reenvío con motivo]
+    G1 --> G2[Con los 6 documentos aprobados, el vehículo se activa]
+    J --> J1[Responder o marcar como atendida]
+    B --> K
     F1 --> K[(Registro de auditoría)]
     G1 --> K
+    J1 --> K
     K --> L[Página de Auditoría]
 ```
 
@@ -221,9 +225,11 @@ flowchart LR
     GMAIL[Correo de soporte por IMAP y SMTP]
     IA[Gemini: clasifica y redacta respuestas]
 
+    JOBS[Trabajo programado: validación de documentos]
+
     P --> RUTA --> SVC --> API --> DB
-    P -->|quejas| AG
-    AG --> GMAIL
+    JOBS --> DB
+    AG -.opcional.-> GMAIL
     AG --> IA
 ```
 
@@ -233,9 +239,15 @@ flowchart LR
 - **Datos en pantalla:** los nombres y textos que escriben los usuarios se escapan antes de insertarse en
   cualquier diálogo, para que nadie pueda ejecutar código en la sesión del administrador poniendo HTML en su
   nombre.
-- **Agente de quejas:** es un servicio aparte que corre en la misma computadora del administrador. Lee el
-  correo de soporte, usa Gemini para clasificar cada queja y proponer una respuesta, y envía la respuesta
-  solo al correo de quien escribió. Escucha únicamente en `127.0.0.1` y solo acepta peticiones del panel.
+- **Quejas:** se guardan en el backend (`/complaints`) y el panel las lista, responde y marca como atendidas.
+  El agente local de correo (`scripts/sync_complaints.cjs`) queda como herramienta opcional: lee el correo de
+  soporte, usa Gemini para clasificar y proponer respuestas, escucha solo en `127.0.0.1` y solo responde a
+  quien escribió.
+- **Documentos:** un trabajo programado valida cada 10 minutos los documentos pendientes con reglas (datos
+  presentes, fechas vigentes, que coincidan con el conductor y el vehículo). Lo que no se puede decidir solo
+  queda para revisión manual del administrador.
+- **Auditoría:** se registran los inicios de sesión del panel, la revisión de documentos y quejas, la
+  aprobación de vehículos, los cambios de cuenta y de TrustScore, y el borrado definitivo.
 
 ---
 
@@ -366,7 +378,7 @@ npm run sync-complaints     # opcional: agente local de quejas (necesita SUPPORT
 ```bash
 cd frontend    && npm test             # 75 pruebas unitarias de la app
 cd backend     && npm run qa:ataques   # 348 casos: permisos, inyección, carreras, tokens, límites, archivos
-cd backend     && npm run qa:flujos    # 112 casos: ciclo de viaje, reservas, pagos, reseñas, documentos, auditoría
+cd backend     && npm run qa:flujos    # 114 casos: ciclo de viaje, reservas, pagos, reseñas, documentos, auditoría
 cd Administrador-SafeRide && npm run build        # compilación del panel
 ```
 
@@ -415,7 +427,7 @@ hasta que ninguna pasara. Cada variante quedó como prueba automática.
 | Qué | Antes | Después |
 |---|---|---|
 | Ataques automatizados contra la API | 103 | 348, todos rechazados |
-| Flujos de negocio automatizados | 93 | 112, todos correctos |
+| Flujos de negocio automatizados | 93 | 114, todos correctos |
 | Pruebas unitarias de la app | 13 | 75 |
 | Vulnerabilidades conocidas en dependencias del backend | 28 (3 críticas) | 6, sin críticas |
 | Vulnerabilidades conocidas en dependencias del panel | 14 (1 crítica) | 4, sin críticas |
@@ -439,6 +451,12 @@ Integración del panel: se movió a su propia carpeta, se conectó a las diez ru
 se construyeron las páginas de Reservas y Pagos que estaban sin hacer, se reemplazaron los datos inventados
 por datos reales, y las cuentas eliminadas ya no aparecen en los listados salvo que se pidan.
 
+El 22 de noviembre Naomy González integró en `dev` su versión del panel en `Administrador-SafeRide/`, con
+quejas en el backend, validación automática de documentos, aprobación de vehículos por documentos, monitoreo
+y meta de carbono. Al unir las dos ramas se dejó su trabajo como base y se sumó encima lo de seguridad: en
+cada choque quedó su versión. Las pruebas de ataques y de flujos se adaptaron a su modelo de documentos y
+auditoría, y se corrigió que un pasajero con reserva activa no pudiera ver el vehículo de su conductor.
+
 ---
 
 ## Pendiente
@@ -452,8 +470,8 @@ Lo que depende de cuentas, credenciales o dinero, y por eso no se activó en est
 
 - Almacenamiento privado de archivos (Azure Blob) para los documentos de vehículos: sin él, la subida responde
   que el almacenamiento no está configurado.
-- Servicio de análisis automático de documentos: sin él, "reprocesar" responde que el análisis no está
-  disponible, en lugar de simular un resultado.
+- Lectura automática (OCR) de las fotos de los documentos: la validación actual revisa los datos registrados con
+  reglas, no lee la imagen.
 
 Deuda técnica conocida:
 - El tiempo de espera de una solicitud se calcula con el reloj del teléfono, y todo se probó en Expo Go, no en

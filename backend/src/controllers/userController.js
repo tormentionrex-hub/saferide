@@ -3,6 +3,7 @@ const { User, Vehicle, TrustHistory } = require("../models");
 const { uploadToBlob, deleteFromBlob } = require("../services/blobService");
 const trustService = require("../services/trustService");
 const notificationService = require("../services/notificationService");
+const vehicleApprovalService = require("../services/vehicleApprovalService");
 const { recordAudit } = require("../services/auditService");
 const { escapeRegex } = require("../utils/safeText");
 
@@ -53,6 +54,7 @@ const anonymizeUser = async (user) => {
     await user.save({ validateBeforeSave: false });
 };
 
+
 // @desc Get all users (admin only)
 // @route GET /api/v1/users
 // @access Private/Admin
@@ -60,18 +62,20 @@ const anonymizeUser = async (user) => {
 //Function to get all users
 exports.getAllUsers = async (req, res, next) => {
     try {
-        const { type, company, search, initial } = req.query;
+        const { type, company, search, initial, sort = 'desc', isActive } = req.query;
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
         // El panel pide hasta 10000 (exportar pasajeros); ese es el tope.
         const limit = Math.min(10000, Math.max(1, parseInt(req.query.limit, 10) || 9));
+        // Build query object
         // Las cuentas eliminadas o anonimizadas no aparecen en los listados
         // salvo que el admin las pida explícitamente (includeDeleted=true).
-        const notDeleted = req.query.includeDeleted === 'true' ? {} : { deletedAt: null };
-        const query = { ...notDeleted };
+        const query = req.query.includeDeleted === 'true' ? {} : { deletedAt: null };
         // Add filters if provided
         if (type) query.type = type;
         if (company) query.company = company;
-        // initial y search se escapan: se buscan literales, no como regex.
+        if (isActive === 'true' || isActive === 'false') {
+            query.isActive = isActive === 'true';
+        }
         if (initial) {
             query.name = { $regex: `^${escapeRegex(initial)}`, $options: "i" };
         }
@@ -83,18 +87,26 @@ exports.getAllUsers = async (req, res, next) => {
                 { email: { $regex: rx, $options: "i" } },
             ];
         }
+        const sortDirection = sort === 'asc' ? 1 : -1;
+
         // Fetch users with pagination
         const users = await User.find(query)
             .select("-password -refreshToken")
             .limit(limit)
             .skip((page - 1) * limit)
-            .sort({ createdAt: -1, _id: 1 });
+            .sort({ createdAt: sortDirection, _id: sortDirection });
         const count = await User.countDocuments(query);
         
         // Get global stats (ignoring pagination and search filters, just by type)
+        const [totalUsers, activeUsers, operationalDrivers] = await Promise.all([
+            User.countDocuments({ type: query.type || 'pasajero', deletedAt: null }),
+            User.countDocuments({ type: query.type || 'pasajero', isActive: true, deletedAt: null }),
+            Vehicle.countDocuments({ isActive: true }),
+        ]);
         const globalStats = {
-            total: await User.countDocuments({ ...notDeleted, type: query.type || 'pasajero' }),
-            active: await User.countDocuments({ ...notDeleted, type: query.type || 'pasajero', isActive: true })
+            total: totalUsers,
+            active: activeUsers,
+            operational: operationalDrivers,
         };
 
         // Respond with users and pagination info
@@ -332,6 +344,10 @@ exports.deleteUser = async ( req, res, next) => {
         user.isActive = false;
         await user.save();
         await recordAudit(req, { action: 'USER_DEACTIVATED', targetType: 'User', targetId: user._id, details: `Cuenta ${user.type} desactivada` });
+        await Vehicle.updateMany(
+            { driver_id: user._id },
+            { $set: { isActive: false } }
+        );
         
         res.status(200).json({
             success: true,
@@ -398,7 +414,7 @@ exports.deleteMyAccount = async (req, res, next) => {
 // lo referencie, el documento se borra. La respuesta dice cuál fue (mode).
 exports.hardDeleteUser = async (req, res, next) => {
     try {
-        const { Ride, Booking, Review, Notification, Metrics, VerificationCode, VehicleDocument } = require("../models");
+        const { Ride, Booking, Review, Notification, Metrics, VerificationCode, Document } = require("../models");
         const { id } = req.params;
 
         if (id === req.user._id.toString()) {
@@ -419,7 +435,7 @@ exports.hardDeleteUser = async (req, res, next) => {
         const email = user.email;
         await Promise.all([
             Vehicle.deleteMany({ driver_id: user._id }),
-            VehicleDocument.deleteMany({ driver_id: user._id }),
+            Document.deleteMany({ driver_id: user._id }),
             Notification.deleteMany({ user_id: user._id }),
             TrustHistory.deleteMany({ user_id: user._id }),
             Metrics.deleteMany({ user_id: user._id }),
@@ -471,6 +487,20 @@ exports.activateUser = async (req, res, next) => {
                 success: false,
                 message: 'User not found',
             });
+        }
+
+        if (user.type === 'conductor') {
+            const approval = await vehicleApprovalService.getDocumentApproval(user._id);
+
+            if (!approval.approved) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'El conductor no puede operar hasta que los 6 documentos estén aprobados',
+                    pending: approval.pending,
+                });
+            }
+
+            await vehicleApprovalService.syncVehicleApproval(user._id);
         }
 
         user.isActive = true;
