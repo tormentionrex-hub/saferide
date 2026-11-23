@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const { Vehicle, Ride, Booking } = require('../models');
 const { uploadToBlob, deleteFromBlob } = require('../services/blobService');
 const { getDocumentApproval, syncVehicleApproval } = require('../services/vehicleApprovalService');
+const { recordAudit } = require('../services/auditService');
 
 const PLATE_REGEX = /^(?=.*[0-9])[A-Z0-9]{6}$/;
 const ACTIVE_BOOKING_STATUSES = ['pending', 'confirmed'];
@@ -17,7 +18,9 @@ const idsMatch = (a, b) => {
 const canAccessDriverVehicle = async (req, driverId) => {
     if (!req.user || !driverId || !mongoose.Types.ObjectId.isValid(String(driverId))) return false;
     if (req.user.type === 'admin' || idsMatch(req.user._id, driverId)) return true;
-    if (req.user.type !== 'passenger') return false;
+    // En SafeRide el tipo del pasajero es 'pasajero' (con 'passenger' nunca
+    // coincidía y el pasajero con reserva activa no veía el vehículo).
+    if (req.user.type !== 'pasajero') return false;
 
     const rideIds = await Booking.find({
         passenger_id: req.user._id,
@@ -52,6 +55,11 @@ exports.createVehicle = async (req, res, next) => {
             });
         }
 
+        // Segunda barrera (la ruta ya lo valida): la placa debe ser texto.
+        if (typeof license_plate !== 'string') {
+            return res.status(400).json({ success: false, message: 'License plate must be 6 characters' });
+        }
+
         // Desactivar TODOS los vehículos activos previos del driver.
         // En condiciones normales habrá 0 o 1, pero defensivamente cubrimos
         // el caso de >1 activo (data legacy o race condition) para que el
@@ -71,6 +79,15 @@ exports.createVehicle = async (req, res, next) => {
             year,
             isActive: false,
         });
+
+        // Certificado de la póliza que la app sube a Cloudinary al registrar
+        // el vehículo: queda como documento 'poliza' pendiente de revisión.
+        // Si falla, el vehículo ya quedó creado; solo se registra el error.
+        try {
+            await require('./documentController').createRegistrationDocument(vehicle, req.body);
+        } catch (docErr) {
+            console.error('[Vehicle] no se pudo guardar el certificado de la póliza:', docErr.message);
+        }
 
         await syncVehicleApproval(targetDriverId, vehicle._id);
         const updatedVehicle = await Vehicle.findById(vehicle._id);
@@ -128,8 +145,17 @@ exports.getVehicleByDriver = async (req, res, next) => {
 // Note: route expects `getVehicleById` (capital B). Keep this name to match route files.
 exports.getVehicleById = async (req, res, next) => {
     try {
-        const vehicle = await Vehicle.findById(req.params.id)
-        .populate('driver_id', 'name username email phone rating');
+        // Correo y teléfono del conductor solo para él mismo o un admin (el
+        // panel). Cualquier usuario con sesión podía sacarlos recorriendo
+        // /vehicles/driver/:id → /vehicles/:id.
+        const vehicle = await Vehicle.findById(req.params.id);
+        const canSeeContact = req.user.type === 'admin'
+            || (vehicle && vehicle.driver_id?.toString() === req.user._id.toString());
+        if (vehicle) {
+            await vehicle.populate('driver_id', canSeeContact
+                ? 'name username email phone rating'
+                : 'name username rating');
+        }
         // Validate vehicle existence
         if (!vehicle) {
             return res.status(404).json({
@@ -237,8 +263,17 @@ exports.uploadVehicleImage = async (req, res, next) => {
             });
         }
 
-        // Delete old image if exists
-        if (vehicle.vehicleImage) {
+        // Sin archivo, 400 (antes reventaba con 500 al leer req.file.buffer).
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: 'No image file provided',
+            });
+        }
+
+        // Delete old image if exists (solo si es un blob de este vehículo).
+        if (vehicle.vehicleImage
+            && String(vehicle.vehicleImage).split('/').pop().startsWith(`vehicle-${vehicle._id}-`)) {
             await deleteFromBlob(vehicle.vehicleImage, 'vehicle-images');
         }
 
@@ -405,6 +440,12 @@ exports.updateVehicleStatus = async (req, res, next) => {
 
             await syncVehicleApproval(vehicle.driver_id, vehicle._id);
             const updatedVehicle = await Vehicle.findById(vehicle._id);
+            await recordAudit(req, {
+                action: 'VEHICLE_APPROVED',
+                targetType: 'Vehicle',
+                targetId: vehicle._id,
+                details: `Vehículo placa ${vehicle.license_plate} aprobado`,
+            });
             return res.status(200).json({
                 success: true,
                 message: 'Vehicle approved successfully',
@@ -414,6 +455,14 @@ exports.updateVehicleStatus = async (req, res, next) => {
 
         vehicle.isActive = false;
         await vehicle.save();
+        if (isAdmin) {
+            await recordAudit(req, {
+                action: isActive ? 'VEHICLE_APPROVED' : 'VEHICLE_REJECTED',
+                targetType: 'Vehicle',
+                targetId: vehicle._id,
+                details: `Vehículo placa ${vehicle.license_plate} ${isActive ? 'aprobado' : 'desactivado'}`,
+            });
+        }
 
         res.status(200).json({
             success: true,

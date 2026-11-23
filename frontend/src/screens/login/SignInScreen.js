@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import { authService } from '../../services/authService';
+import { describeLoginError } from '../../utils/apiErrors';
 import { registerForPushNotifications } from '../../services/pushNotificationService';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -58,7 +59,11 @@ export default function SignInScreen({ navigation }) {
     const passwordFocusAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        // Create an infinite loop for background
+        // Create an infinite loop for background.
+        // isInteraction: false — en web no hay driver nativo y cada timing
+        // abriría un "interaction handle" que nunca se libera (el loop es
+        // infinito y SignIn queda montada debajo del dashboard), bloqueando
+        // InteractionManager.runAfterInteractions en Métricas y Dashboard.
         Animated.loop(
             Animated.sequence([
                 Animated.timing(fadeAnim, {
@@ -66,12 +71,14 @@ export default function SignInScreen({ navigation }) {
                     duration: 5000,
                     easing: Easing.inOut(Easing.ease),
                     useNativeDriver: true,
+                    isInteraction: false,
                 }),
                 Animated.timing(fadeAnim, {
                     toValue: 0,
                     duration: 5000,
                     easing: Easing.inOut(Easing.ease),
                     useNativeDriver: true,
+                    isInteraction: false,
                 }),
             ])
         ).start();
@@ -214,7 +221,9 @@ export default function SignInScreen({ navigation }) {
                 });
             }, 2500);
         } catch (error) {
-            const msg = error.response?.data?.message || 'Correo o contraseña incorrectos.';
+            // Distingue credenciales incorrectas (401/403) de servidor caído o sin
+            // red: antes ambos decían «Correo o contraseña incorrectos.».
+            const msg = describeLoginError(error);
             setEmailError(msg);
         } finally {
             setLoading(false);

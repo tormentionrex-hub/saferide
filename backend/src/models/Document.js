@@ -21,6 +21,10 @@ const documentSchema = new mongoose.Schema({
   rejectionReason: { type: String, default: '' },
   reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   reviewedAt: { type: Date, default: null },
+  // Campos de los documentos que sube la app (opcionales: los del seed no los traen).
+  vehicle_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle', default: null },
+  sizeBytes: { type: Number, min: 0, default: null },
+  source: { type: String, enum: ['upload', 'app_registration', 'seed'], default: 'upload' },
 }, { timestamps: true, collection: 'documents' });
 
 documentSchema.index({ driver_id: 1, type: 1, createdAt: -1 });

@@ -9,6 +9,7 @@ import {
     ActivityIndicator,
     Dimensions,
     StatusBar,
+    Platform,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
@@ -183,7 +184,9 @@ const LocationPicker = ({ visible, onClose, onSelect, title = 'Seleccionar Ubica
                                     color: theme.text,
                                     fontSize: 15,
                                 },
-                                container: { flex: 0, width: '100%' },
+                                // En web, con flex 0 la lista de sugerencias (un ScrollView
+                                // con flex 1) queda con 2 px de alto y no se ve nada.
+                                container: { flex: Platform.OS === 'web' ? 1 : 0, width: '100%' },
                                 listView: {
                                     backgroundColor: theme.surface,
                                     borderRadius: 12,

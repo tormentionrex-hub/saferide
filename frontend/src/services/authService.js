@@ -42,14 +42,22 @@ export const authService = {
      * (AsyncStorage) y caches en memoria. Llama al backend para invalidar
      * el refresh token, pero si esa llamada falla igual se limpia local.
      * No navega — el caller decide a dónde ir después.
+     * `remote: false` solo limpia local (p. ej. tras borrar la cuenta, cuando el
+     * token ya no es válido y el backend respondería 401).
      */
-    logout: async () => {
+    logout: async ({ remote = true } = {}) => {
         if (isLoggingOut) return;
         isLoggingOut = true;
         try {
             // _skipRefresh: si el access token está expirado no tiene sentido
             // refrescarlo solo para invalidarlo enseguida.
-            await api.post('/auth/logout', null, { _skipRefresh: true }).catch(() => {});
+            // Sin access token no hay sesión que invalidar en el backend (solo
+            // limpieza local). El cuerpo va como {} y no null: axios serializa
+            // null como el texto "null" y express.json (modo estricto) responde 400.
+            const accessToken = await tokenStorage.getAccessToken().catch(() => null);
+            if (remote && accessToken) {
+                await api.post('/auth/logout', {}, { _skipRefresh: true }).catch(() => {});
+            }
             await Promise.all([
                 tokenStorage.clearTokens(),
                 sessionStorage.clearSession(),

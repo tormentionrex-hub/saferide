@@ -10,6 +10,24 @@ const verificationCodeSchema = new mongoose.Schema({
   code: {
     type: String,
     required: true,
+    match: /^\d{6}$/,
+  },
+  // Intentos de validación gastados. Con 6 dígitos y sin este tope el código
+  // se podía adivinar a fuerza bruta dentro de sus 10 minutos.
+  attempts: {
+    type: Number,
+    default: 0,
+  },
+  // Cuándo se verificó con verify-code. Un código verificado ya no sirve
+  // para verificar ni para restablecer la contraseña: queda reservado para
+  // que POST /auth/register lo consuma (usedAt lo reclama de forma atómica).
+  verifiedAt: {
+    type: Date,
+    default: null,
+  },
+  usedAt: {
+    type: Date,
+    default: null,
   },
   expiresAt: {
     type: Date,

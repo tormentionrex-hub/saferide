@@ -88,6 +88,15 @@ export const useInProgressRides = ({ enabled = true, intervalMs = 5000, notify =
       if (cancelledRef.current) return;
       console.error('[useInProgressRides] poll error:', err);
       setError(err);
+      // Un 4xx (endpoint inexistente, sin permiso, sesión cerrada) no se arregla
+      // reintentando: se detiene el polling en vez de repetir el error cada 8 s
+      // en todas las páginas. "refresh" sigue disponible para reintentar a mano.
+      const status = err?.response?.status;
+      // 429 (límite de peticiones) sí es pasajero: ahí se sigue intentando.
+      if (status >= 400 && status < 500 && status !== 429 && timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     } finally {
       if (!cancelledRef.current) setLoading(false);
     }

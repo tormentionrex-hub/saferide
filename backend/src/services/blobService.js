@@ -1,4 +1,27 @@
-const { getContainerClient } = require('../config/azure');
+const { getContainerClient, blobServiceClient } = require('../config/azure');
+
+// Hay almacenamiento configurado (sin él, subir responde 503 claro y no 500).
+const isBlobConfigured = () => !!blobServiceClient;
+
+// Documentos de conductores (cédula, licencia, póliza...): contenedor
+// PRIVADO, a diferencia de las fotos de perfil y vehículo. El panel los ve
+// con una URL firmada de corta duración (getBlobSasUrl). Se aceptan imágenes
+// (sin SVG) y PDF.
+const DOCUMENTS_CONTAINER = 'vehicle-documents';
+const DOCUMENT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const uploadPrivateDocument = async (fileBuffer, fileName, contentType) => {
+  const type = String(contentType || '').toLowerCase();
+  if (!DOCUMENT_TYPES.includes(type)) {
+    const err = new Error('Only JPEG, PNG, WEBP or PDF files are allowed');
+    err.statusCode = 400;
+    throw err;
+  }
+  const containerClient = getContainerClient(DOCUMENTS_CONTAINER);
+  await containerClient.createIfNotExists();
+  const blockBlobClient = containerClient.getBlockBlobClient(fileName);
+  await blockBlobClient.uploadData(fileBuffer, { blobHTTPHeaders: { blobContentType: type } });
+  return blockBlobClient.url;
+};
 
 /**
  * Upload file to Azure Blob Storage
@@ -11,6 +34,14 @@ const { getContainerClient } = require('../config/azure');
 
 //Function to upload file to blob storage
 const uploadToBlob = async (fileBuffer, fileName, containerName, contentType) => {
+  // Segunda capa (las rutas ya filtran con multer): el contenedor es público,
+  // así que nunca se publica algo que el navegador pueda ejecutar.
+  const type = String(contentType || '').toLowerCase();
+  if (!type.startsWith('image/') || type.includes('svg') || type.includes('xml')) {
+    const err = new Error('Only image files are allowed');
+    err.statusCode = 400;
+    throw err;
+  }
   try {
     const containerClient = getContainerClient(containerName);
     
@@ -101,6 +132,9 @@ const getBlobSasUrl = async (blobUrl, containerName, expiresInMinutes = 60) => {
 };
 
 module.exports = {
+  isBlobConfigured,
+  uploadPrivateDocument,
+  DOCUMENTS_CONTAINER,
   uploadToBlob,
   deleteFromBlob,
   getBlobSasUrl,

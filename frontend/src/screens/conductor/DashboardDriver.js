@@ -34,6 +34,7 @@ import { useLocationTracker } from '../../hooks/useLocationTracker';
 
 import { moderateScale } from '../../utils/responsive';
 import { devLog } from '../../utils/devLog';
+import { getInitials } from '../../utils/initials';
 export default function DashboardConductor({ route, navigation }) {
     useLocationTracker();
     const { theme } = useDriverTheme();
@@ -254,7 +255,7 @@ export default function DashboardConductor({ route, navigation }) {
                             ) : (
                                 <View style={[styles.profileFallback, { backgroundColor: theme.surfaceVariant || '#EDF2F7' }]}>
                                     <Text style={[styles.initialsText, { color: theme.navActive || '#005BBF' }]}>
-                                        {userName ? userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '?'}
+                                        {getInitials(userName)}
                                     </Text>
                                 </View>
                             )}

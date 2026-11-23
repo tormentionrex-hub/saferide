@@ -73,7 +73,14 @@ const ensureWatcher = () => {
 
 const releaseWatcher = () => {
   if (subscribers.size > 0 || !watchSubscription) return;
-  watchSubscription.remove();
+  // expo-location 19.0.8 lanza 'LocationEventEmitter.removeSubscription is not
+  // a function' al quitar la última suscripción; la excepción en el cleanup
+  // tumbaba la pantalla al finalizar el viaje.
+  try {
+    watchSubscription.remove();
+  } catch (e) {
+    devLog('No se pudo quitar la suscripción de GPS:', e?.message);
+  }
   watchSubscription = null;
 };
 

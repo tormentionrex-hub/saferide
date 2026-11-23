@@ -3,6 +3,20 @@ const multer = require('multer');
 const userController = require('../controllers/userController');
 const { verifyToken, authorize } = require('../middleware/auth');
 const { COMPANIES } = require('../config/companies');
+const { body, param, query } = require('express-validator');
+const validate = require('../middleware/validation');
+const { isSafeText, SAFE_TEXT_MESSAGE } = require('../utils/safeText');
+const { deleteAccountIpLimiter, deleteAccountUserLimiter } = require('../middleware/rateLimiter');
+
+// Tipos y largos de los campos editables del perfil (el modelo vuelve a
+// validarlos): un nombre de 1 MB o un objeto en lugar de texto se cortan aquí.
+const profileValidation = [
+  body('name').optional().isString().trim().isLength({ min: 4, max: 100 }).custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
+  body('phone').optional().isString().custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
+  body('company').optional().isString().custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
+  body('work_schedule').optional().isString().isLength({ max: 50 }).custom(isSafeText).withMessage(SAFE_TEXT_MESSAGE),
+  body('profileImage').optional({ nullable: true }).isString().isLength({ max: 2048 }),
+];
 
 const router = express.Router();
 
@@ -13,10 +27,15 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
+    // Imágenes sí, SVG no: es XML con scripts y el blob se publica con el
+    // content-type que manda el cliente. El error lleva 400 (no 500).
+    const type = String(file.mimetype || '').toLowerCase();
+    if (type.startsWith('image/') && !type.includes('svg') && !type.includes('xml')) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed'));
+      const err = new Error('Only image files are allowed');
+      err.statusCode = 400;
+      cb(err);
     }
   },
 });
@@ -71,7 +90,18 @@ router.use(verifyToken);
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
  */
-router.get('/', authorize('admin'), userController.getAllUsers);
+// Filtros del listado del panel con tipo y valores cerrados. includeDeleted
+// es la única forma de ver cuentas eliminadas o anonimizadas.
+router.get('/', authorize('admin'), [
+  query('page').optional().isInt({ min: 1, max: 100000 }),
+  query('limit').optional().isInt({ min: 1, max: 10000 }),
+  query('type').optional().isString().isIn(['pasajero', 'conductor', 'admin']),
+  query('company').optional().isString().isLength({ max: 100 }),
+  query('search').optional().isString().isLength({ max: 60 }),
+  // El panel manda initial y search vacíos cuando no hay filtro.
+  query('initial').optional().isString().isLength({ max: 2 }),
+  query('includeDeleted').optional().isString().isIn(['true', 'false']),
+], validate, userController.getAllUsers);
 
 /**
  * @swagger
@@ -101,7 +131,7 @@ router.get('/', authorize('admin'), userController.getAllUsers);
  */
 // Must be before /:id so "profile" isn't treated as an ID
 router.get('/profile', userController.getMyProfile);
-router.put('/profile', userController.updateMyProfile);
+router.put('/profile', profileValidation, validate, userController.updateMyProfile);
 
 /**
  * @swagger
@@ -182,7 +212,8 @@ router.get('/me/trust/history', userController.getMyTrustHistory);
  *       403: { description: Contraseña incorrecta }
  *       409: { description: Tiene viajes activos o cobros pendientes }
  */
-router.delete('/me', userController.deleteMyAccount);
+// password como texto: un número u objeto hacía fallar a bcrypt (500).
+router.delete('/me', deleteAccountIpLimiter, deleteAccountUserLimiter, [body('password').isString().notEmpty()], validate, userController.deleteMyAccount);
 
 router.get('/:id', userController.getUserById);
 
@@ -227,7 +258,7 @@ router.get('/:id', userController.getUserById);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.put('/:id', userController.updateUser);
+router.put('/:id', profileValidation, validate, userController.updateUser);
 
 /**
  * @swagger
@@ -294,6 +325,8 @@ router.post('/:id/image', upload.single('image'), userController.uploadProfileIm
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.delete('/:id', authorize('admin'), userController.deleteUser);
+// Borrado definitivo desde el panel (ver userController.hardDeleteUser).
+router.delete('/:id/hard', authorize('admin'), [param('id').isMongoId()], validate, userController.hardDeleteUser);
 router.patch('/:id/activate', authorize('admin'), userController.activateUser);
 
 /**

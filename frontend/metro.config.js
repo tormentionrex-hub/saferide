@@ -16,6 +16,21 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       type: 'sourceFile',
     };
   }
+  // datetimepicker no tiene implementación web (no renderiza nada): en web se
+  // usa un diálogo con <input type="date|time"> del navegador.
+  if (platform === 'web' && moduleName === '@react-native-community/datetimepicker') {
+    return {
+      filePath: path.resolve(__dirname, 'web-mocks', 'datetimepicker.js'),
+      type: 'sourceFile',
+    };
+  }
+  // 2.6.4 revienta en el navegador (TDZ de _request); copia corregida solo para web.
+  if (platform === 'web' && moduleName === 'react-native-google-places-autocomplete') {
+    return {
+      filePath: path.resolve(__dirname, 'web-mocks', 'google-places-autocomplete.js'),
+      type: 'sourceFile',
+    };
+  }
   if (defaultResolveRequest) {
     return defaultResolveRequest(context, moduleName, platform);
   }

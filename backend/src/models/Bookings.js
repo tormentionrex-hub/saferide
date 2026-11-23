@@ -34,14 +34,17 @@ const bookingSchema = new mongoose.Schema({
     default: 0,
     min: [0, 'Distance cannot be negative'],
   },
+  // Mismo tope que el precio de un viaje (₡250 000), también en la ruta.
   offered_amount: {
     type: Number,
     min: 0,
+    max: [250000, 'Offered amount cannot exceed 250000'],
   },
   charged_amount: {
     type: Number,
     default: 0,
     min: [0, 'Charged amount cannot be negative'],
+    max: [250000, 'Charged amount cannot exceed 250000'],
   },
   payment_status: {
     type: String,
@@ -71,13 +74,16 @@ const bookingSchema = new mongoose.Schema({
     type: Number,
     default: null,
   },
+  // Tope de largo en los textos libres (antes se guardaba 1 MB por reserva).
   passenger_origin: {
     type: String,
     default: null,
+    maxlength: 300,
   },
   passenger_destination: {
     type: String,
     default: null,
+    maxlength: 300,
   },
   // Timestamp en que el conductor confirmó su revisión del cobro en
   // PaymentVerification o PreviousTripsScreen. Se setea SIEMPRE que el
@@ -91,6 +97,20 @@ const bookingSchema = new mongoose.Schema({
   },
 }, {
   timestamps: true,
+});
+
+// Invariante del modelo (última capa, por si un controlador se equivoca): una
+// reserva 'completed' no cambia de estado. Cancelarla después de terminar el
+// viaje la sacaba de la regla de "cobro pendiente" y el pasajero no pagaba.
+bookingSchema.post('init', function () {
+  this.$locals.loadedStatus = this.status;
+});
+bookingSchema.pre('save', function () {
+  if (this.$locals.loadedStatus === 'completed' && this.status !== 'completed') {
+    const err = new Error('A completed booking cannot change its status');
+    err.statusCode = 400;
+    throw err;
+  }
 });
 
 // Indexes

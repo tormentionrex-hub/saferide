@@ -8,6 +8,7 @@ require('dotenv').config();
 const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter');
+const { rejectOperators } = require('./middleware/rejectOperators');
 const logger = require('./utils/logger');
 
 const path = require('path');
@@ -36,16 +37,24 @@ const isProduction = process.env.NODE_ENV === 'production';
 if (isProduction && !process.env.CORS_ORIGIN) {
   logger.warn('CORS_ORIGIN no definida: el panel web no podrá llamar a esta API en producción.');
 }
-const corsOptions = {
-  origin: process.env.CORS_ORIGIN?.split(',').map(o => o.trim()) || (isProduction ? false : '*'),
-  credentials: true,
-  optionsSuccessStatus: 200,
-};
+// Con lista de orígenes se refleja solo el origen permitido (y se aceptan
+// credenciales). Sin lista, en desarrollo se responde '*' y SIN credenciales:
+// '*' junto con Allow-Credentials es una combinación inválida que los
+// navegadores rechazan y que anuncia una política más abierta de la que hay.
+// La app y el panel mandan el token en Authorization, no usan cookies.
+const corsList = process.env.CORS_ORIGIN?.split(',').map(o => o.trim()).filter(Boolean);
+const corsOptions = corsList?.length
+  ? { origin: corsList, credentials: true, optionsSuccessStatus: 200 }
+  : { origin: isProduction ? false : '*', credentials: false, optionsSuccessStatus: 200 };
 app.use(cors(corsOptions));
 
 // Body parser
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Operadores de Mongo ($ne, $gt...) en el cuerpo o la query: 400 antes de
+// llegar a cualquier ruta (ver middleware/rejectOperators).
+app.use(rejectOperators);
 
 // Compression
 app.use(compression());
@@ -139,18 +148,22 @@ if (!isProduction || process.env.SWAGGER_ENABLED === 'true') {
   );
 }
 
-// Endpoint para descargar el spec en JSON
-app.get('/api-docs.json', (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerSpec);
-});
+// El spec descargable sigue la misma regla que la UI: antes se publicaba
+// también en producción y entregaba el mapa completo de la API.
+if (!isProduction || process.env.SWAGGER_ENABLED === 'true') {
+  // Endpoint para descargar el spec en JSON
+  app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
 
-// Endpoint para descargar el spec en YAML (opcional)
-app.get('/api-docs.yaml', (req, res) => {
-  const yaml = require('js-yaml');
-  res.setHeader('Content-Type', 'text/yaml');
-  res.send(yaml.dump(swaggerSpec));
-});
+  // Endpoint para descargar el spec en YAML (opcional)
+  app.get('/api-docs.yaml', (req, res) => {
+    const yaml = require('js-yaml');
+    res.setHeader('Content-Type', 'text/yaml');
+    res.send(yaml.dump(swaggerSpec));
+  });
+}
 
 // 404 handler
 app.use((req, res) => {

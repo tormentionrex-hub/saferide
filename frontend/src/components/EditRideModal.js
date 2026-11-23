@@ -98,7 +98,7 @@ const EditRideModal = ({ visible, ride, onClose, onSaved, theme }) => {
                             mode="time"
                             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                             onChange={(_e, date) => {
-                                if (Platform.OS === 'android') setShowPicker(false);
+                                if (Platform.OS !== 'ios') setShowPicker(false);
                                 if (date) setTime(date);
                             }}
                         />

@@ -12,6 +12,8 @@
 <p align="center">
   <img alt="Expo SDK 54" src="https://img.shields.io/badge/Expo-SDK%2054-000020">
   <img alt="React Native 0.81" src="https://img.shields.io/badge/React%20Native-0.81-61DAFB">
+  <img alt="React 19" src="https://img.shields.io/badge/React-19-61DAFB">
+  <img alt="Vite 8" src="https://img.shields.io/badge/Vite-8-646CFF">
   <img alt="Node.js" src="https://img.shields.io/badge/Node.js-%E2%89%A518-339933">
   <img alt="Express 5" src="https://img.shields.io/badge/Express-5-000000">
   <img alt="MongoDB" src="https://img.shields.io/badge/MongoDB-Cosmos%20DB-47A248">
@@ -30,20 +32,30 @@ Hotmail se rechazan), así que cada quien viaja con compañeros de trabajo verif
 - **El pasajero** busca viajes hacia su destino, ofrece un monto, espera la aceptación, sigue el carro en el
   mapa y paga en efectivo, por SINPE Móvil o (en beta) en línea.
 - **Ambos** se califican al terminar, ven su historial y sus métricas de kilómetros compartidos y CO₂ ahorrado.
+- **El administrador** supervisa todo desde un panel web: usuarios, conductores y sus vehículos, reservas y
+  pagos, viajes en curso en un mapa, quejas, notificaciones y un registro de auditoría de cada acción sensible.
 
 Este repositorio contiene el proyecto completo:
 
 | Carpeta | Qué es | Tecnología |
 |---|---|---|
 | [`frontend/`](frontend) | App móvil para Android e iOS | Expo SDK 54, React Native 0.81, React Navigation |
-| [`backend/`](backend) | API REST y trabajos programados | Node.js, Express 5, MongoDB (Azure Cosmos DB), Mongoose |
+| [`Administrador-SafeRide/`](Administrador-SafeRide) | Panel web de administración | Vite, React 19, React Router, Recharts, Leaflet |
+| [`backend/`](backend) | API REST y trabajos programados, compartida por la app y el panel | Node.js, Express 5, MongoDB (Azure Cosmos DB), Mongoose |
 | [`docs/`](docs) | Capturas de pantalla usadas en este README | |
 
-El historial de commits de los dos proyectos originales se conserva completo.
+El historial de commits de la app y del backend se conserva completo. El panel se incorporó desde su
+repositorio original (rama `dev`) como copia de archivos, sin su historial, porque ese historial incluye
+credenciales que no deben publicarse.
+
+## Créditos
+
+- **Aplicación móvil:** Christopher González.
+- **Panel administrativo:** Keylor David y Naomy González.
 
 ---
 
-## Capturas
+## Capturas de la app móvil
 
 Tomadas en un Samsung Galaxy A34 real con Expo Go durante las pruebas de la entrega.
 
@@ -81,6 +93,42 @@ Tomadas en un Samsung Galaxy A34 real con Expo Go durante las pruebas de la entr
 |:---:|:---:|:---:|:---:|:---:|
 | <img src="docs/screenshots/18-historial-conductor.jpg" width="140"> | <img src="docs/screenshots/19-metricas.jpg" width="140"> | <img src="docs/screenshots/20-notificaciones.jpg" width="140"> | <img src="docs/screenshots/21-modo-oscuro.jpg" width="140"> | <img src="docs/screenshots/22-perfil.jpg" width="140"> |
 
+## Capturas del panel de administración
+
+Tomadas en el navegador con datos de prueba, a 1440 × 900 y reducidas a 1280 px de ancho.
+
+### Acceso y vista general
+
+| Inicio de sesión | Panel principal |
+|:---:|:---:|
+| <img src="docs/screenshots/panel/01-inicio-sesion.jpg" width="420"> | <img src="docs/screenshots/panel/02-inicio.jpg" width="420"> |
+
+### Personas y vehículos
+
+| Pasajeros | Conductores |
+|:---:|:---:|
+| <img src="docs/screenshots/panel/03-usuarios.jpg" width="420"> | <img src="docs/screenshots/panel/04-conductores.jpg" width="420"> |
+
+| Vehículos y documentos | Monitoreo de viajes en curso |
+|:---:|:---:|
+| <img src="docs/screenshots/panel/05-vehiculos.jpg" width="420"> | <img src="docs/screenshots/panel/08-monitoreo.jpg" width="420"> |
+
+### Reservas y pagos
+
+| Reservas | Pagos |
+|:---:|:---:|
+| <img src="docs/screenshots/panel/06-reservas.jpg" width="420"> | <img src="docs/screenshots/panel/07-pagos.jpg" width="420"> |
+
+### Soporte y control
+
+| Notificaciones | Quejas |
+|:---:|:---:|
+| <img src="docs/screenshots/panel/09-notificaciones.jpg" width="420"> | <img src="docs/screenshots/panel/10-quejas.jpg" width="420"> |
+
+| Auditoría | Configuración | Mi perfil |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/panel/11-auditoria.jpg" width="280"> | <img src="docs/screenshots/panel/12-configuracion.jpg" width="280"> | <img src="docs/screenshots/panel/13-mi-perfil.jpg" width="280"> |
+
 ---
 
 ## Flujo de un viaje
@@ -113,6 +161,96 @@ confirmada ya no se puede cancelar, y quien tiene un cobro pendiente no puede re
 
 ---
 
+## Panel de administración
+
+El panel es una aplicación web aparte, en [`Administrador-SafeRide/`](Administrador-SafeRide), que usa **la misma API** que la app
+móvil. No tiene base de datos propia: todo lo que muestra y cada cambio que hace pasa por el backend, que
+valida que quien llama sea administrador.
+
+| Sección | Qué permite |
+|---|---|
+| Panel principal | Totales de usuarios, viajes, kilómetros y CO₂, reservas por día, distribución de pagos y usuarios por rol |
+| Pasajeros y Conductores | Buscar, filtrar por inicial, ver el perfil completo, activar o desactivar cuentas, ajustar el TrustScore y borrar definitivamente |
+| Vehículos | Inventario de la flota y revisión de los 6 documentos del conductor (cédula, licencia, póliza, marchamo, RTV y tarjeta de circulación); el vehículo se activa solo cuando los 6 están aprobados |
+| Reservas | Todas las reservas con filtros por estado, pago, método y fechas, y búsqueda por pasajero o conductor |
+| Pagos | Totales cobrados, pagados, pendientes y exonerados, y el detalle de cada cobro |
+| Monitoreo | Mapa con los viajes en curso y la última posición de cada conductor |
+| Notificaciones y Quejas | Avisos del sistema; las quejas se guardan en el backend y se responden o se marcan como atendidas desde el panel |
+| Auditoría | Registro de cada acción sensible de un administrador: quién, qué, sobre qué y cuándo |
+| Configuración y Mi perfil | Meta mensual de carbono ahorrado, preferencias, cambio de contraseña y cerrar todas las sesiones |
+
+### Flujo del administrador
+
+```mermaid
+flowchart TD
+    A[Administrador abre el panel] --> B[Inicia sesión con su correo institucional]
+    B --> C{¿La cuenta es de administrador?}
+    C -->|No| D[Acceso denegado: se limpia la sesión y vuelve al inicio de sesión]
+    C -->|Sí| E[Panel principal con los totales del sistema]
+    E --> F[Pasajeros y Conductores]
+    E --> G[Vehículos y documentos]
+    E --> H[Reservas y Pagos]
+    E --> I[Monitoreo en vivo]
+    E --> J[Quejas y Notificaciones]
+    F --> F1[Activar, desactivar, ajustar TrustScore o borrar definitivamente]
+    G --> G0[Validación automática por reglas cada 10 minutos]
+    G0 --> G1[Aprobar, rechazar o pedir reenvío con motivo]
+    G1 --> G2[Con los 6 documentos aprobados, el vehículo se activa]
+    J --> J1[Responder o marcar como atendida]
+    B --> K
+    F1 --> K[(Registro de auditoría)]
+    G1 --> K
+    J1 --> K
+    K --> L[Página de Auditoría]
+```
+
+El borrado definitivo nunca se aplica sobre uno mismo ni sobre otro administrador, y se bloquea si la persona
+tiene viajes o reservas activas o cobros pendientes. Si otros usuarios tienen historial con ella (viajes
+compartidos, reseñas), la cuenta se anonimiza en lugar de borrarse, para no romper ese historial.
+
+### Arquitectura del panel
+
+```mermaid
+flowchart LR
+    subgraph Navegador[Panel web - Administrador-SafeRide/]
+        P[Páginas React + React Router]
+        RUTA[Ruta privada: solo rol admin]
+        SVC[Servicios con Axios y renovación de token]
+    end
+    subgraph Local[Agente de quejas - scripts/sync_complaints.cjs]
+        AG[Servidor local en 127.0.0.1:3001]
+    end
+    API[Backend SafeRide - la misma API de la app]
+    DB[(MongoDB)]
+    GMAIL[Correo de soporte por IMAP y SMTP]
+    IA[Gemini: clasifica y redacta respuestas]
+
+    JOBS[Trabajo programado: validación de documentos]
+
+    P --> RUTA --> SVC --> API --> DB
+    JOBS --> DB
+    AG -.opcional.-> GMAIL
+    AG --> IA
+```
+
+- **Acceso:** el panel solo deja entrar a cuentas con rol de administrador; si un pasajero o conductor
+  intenta usarlo, se limpia la sesión y vuelve al inicio de sesión. Aun así, el control real está en el
+  backend: cada ruta de administración vuelve a comprobar el rol.
+- **Datos en pantalla:** los nombres y textos que escriben los usuarios se escapan antes de insertarse en
+  cualquier diálogo, para que nadie pueda ejecutar código en la sesión del administrador poniendo HTML en su
+  nombre.
+- **Quejas:** se guardan en el backend (`/complaints`) y el panel las lista, responde y marca como atendidas.
+  El agente local de correo (`scripts/sync_complaints.cjs`) queda como herramienta opcional: lee el correo de
+  soporte, usa Gemini para clasificar y proponer respuestas, escucha solo en `127.0.0.1` y solo responde a
+  quien escribió.
+- **Documentos:** un trabajo programado valida cada 10 minutos los documentos pendientes con reglas (datos
+  presentes, fechas vigentes, que coincidan con el conductor y el vehículo). Lo que no se puede decidir solo
+  queda para revisión manual del administrador.
+- **Auditoría:** se registran los inicios de sesión del panel, la revisión de documentos y quejas, la
+  aprobación de vehículos, los cambios de cuenta y de TrustScore, y el borrado definitivo.
+
+---
+
 ## Arquitectura
 
 ```mermaid
@@ -120,6 +258,9 @@ flowchart LR
     subgraph Telefono[App móvil - frontend/]
         UI[Pantallas React Native]
         AX[Cliente HTTP con renovación de token]
+    end
+    subgraph Web[Panel de administración - Administrador-SafeRide/]
+        PA[Páginas React]
     end
     subgraph API[Backend - backend/]
         EX[Express 5 + validación + rate limit]
@@ -131,6 +272,7 @@ flowchart LR
     EXPO[Expo Push]
 
     UI --> AX --> EX
+    PA -->|solo rol admin| EX
     EX --> DB
     JOB --> DB
     EX -->|proxy con clave del servidor| GM
@@ -141,7 +283,12 @@ flowchart LR
 - **Estado en vivo:** las pantallas de espera, de viaje en curso y la ubicación del conductor se actualizan
   consultando la API cada pocos segundos, y se pausan cuando la app pasa a segundo plano.
 - **Autenticación:** JWT de acceso (1 h) y de renovación, con rotación y revocación guardando solo el hash
-  del token. Límites de peticiones por usuario.
+  del token. Cada token lleva una versión de sesión: recuperar la contraseña o "cerrar todas las sesiones"
+  invalida todos los tokens anteriores. Límites de peticiones por usuario y por IP.
+- **Registro verificado:** la cuenta solo se crea si el correo corporativo se verificó antes con el PIN de 6
+  dígitos, que tiene un tope de intentos y no sirve dos veces.
+- **Entradas:** una capa global rechaza cualquier operador de base de datos (`$`) en lo que se envía, y cada
+  ruta valida tipos, largos y rangos; los nombres no aceptan HTML.
 - **Google Maps va por el backend:** la app no lleva en el bundle la clave de rutas, Places ni geocodificación;
   el backend hace de proxy con su propia clave restringida. La app solo usa la clave del SDK nativo del mapa.
 - **Pagos:** el efectivo y SINPE Móvil funcionan completos. El pago en línea (PayPal, tarjeta, Apple Pay,
@@ -164,6 +311,11 @@ saferide/
 │   ├── src/services/         Cliente de la API y servicios por módulo
 │   ├── src/context/          Tema claro/oscuro
 │   └── __tests__/            Pruebas con Jest
+├── Administrador-SafeRide/   Panel web de administración (Vite + React)
+│   ├── src/pages/            Inicio, Pasajeros, Conductores, Vehículos, Reservas, Pagos, Monitoreo, ...
+│   ├── src/components/       Tablas, modales de perfil, revisión de documentos, rutas privadas
+│   ├── src/services/         Cliente de la API y servicios por módulo
+│   └── scripts/              Agente local de quejas (sync_complaints.cjs)
 ├── backend/                  API REST
 │   ├── server.js
 │   ├── src/routes/           auth, rides, bookings, reviews, maps, paypal, ...
@@ -172,7 +324,7 @@ saferide/
 │   ├── src/jobs/             Recordatorios, limpieza y métricas programadas
 │   ├── src/scripts/          initDatabase.js (datos de prueba)
 │   └── scripts/qa/           Pruebas de ataques y de flujos contra la API
-└── docs/screenshots/
+└── docs/screenshots/         Capturas de la app y, en panel/, del panel
 ```
 
 Documentación más detallada de la API en [`backend/README.md`](backend/README.md) y
@@ -208,14 +360,26 @@ npm start                   # escanear el QR con Expo Go
 ```
 
 Si `EXPO_PUBLIC_API_URL` queda vacía, en desarrollo la app usa la IP de la PC que sirve Expo en el puerto 8080.
-Con el teléfono por USB también funciona `adb reverse tcp:8080 tcp:8080`.
+Con el teléfono por USB también funciona `adb reverse tcp:8080 tcp:8080`. Para verla sin teléfono, `npm run web`
+la abre en el navegador (el mapa no se dibuja en web).
 
-### 3. Pruebas
+### 3. Panel de administración
 
 ```bash
-cd frontend && npm test             # pruebas unitarias de la app
-cd backend  && npm run qa:ataques   # 103 casos: permisos, inyección, carreras, tokens, límites
-cd backend  && npm run qa:flujos    # 93 casos: ciclo completo de viaje, reservas, pagos, reseñas
+cd Administrador-SafeRide
+cp .env.example .env        # VITE_API_URL apunta al backend (por defecto http://localhost:8080/api/v1)
+npm install
+npm run dev                 # http://localhost:5173, entrar con una cuenta de rol admin
+npm run sync-complaints     # opcional: agente local de quejas (necesita SUPPORT_EMAIL y GEMINI_API_KEY)
+```
+
+### 4. Pruebas
+
+```bash
+cd frontend    && npm test             # 75 pruebas unitarias de la app
+cd backend     && npm run qa:ataques   # 348 casos: permisos, inyección, carreras, tokens, límites, archivos
+cd backend     && npm run qa:flujos    # 114 casos: ciclo de viaje, reservas, pagos, reseñas, documentos, auditoría
+cd Administrador-SafeRide && npm run build        # compilación del panel
 ```
 
 Los scripts de QA necesitan el backend corriendo contra la base de pruebas; ver
@@ -254,6 +418,45 @@ Algunos de los arreglos que salieron de esas rondas:
   con un cobro pendiente, solo califica quien viajó.
 - Todos los montos se muestran con el mismo formato de colones (`₡5,022`).
 
+## Auditoría de seguridad e integración del panel (noviembre 2026)
+
+Se atacó a propósito cada endpoint de la API y cada pantalla de la app y del panel. Cada vez que algo cedía,
+se reforzó con varias capas de defensa y se volvió a atacar con al menos cuatro variantes del mismo ataque,
+hasta que ninguna pasara. Cada variante quedó como prueba automática.
+
+| Qué | Antes | Después |
+|---|---|---|
+| Ataques automatizados contra la API | 103 | 348, todos rechazados |
+| Flujos de negocio automatizados | 93 | 114, todos correctos |
+| Pruebas unitarias de la app | 13 | 75 |
+| Vulnerabilidades conocidas en dependencias del backend | 28 (3 críticas) | 6, sin críticas |
+| Vulnerabilidades conocidas en dependencias del panel | 14 (1 crítica) | 4, sin críticas |
+| Rutas que el panel llamaba y no existían en el backend | 10 | 0 |
+
+Lo más importante que se cerró:
+- **Pagos:** con un identificador de orden manipulado se podía ordenar un reembolso de PayPal con la cuenta del
+  comercio; ahora el identificador, el monto, la moneda y el estado de la captura deben coincidir.
+- **Registro:** se podía crear una cuenta sin verificar el correo, lo que dejaba sin efecto el filtro de correo
+  corporativo. El PIN de verificación también se podía saltar con un truco de inyección o adivinar a fuerza de
+  intentos.
+- **Deudas:** un pasajero con un viaje sin pagar podía marcarlo como cancelado y volver a reservar.
+- **Panel:** el nombre de un usuario con HTML se ejecutaba en la sesión del administrador; un token de pasajero
+  provocaba recargas sin fin; los documentos simulados se podían "aprobar" como si fueran reales; y el agente
+  de quejas escuchaba en toda la red sin restricciones.
+- **Datos personales:** los teléfonos y correos de conductores eran visibles para cualquier usuario, y en un
+  caso sin iniciar sesión.
+
+Integración del panel: se movió a su propia carpeta, se conectó a las diez rutas nuevas del backend
+(auditoría, documentos de vehículos, borrado definitivo, cambio de contraseña y cerrar todas las sesiones),
+se construyeron las páginas de Reservas y Pagos que estaban sin hacer, se reemplazaron los datos inventados
+por datos reales, y las cuentas eliminadas ya no aparecen en los listados salvo que se pidan.
+
+El 22 de noviembre Naomy González integró en `dev` su versión del panel en `Administrador-SafeRide/`, con
+quejas en el backend, validación automática de documentos, aprobación de vehículos por documentos, monitoreo
+y meta de carbono. Al unir las dos ramas se dejó su trabajo como base y se sumó encima lo de seguridad: en
+cada choque quedó su versión. Las pruebas de ataques y de flujos se adaptaron a su modelo de documentos y
+auditoría, y se corrigió que un pasajero con reserva activa no pudiera ver el vehículo de su conductor.
+
 ---
 
 ## Pendiente
@@ -265,5 +468,19 @@ Lo que depende de cuentas, credenciales o dinero, y por eso no se activó en est
 - Backend publicado en la nube con dominio HTTPS.
 - Publicación en Google Play y App Store.
 
-Deuda técnica conocida: las pantallas de espera no avisan cuando se pierde la conexión, el tiempo de espera de
-una solicitud se calcula con el reloj del teléfono, y todo se probó en Expo Go, no en el binario final de EAS.
+- Almacenamiento privado de archivos (Azure Blob) para los documentos de vehículos: sin él, la subida responde
+  que el almacenamiento no está configurado.
+- Lectura automática (OCR) de las fotos de los documentos: la validación actual revisa los datos registrados con
+  reglas, no lee la imagen.
+
+Deuda técnica conocida:
+- El tiempo de espera de una solicitud se calcula con el reloj del teléfono, y todo se probó en Expo Go, no en
+  el binario final de EAS.
+- Seis vulnerabilidades de dependencias del backend (zod, nodemailer, bull, passport-azure-ad) y cuatro del
+  agente de quejas del panel (nodemailer, semver) requieren versiones mayores que pueden romper código.
+- El panel tiene 25 avisos del revisor de código, sobre todo patrones de hooks de React sin un bug
+  identificado.
+- Qué viajes ya calificó cada persona se recuerda en el dispositivo; en otro dispositivo, el botón de
+  calificar vuelve a aparecer hasta tocarlo, y el backend responde que ya se calificó.
+- Si un administrador desactiva un vehículo, el conductor puede registrar otro; la propuesta para bloquearlo
+  requiere un campo nuevo y cambios en la app y el panel.

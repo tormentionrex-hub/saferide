@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { isSessionRejected } from '../utils/apiErrors';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Configuración
@@ -19,8 +20,12 @@ const PUBLIC_AUTH_ENDPOINTS = [
 const isPublicAuthRequest = (url = '') =>
     PUBLIC_AUTH_ENDPOINTS.some((endpoint) => url.includes(endpoint));
 
+// Sin tope de tiempo, un servidor colgado dejaba spinners para siempre.
+const REQUEST_TIMEOUT_MS = 15000;
+
 const api = axios.create({
     baseURL: BASE_URL,
+    timeout: REQUEST_TIMEOUT_MS,
     headers: {
         'Content-Type': 'application/json',
         'X-Client-Type': 'web-admin',
@@ -41,7 +46,11 @@ const refreshAccessToken = async () => {
 
     refreshPromise = (async () => {
         const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) throw new Error('No refresh token available');
+        if (!refreshToken) {
+            const err = new Error('No refresh token available');
+            err.sessionMissing = true;
+            throw err;
+        }
 
         // axios directo (no `api`) para no pasar por este propio interceptor.
         // Replicamos X-Client-Type a mano para mantener consistencia con el resto de peticiones.
@@ -121,9 +130,12 @@ api.interceptors.response.use(
                 originalConfig.headers.Authorization = `Bearer ${newAccessToken}`;
                 return api.request(originalConfig);
             } catch (refreshError) {
-                // Refresh falló (sin refresh token, revocado o expirado) → sesión muerta.
-                forceLogoutAndRedirect();
-                return Promise.reject(error);
+                // Solo es sesión muerta si el backend rechazó el refresh o no hay
+                // refreshToken. Sin red / servidor caído NO se cierra la sesión.
+                if (refreshError?.sessionMissing || isSessionRejected(refreshError)) {
+                    forceLogoutAndRedirect();
+                }
+                return Promise.reject(refreshError?.response || refreshError?.sessionMissing ? error : refreshError);
             }
         }
 

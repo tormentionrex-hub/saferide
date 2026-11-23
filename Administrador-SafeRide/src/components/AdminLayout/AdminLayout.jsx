@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, Users, User, UserCheck, Car,
   Bell, AlertCircle, ShieldCheck, Settings, ChevronDown, Menu, Search,
-  Activity
+  Activity, CalendarCheck, Wallet
 } from 'lucide-react';
 import IconSafeRide from '../../imgs/IconSafeRide.png';
 import DefaultImageUser from '../../imgs/DefaultImageUser.png';
@@ -150,6 +150,22 @@ const AdminLayout = () => {
             icon={Car}
             label="Vehículos"
             active={location.pathname === '/vehiculos'}
+            onClick={handleCloseSidebar}
+          />
+
+          <NavItem
+            to="/reservas"
+            icon={CalendarCheck}
+            label="Reservas"
+            active={location.pathname === '/reservas'}
+            onClick={handleCloseSidebar}
+          />
+
+          <NavItem
+            to="/pagos"
+            icon={Wallet}
+            label="Pagos"
+            active={location.pathname === '/pagos'}
             onClick={handleCloseSidebar}
           />
 

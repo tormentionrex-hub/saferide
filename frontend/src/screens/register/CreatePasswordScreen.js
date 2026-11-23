@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../services/api';
 import { useCustomAlert } from '../../context/CustomAlertContext';
 import { useCompanies } from '../../services/companiesService';
+import { validatePersonName, NAME_MAX } from '../../utils/nameValidation';
 
 const { width, height } = Dimensions.get('window');
 const ICON = require('../../images/IconSafeRide.png');
@@ -134,11 +135,8 @@ export default function CreatePasswordScreen({ route, navigation }) {
         setErrors({});
         let currentErrors = {};
 
-        if (!name.trim()) {
-            currentErrors.name = "El nombre es requerido.";
-        } else if (name.trim().length < 4) {
-            currentErrors.name = "El nombre debe tener al menos 4 caracteres.";
-        }
+        const nameError = validatePersonName(name);
+        if (nameError) currentErrors.name = nameError;
         if (!company) {
             currentErrors.company = "Debes seleccionar una empresa.";
         }
@@ -244,13 +242,17 @@ export default function CreatePasswordScreen({ route, navigation }) {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="Tu nombre completo"
+                                    maxLength={NAME_MAX}
                                     placeholderTextColor="rgba(255, 255, 255, 0.57)"
                                     autoCapitalize="words"
                                     value={name}
                                     onFocus={() => setNameFocus(true)}
                                     onBlur={() => setNameFocus(false)}
                                     onChangeText={(text) => {
-                                        setName(text.replace(/[^a-zA-Z ]/g, ''));
+                                        // Antes: text.replace(/[^a-zA-Z ]/g, '') borraba en silencio
+                                        // tildes, ñ y apóstrofos (José Núñez → Jos Nez). Ahora se
+                                        // escribe tal cual y se valida al confirmar.
+                                        setName(text);
                                         if (errors.name) setErrors({ ...errors, name: null });
                                     }}
                                 />

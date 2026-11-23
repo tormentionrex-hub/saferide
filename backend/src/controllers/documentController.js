@@ -118,3 +118,115 @@ exports.reprocessDocument = async (req, res, next) => {
     next(error);
   }
 };
+
+// ---------------------------------------------------------------------------
+// Subida de documentos desde la app (conductor dueño del vehículo). Usan el
+// mismo modelo Document que revisa el panel, así la app y el panel ven la
+// misma colección.
+// ---------------------------------------------------------------------------
+const mongoose = require('mongoose');
+const { Vehicle } = require('../models');
+const { isBlobConfigured, uploadPrivateDocument, deleteFromBlob, DOCUMENTS_CONTAINER } = require('../services/blobService');
+
+const DOC_TYPES = Document.schema.path('type').enumValues;
+
+// El contenido real del archivo debe coincidir con el tipo que declara el
+// cliente (multer solo ve el mimetype que manda el cliente).
+const SIGNATURES = {
+  'image/jpeg': (b) => b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  'image/png': (b) => b.length > 8 && b.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+  'image/webp': (b) => b.length > 12 && b.slice(0, 4).toString('latin1') === 'RIFF' && b.slice(8, 12).toString('latin1') === 'WEBP',
+  'application/pdf': (b) => b.length > 5 && b.slice(0, 5).toString('latin1') === '%PDF-',
+};
+const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };
+
+// @desc   Subir un documento del vehículo (multipart: file + type)
+// @route  POST /api/v1/vehicles/:id/documents
+// @access Private (solo el conductor dueño del vehículo)
+exports.uploadVehicleDocument = async (req, res, next) => {
+  try {
+    const vehicle = await Vehicle.findById(req.params.id).select('driver_id');
+    if (!vehicle) return res.status(404).json({ success: false, message: 'Vehicle not found' });
+    if (vehicle.driver_id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+    const file = req.file;
+    if (!file) return res.status(400).json({ success: false, message: 'No document file provided' });
+    const type = String(file.mimetype || '').toLowerCase();
+    if (!SIGNATURES[type] || !SIGNATURES[type](file.buffer)) {
+      return res.status(400).json({ success: false, code: 'INVALID_FILE', message: 'File content does not match an allowed type (JPEG, PNG, WEBP, PDF)' });
+    }
+    if (!isBlobConfigured()) {
+      return res.status(503).json({ success: false, code: 'STORAGE_NOT_CONFIGURED', message: 'Document storage is not configured on this server' });
+    }
+    const fileUrl = await uploadPrivateDocument(
+      file.buffer,
+      `doc-${vehicle._id}-${req.body.type}-${Date.now()}.${EXT[type]}`,
+      type
+    );
+    const doc = await Document.create({
+      driver_id: vehicle.driver_id,
+      vehicle_id: vehicle._id,
+      type: req.body.type,
+      fileUrl,
+      mimeType: type,
+      sizeBytes: file.size,
+      source: 'upload',
+    });
+    res.status(201).json({ success: true, message: 'Document uploaded', data: doc });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc   Borrar un documento propio (por id o por tipo)
+// @route  DELETE /api/v1/vehicles/:id/documents/:docId
+// @access Private (solo el conductor dueño; un documento aprobado no se borra)
+exports.deleteVehicleDocument = async (req, res, next) => {
+  try {
+    const vehicle = await Vehicle.findById(req.params.id).select('driver_id');
+    if (!vehicle) return res.status(404).json({ success: false, message: 'Vehicle not found' });
+    if (vehicle.driver_id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+    const key = req.params.docId;
+    const filter = mongoose.Types.ObjectId.isValid(key) && String(new mongoose.Types.ObjectId(key)) === key
+      ? { _id: key, driver_id: vehicle.driver_id }
+      : { type: key, driver_id: vehicle.driver_id };
+    const doc = await Document.findOne(filter).sort({ createdAt: -1 });
+    if (!doc) return res.status(404).json({ success: false, message: 'Document not found' });
+    // Un documento aprobado es parte de la verificación del conductor:
+    // borrarlo lo decide un admin, no el conductor.
+    if (doc.status === 'approved') {
+      return res.status(409).json({ success: false, code: 'DOCUMENT_APPROVED', message: 'Approved documents cannot be deleted' });
+    }
+    await Document.deleteOne({ _id: doc._id, status: { $ne: 'approved' } });
+    if (doc.source === 'upload') await deleteFromBlob(doc.fileUrl, DOCUMENTS_CONTAINER);
+    res.status(200).json({ success: true, message: 'Document deleted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Documento de póliza que llega con el registro del vehículo en la app
+// (la app sube el certificado a Cloudinary y manda la URL). Solo se aceptan
+// URLs https de res.cloudinary.com (validado también en la ruta).
+const CLOUDINARY_URL = /^https:\/\/res\.cloudinary\.com\/[A-Za-z0-9_-]+\/(image|raw)\/upload\/[A-Za-z0-9_\-./%]+$/;
+exports.isCloudinaryUrl = (u) => typeof u === 'string' && u.length <= 2048 && CLOUDINARY_URL.test(u) && !u.includes('..');
+exports.createRegistrationDocument = async (vehicle, { insurance_certificate, policy_number, insurance_expiry }) => {
+  if (!exports.isCloudinaryUrl(insurance_certificate)) return null;
+  return Document.create({
+    driver_id: vehicle.driver_id,
+    vehicle_id: vehicle._id,
+    type: 'poliza',
+    fileUrl: insurance_certificate,
+    mimeType: /\.pdf$/i.test(insurance_certificate) ? 'application/pdf' : 'image/jpeg',
+    source: 'app_registration',
+    extractedData: {
+      policyNumber: typeof policy_number === 'string' ? policy_number.slice(0, 40) : null,
+      expiryDate: insurance_expiry && !Number.isNaN(Date.parse(insurance_expiry)) ? new Date(insurance_expiry).toISOString() : null,
+    },
+  });
+};
+
+exports.DOC_TYPES = DOC_TYPES;

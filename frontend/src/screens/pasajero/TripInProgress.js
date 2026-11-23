@@ -21,6 +21,7 @@ import { moderateScale } from '../../utils/responsive';
 import { fetchDirections } from '../../services/locationService';
 import { devLog } from '../../utils/devLog';
 import { formatCRC } from '../../utils/currency';
+import { getInitials } from '../../utils/initials';
 
 // Decodifica el polyline codificado de Google Maps en array de coordenadas
 const decodePolyline = (encoded) => {
@@ -107,9 +108,7 @@ const TripStatusModal = ({ visible, status, onConfirm, theme }) => {
 /* ─── Avatar del conductor con fallback de iniciales ──────────────── */
 const DriverAvatar = ({ profileImage, name, size = 44 }) => {
     const [imgError, setImgError] = useState(false);
-    const initials = name
-        ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-        : '?';
+    const initials = getInitials(name);
     const radius = size / 2;
 
     if (profileImage && !imgError) {

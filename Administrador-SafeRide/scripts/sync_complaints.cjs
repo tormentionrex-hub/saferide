@@ -16,8 +16,37 @@ const cors = require('cors');
 const nodemailer = require('nodemailer');
 
 // Configuración
-const PORT = 3001;
+const PORT = Number(process.env.COMPLAINTS_AGENT_PORT) || 3001;
+// Solo escucha en la máquina local: no debe quedar expuesto en la red.
+const HOST = '127.0.0.1';
+// Orígenes del panel que pueden llamar al agente (separados por coma).
+const ALLOWED_ORIGINS = (process.env.COMPLAINTS_PANEL_ORIGIN || 'http://localhost:5173')
+    .split(',').map(o => o.trim()).filter(Boolean);
+// Cabecera obligatoria en /api/*: fuerza el preflight de CORS, así que otra web
+// abierta en el navegador no puede disparar /api/sync o /api/resolve (CSRF).
+const PANEL_HEADER = 'x-saferide-panel';
+const MAX_SUBJECT_LENGTH = 200;
+const MAX_MESSAGE_LENGTH = 5000;
+const EMAIL_RE = /^[^\s@<>"',;]+@[^\s@<>"',;]+\.[^\s@<>"',;]+$/;
 const COMPLAINTS_FILE = path.join(__dirname, '../src/data/complaints.json');
+
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+));
+// Sin saltos de línea: evita inyectar cabeceras en el asunto del correo.
+const oneLine = (value) => String(value ?? '').replace(/[\r\n]+/g, ' ').trim();
+
+// Solo se responde a quien escribió: el destinatario tiene que ser el correo
+// de una queja registrada (no se aceptan direcciones arbitrarias).
+function isKnownComplainant(email) {
+    try {
+        const list = JSON.parse(fs.readFileSync(COMPLAINTS_FILE, 'utf8'));
+        const target = String(email).trim().toLowerCase();
+        return Array.isArray(list) && list.some(q => String(q.email || '').trim().toLowerCase() === target);
+    } catch {
+        return false;
+    }
+}
 
 // Inicializar Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -45,8 +74,19 @@ const transporter = nodemailer.createTransport({
 });
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+    origin: (origin, cb) => cb(null, !origin || ALLOWED_ORIGINS.includes(origin) ? origin || false : false),
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'X-SafeRide-Panel'],
+}));
+app.use(express.json({ limit: '20kb', strict: true }));
+app.use('/api', (req, res, next) => {
+    if (req.method === 'OPTIONS') return next();
+    const origin = req.get('origin');
+    if (origin && !ALLOWED_ORIGINS.includes(origin)) return res.status(403).json({ error: 'Origen no permitido.' });
+    if (req.get(PANEL_HEADER) !== '1') return res.status(403).json({ error: 'Falta la cabecera del panel.' });
+    next();
+});
 
 // --- LÓGICA DE IA ---
 async function processEmailWithAI(mail, uid) {
@@ -106,7 +146,7 @@ async function sendAutoReply(toEmail, caseId, originalSubject) {
     const mailOptions = {
         from: `"Soporte SafeRide" <${process.env.SUPPORT_EMAIL || 'saferidefwd@gmail.com'}>`,
         to: toEmail,
-        subject: `[SafeRide] Recepción de Reporte: ${originalSubject}`,
+        subject: `[SafeRide] Recepción de Reporte: ${oneLine(originalSubject).slice(0, MAX_SUBJECT_LENGTH)}`,
         html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #E2E8F0; border-radius: 8px;">
                 <div style="background: #2563EB; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
@@ -121,8 +161,8 @@ async function sendAutoReply(toEmail, caseId, originalSubject) {
                         <strong>Detalles preliminares de tu caso:</strong>
                     </p>
                     <ul style="background: white; padding: 16px 24px; border-radius: 8px; border: 1px solid #E2E8F0; list-style-type: none; margin: 0 0 20px 0; padding-left: 20px;">
-                        <li style="margin-bottom: 8px; font-size: 14px; color: #475569;"><strong>ID de Seguimiento:</strong> ${caseId}</li>
-                        <li style="margin-bottom: 8px; font-size: 14px; color: #475569;"><strong>Asunto:</strong> ${originalSubject}</li>
+                        <li style="margin-bottom: 8px; font-size: 14px; color: #475569;"><strong>ID de Seguimiento:</strong> ${escapeHtml(caseId)}</li>
+                        <li style="margin-bottom: 8px; font-size: 14px; color: #475569;"><strong>Asunto:</strong> ${escapeHtml(originalSubject)}</li>
                         <li style="font-size: 14px; color: #475569;"><strong>Estado:</strong> En Revisión</li>
                     </ul>
                     <p style="font-size: 15px; color: #334155;">
@@ -198,7 +238,10 @@ app.get('/api/sync', (req, res) => {
 });
 
 app.post('/api/resolve/:uid', (req, res) => {
-    const uid = parseInt(req.params.uid);
+    const uid = Number(req.params.uid);
+    if (!Number.isInteger(uid) || uid <= 0) {
+        return res.status(400).json({ error: 'UID inválido.' });
+    }
     const imap = new Imap(imapConfig);
     imap.once('ready', () => {
         imap.openBox('INBOX', false, () => {
@@ -214,17 +257,27 @@ app.post('/api/resolve/:uid', (req, res) => {
 });
 
 app.post('/api/reply', async (req, res) => {
-    const { to, subject, message } = req.body;
-    
-    if (!to || !subject || !message) {
+    const { to, subject, message } = req.body || {};
+
+    if (typeof to !== 'string' || typeof subject !== 'string' || typeof message !== 'string'
+        || !to.trim() || !subject.trim() || !message.trim()) {
         return res.status(400).json({ error: 'Faltan destinatario, asunto o mensaje.' });
+    }
+    if (!EMAIL_RE.test(to.trim())) {
+        return res.status(400).json({ error: 'Destinatario inválido.' });
+    }
+    if (subject.length > MAX_SUBJECT_LENGTH || message.length > MAX_MESSAGE_LENGTH) {
+        return res.status(413).json({ error: `Asunto (máx. ${MAX_SUBJECT_LENGTH}) o mensaje (máx. ${MAX_MESSAGE_LENGTH}) demasiado largo.` });
+    }
+    if (!isKnownComplainant(to)) {
+        return res.status(403).json({ error: 'Solo se puede responder a correos de quejas registradas.' });
     }
 
     try {
         const mailOptions = {
             from: `"Soporte SafeRide" <${process.env.SUPPORT_EMAIL || 'saferidefwd@gmail.com'}>`,
-            to: to,
-            subject: `Re: ${subject}`,
+            to: to.trim(),
+            subject: `Re: ${oneLine(subject)}`,
             text: message,
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6;">
@@ -232,7 +285,7 @@ app.post('/api/reply', async (req, res) => {
                         <h2 style="margin: 0; font-size: 18px;">Respuesta de Soporte SafeRide</h2>
                     </div>
                     <div style="padding: 20px; border: 1px solid #E2E8F0; border-top: none; border-radius: 0 0 8px 8px; background: #F8FAFC;">
-                        <p style="white-space: pre-wrap; font-size: 15px; color: #1E293B;">${message}</p>
+                        <p style="white-space: pre-wrap; font-size: 15px; color: #1E293B;">${escapeHtml(message)}</p>
                         <hr style="border: 0; border-top: 1px solid #E2E8F0; margin: 20px 0;">
                         <p style="font-size: 12px; color: #64748B;">Este es un correo automático enviado en respuesta a su reporte. Por favor no responda directamente a este mensaje.</p>
                     </div>
@@ -249,8 +302,18 @@ app.post('/api/reply', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`🤖 Servidor Agente SafeRide en http://localhost:${PORT}`);
+// Errores del parser (JSON inválido, cuerpo demasiado grande): respuesta JSON
+// corta, sin la página HTML con stack trace de Express.
+app.use((err, req, res, next) => {
+    const status = err.status || err.statusCode || 500;
+    const error = err.type === 'entity.too.large' ? 'Cuerpo de la petición demasiado grande.'
+        : status < 500 ? 'Petición inválida.' : 'Error interno del agente.';
+    if (status >= 500) console.error(err);
+    res.status(status).json({ error });
+});
+
+app.listen(PORT, HOST, () => {
+    console.log(`🤖 Servidor Agente SafeRide en http://${HOST}:${PORT}`);
     console.log(`📡 Modo Autopiloto: Sincronizando con Gmail cada 5 minutos...`);
 
     // Sincronización inicial

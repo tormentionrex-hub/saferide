@@ -8,8 +8,8 @@ const router = express.Router();
 
 // Validation rules
 const notificationValidation = [
-  body('user_id').isMongoId().withMessage('Invalid user ID'),
-  body('message').trim().notEmpty().withMessage('Message is required'),
+  body('user_id').isString().isMongoId().withMessage('Invalid user ID'),
+  body('message').isString().trim().notEmpty().isLength({ max: 500 }).withMessage('Message is required (max 500)'),
   body('type').isIn([
     'booking_confirmed',
     'booking_cancelled',

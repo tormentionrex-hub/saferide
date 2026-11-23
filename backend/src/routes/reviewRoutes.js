@@ -8,8 +8,8 @@ const router = express.Router();
 
 // Validation rules
 const reviewValidation = [
-  body('ride_id').isMongoId().withMessage('Invalid ride ID'),
-  body('reviewee_id').isMongoId().withMessage('Invalid reviewee ID'),
+  body('ride_id').isString().isMongoId().withMessage('Invalid ride ID'),
+  body('reviewee_id').isString().isMongoId().withMessage('Invalid reviewee ID'),
   body('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
   body('comment').optional().trim().isLength({ max: 500 }).withMessage('Comment cannot exceed 500 characters'),
 ];

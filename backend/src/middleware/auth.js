@@ -1,6 +1,12 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
+// El token lleva la versión de sesión con que se firmó (tv; los tokens
+// anteriores a este cambio no la traen y cuentan como 0). Si no coincide con
+// la del usuario, se firmó antes del último restablecimiento de contraseña y
+// ya no vale.
+const staleToken = (decoded, user) => (decoded.tv || 0) !== (user.tokenVersion || 0);
+
 // Verify JWT token
 const verifyToken = async (req, res, next) => {
   try {
@@ -22,10 +28,11 @@ const verifyToken = async (req, res, next) => {
     // (e isActive=false) debe poder seguir leyendo sus datos y completando
     // viajes existentes. El bloqueo de creación de nuevos bookings/rides se
     // hace con el middleware requireActive aplicado puntualmente.
-    const user = await User.findById(decoded.userId).select('-password -refreshToken');
+    const user = await User.findById(decoded.userId).select('-password -refreshToken +tokenVersion');
 
-    // Una cuenta eliminada deja de aceptar los tokens que ya había emitido.
-    if (!user || user.deletedAt) {
+    // Una cuenta eliminada deja de aceptar los tokens que ya había emitido, y
+    // también los tokens firmados antes de restablecer la contraseña.
+    if (!user || user.deletedAt || staleToken(decoded, user)) {
       return res.status(401).json({
         success: false,
         message: 'Invalid token or user not found.',
@@ -79,9 +86,11 @@ const optionalAuth = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       // Un refresh token no sirve como access token.
       if (decoded.typ === 'refresh') throw new Error('Refresh token used as access token');
-      const user = await User.findById(decoded.userId).select('-password -refreshToken');
-      
-      if (user) {
+      const user = await User.findById(decoded.userId).select('-password -refreshToken +tokenVersion');
+
+      // Mismas reglas que verifyToken: cuenta eliminada o token anterior al
+      // restablecimiento de contraseña = sin sesión.
+      if (user && !user.deletedAt && !staleToken(decoded, user)) {
         req.user = user;
       }
     }

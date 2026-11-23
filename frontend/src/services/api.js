@@ -3,6 +3,7 @@ import { API_URL } from '../config.js';
 import tokenStorage from './tokenStorage';
 import { navigate } from './navigationRef';
 import { withListLimit } from './listLimit';
+import { isSessionRejected } from '../utils/apiErrors';
 
 // Endpoints donde un 401 NO significa "sesión expirada" sino "credenciales/código inválido".
 // No deben disparar logout porque el usuario aún no tiene una sesión que cerrar.
@@ -41,7 +42,11 @@ const refreshAccessToken = async () => {
 
     refreshPromise = (async () => {
         const refreshToken = await tokenStorage.getRefreshToken();
-        if (!refreshToken) throw new Error('No refresh token available');
+        if (!refreshToken) {
+            const err = new Error('No refresh token available');
+            err.sessionMissing = true;
+            throw err;
+        }
 
         // axios directo (no `api`) para no pasar por este propio interceptor.
         // Replicamos timeout y X-Client-Type a mano para que el backend siga viendo
@@ -131,9 +136,13 @@ api.interceptors.response.use(
                 originalConfig.headers.Authorization = `Bearer ${newAccessToken}`;
                 return api.request(originalConfig);
             } catch (refreshError) {
-                // Refresh falló (refreshToken expirado, revocado, o ausente) → sesión muerta.
-                await forceLogoutAndRedirect(originalConfig);
-                return Promise.reject(error);
+                // Solo es sesión muerta si el backend rechazó el refresh o no hay
+                // refreshToken. Sin red / servidor caído NO se cierra la sesión: antes
+                // un corte de conexión sacaba a la persona al login.
+                if (refreshError?.sessionMissing || isSessionRejected(refreshError)) {
+                    await forceLogoutAndRedirect(originalConfig);
+                }
+                return Promise.reject(refreshError?.response || refreshError?.sessionMissing ? error : refreshError);
             }
         }
 

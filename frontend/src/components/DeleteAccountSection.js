@@ -40,7 +40,8 @@ const DeleteAccountSection = ({ navigation }) => {
         setError(null);
         try {
             await userService.deleteMyAccount(password);
-            await authService.logout().catch(() => {});
+            // La cuenta ya no existe: solo limpiar la sesión local.
+            await authService.logout({ remote: false }).catch(() => {});
             setVisible(false);
             navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
         } catch (e) {

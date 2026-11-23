@@ -4,6 +4,56 @@ const { uploadToBlob, deleteFromBlob } = require("../services/blobService");
 const trustService = require("../services/trustService");
 const notificationService = require("../services/notificationService");
 const vehicleApprovalService = require("../services/vehicleApprovalService");
+const { recordAudit } = require("../services/auditService");
+const { escapeRegex } = require("../utils/safeText");
+
+// Motivos que impiden borrar una cuenta (la propia o, desde el panel, la de
+// otro): viajes o reservas en curso y cobros pendientes. Devuelve null si se
+// puede borrar o { code, message } con el primer bloqueo.
+const OPEN_RIDE = ['scheduled', 'in progress', 'awaiting_payment_verification'];
+const accountBlocker = async (userId) => {
+    const { Ride, Booking } = require("../models");
+    const openRide = await Ride.exists({ driver_id: userId, status: { $in: OPEN_RIDE } });
+    const openBookings = await Booking.find({
+        passenger_id: userId,
+        status: { $in: ['pending', 'confirmed'] },
+    }).populate('ride_id', 'status');
+    const activeBooking = openBookings.some(b => b.ride_id && OPEN_RIDE.includes(b.ride_id.status));
+    if (openRide || activeBooking) {
+        return { code: 'ACTIVE_TRIPS', message: 'Cancel or finish your active trips before deleting your account' };
+    }
+    const unpaid = await Booking.exists({
+        passenger_id: userId,
+        status: 'completed',
+        payment_status: 'pending',
+        payment_type: { $ne: 'gifted' },
+    });
+    if (unpaid) {
+        return { code: 'PENDING_PAYMENTS', message: 'Pay your pending charges before deleting your account' };
+    }
+    return null;
+};
+
+// Deja la cuenta sin datos personales e inutilizable (mismo criterio que el
+// borrado de cuenta propio): el documento queda porque otros usuarios lo
+// referencian en su historial de viajes, reservas y reseñas.
+const anonymizeUser = async (user) => {
+    const tag = user._id.toString();
+    user.name = 'Usuario eliminado';
+    user.username = `eliminado_${tag}`;
+    user.email = `eliminado+${tag}@saferide.invalid`;
+    if (user.phone) user.phone = '00000000';
+    user.profileImage = null;
+    user.password = require('crypto').randomBytes(32).toString('hex');
+    user.refreshToken = null;
+    user.expoPushToken = null;
+    user.currentLocation = undefined;
+    user.optIn = false;
+    user.isActive = false;
+    user.deletedAt = new Date();
+    await user.save({ validateBeforeSave: false });
+};
+
 
 // @desc Get all users (admin only)
 // @route GET /api/v1/users
@@ -12,9 +62,14 @@ const vehicleApprovalService = require("../services/vehicleApprovalService");
 //Function to get all users
 exports.getAllUsers = async (req, res, next) => {
     try {
-        const { page = 1, limit = 9, type, company, search, initial, sort = 'desc', isActive } = req.query;
+        const { type, company, search, initial, sort = 'desc', isActive } = req.query;
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        // El panel pide hasta 10000 (exportar pasajeros); ese es el tope.
+        const limit = Math.min(10000, Math.max(1, parseInt(req.query.limit, 10) || 9));
         // Build query object
-        const query = {};
+        // Las cuentas eliminadas o anonimizadas no aparecen en los listados
+        // salvo que el admin las pida explícitamente (includeDeleted=true).
+        const query = req.query.includeDeleted === 'true' ? {} : { deletedAt: null };
         // Add filters if provided
         if (type) query.type = type;
         if (company) query.company = company;
@@ -22,13 +77,14 @@ exports.getAllUsers = async (req, res, next) => {
             query.isActive = isActive === 'true';
         }
         if (initial) {
-            query.name = { $regex: `^${initial}`, $options: "i" };
+            query.name = { $regex: `^${escapeRegex(initial)}`, $options: "i" };
         }
         if (search) {
+            const rx = escapeRegex(search);
             query.$or = [
-                { name: { $regex: search, $options: "i" } },
-                { username: { $regex: search, $options: "i" } },
-                { email: { $regex: search, $options: "i" } },
+                { name: { $regex: rx, $options: "i" } },
+                { username: { $regex: rx, $options: "i" } },
+                { email: { $regex: rx, $options: "i" } },
             ];
         }
         const sortDirection = sort === 'asc' ? 1 : -1;
@@ -36,15 +92,15 @@ exports.getAllUsers = async (req, res, next) => {
         // Fetch users with pagination
         const users = await User.find(query)
             .select("-password -refreshToken")
-            .limit(limit * 1)
+            .limit(limit)
             .skip((page - 1) * limit)
             .sort({ createdAt: sortDirection, _id: sortDirection });
         const count = await User.countDocuments(query);
         
         // Get global stats (ignoring pagination and search filters, just by type)
         const [totalUsers, activeUsers, operationalDrivers] = await Promise.all([
-            User.countDocuments({ type: query.type || 'pasajero' }),
-            User.countDocuments({ type: query.type || 'pasajero', isActive: true }),
+            User.countDocuments({ type: query.type || 'pasajero', deletedAt: null }),
+            User.countDocuments({ type: query.type || 'pasajero', isActive: true, deletedAt: null }),
             Vehicle.countDocuments({ isActive: true }),
         ]);
         const globalStats = {
@@ -236,7 +292,12 @@ exports.uploadProfileImage = async (req, res, next) => {
 
         // Delete old image if exists
 
-        if (user.profileImage) {
+        // Solo se borra si el blob es de este usuario: profileImage es una URL
+        // que el propio usuario puede escribir con PUT /users/profile, y
+        // deleteFromBlob borra por nombre de archivo, así que apuntándola a la
+        // foto de otro se borraba la foto ajena.
+        if (user.profileImage
+            && String(user.profileImage).split('/').pop().startsWith(`profile-${id}-`)) {
             await deleteFromBlob(user.profileImage, 'profile-images');
         }
 
@@ -282,6 +343,7 @@ exports.deleteUser = async ( req, res, next) => {
         // Soft delete: set active to false
         user.isActive = false;
         await user.save();
+        await recordAudit(req, { action: 'USER_DEACTIVATED', targetType: 'User', targetId: user._id, details: `Cuenta ${user.type} desactivada` });
         await Vehicle.updateMany(
             { driver_id: user._id },
             { $set: { isActive: false } }
@@ -322,55 +384,92 @@ exports.deleteMyAccount = async (req, res, next) => {
             return res.status(403).json({ success: false, code: 'WRONG_PASSWORD', message: 'Incorrect password' });
         }
 
-        const { Ride, Booking } = require("../models");
-        const OPEN_RIDE = ['scheduled', 'in progress', 'awaiting_payment_verification'];
-
-        const openRide = await Ride.exists({ driver_id: user._id, status: { $in: OPEN_RIDE } });
-        const openBookings = await Booking.find({
-            passenger_id: user._id,
-            status: { $in: ['pending', 'confirmed'] },
-        }).populate('ride_id', 'status');
-        const activeBooking = openBookings.some(b => b.ride_id && OPEN_RIDE.includes(b.ride_id.status));
-        if (openRide || activeBooking) {
-            return res.status(409).json({
-                success: false,
-                code: 'ACTIVE_TRIPS',
-                message: 'Cancel or finish your active trips before deleting your account',
-            });
+        const blocker = await accountBlocker(user._id);
+        if (blocker) {
+            return res.status(409).json({ success: false, ...blocker });
         }
 
-        const unpaid = await Booking.exists({
-            passenger_id: user._id,
-            status: 'completed',
-            payment_status: 'pending',
-            payment_type: { $ne: 'gifted' },
-        });
-        if (unpaid) {
-            return res.status(409).json({
-                success: false,
-                code: 'PENDING_PAYMENTS',
-                message: 'Pay your pending charges before deleting your account',
-            });
-        }
-
-        const tag = user._id.toString();
-        user.name = 'Usuario eliminado';
-        user.username = `eliminado_${tag}`;
-        user.email = `eliminado+${tag}@saferide.invalid`;
-        if (user.phone) user.phone = '00000000';
-        user.profileImage = null;
-        user.password = require('crypto').randomBytes(32).toString('hex');
-        user.refreshToken = null;
-        user.expoPushToken = null;
-        user.currentLocation = undefined;
-        user.optIn = false;
-        user.isActive = false;
-        user.deletedAt = new Date();
-        await user.save({ validateBeforeSave: false });
+        await anonymizeUser(user);
 
         await Vehicle.updateMany({ driver_id: user._id }, { $set: { isActive: false } });
 
         res.status(200).json({ success: true, message: 'Account deleted' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc Borrado definitivo de un usuario (panel de admin)
+// @route DELETE /api/v1/users/:id/hard
+// @access Private/Admin
+//
+// Reglas: nunca sobre uno mismo ni sobre otro admin; bloqueado con viajes o
+// reservas activas o cobros pendientes (mismas reglas que el borrado propio).
+// Lo que es solo del usuario se borra en cascada (vehículos, documentos,
+// notificaciones, historial de confianza, métricas, códigos y los viajes que
+// publicó sin reservas de nadie). Si después todavía hay historial de otros
+// que lo referencia (viajes con pasajeros, reservas en viajes ajenos,
+// reseñas), el documento NO se borra: se anonimiza de forma irreversible,
+// para no dejar a esos usuarios con referencias rotas. Si no queda nada que
+// lo referencie, el documento se borra. La respuesta dice cuál fue (mode).
+exports.hardDeleteUser = async (req, res, next) => {
+    try {
+        const { Ride, Booking, Review, Notification, Metrics, VerificationCode, Document } = require("../models");
+        const { id } = req.params;
+
+        if (id === req.user._id.toString()) {
+            return res.status(400).json({ success: false, code: 'SELF_DELETE', message: 'You cannot delete your own account from the panel' });
+        }
+        const user = await User.findById(id).select('+refreshToken');
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        if (user.type === 'admin') {
+            return res.status(403).json({ success: false, code: 'ADMIN_TARGET', message: 'Admin accounts cannot be deleted from the panel' });
+        }
+        const blocker = await accountBlocker(user._id);
+        if (blocker) {
+            return res.status(409).json({ success: false, ...blocker });
+        }
+
+        const email = user.email;
+        await Promise.all([
+            Vehicle.deleteMany({ driver_id: user._id }),
+            Document.deleteMany({ driver_id: user._id }),
+            Notification.deleteMany({ user_id: user._id }),
+            TrustHistory.deleteMany({ user_id: user._id }),
+            Metrics.deleteMany({ user_id: user._id }),
+            VerificationCode.deleteMany({ email }),
+        ]);
+        // Viajes propios sin ninguna reserva: no son historial de nadie más.
+        const ownRides = await Ride.find({ driver_id: user._id }).select('_id').lean();
+        const rideIds = ownRides.map(r => r._id);
+        const ridesWithBookings = await Booking.distinct('ride_id', { ride_id: { $in: rideIds } });
+        const withBookings = new Set(ridesWithBookings.map(String));
+        await Ride.deleteMany({ _id: { $in: rideIds.filter(r => !withBookings.has(String(r))) } });
+
+        const referenced = await Promise.all([
+            Ride.exists({ driver_id: user._id }),
+            Booking.exists({ passenger_id: user._id }),
+            Review.exists({ $or: [{ reviewer_id: user._id }, { reviewee_id: user._id }] }),
+        ]);
+        let mode;
+        if (referenced.some(Boolean)) {
+            await anonymizeUser(user);
+            mode = 'anonymized';
+        } else {
+            await User.deleteOne({ _id: user._id });
+            mode = 'deleted';
+        }
+
+        await recordAudit(req, {
+            action: 'USER_HARD_DELETED',
+            targetType: 'User',
+            targetId: user._id,
+            details: `Cuenta ${user.type} eliminada definitivamente (${mode === 'deleted' ? 'borrada' : 'anonimizada: tiene historial con otros usuarios'})`,
+        });
+
+        res.status(200).json({ success: true, message: 'User permanently deleted', data: { mode } });
     } catch (error) {
         next(error);
     }
@@ -406,6 +505,7 @@ exports.activateUser = async (req, res, next) => {
 
         user.isActive = true;
         await user.save();
+        await recordAudit(req, { action: 'USER_ACTIVATED', targetType: 'User', targetId: user._id, details: `Cuenta ${user.type} activada` });
 
         res.status(200).json({
             success: true,
@@ -502,6 +602,15 @@ exports.updateTrust = async (req, res, next) => {
             });
         } else {
             result = await trustService.incrementTrust(req.params.id, opts);
+        }
+
+        if (result.changed) {
+            await recordAudit(req, {
+                action: 'USER_TRUST_CHANGED',
+                targetType: 'User',
+                targetId: targetUser._id,
+                details: `Trust score ${result.previousScore} -> ${result.newScore} (${action})`,
+            });
         }
 
         // Notificación fire-and-forget al usuario afectado. Solo se dispara

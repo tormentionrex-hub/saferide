@@ -73,6 +73,9 @@ const StarRating = ({
                         onPressOut={() => handlePressOut(index)}
                         activeOpacity={1}
                         disabled={disabled}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${star} ${star === 1 ? 'estrella' : 'estrellas'}`}
+                        accessibilityState={{ selected: star <= value, disabled: Boolean(disabled) }}
                         hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
                     >
                         <Ionicons

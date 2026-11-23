@@ -680,7 +680,7 @@ const BuscarViaje = ({ navigation, route }) => {
                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                     minimumDate={new Date()}
                     onChange={(e, d) => {
-                        if (Platform.OS === 'android') setMostrarCalendario(false);
+                        if (Platform.OS !== 'ios') setMostrarCalendario(false);
                         if (d) setFechaSeleccionada(d);
                     }}
                 />

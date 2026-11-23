@@ -4,7 +4,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { useDriverTheme } from '../../context/DriverThemeContext';
 import { getCheckoutColors } from './checkoutTheme';
 import { moderateScale } from '../../utils/responsive';
-import { onlyDigits, formatNumber, formatExpiry, detectBrand } from '../../utils/cardFormat';
+import { onlyDigits, formatNumber, formatExpiry, detectBrand, validateCard } from '../../utils/cardFormat';
 
 // Formulario de tarjeta del checkout en estado beta. Solo da formato y valida
 // en pantalla: los datos no se envían a ningún servidor ni se guardan, y se
@@ -23,13 +23,19 @@ const CardFormBeta = () => {
     const [expiry, setExpiry] = useState('');
     const [cvc, setCvc] = useState('');
     const [focused, setFocused] = useState(null);
+    // Errores visibles solo en los campos que el usuario ya dejó (onBlur).
+    const [touched, setTouched] = useState({});
+    const errors = useMemo(() => validateCard({ number, name, expiry, cvc }), [number, name, expiry, cvc]);
 
     const brand = detectBrand(number);
 
     const field = (key, label, input) => (
         <View style={styles.field}>
             <Text style={styles.label}>{label}</Text>
-            <View style={[styles.slot, focused === key && styles.slotFocused]}>{input}</View>
+            <View style={[styles.slot, focused === key && styles.slotFocused, touched[key] && errors[key] && styles.slotError]}>{input}</View>
+            {touched[key] && errors[key] ? (
+                <Text style={styles.error} accessibilityLiveRegion="polite">{errors[key]}</Text>
+            ) : null}
         </View>
     );
 
@@ -37,7 +43,7 @@ const CardFormBeta = () => {
         style: styles.input,
         placeholderTextColor: C.placeholder,
         onFocus: () => setFocused(key),
-        onBlur: () => setFocused(null),
+        onBlur: () => { setFocused(null); setTouched((t) => ({ ...t, [key]: true })); },
     });
 
     return (
@@ -70,6 +76,7 @@ const CardFormBeta = () => {
                                 value={name}
                                 onChangeText={setName}
                                 placeholder="Como aparece en la tarjeta"
+                                maxLength={26}
                                 autoCapitalize="characters"
                                 autoComplete="off"
                                 importantForAutofill="no"
@@ -115,6 +122,14 @@ const CardFormBeta = () => {
 };
 
 const makeStyles = (C) => StyleSheet.create({
+    error: {
+        color: '#D93025',
+        fontSize: moderateScale(11),
+        marginTop: 4,
+    },
+    slotError: {
+        borderBottomColor: '#D93025',
+    },
     card: {
         backgroundColor: C.surface,
         borderRadius: 12,

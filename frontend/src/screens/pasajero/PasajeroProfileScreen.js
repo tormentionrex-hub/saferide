@@ -24,6 +24,8 @@ import MyReviewsModal from '../../components/MyReviewsModal';
 import { moderateScale } from '../../utils/responsive';
 import { useCompanies } from '../../services/companiesService';
 import { devLog } from '../../utils/devLog';
+import { getInitials } from '../../utils/initials';
+import { validatePersonName, NAME_MAX } from '../../utils/nameValidation';
 
 // ── Burbujas y colores por modo ───────────────────────────────────────────────
 const BUBBLES_LIGHT = ['#4F8EF7','#34D399','#F59E0B','#EC4899','#8B5CF6','#06B6D4','#F97316','#10B981'];
@@ -342,8 +344,9 @@ const PasajeroProfileScreen = ({ navigation }) => {
             }
 
             // 3. Validar formato de nombre
-            if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$/.test(editForm.name.trim())) {
-                showAlert('Formato Inválido', 'El nombre solo puede contener letras y espacios.', 'error');
+            const nameError = validatePersonName(editForm.name);
+            if (nameError) {
+                showAlert('Formato Inválido', nameError, 'error');
                 setUpdating(false);
                 return;
             }
@@ -400,7 +403,9 @@ const PasajeroProfileScreen = ({ navigation }) => {
             setTimeout(() => successAlert.show(), 320);
         } catch (e) {
             console.error('Update error:', e?.response?.data?.message || e?.message || 'unknown error');
-            showAlert('Error', 'No se pudo actualizar el perfil.', 'error');
+            // Mostrar el motivo del backend (p. ej. caracteres no permitidos).
+            const data = e?.response?.data;
+            showAlert('Error', data?.errors?.[0]?.message || data?.message || 'No se pudo actualizar el perfil.', 'error');
         } finally { setUpdating(false); }
     };
 
@@ -419,9 +424,7 @@ const PasajeroProfileScreen = ({ navigation }) => {
         );
     }
 
-    const initials = userData?.name
-        ? userData.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-        : '?';
+    const initials = getInitials(userData?.name);
 
     return (
         <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg || '#0A0A18' }]}>
@@ -614,7 +617,7 @@ const PasajeroProfileScreen = ({ navigation }) => {
                                 Toca para cambiar la foto
                             </Text>
 
-                            <ModalInput label="NOMBRE COMPLETO"    icon="person-outline" value={editForm.name}    onChangeText={t => setEditForm(p => ({ ...p, name: t }))}    placeholder="Tu nombre"          theme={theme} />
+                            <ModalInput label="NOMBRE COMPLETO"    icon="person-outline" value={editForm.name}    maxLength={NAME_MAX} onChangeText={t => setEditForm(p => ({ ...p, name: t }))}    placeholder="Tu nombre"          theme={theme} />
                             <ModalInput label="CORREO ELECTRÓNICO" icon="mail-outline" value={editForm.email} placeholder="correo@empresa.com" keyboardType="email-address" theme={theme} editable={false} locked />
                             <ModalInput label="TELÉFONO"           icon="call-outline"   value={editForm.phone}   onChangeText={t => setEditForm(p => ({ ...p, phone: t.replace(/[^0-9]/g, '') }))} placeholder="88888888" keyboardType="phone-pad" maxLength={8} theme={theme} />
 

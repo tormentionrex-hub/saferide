@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import PrivateRoute      from '../components/PrivateRoute/PrivateRoute';
 import AdminLayout       from '../components/AdminLayout/AdminLayout';
@@ -17,19 +17,8 @@ const NotificacionesPage = lazy(() => import('../pages/NotificacionesPage/Notifi
 const Configuracion     = lazy(() => import('../pages/ConfiguracionPage/Configuracion'));
 const AuditoriaPage     = lazy(() => import('../pages/AuditoriaPage/Auditoria'));
 const MonitoreoPage     = lazy(() => import('../pages/MonitoreoPage/Monitoreo'));
-
-/** Placeholder temporal para páginas aún no implementadas */
-const PlaceholderPage = ({ title }) => (
-  <div style={{
-    padding: '40px',
-    fontFamily: 'Inter, sans-serif',
-    background: '#F8FAFC',
-    minHeight: '100vh'
-  }}>
-    <h2 style={{ color: '#0F172A' }}>{title}</h2>
-    <p style={{ color: '#64748B' }}>Página en construcción.</p>
-  </div>
-);
+const ReservasPage      = lazy(() => import('../pages/ReservasPage/Reservas'));
+const PagosPage         = lazy(() => import('../pages/PagosPage/Pagos'));
 
 /** Spinner elegante de carga para la transición entre páginas lazy */
 const LoadingSpinner = () => (
@@ -81,8 +70,8 @@ const Routing = () => (
             <Route path="/conductores"    element={<ConductoresPage />} />
             <Route path="/vehiculos"      element={<VehiculosPage />} />
             <Route path="/monitoreo"      element={<MonitoreoPage />} />
-            <Route path="/reservas"       element={<PlaceholderPage title="Gestión de Reservas" />} />
-            <Route path="/pagos"          element={<PlaceholderPage title="Historial de Pagos" />} />
+            <Route path="/reservas"       element={<ReservasPage />} />
+            <Route path="/pagos"          element={<PagosPage />} />
             <Route path="/notificaciones" element={<NotificacionesPage />} />
             <Route path="/quejas"         element={<QuejasPage />} />
             <Route path="/auditoria"      element={<AuditoriaPage />} />

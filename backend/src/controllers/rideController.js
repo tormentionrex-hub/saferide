@@ -3,6 +3,7 @@ const tz = require('../utils/timeZone');
 const { refreshMetricsForRide } = require('../services/metricsService');
 const trustService = require('../services/trustService');
 const { sendNotification } = require('../services/notificationService');
+const { straightLineKm, MIN_POINT_SEPARATION_KM, MIN_RIDE_KM } = require('../utils/geo');
 
 const toRadians = (degrees) => (degrees * Math.PI) / 180;
 
@@ -57,6 +58,19 @@ exports.createRide = async (req, res, next) => {
       return res.status(403).json({
         success: false,
         message: 'Only conductors can create rides',
+      });
+    }
+
+    // Segunda barrera (la ruta ya lo valida): un viaje con origen = destino o
+    // con distancia/precio fuera de rango no se guarda.
+    const separationKm = straightLineKm(origin?.coordinates, destination?.coordinates);
+    const km = Number(distance_km);
+    const price = suggested_price === undefined ? 0 : Number(suggested_price);
+    if (!(separationKm >= MIN_POINT_SEPARATION_KM) || !(km >= MIN_RIDE_KM && km <= 500)
+        || !(Number(duration_minutes) >= 1) || !(price >= 0 && price <= 250000)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ruta inválida: origen y destino distintos, distancia, duración y precio dentro de rango.',
       });
     }
 
@@ -166,6 +180,63 @@ exports.getAllRides = async (req, res, next) => {
   }
 };
 
+// @desc    Viajes en curso para el monitoreo del panel
+// @route   GET /api/v1/rides/in-progress
+// @access  Private/Admin
+//
+// Forma que espera el panel (hooks/useInProgressRides y MonitoreoPage):
+// { _id, driver: { _id, name, profileImage }, vehicle: { brand, model,
+// license_plate }, origin/destination: { name, lat, lng }, last_location:
+// { lat, lng, updated_at } | null, started_at, passenger_count }. Solo esos
+// campos: ni correo ni teléfono. started_at es la última modificación del
+// viaje (el modelo no guarda la hora exacta de inicio).
+exports.getInProgressRides = async (req, res, next) => {
+  try {
+    const { Vehicle } = require('../models');
+    const rides = await Ride.find({ status: 'in progress' })
+      .select('driver_id origin destination updatedAt')
+      .populate('driver_id', 'name profileImage currentLocation')
+      .sort({ updatedAt: -1 })
+      .limit(200)
+      .lean();
+
+    const driverIds = rides.map((r) => r.driver_id?._id).filter(Boolean);
+    const rideIds = rides.map((r) => r._id);
+    const [vehicles, counts] = await Promise.all([
+      Vehicle.find({ driver_id: { $in: driverIds }, isActive: true }).select('driver_id brand model license_plate').lean(),
+      Booking.aggregate([
+        { $match: { ride_id: { $in: rideIds }, status: 'confirmed' } },
+        { $group: { _id: '$ride_id', n: { $sum: 1 } } },
+      ]),
+    ]);
+    const vehicleByDriver = new Map(vehicles.map((v) => [v.driver_id.toString(), v]));
+    const countByRide = new Map(counts.map((c) => [c._id.toString(), c.n]));
+    const place = (p) => ({ name: p?.name || null, lat: p?.coordinates?.lat ?? null, lng: p?.coordinates?.lng ?? null });
+
+    const data = rides.map((r) => {
+      const d = r.driver_id || {};
+      const v = d._id ? vehicleByDriver.get(d._id.toString()) : null;
+      const loc = d.currentLocation;
+      return {
+        _id: r._id,
+        driver: d._id ? { _id: d._id, name: d.name, profileImage: d.profileImage || null } : null,
+        vehicle: v ? { brand: v.brand, model: v.model, license_plate: v.license_plate } : null,
+        origin: place(r.origin),
+        destination: place(r.destination),
+        last_location: loc?.lat != null && loc?.lng != null
+          ? { lat: loc.lat, lng: loc.lng, updated_at: loc.updatedAt || null }
+          : null,
+        started_at: r.updatedAt,
+        passenger_count: countByRide.get(r._id.toString()) || 0,
+      };
+    });
+
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get ride by ID
 // @route   GET /api/v1/rides/:id
 // @access  Public
@@ -173,8 +244,24 @@ exports.getAllRides = async (req, res, next) => {
 //Function to get ride by ID
 exports.getRideById = async (req, res, next) => {
   try {
+    // El teléfono del conductor solo lo ve quien lo necesita: el propio
+    // conductor, un admin o un pasajero con reserva en este viaje (pendiente,
+    // confirmada o completada: las pantallas de espera y de pago lo usan
+    // para WhatsApp/SINPE). Esta ruta es pública y antes lo daba a cualquiera,
+    // incluso sin sesión, recorriendo GET /rides.
+    let showPhone = false;
+    if (req.user) {
+      const base = await Ride.findById(req.params.id).select('driver_id');
+      showPhone = req.user.type === 'admin'
+        || (base && base.driver_id?.toString() === req.user._id.toString())
+        || (base && !!(await Booking.exists({
+          ride_id: base._id,
+          passenger_id: req.user._id,
+          status: { $in: ['pending', 'confirmed', 'completed'] },
+        })));
+    }
     const ride = await Ride.findById(req.params.id)
-      .populate('driver_id', 'name username rating profileImage phone')
+      .populate('driver_id', showPhone ? 'name username rating profileImage phone' : 'name username rating profileImage')
       .populate({
         path: 'bookings',
         populate: {

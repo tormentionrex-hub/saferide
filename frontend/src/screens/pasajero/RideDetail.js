@@ -15,6 +15,10 @@ import ReviewsList from '../../components/ReviewsList';
 
 import { moderateScale } from '../../utils/responsive';
 import { formatCRC } from '../../utils/currency';
+import { getInitials } from '../../utils/initials';
+// Tope del monto ofrecido (POST /bookings: offered_amount ≤ 250 000).
+const MAX_OFFER_CRC = 250000;
+
 const PAYMENT_OPTIONS = [
     { id: 'efectivo', label: 'Efectivo', icon: 'cash-outline' },
     { id: 'tarjeta',  label: 'Tarjeta',  icon: 'card-outline' },
@@ -36,6 +40,10 @@ const RideDetail = ({ route, navigation }) => {
     const mapRef = useRef(null);
     const [offeredAmount, setOfferedAmount] = useState('0');
     const [paymentMethod, setPaymentMethod] = useState('efectivo');
+    // Evita dos POST /bookings por doble toque: el ref corta en el mismo tick,
+    // el estado deshabilita el botón.
+    const submittingRef = useRef(false);
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         AsyncStorage.getItem('paymentMethod').then(val => {
@@ -100,6 +108,9 @@ const RideDetail = ({ route, navigation }) => {
     }, []);
 
     const handleConfirmBooking = async () => {
+        if (submittingRef.current) return;
+        submittingRef.current = true;
+        setSubmitting(true);
         try {
             // --- VALIDACIÓN: SOLO UNA RESERVA ACTIVA A LA VEZ ---
             const meRes = await api.get('/auth/me');
@@ -158,6 +169,11 @@ const RideDetail = ({ route, navigation }) => {
 
             const parsedAmount = parseInt(offeredAmount, 10);
             const safeAmount = isNaN(parsedAmount) || parsedAmount < 0 ? 0 : parsedAmount;
+            // Mismo tope que el backend (y que el precio de un viaje).
+            if (safeAmount > MAX_OFFER_CRC) {
+                showAlert('Monto muy alto', `El monto máximo que puedes ofrecer es ${formatCRC(MAX_OFFER_CRC)}.`, 'warning');
+                return;
+            }
 
             await AsyncStorage.setItem('paymentMethod', paymentMethod);
 
@@ -179,7 +195,11 @@ const RideDetail = ({ route, navigation }) => {
                 navigation.navigate('ScreenSaver', { bookingId: response.data.data._id });
             }
         } catch (error) {
-            showAlert('Error', error.response?.data?.message || 'Error al solicitar unirse al viaje.', 'error');
+            const data = error.response?.data;
+            showAlert('Error', data?.errors?.[0]?.message || data?.message || 'Error al solicitar unirse al viaje.', 'error');
+        } finally {
+            submittingRef.current = false;
+            setSubmitting(false);
         }
     };
 
@@ -243,7 +263,7 @@ const RideDetail = ({ route, navigation }) => {
                             ) : (
                                 <View style={[styles.avatar, { backgroundColor: theme.accent + '22' }]}>
                                     <Text style={[styles.avatarText, { color: theme.accent }]}>
-                                        {(ride.driver_id?.name || 'D').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                        {getInitials(ride.driver_id?.name, 2, 'D')}
                                     </Text>
                                 </View>
                             )}
@@ -305,7 +325,7 @@ const RideDetail = ({ route, navigation }) => {
                                 keyboardType="numeric"
                                 placeholder="0"
                                 placeholderTextColor={theme.textSecondary}
-                                maxLength={7}
+                                maxLength={6}
                             />
                         </View>
                         <Text style={[styles.offerHint, { color: theme.textSecondary }]}>
@@ -357,10 +377,11 @@ const RideDetail = ({ route, navigation }) => {
                         como información complementaria opcional para quien
                         quiera evaluar al conductor antes de decidir. */}
                     <TouchableOpacity
-                        style={[styles.bookBtn, { backgroundColor: theme.accent }]}
+                        style={[styles.bookBtn, { backgroundColor: theme.accent }, submitting && { opacity: 0.6 }]}
                         onPress={handleConfirmBooking}
+                        disabled={submitting}
                     >
-                        <Text style={styles.bookBtnText}>Solicitar unirse</Text>
+                        <Text style={styles.bookBtnText}>{submitting ? 'Enviando…' : 'Solicitar unirse'}</Text>
                     </TouchableOpacity>
 
                     {/* Reseñas del conductor (clasificadas por el agente IA).

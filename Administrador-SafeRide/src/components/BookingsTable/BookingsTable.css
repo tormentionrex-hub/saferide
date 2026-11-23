@@ -1,0 +1,85 @@
+/* Tabla de reservas/pagos. Misma paleta que Vehículos (fondo #F8FAFC,
+   tarjetas blancas con borde #E2E8F0, radio 16, texto #0F172A / #64748B). */
+.bk-section { display: flex; flex-direction: column; gap: 16px; }
+.bk-controls { flex-wrap: wrap; gap: 12px; }
+.bk-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.bk-select,
+.bk-date input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  background: white;
+  color: #0F172A;
+  font-size: 0.85rem;
+}
+.bk-select:focus,
+.bk-date input:focus { outline: none; border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+.bk-date { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #64748B; font-weight: 600; }
+.bk-inline-error { margin: 0; color: #B91C1C; font-size: 0.85rem; font-weight: 600; }
+
+.bk-card { background: white; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; }
+.bk-table-wrap { overflow-x: auto; }
+.bk-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; color: #0F172A; }
+.bk-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748B;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  white-space: nowrap;
+}
+.bk-table td { padding: 12px 16px; border-bottom: 1px solid #F1F5F9; vertical-align: top; }
+.bk-table tbody tr:hover { background: #F8FAFC; }
+.bk-table tbody tr.is-dim { opacity: 0.55; }
+.bk-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bk-strong { font-weight: 600; }
+.bk-muted { color: #64748B; font-size: 0.78rem; margin-top: 2px; }
+.bk-route { max-width: 280px; overflow-wrap: anywhere; }
+.bk-gift { display: block; }
+
+.bk-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+.bk-badge.tone-green { background: #DCFCE7; color: #15803D; }
+.bk-badge.tone-amber { background: #FFF7ED; color: #C2410C; }
+.bk-badge.tone-blue { background: #EFF6FF; color: #1D4ED8; }
+.bk-badge.tone-red { background: #FEF2F2; color: #B91C1C; }
+.bk-badge.tone-gray { background: #F1F5F9; color: #475569; }
+
+.bk-skeleton td span {
+  display: block;
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+  background-size: 200% 100%;
+  animation: bk-shimmer 1.2s infinite;
+}
+@keyframes bk-shimmer { to { background-position: -200% 0; } }
+
+.bk-state { padding: 48px 24px; text-align: center; color: #64748B; }
+.bk-state h3 { margin: 8px 0 4px; color: #0F172A; font-size: 1rem; }
+.bk-state p { margin: 0; font-size: 0.875rem; }
+.bk-state-icon { color: #94A3B8; }
+.bk-state-icon.is-error { color: #EF4444; }
+.bk-retry {
+  margin-top: 16px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 10px; border: 1px solid #E2E8F0;
+  background: white; color: #2563EB; font-weight: 600; cursor: pointer;
+}
+.bk-retry:hover { border-color: #2563EB; }
+.bk-count { margin: 0; color: #64748B; font-size: 0.8rem; text-align: right; }
+
+.pg-summary-note { margin: -16px 0 24px; color: #64748B; font-size: 0.85rem; }
+.pg-summary-note.is-error { color: #B91C1C; font-weight: 600; }
+
+@media (max-width: 768px) {
+  .bk-filters { width: 100%; }
+  .bk-select, .bk-date { flex: 1 1 140px; }
+}
+
+/* Texto secundario de las tarjetas de totales (Pagos) debajo del monto. */
+.stat-info .bk-muted { display: block; }
+.bk-controls .search-wrapper { flex: 1 1 280px; min-width: 240px; }

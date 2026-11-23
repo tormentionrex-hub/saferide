@@ -1,4 +1,4 @@
-import { formatNumber, formatExpiry, detectBrand, onlyDigits } from '../src/utils/cardFormat';
+import { formatNumber, formatExpiry, detectBrand, onlyDigits, validateCard, luhnValid } from '../src/utils/cardFormat';
 
 describe('formato de tarjeta del checkout', () => {
     test('agrupa el número de cuatro en cuatro e ignora lo que no es dígito', () => {
@@ -25,5 +25,34 @@ describe('formato de tarjeta del checkout', () => {
         expect(detectBrand('3714')).toBe('amex');
         expect(detectBrand('6011')).toBeNull();
         expect(detectBrand('')).toBeNull();
+    });
+});
+
+describe('validación de tarjeta del checkout', () => {
+    const now = new Date(2026, 10, 20);
+    const ok = { number: '4111 1111 1111 1111', name: "Ana O'Neil-Pérez", expiry: '12/30', cvc: '123' };
+    test('acepta una tarjeta válida', () => {
+        expect(validateCard(ok, now)).toEqual({});
+    });
+    test.each([
+        ['vacío', { number: '', name: '', expiry: '', cvc: '' }, ['number', 'name', 'expiry', 'cvc']],
+        ['Luhn inválido', { ...ok, number: '4111 1111 1111 1112' }, ['number']],
+        ['mes 13', { ...ok, expiry: '13/30' }, ['expiry']],
+        ['mes 00', { ...ok, expiry: '00/30' }, ['expiry']],
+        ['vencida', { ...ok, expiry: '10/26' }, ['expiry']],
+        ['HTML en nombre', { ...ok, name: '<script>x</script>' }, ['name']],
+        ['solo espacios', { ...ok, name: '     ' }, ['name']],
+        ['emoji en nombre', { ...ok, name: '😀 Ana' }, ['name']],
+        ['CVC corto', { ...ok, cvc: '12' }, ['cvc']],
+        ['Amex pide 4', { ...ok, number: '3782 822463 10005', cvc: '123' }, ['cvc']],
+    ])('%s', (_label, card, fields) => {
+        expect(Object.keys(validateCard(card, now)).sort()).toEqual([...fields].sort());
+    });
+    test('el mes en curso todavía no está vencido', () => {
+        expect(validateCard({ ...ok, expiry: '11/26' }, now)).toEqual({});
+    });
+    test('luhnValid rechaza longitudes fuera de rango', () => {
+        expect(luhnValid('4'.repeat(11))).toBe(false);
+        expect(luhnValid('4'.repeat(20))).toBe(false);
     });
 });
