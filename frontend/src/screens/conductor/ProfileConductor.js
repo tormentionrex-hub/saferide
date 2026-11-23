@@ -478,6 +478,15 @@ const ProfileConductor = ({ navigation, route }) => {
                             </TouchableOpacity>
                         )}
 
+                        <TouchableOpacity
+                            style={[styles.editBtn, { backgroundColor: theme.accent }]}
+                            onPress={() => navigation.navigate('DocumentosConductor')}
+                            activeOpacity={0.85}
+                        >
+                            <Ionicons name="document-text-outline" size={20} color="#FFF" />
+                            <Text style={styles.editBtnText}>Mis documentos</Text>
+                        </TouchableOpacity>
+
 
 
                         <TouchableOpacity

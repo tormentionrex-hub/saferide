@@ -306,7 +306,7 @@ export default function RegisterVehicleStep2({ route, navigation }) {
                                 ¡Registro Exitoso!
                             </Text>
                             <Text style={[styles.modalSubtitle, { color: theme.dark ? '#7A7A9D' : '#6B7280' }]}>
-                                Tu vehículo ha sido registrado correctamente y ya puedes empezar a compartir viajes.
+                                Tu vehículo quedó registrado. Para activarlo, sube tus 6 documentos: cuando estén aprobados podrás compartir viajes.
                             </Text>
 
                             {/* Separador */}
@@ -321,14 +321,15 @@ export default function RegisterVehicleStep2({ route, navigation }) {
                                 onPress={() => {
                                     setShowSuccessModal(false);
                                     navigation.reset({
-                                        index: 0,
+                                        index: 1,
                                         routes: [
                                             { name: 'MainTabsDriver' },
+                                            { name: 'DocumentosConductor' },
                                         ],
                                     });
                                 }}
                             >
-                                <Text style={styles.modalPrimaryBtnText}>Finalizar</Text>
+                                <Text style={styles.modalPrimaryBtnText}>Subir documentos</Text>
                                 <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
                             </TouchableOpacity>
 

@@ -6,8 +6,8 @@ modifican y borran datos. Usan los usuarios de `DATOSPRUEBA/seed_completo.js` (c
 ```bash
 COSMOS_DATABASE=SafeRide-Prueba node DATOSPRUEBA/seed_completo.js   # borra y llena esa base
 COSMOS_DATABASE=SafeRide-Prueba node server.js                      # en otra terminal
-npm run qa:ataques   # 348 casos: inyección, permisos por rol, carreras, tokens, límites, archivos
-npm run qa:flujos    # 114 casos: viaje completo, reservas, pagos, reseñas, documentos, auditoría
+npm run qa:ataques   # 354 casos: inyección, permisos por rol, carreras, tokens, límites, archivos
+npm run qa:flujos    # 125 casos: viaje completo, reservas, pagos, reseñas, documentos, auditoría
 ```
 
 Variables opcionales:

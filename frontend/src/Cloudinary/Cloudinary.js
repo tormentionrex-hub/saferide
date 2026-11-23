@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 const CLOUD_NAME = "do2ccwxm3";
 const UPLOAD_PRESET = "Safe_ride";
 const UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
@@ -9,20 +11,29 @@ const UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
  * @param {{ uri: string, name?: string, type?: string }} file
  * @returns {Promise<{ secure_url: string, public_id: string, [key: string]: any }>}
  */
-export function uploadToCloudinary(file) {
-    return new Promise((resolve, reject) => {
-        // Normalizar MIME type: image/jpg no es válido, debe ser image/jpeg
-        const rawType = file.type || 'image/jpeg';
-        const mimeType = rawType.replace(/\/jpg$/, '/jpeg');
-        const extension = mimeType.split('/')[1] || 'jpg';
-        const fileName = file.name || `upload_${Date.now()}.${extension}`;
+export async function uploadToCloudinary(file) {
+    // Normalizar MIME type: image/jpg no es válido, debe ser image/jpeg
+    const rawType = file.type || 'image/jpeg';
+    const mimeType = rawType.replace(/\/jpg$/, '/jpeg');
+    const extension = mimeType.split('/')[1] || 'jpg';
+    const fileName = file.name || `upload_${Date.now()}.${extension}`;
 
-        const data = new FormData();
+    const data = new FormData();
+    if (Platform.OS === 'web') {
+        // En el navegador FormData no entiende el objeto { uri, type, name } de
+        // React Native (mandaba el texto "[object Object]"): el picker devuelve
+        // una URL blob:/data: que se convierte en el archivo real.
+        const blob = await (await fetch(file.uri)).blob();
+        data.append('file', blob, fileName);
+    } else {
         data.append('file', {
             uri: file.uri,
             type: mimeType,
             name: fileName,
         });
+    }
+
+    return new Promise((resolve, reject) => {
         data.append('upload_preset', UPLOAD_PRESET);
         data.append('cloud_name', CLOUD_NAME);
 

@@ -159,6 +159,9 @@ router.post('/', authorize('conductor', 'admin'), vehicleValidation, validate, v
  *                       items:
  *                         $ref: '#/components/schemas/Vehicle'
  */
+// Estado del vehículo propio y de sus 6 documentos (antes de '/:id').
+router.get('/me/approval', authorize('conductor'), vehicleController.getMyVehicleApproval);
+
 router.get('/driver/:driverId', vehicleController.getVehicleByDriver);
 
 /**
@@ -311,6 +314,14 @@ router.delete('/:id', vehicleController.deleteVehicle);
 // Documentos del vehículo: solo el conductor dueño sube y borra (el
 // controlador lo comprueba); la revisión es de admin en /documents.
 router.post('/:id/documents', authorize('conductor'), documentUpload, documentUploadValidation, validate, documentController.uploadVehicleDocument);
+// Documento cuya foto la app ya subió a Cloudinary (no necesita Azure Blob).
+const documentUrlValidation = [
+  param('id').isMongoId().withMessage('Invalid vehicle ID'),
+  body('type').isString().isIn(DOC_TYPES).withMessage('Invalid document type'),
+  body('fileUrl').custom(isCloudinaryUrl).withMessage('fileUrl must be a Cloudinary https URL'),
+  body('extractedData').optional({ nullable: true }).custom((v) => v && typeof v === 'object' && !Array.isArray(v)).withMessage('extractedData must be an object'),
+];
+router.post('/:id/documents/url', authorize('conductor'), documentUrlValidation, validate, documentController.registerDocumentByUrl);
 router.delete('/:id/documents/:docId', authorize('conductor'), documentDeleteValidation, validate, documentController.deleteVehicleDocument);
 
 /**

@@ -475,3 +475,48 @@ exports.updateVehicleStatus = async (req, res, next) => {
 };
 
 
+
+// @desc   Estado del vehículo del conductor y de sus 6 documentos
+// @route  GET /api/v1/vehicles/me/approval
+// @access Private (conductor)
+//
+// GET /vehicles/driver/:id solo devuelve el vehículo activo; un conductor
+// nuevo tiene su vehículo inactivo hasta aprobar los documentos, así que la
+// app usa esta ruta para saber que ya lo registró y qué le falta.
+exports.getMyVehicleApproval = async (req, res, next) => {
+    try {
+        const { Document } = require('../models');
+        const vehicle = await Vehicle.findOne({ driver_id: req.user._id })
+            .sort({ isActive: -1, createdAt: -1, _id: -1 })
+            .select('_id brand model year color license_plate capacity isActive createdAt');
+        const approval = await getDocumentApproval(req.user._id);
+        const ids = approval.details.map((d) => d.documentId).filter(Boolean);
+        const docs = await Document.find({ _id: { $in: ids } })
+            .select('_id type status rejectionReason extractedData createdAt')
+            .lean();
+        const byId = new Map(docs.map((d) => [String(d._id), d]));
+        res.status(200).json({
+            success: true,
+            data: {
+                vehicle,
+                approved: approval.approved,
+                details: approval.details.map((d) => {
+                    const doc = d.documentId ? byId.get(String(d.documentId)) : null;
+                    return {
+                        type: d.type,
+                        label: d.label,
+                        status: d.status,
+                        statusLabel: d.statusLabel,
+                        approved: d.approved,
+                        documentId: d.documentId,
+                        rejectionReason: doc?.rejectionReason || '',
+                        extractedData: doc?.extractedData || {},
+                        updatedAt: doc?.createdAt || null,
+                    };
+                }),
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};

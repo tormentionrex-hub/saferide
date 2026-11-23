@@ -55,6 +55,43 @@ credenciales que no deben publicarse.
 
 ---
 
+## Progreso del proyecto
+
+Estado al 23 de noviembre de 2026.
+
+<p align="center">
+  <img src="docs/progreso-proyecto.png" alt="Progreso del proyecto: aplicación móvil 95 %, backend 95 %, panel de administrador 90 %" width="900">
+</p>
+
+| Parte | Progreso |
+|---|---|
+| Aplicación móvil (frontend) | **95 %** |
+| Backend | **95 %** |
+| Panel de administrador | **90 %** |
+
+### Qué falta para llegar al 100 %
+
+**Aplicación móvil (95 %)**
+1. Generar la app instalable y probarla en teléfonos reales; hasta ahora se probó en Expo Go.
+2. Activar los pagos en línea: PayPal y tarjeta están listos en beta, falta la cuenta de comercio.
+3. Clave de Google Maps de producción para el mapa nativo.
+4. Publicar en Google Play y App Store; requiere las cuentas de desarrollador de cada tienda.
+
+**Backend (95 %)**
+1. Publicarlo en la nube con dominio HTTPS y la base de producción.
+2. Guardar las fotos de los documentos en almacenamiento privado (Azure Blob). Hoy la app las sube a Cloudinary
+   y quedan con un enlace público: para cédulas y licencias es un riesgo de privacidad (urgente).
+3. Lectura automática de las fotos de los documentos; hoy se validan los datos con reglas.
+
+**Panel de administrador (90 %)**
+1. Publicarlo en un hosting con dominio propio.
+2. Ver las imágenes reales de los documentos; depende del almacenamiento del backend.
+3. Cambiar las claves de Gmail y Gemini que quedaron públicas en el repositorio original del panel (urgente).
+4. Corregir 36 avisos del revisor de código, casi todos de estilo en hooks de React.
+5. Probar a mano dos flujos: el borrado con anonimización y «Añadir vehículo».
+
+---
+
 ## Capturas de la app móvil
 
 Tomadas en un Samsung Galaxy A34 real con Expo Go durante las pruebas de la entrega.
@@ -243,7 +280,10 @@ flowchart LR
   El agente local de correo (`scripts/sync_complaints.cjs`) queda como herramienta opcional: lee el correo de
   soporte, usa Gemini para clasificar y proponer respuestas, escucha solo en `127.0.0.1` y solo responde a
   quien escribió.
-- **Documentos:** un trabajo programado valida cada 10 minutos los documentos pendientes con reglas (datos
+- **Documentos del conductor:** desde la app, en "Mis documentos" (al terminar de registrar el vehículo, en el
+  inicio o en el perfil), el conductor sube la foto de cada uno de los 6 documentos con sus datos. Se validan al
+  momento y el vehículo se activa solo cuando los 6 están aprobados; lo que no coincide queda para el administrador.
+- **Validación:** un trabajo programado valida cada 10 minutos los documentos pendientes con reglas (datos
   presentes, fechas vigentes, que coincidan con el conductor y el vehículo). Lo que no se puede decidir solo
   queda para revisión manual del administrador.
 - **Auditoría:** se registran los inicios de sesión del panel, la revisión de documentos y quejas, la
@@ -376,9 +416,10 @@ npm run sync-complaints     # opcional: agente local de quejas (necesita SUPPORT
 ### 4. Pruebas
 
 ```bash
-cd frontend    && npm test             # 75 pruebas unitarias de la app
-cd backend     && npm run qa:ataques   # 348 casos: permisos, inyección, carreras, tokens, límites, archivos
-cd backend     && npm run qa:flujos    # 114 casos: ciclo de viaje, reservas, pagos, reseñas, documentos, auditoría
+cd frontend    && npm test             # 81 pruebas unitarias de la app
+cd backend     && npm test             # 29 pruebas unitarias y de sesión del backend (MongoDB local)
+cd backend     && npm run qa:ataques   # 354 casos: permisos, inyección, carreras, tokens, límites, archivos
+cd backend     && npm run qa:flujos    # 125 casos: ciclo de viaje, reservas, pagos, reseñas, documentos, auditoría
 cd Administrador-SafeRide && npm run build        # compilación del panel
 ```
 
@@ -476,8 +517,9 @@ Lo que depende de cuentas, credenciales o dinero, y por eso no se activó en est
 Deuda técnica conocida:
 - El tiempo de espera de una solicitud se calcula con el reloj del teléfono, y todo se probó en Expo Go, no en
   el binario final de EAS.
-- Seis vulnerabilidades de dependencias del backend (zod, nodemailer, bull, passport-azure-ad) y cuatro del
-  agente de quejas del panel (nodemailer, semver) requieren versiones mayores que pueden romper código.
+- El backend no tiene vulnerabilidades conocidas en sus dependencias (se actualizaron nodemailer y zod y se
+  quitaron bull y passport-azure-ad, que no se usaban). El agente de quejas del panel conserva cuatro
+  (nodemailer, semver) que requieren versiones mayores.
 - El panel tiene 25 avisos del revisor de código, sobre todo patrones de hooks de React sin un bug
   identificado.
 - Qué viajes ya calificó cada persona se recuerda en el dispositivo; en otro dispositivo, el botón de

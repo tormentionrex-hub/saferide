@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDriverTheme } from '../context/DriverThemeContext';
 import sessionCache from '../services/sessionCache';
+import api from '../services/api';
 
 const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: manualActiveTab }) => {
     const insets = useSafeAreaInsets();
@@ -14,6 +15,8 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
     // Estado para saber si el conductor ya registró su auto (inicio como true para no parpadear)
     const [hasVehicleRegistered, setHasVehicleRegistered] = useState(true);
     const [loadingVehicle, setLoadingVehicle] = useState(true);
+    // Vehículo registrado pero inactivo hasta aprobar los 6 documentos.
+    const [pendingVehicle, setPendingVehicle] = useState(false);
 
     let currentTab = manualActiveTab || 'Inicio';
     if (state) {
@@ -36,6 +39,12 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                     const hasVehicle = await sessionCache.getVehicleStatus(true);
                     if (active) {
                         setHasVehicleRegistered(hasVehicle);
+                    }
+                    if (!hasVehicle) {
+                        const ap = await api.get('/vehicles/me/approval').catch(() => null);
+                        if (active) setPendingVehicle(!!ap?.data?.data?.vehicle);
+                    } else if (active) {
+                        setPendingVehicle(false);
                     }
                 } catch (e) {
                     console.error('[BottomNav] Error in vehicle check:', e?.response?.data?.message || e?.message || 'unknown error');
@@ -109,7 +118,9 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                             Acceso Bloqueado
                         </Text>
                         <Text style={[styles.subtitle, { color: theme.dark ? '#7A7A9D' : '#6B7280' }]}>
-                            Para comenzar a aceptar viajes, primero debes registrar un vehículo.
+                            {pendingVehicle
+                                ? 'Tu vehículo se activa cuando tus 6 documentos estén aprobados.'
+                                : 'Para comenzar a aceptar viajes, primero debes registrar un vehículo.'}
                         </Text>
 
                         {/* Separador */}
@@ -123,11 +134,11 @@ const BottomNavigationBarAlt = ({ state, descriptors, navigation, activeTab: man
                             activeOpacity={0.85}
                             onPress={() => {
                                 setShowModal(false);
-                                navigation.navigate('RegisterVehicleStep1');
+                                navigation.navigate(pendingVehicle ? 'DocumentosConductor' : 'RegisterVehicleStep1');
                             }}
                         >
-                            <Ionicons name="car-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
-                            <Text style={styles.primaryBtnText}>Registrar Vehículo</Text>
+                            <Ionicons name={pendingVehicle ? 'document-text-outline' : 'car-outline'} size={18} color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={styles.primaryBtnText}>{pendingVehicle ? 'Ver mis documentos' : 'Registrar Vehículo'}</Text>
                         </TouchableOpacity>
 
                         {/* Botón cancelar */}

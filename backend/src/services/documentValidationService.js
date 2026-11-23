@@ -162,7 +162,10 @@ const evaluateDocument = (document, context = {}) => {
 const buildContext = async (document) => {
     const [driver, vehicle, cedulaDocument] = await Promise.all([
         User.findById(document.driver_id).select('name phone').lean(),
-        Vehicle.findOne({ driver_id: document.driver_id, isActive: true })
+        // El vehículo activo o, si todavía no hay (conductor nuevo esperando la
+        // aprobación de sus documentos), el último que registró.
+        Vehicle.findOne({ driver_id: document.driver_id })
+            .sort({ isActive: -1, createdAt: -1, _id: -1 })
             .select('brand model year license_plate')
             .lean(),
         Document.findOne({ driver_id: document.driver_id, type: 'cedula' })
