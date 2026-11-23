@@ -40,7 +40,7 @@ Este repositorio contiene el proyecto completo:
 | Carpeta | Qué es | Tecnología |
 |---|---|---|
 | [`frontend/`](frontend) | App móvil para Android e iOS | Expo SDK 54, React Native 0.81, React Navigation |
-| [`panel-admin/`](panel-admin) | Panel web de administración | Vite, React 19, React Router, Recharts, Leaflet |
+| [`Administrador-SafeRide/`](Administrador-SafeRide) | Panel web de administración | Vite, React 19, React Router, Recharts, Leaflet |
 | [`backend/`](backend) | API REST y trabajos programados, compartida por la app y el panel | Node.js, Express 5, MongoDB (Azure Cosmos DB), Mongoose |
 | [`docs/`](docs) | Capturas de pantalla usadas en este README | |
 
@@ -163,7 +163,7 @@ confirmada ya no se puede cancelar, y quien tiene un cobro pendiente no puede re
 
 ## Panel de administración
 
-El panel es una aplicación web aparte, en [`panel-admin/`](panel-admin), que usa **la misma API** que la app
+El panel es una aplicación web aparte, en [`Administrador-SafeRide/`](Administrador-SafeRide), que usa **la misma API** que la app
 móvil. No tiene base de datos propia: todo lo que muestra y cada cambio que hace pasa por el backend, que
 valida que quien llama sea administrador.
 
@@ -208,7 +208,7 @@ compartidos, reseñas), la cuenta se anonimiza en lugar de borrarse, para no rom
 
 ```mermaid
 flowchart LR
-    subgraph Navegador[Panel web - panel-admin/]
+    subgraph Navegador[Panel web - Administrador-SafeRide/]
         P[Páginas React + React Router]
         RUTA[Ruta privada: solo rol admin]
         SVC[Servicios con Axios y renovación de token]
@@ -247,7 +247,7 @@ flowchart LR
         UI[Pantallas React Native]
         AX[Cliente HTTP con renovación de token]
     end
-    subgraph Web[Panel de administración - panel-admin/]
+    subgraph Web[Panel de administración - Administrador-SafeRide/]
         PA[Páginas React]
     end
     subgraph API[Backend - backend/]
@@ -299,7 +299,7 @@ saferide/
 │   ├── src/services/         Cliente de la API y servicios por módulo
 │   ├── src/context/          Tema claro/oscuro
 │   └── __tests__/            Pruebas con Jest
-├── panel-admin/              Panel web de administración (Vite + React)
+├── Administrador-SafeRide/   Panel web de administración (Vite + React)
 │   ├── src/pages/            Inicio, Pasajeros, Conductores, Vehículos, Reservas, Pagos, Monitoreo, ...
 │   ├── src/components/       Tablas, modales de perfil, revisión de documentos, rutas privadas
 │   ├── src/services/         Cliente de la API y servicios por módulo
@@ -354,7 +354,7 @@ la abre en el navegador (el mapa no se dibuja en web).
 ### 3. Panel de administración
 
 ```bash
-cd panel-admin
+cd Administrador-SafeRide
 cp .env.example .env        # VITE_API_URL apunta al backend (por defecto http://localhost:8080/api/v1)
 npm install
 npm run dev                 # http://localhost:5173, entrar con una cuenta de rol admin
@@ -367,7 +367,7 @@ npm run sync-complaints     # opcional: agente local de quejas (necesita SUPPORT
 cd frontend    && npm test             # 75 pruebas unitarias de la app
 cd backend     && npm run qa:ataques   # 348 casos: permisos, inyección, carreras, tokens, límites, archivos
 cd backend     && npm run qa:flujos    # 112 casos: ciclo de viaje, reservas, pagos, reseñas, documentos, auditoría
-cd panel-admin && npm run build        # compilación del panel
+cd Administrador-SafeRide && npm run build        # compilación del panel
 ```
 
 Los scripts de QA necesitan el backend corriendo contra la base de pruebas; ver
