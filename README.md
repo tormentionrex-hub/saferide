@@ -76,8 +76,6 @@ Estado al 23 de noviembre de 2026.
 2. Activar los pagos en línea: PayPal y tarjeta están listos en beta, falta la cuenta de comercio.
 3. Clave de Google Maps de producción para el mapa nativo.
 4. Publicar en Google Play y App Store; requiere las cuentas de desarrollador de cada tienda.
-5. Confirmar la subida de fotos en un teléfono real (Expo Go). Ya se probó en un teléfono simulado (Pixel 7, con
-   toques) con subida real a Cloudinary: los 6 documentos quedaron aprobados y el vehículo se activó.
 
 **Backend (95 %)**
 1. Publicarlo en la nube con dominio HTTPS y la base de producción.
