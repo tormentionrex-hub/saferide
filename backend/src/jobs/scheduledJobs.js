@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 const calculateMetricsJob = require('./calculateMetrics');
 const cleanupExpiredRidesJob = require('./cleanupExpiredRides');
 const sendRideRemindersJob = require('./sendRideReminders');
+const validateDocumentsJob = require('./validateDocuments');
 
 // [SAFESCORE-AGENT] — Carga lazy de cron jobs del agente.
 // Si la carpeta safescore-reviewer/ no existe o SAFESCORE_ENABLED=false, este require devuelve null.
@@ -43,6 +44,13 @@ const initScheduledJobs = () => {
   }, {
     timezone: 'America/Costa_Rica'
   });
+
+  cron.schedule('*/10 * * * *', async () => {
+    logger.info('🧾 Running scheduled document validation...');
+    await validateDocumentsJob();
+  }, {
+    timezone: 'America/Costa_Rica'
+  });
   // [SAFESCORE-AGENT] — Cron jobs del agente (solo si está habilitado)
   if (safescoreCron) {
     cron.schedule('*/15 * * * *', safescoreCron.publishBlindReviewsJob, { timezone: 'America/Costa_Rica' });
@@ -62,6 +70,7 @@ const initScheduledJobs = () => {
   logger.info('   - Metrics calculation: Daily at 2:00 AM');
   logger.info('   - Cleanup expired rides: Every 30 min (cancels if 1h+ past start)');
   logger.info('   - Send ride reminders: Every 6 hours');
+  logger.info('   - Document validation: Every 10 min');
 };
 
 /**
@@ -77,6 +86,8 @@ const runJobManually = async (jobName) => {
       return await cleanupExpiredRidesJob();
     case 'reminders':
       return await sendRideRemindersJob();
+    case 'documents':
+      return await validateDocumentsJob();
     default:
       throw new Error(`Unknown job: ${jobName}`);
   }

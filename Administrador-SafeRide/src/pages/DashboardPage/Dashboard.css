@@ -224,6 +224,20 @@
     cursor: pointer;
 }
 
+.selectorMini select {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    outline: none;
+}
+
+.selectorMini option {
+    color: #0F172A;
+}
+
 .graficoBody {
     flex: 1;
     min-height: 250px;
@@ -301,6 +315,26 @@
     color: #94A3B8;
     font-weight: 400;
     margin-left: 4px;
+}
+
+.metodosPago {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #E2E8F0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    font-size: 0.78rem;
+}
+
+.etiquetaMetodos {
+    width: 100%;
+    color: #64748B;
+    font-weight: 600;
+}
+
+.metodoPagoItem {
+    color: #475569;
 }
 
 
@@ -570,6 +604,15 @@
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+.contadorAlertas {
+    background: #FEE2E2;
+    color: #B91C1C;
+    border-radius: 999px;
+    padding: 2px 9px;
+    font-size: 0.75rem;
+    font-weight: 700;
 }
 
 /* Alertas SOS */

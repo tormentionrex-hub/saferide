@@ -468,8 +468,8 @@ exports.startRide = async (req, res, next) => {
         message: 'Ride cannot be started',
       });
     }
-    // Update status to in progress
     ride.status = 'in progress';
+    ride.startedAt = new Date();
     await ride.save({ validateModifiedOnly: true });
 
     // Las solicitudes que el conductor no respondió quedaban en 'pending'

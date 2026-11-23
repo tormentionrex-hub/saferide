@@ -41,11 +41,16 @@ const notificationSchema = new mongoose.Schema({
   relatedEntity: {
     entityType: {
       type: String,
-      enum: ['ride', 'booking', 'user'],
+      enum: ['ride', 'booking', 'user', 'complaint', 'document', 'review'],
     },
     entityId: {
       type: mongoose.Schema.Types.ObjectId,
     },
+  },
+  source: {
+    type: String,
+    enum: ['real', 'seed', 'api'],
+    default: 'real',
   },
 }, {
   timestamps: true,
@@ -54,6 +59,7 @@ const notificationSchema = new mongoose.Schema({
 // Indexes
 notificationSchema.index({ user_id: 1, status: 1 });
 notificationSchema.index({ date: -1 });
+notificationSchema.index({ source: 1 });
 
 const Notification = mongoose.model('Notification', notificationSchema);
 

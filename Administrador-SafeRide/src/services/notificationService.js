@@ -7,7 +7,7 @@ const notificationService = {
   getNotifications: async (params = {}) => {
     try {
       const response = await api.get('/notifications', {
-        params: { scope: 'all', limit: 100, ...params },
+        params: { scope: 'all', limit: 200, ...params },
       });
       return response.data;
     } catch (error) {
@@ -34,7 +34,7 @@ const notificationService = {
    */
   markAllAsRead: async () => {
     try {
-      const response = await api.patch('/notifications/read-all', null, {
+      const response = await api.patch('/notifications/read-all', {}, {
         params: { scope: 'all' },
       });
       return response.data;

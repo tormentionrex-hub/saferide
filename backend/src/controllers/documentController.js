@@ -1,4 +1,6 @@
 const { Document, AuditLog } = require('../models');
+const documentValidationService = require('../services/documentValidationService');
+const { syncVehicleApproval, getPendingDriversCount } = require('../services/vehicleApprovalService');
 
 const REVIEW_ACTIONS = {
   approve: { status: 'approved', audit: 'DOCUMENT_APPROVED' },
@@ -36,18 +38,20 @@ exports.getPendingDocuments = async (req, res, next) => {
     const { page = 1, limit = 20 } = req.query;
     const query = { status: { $in: ['pending', 'processing', 'needs_review'] } };
 
-    const [documents, count] = await Promise.all([
+    const [documents, count, pendingDrivers] = await Promise.all([
       Document.find(query)
         .populate('driver_id', 'name email username')
         .sort({ createdAt: -1 })
         .limit(Number(limit))
         .skip((Number(page) - 1) * Number(limit)),
       Document.countDocuments(query),
+      getPendingDriversCount(),
     ]);
 
     res.status(200).json({
       success: true,
       data: documents,
+      stats: { pendingDrivers },
       pagination: {
         total: count,
         page: Number(page),
@@ -78,8 +82,14 @@ exports.reviewDocument = async (req, res, next) => {
     await document.save();
 
     await recordAudit(req, config.audit, `${document.type} ${document._id}: ${req.body.action}`);
+    const vehicleApproval = await syncVehicleApproval(document.driver_id);
 
-    res.status(200).json({ success: true, message: 'Documento actualizado', data: document });
+    res.status(200).json({
+        success: true,
+        message: 'Documento actualizado',
+        data: document,
+        vehicleApproval,
+    });
   } catch (error) {
     next(error);
   }
@@ -92,15 +102,18 @@ exports.reprocessDocument = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Documento no encontrado' });
     }
 
-    document.status = 'processing';
-    document.validation = {};
-    document.ocrText = '';
-    document.rejectionReason = '';
+    await documentValidationService.validateDocument(document);
     await document.save();
 
-    await recordAudit(req, 'DOCUMENT_REPROCESSED', `Reprocesó ${document.type} ${document._id}`);
+    await recordAudit(req, 'DOCUMENT_REPROCESSED', `Validó ${document.type} ${document._id} con ${document.validation.source}`);
+    const vehicleApproval = await syncVehicleApproval(document.driver_id);
 
-    res.status(200).json({ success: true, message: 'Documento en reprocesamiento', data: document });
+    res.status(200).json({
+        success: true,
+        message: 'Documento validado',
+        data: document,
+        vehicleApproval,
+    });
   } catch (error) {
     next(error);
   }

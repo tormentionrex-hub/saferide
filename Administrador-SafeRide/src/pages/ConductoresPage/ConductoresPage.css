@@ -186,9 +186,9 @@
   border: 2px solid white;
   box-shadow: 0 0 0 1px rgba(0,0,0,0.05);
 }
-.action-btn.documents.has-flag--rejected::after     { background: #EF4444; }
-.action-btn.documents.has-flag--needs_review::after { background: #F59E0B; }
-.action-btn.documents.has-flag--pending::after      { background: #94A3B8; }
+.action-btn.documents.has-flag--reviewed::after { background: #10B981; }
+.action-btn.documents.has-flag--partial::after  { background: #F59E0B; }
+.action-btn.documents.has-flag--unseen::after   { background: #EF4444; }
 .action-btn.documents:hover {
   border-color: #6366F1;
   color: #6366F1;
@@ -210,11 +210,12 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.25);
   border: 2px solid white;
 }
-.doc-flag--rejected     { background: #EF4444; }
-.doc-flag--needs_review { background: #F59E0B; }
-.doc-flag--pending      { background: #64748B; }
+.doc-flag--reviewed { background: #10B981; }
+.doc-flag--partial  { background: #F59E0B; }
+.doc-flag--unseen   { background: #EF4444; }
+.doc-flag--missing  { background: #94A3B8; }
 
-/* ── Filtro "Docs pendientes" en el header ──────────── */
+/* ── Bloque informativo "Docs pendientes" en el header ──────────── */
 .btn-doc-filter {
   display: flex;
   align-items: center;
@@ -222,21 +223,11 @@
   padding: 8px 14px;
   border-radius: 10px;
   border: 1px solid #E2E8F0;
-  background: white;
+  background: #F8FAFC;
   color: #475569;
   font-size: 0.8rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.btn-doc-filter:hover {
-  border-color: #6366F1;
-  color: #4F46E5;
-}
-.btn-doc-filter.is-active {
-  border-color: #6366F1;
-  color: #4F46E5;
-  background: #EEF2FF;
+  cursor: default;
 }
 .btn-doc-filter-count {
   display: inline-flex;

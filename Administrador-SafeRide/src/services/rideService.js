@@ -26,11 +26,8 @@ const rideService = {
     }
   },
 
-  /**
-   * Viajes en curso (admin). El backend filtra con GET /rides?status=in_progress.
-   */
   getInProgressRides: async () => {
-    const response = await api.get('/rides', { params: { status: 'in_progress' } });
+    const response = await api.get('/monitoring/active-rides');
     return response.data;
   },
 };

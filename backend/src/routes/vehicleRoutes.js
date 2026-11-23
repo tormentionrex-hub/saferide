@@ -24,7 +24,10 @@ const upload = multer({
 const vehicleValidation = [
   body('brand').trim().notEmpty().withMessage('Brand is required'),
   body('model').trim().notEmpty().withMessage('Model is required'),
-  body('license_plate').matches(/^[A-Z0-9]{6}$/).withMessage('License plate must be 6 characters'),
+  body('license_plate')
+    .customSanitizer((value) => String(value || '').replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 6))
+    .matches(/^(?=.*[0-9])[A-Z0-9]{6}$/)
+    .withMessage('La placa debe tener 6 caracteres alfanuméricos e incluir al menos un número'),
   body('color').trim().notEmpty().withMessage('Color is required'),
   body('year').isInt({ min: 1900, max: new Date().getFullYear() + 1 }),
 ];

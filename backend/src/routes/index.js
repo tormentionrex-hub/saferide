@@ -13,6 +13,8 @@ const mapsRoutes = require('./mapsRoutes');
 const complaintRoutes = require('./complaintRoutes');
 const auditRoutes = require('./auditRoutes');
 const documentRoutes = require('./documentRoutes');
+const settingsRoutes = require('./settingsRoutes');
+const monitoringRoutes = require('./monitoringRoutes');
 
 const router = express.Router();
 
@@ -60,6 +62,8 @@ router.use('/maps', mapsRoutes);
 router.use('/complaints', complaintRoutes);
 router.use('/audit-logs', auditRoutes);
 router.use('/documents', documentRoutes);
+router.use('/settings', settingsRoutes);
+router.use('/monitoring', monitoringRoutes);
 
 // [SAFESCORE-AGENT] — Endpoints admin del agente (visibilidad de jobs y stats)
 try {

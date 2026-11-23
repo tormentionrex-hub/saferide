@@ -40,16 +40,16 @@ export const useMonitoringEnabled = () => {
 };
 
 /**
- * useInProgressRides — Polling a GET /rides?status=in_progress.
+ * useInProgressRides — Polling a GET /monitoring/active-rides.
  *
  * @param {object}  opts
  * @param {boolean} opts.enabled       Si false, no hace fetch ni notificaciones.
- * @param {number}  opts.intervalMs    Frecuencia de polling. Default 8 s.
+ * @param {number}  opts.intervalMs    Frecuencia de polling. Default 5 s.
  * @param {boolean} opts.notify        Si true, dispara toast por cada viaje nuevo.
  *
  * @returns {object} { rides, loading, error, refresh }
  */
-export const useInProgressRides = ({ enabled = true, intervalMs = 8000, notify = true } = {}) => {
+export const useInProgressRides = ({ enabled = true, intervalMs = 5000, notify = true } = {}) => {
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

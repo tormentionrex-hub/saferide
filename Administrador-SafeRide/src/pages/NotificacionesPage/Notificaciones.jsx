@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Bell, AlertTriangle, Mail, CheckCircle, Clock, Trash2, Search, Check
 } from 'lucide-react';
@@ -13,12 +13,12 @@ const Notificaciones = () => {
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'seguros', 'correos', 'sistema'
   const [searchTerm, setSearchTerm] = useState('');
   const [unreadTotal, setUnreadTotal] = useState(0);
+  const seenIdsRef = useRef(new Set());
 
-  // Cargar notificaciones y quejas reales
+  // Cargar notificaciones reales del backend
   const loadNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Cargar notificaciones del backend real
       let backendList = [];
       try {
         const res = await notificationService.getNotifications();
@@ -52,23 +52,23 @@ const Notificaciones = () => {
     }
   }, []);
 
-  // Cargar notificaciones al iniciar
   useEffect(() => {
     loadNotifications();
   }, [loadNotifications]);
 
-  // Marcar como leída
-  const handleMarkAsRead = async (id) => {
+  // Marcar como leída (silent se usa cuando se marca por estar visible)
+  const handleMarkAsRead = async (id, { silent = false } = {}) => {
     try {
       await notificationService.markAsRead(id);
       const target = notifications.find(n => n._id === id);
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, status: 'read' } : n));
       if (target?.status === 'unread') setUnreadTotal(v => Math.max(0, v - 1));
-      toast.success('Notificación marcada como leída');
+      if (!silent) toast.success('Notificación marcada como leída');
       window.dispatchEvent(new Event('notificationsUpdated'));
     } catch (err) {
       console.error(err);
-      toast.error('Error al actualizar la notificación en el servidor');
+      seenIdsRef.current.delete(id);
+      if (!silent) toast.error('Error al actualizar la notificación en el servidor');
     }
   };
 
@@ -76,7 +76,10 @@ const Notificaciones = () => {
   const handleMarkAllAsRead = async () => {
     try {
       await notificationService.markAllAsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, status: 'read' })));
+      setNotifications(prev => {
+        prev.forEach(n => seenIdsRef.current.add(n._id));
+        return prev.map(n => ({ ...n, status: 'read' }));
+      });
       setUnreadTotal(0);
       toast.success('Todas las notificaciones marcadas como leídas');
       window.dispatchEvent(new Event('notificationsUpdated'));
@@ -85,6 +88,23 @@ const Notificaciones = () => {
       toast.error('Error al actualizar las notificaciones');
     }
   };
+
+  // Las notificaciones que el admin tiene a la vista se marcan solas
+  useEffect(() => {
+    if (loading || typeof IntersectionObserver === 'undefined') return undefined;
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const id = entry.target.getAttribute('data-id');
+        if (!id || seenIdsRef.current.has(id)) return;
+        seenIdsRef.current.add(id);
+        handleMarkAsRead(id, { silent: true });
+      });
+    }, { threshold: 0.6 });
+
+    document.querySelectorAll('.n-card.unread').forEach(node => observer.observe(node));
+    return () => observer.disconnect();
+  }, [loading, notifications]);
 
   // Eliminar notificación de la lista
   const handleDeleteNotification = async (id) => {
@@ -119,8 +139,7 @@ const Notificaciones = () => {
   // Filtrado y Búsqueda sobre datos reales
   const filteredNotifications = useMemo(() => {
     return notifications.filter(n => {
-      const matchSearch = (n.message || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (n.fullMessage || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchSearch = (n.message || '').toLowerCase().includes(searchTerm.toLowerCase());
       if (activeTab === 'all') return matchSearch;
       if (activeTab === 'seguros') return matchSearch && n.category === 'seguro';
       if (activeTab === 'correos') return matchSearch && n.category === 'correo';
@@ -158,7 +177,7 @@ const Notificaciones = () => {
             Centro de Notificaciones
           </h1>
           <p style={{ color: '#64748B', fontSize: '0.85rem' }}>
-            Supervisa alertas críticas de seguros (INS, RTV/Dekra), correos de soporte entrantes y alertas del sistema.
+            Alertas reales de la base de datos. Las que tengas a la vista se marcan solas o usa “Marcar leídas”.
           </p>
         </div>
 
@@ -218,6 +237,7 @@ const Notificaciones = () => {
             return (
               <div
                 key={notif._id}
+                data-id={notif._id}
                 className={`n-card ${notif.status === 'unread' ? 'unread' : 'read'} ${notif.category}`}
               >
                 {/* Indicador visual lateral */}

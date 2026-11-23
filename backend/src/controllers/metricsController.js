@@ -1,4 +1,4 @@
-const { Metrics, Ride, Booking } = require('../models');
+const { Metrics, Ride, Booking, User } = require('../models');
 const { processDriver, processPassenger } = require('../jobs/calculateMetrics');
 
 // @desc    Get user metrics
@@ -180,12 +180,52 @@ exports.getGlobalMetrics = async (req, res, next) => {
         },
       },
     ]);
-    // Get total users and drivers
-    const totalUsers = await require('../models').User.countDocuments({ isActive: true });
-    const totalDrivers = await require('../models').User.countDocuments({
-      type: 'conductor',
-      isActive: true,
+    const ahora = new Date();
+    const inicioMes = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), 1));
+    const finMes = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth() + 1, 1));
+
+    const [totalUsers, totalDrivers, totalPassengers, totalAdmins, activeUsers, paymentRows, methodRows, monthlyCarbonRows] = await Promise.all([
+      User.countDocuments({ type: { $in: ['conductor', 'pasajero'] } }),
+      User.countDocuments({ type: 'conductor' }),
+      User.countDocuments({ type: 'pasajero' }),
+      User.countDocuments({ type: 'admin' }),
+      User.countDocuments({ isActive: true }),
+      Booking.aggregate([{ $group: { _id: '$payment_status', count: { $sum: 1 } } }]),
+      Booking.aggregate([
+        { $group: { _id: { $ifNull: ['$payment_method', 'sin_method'] }, count: { $sum: 1 } } },
+      ]),
+      Booking.aggregate([
+        {
+          $match: {
+            status: 'completed',
+            createdAt: { $gte: inicioMes, $lt: finMes },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            bookings: { $sum: 1 },
+            kilometers: { $sum: { $ifNull: ['$distance_km', 0] } },
+          },
+        },
+      ]),
+    ]);
+
+    const monthlyKilometers = Number(monthlyCarbonRows[0]?.kilometers) || 0;
+    const monthlyCarbonSaved = Number((monthlyKilometers * 0.072).toFixed(2));
+
+    const payments = { paid: 0, pending: 0, waived: 0, other: 0, total: 0 };
+    paymentRows.forEach((row) => {
+      payments.total += row.count;
+      if (Object.prototype.hasOwnProperty.call(payments, row._id) && row._id !== 'total') {
+        payments[row._id] += row.count;
+      } else {
+        payments.other += row.count;
+      }
     });
+
+    const paymentMethods = {};
+    methodRows.forEach((row) => { paymentMethods[row._id] = row.count; });
 
     res.status(200).json({
       success: true,
@@ -193,8 +233,50 @@ exports.getGlobalMetrics = async (req, res, next) => {
         ...totalMetrics[0],
         totalUsers,
         totalDrivers,
+        totalPassengers,
+        totalAdmins,
+        activeUsers,
+        payments,
+        paymentMethods,
+        monthlyCarbonSaved,
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getBookingsByDay = async (req, res, next) => {
+  try {
+    const days = [7, 14, 21].includes(Number(req.query.days)) ? Number(req.query.days) : 7;
+    const dayMs = 24 * 60 * 60 * 1000;
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const start = new Date(today.getTime() - (days - 1) * dayMs);
+    const end = new Date(today.getTime() + dayMs);
+
+    const grouped = await Booking.aggregate([
+      { $match: { createdAt: { $gte: start, $lt: end } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          value: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const counts = new Map(grouped.map((item) => [item._id, item.value]));
+    const data = Array.from({ length: days }, (_, i) => {
+      const date = new Date(start.getTime() + i * dayMs);
+      const key = date.toISOString().slice(0, 10);
+      return {
+        date: key,
+        name: date.toLocaleDateString('es-CR', { day: '2-digit', month: 'short', timeZone: 'UTC' }).replace('.', ''),
+        value: counts.get(key) || 0,
+      };
+    });
+
+    res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }

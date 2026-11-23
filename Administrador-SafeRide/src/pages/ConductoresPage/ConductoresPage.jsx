@@ -8,13 +8,9 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import {
-  LayoutDashboard, Users, UserCheck, Car, Calendar, CreditCard,
-  Bell, AlertCircle, ShieldCheck, Settings, Search, Menu,
-  ChevronDown, Plus, Truck, Star, Zap, MapPin, Clock,
-  Award, Activity, Eye, Edit, Trash2, CheckCircle, Mail, Phone,
+  Users, Car, Search, Plus, Truck, Star, Zap,
+  Eye, Edit, Trash2, CheckCircle, Mail, Phone,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   FileCheck
 } from 'lucide-react';
@@ -27,11 +23,21 @@ import { toast, Toaster } from 'react-hot-toast';
 import '../DashboardPage/Dashboard.css';
 import './ConductoresPage.css';
 import '../PasajerosPage/Pasajeros.css';
-import IconSafeRide from '../../imgs/IconSafeRide.png';
 import DefaultImageUser from '../../imgs/DefaultImageUser.png';
 
 // ─────────────────────────────────────────────────────────────
 const getDefaultImagen = (url) => (url && url.trim() !== '') ? url : DefaultImageUser;
+
+const STATS_CACHE_KEY = 'saferide_driver_stats';
+
+const readCachedStats = () => {
+  try {
+    const cached = JSON.parse(localStorage.getItem(STATS_CACHE_KEY));
+    return cached && typeof cached === 'object' ? cached : null;
+  } catch {
+    return null;
+  }
+};
 
 // ─────────────────────────────────────────────────────────────
 // COMPONENTE: Skeleton para carga de tarjetas
@@ -59,6 +65,8 @@ const CardSkeleton = () => (
 );
 
 const DriverCard = React.memo(({ driver, onEdit, onDelete, onActivate, onView, onViewDocuments, docFlag, index }) => {
+  const isOperational = driver?.vehicle?.isActive === true;
+
   return (
     <div className="conductor-card" style={{ '--card-index': index }}>
       <div className="card-header">
@@ -68,16 +76,17 @@ const DriverCard = React.memo(({ driver, onEdit, onDelete, onActivate, onView, o
           className="conductor-img"
           loading="lazy"
         />
-        <div className={`status-badge ${driver.isActive ? 'active' : 'inactive'}`}>
-          {driver.isActive ? 'Activo' : 'Inactivo'}
+        <div className={`status-badge ${isOperational ? 'active' : 'inactive'}`}>
+          {isOperational ? 'Operativo' : 'Pendiente'}
         </div>
         {docFlag && (
           <div
             className={`doc-flag doc-flag--${docFlag}`}
             title={
-              docFlag === 'rejected' ? 'Documento rechazado' :
-              docFlag === 'needs_review' ? 'Documento por revisar' :
-              'Documento en cola'
+              docFlag === 'reviewed' ? 'Documentos revisados' :
+              docFlag === 'partial' ? 'Documentos en revisión' :
+              docFlag === 'missing' ? 'Faltan documentos' :
+              'Documentos todavía no vistos'
             }
           >
             <FileCheck size={11} />
@@ -105,7 +114,7 @@ const DriverCard = React.memo(({ driver, onEdit, onDelete, onActivate, onView, o
       </div>
 
       <div className="card-actions">
-        {!driver.isActive ? (
+        {!isOperational ? (
           <button
             className="action-btn activate"
             title="Activar"
@@ -129,7 +138,7 @@ const DriverCard = React.memo(({ driver, onEdit, onDelete, onActivate, onView, o
         <button className="action-btn edit" title="Editar" onClick={() => onEdit(driver)}>
           <Edit size={18} />
         </button>
-        {driver.isActive && (
+        {isOperational && (
           <button className="action-btn delete" title="Desactivar" onClick={() => onDelete(driver)}>
             <Trash2 size={18} />
           </button>
@@ -143,10 +152,8 @@ const DriverCard = React.memo(({ driver, onEdit, onDelete, onActivate, onView, o
 // PÁGINA PRINCIPAL: ConductoresPage
 // ─────────────────────────────────────────────────────────────
 const ConductoresPage = () => {
-  const { user, logout, cerrarSesion } = useAuth();
-  const location = useLocation();
-
   const cached = driverService.getCachedDrivers();
+  const cachedStats = readCachedStats();
   const [drivers, setDrivers] = useState(cached.data || []);
   const [loading, setLoading] = useState(!cached.data?.length);
   const [searchTerm, setSearch] = useState('');
@@ -156,17 +163,21 @@ const ConductoresPage = () => {
   const lastRequestId = useRef(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(cached.pagination?.pages || 1);
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState(cachedStats || {
     total: cached.pagination?.total || 0,
-    activeNow: cached.stats?.active || 0,
+    activeNow: cached.stats?.operational || 0,
     avgRating: cached.stats?.rating || 0,
     onTrip: 0,
   });
   const [selectedLetter, setSelectedLetter] = useState('');
   const [sortOrder, setSortOrder] = useState('desc'); // 'desc' = más nuevos primero, 'asc' = más viejos primero
-  const [docFlagsByDriver, setDocFlagsByDriver] = useState({}); // driverId -> 'rejected' | 'needs_review' | 'pending'
-  const [showOnlyWithDocIssues, setShowOnlyWithDocIssues] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all'); // all | active | inactive
+  const [pendingDocsCount, setPendingDocsCount] = useState(0);
+  const [modalReadOnly, setModalReadOnly] = useState(false);
 
+  useEffect(() => {
+    localStorage.setItem(STATS_CACHE_KEY, JSON.stringify(stats));
+  }, [stats]);
 
   const loadDrivers = useCallback(async () => {
     const requestId = ++lastRequestId.current;
@@ -177,7 +188,7 @@ const ConductoresPage = () => {
         initial: selectedLetter,
         page: currentPage,
         limit: 9,
-        sort: sortOrder
+        sort: sortOrder,
       });
 
 
@@ -194,17 +205,14 @@ const ConductoresPage = () => {
       if (requestId !== lastRequestId.current) return;
 
       if (Array.isArray(list)) {
-        // Optimización: Solo enriquecemos si no hay muchos conductores o de forma secuencial controlada
-        // Para evitar lag, limitamos las peticiones concurrentes
-        // Enriquecer con vehículos en paralelo para mayor velocidad
+        // Enriquecer con vehículo y documentos en paralelo para pintar el badge por conductor.
         const enriched = await Promise.all(
           list.map(async (d) => {
-            try {
-              const vehicle = await driverService.getVehicleByDriver(d._id);
-              return { ...d, vehicle };
-            } catch (vErr) {
-              return { ...d, vehicle: null };
-            }
+            const [vehicle, documents] = await Promise.all([
+              driverService.getVehicleByDriver(d._id).catch(() => null),
+              documentService.getDocumentsByDriver(d._id).catch(() => []),
+            ]);
+            return { ...d, vehicle, documents };
           })
         );
 
@@ -212,10 +220,13 @@ const ConductoresPage = () => {
 
         console.log('[ConductoresPage] Drivers loaded:', enriched);
         setDrivers(enriched);
+        setSelectedDriver((prev) => (
+          prev ? enriched.find((item) => item._id === prev._id) || prev : prev
+        ));
 
         setStats({
           total: response.stats?.total || response.pagination?.total || 0,
-          activeNow: response.stats?.active || 0,
+          activeNow: response.stats?.operational ?? 0,
           avgRating: (enriched.reduce((s, d) => s + (d.rating || 0), 0) / (enriched.length || 1)).toFixed(1),
           onTrip: 0,
         });
@@ -233,34 +244,24 @@ const ConductoresPage = () => {
 
   useEffect(() => { loadDrivers(); }, []);
 
-  // Carga los documentos con observación una sola vez por sesión (endpoint paginado).
-  // Construye un mapa driverId -> peor estado para mostrar badges en las cards.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data } = await documentService.getPendingDocuments({ limit: 200 });
-        if (cancelled) return;
-        const priority = { rejected: 3, needs_review: 2, pending: 1, processing: 1 };
-        const next = {};
-        for (const d of data || []) {
-          const drvId = typeof d.driver_id === 'object' ? d.driver_id?._id : d.driver_id;
-          if (!drvId) continue;
-          const flag = d.status === 'rejected' ? 'rejected'
-                     : d.status === 'needs_review' ? 'needs_review'
-                     : 'pending';
-          if (!next[drvId] || priority[flag] > priority[next[drvId]]) {
-            next[drvId] = flag;
-          }
-        }
-        setDocFlagsByDriver(next);
-      } catch (err) {
-        // El endpoint puede no existir aún; el service ya hace fallback a mock.
-        console.warn('[ConductoresPage] no se pudieron cargar docs pendientes:', err?.message);
-      }
-    })();
-    return () => { cancelled = true; };
+  const loadPendingDocs = useCallback(async () => {
+    try {
+      const { data, stats } = await documentService.getPendingDocuments({ limit: 200 });
+      const fallback = new Set(
+        (data || []).map(d => (typeof d.driver_id === 'object' ? d.driver_id?._id : d.driver_id)).filter(Boolean)
+      ).size;
+      setPendingDocsCount(stats?.pendingDrivers ?? fallback);
+    } catch (err) {
+      console.warn('[ConductoresPage] no se pudieron cargar conductores pendientes:', err?.message);
+    }
   }, []);
+
+  useEffect(() => { loadPendingDocs(); }, [loadPendingDocs]);
+
+  const handleDocumentReviewed = useCallback(() => {
+    loadPendingDocs();
+    loadDrivers();
+  }, [loadPendingDocs, loadDrivers]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -271,7 +272,7 @@ const ConductoresPage = () => {
       }
     }, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchTerm, selectedLetter]);
+  }, [searchTerm, selectedLetter, statusFilter]);
 
   useEffect(() => {
     if (currentPage !== 1) {
@@ -290,18 +291,21 @@ const ConductoresPage = () => {
   const handleOpenModal = (driver = null) => {
     setSelectedDriver(driver);
     setModalTab('info');
+    setModalReadOnly(false);
     setIsModalOpen(true);
   };
 
   const handleViewTrips = (driver) => {
     setSelectedDriver(driver);
     setModalTab('history');
+    setModalReadOnly(true);
     setIsModalOpen(true);
   };
 
   const handleViewDocuments = (driver) => {
     setSelectedDriver(driver);
     setModalTab('documents');
+    setModalReadOnly(false);
     setIsModalOpen(true);
   };
 
@@ -376,12 +380,16 @@ const ConductoresPage = () => {
   // su teléfono termina en 3.
   const filteredDrivers = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return drivers;
     return drivers.filter(d => {
+      const isOperational = d.vehicle?.isActive === true;
+      const cumpleEstado = statusFilter === 'all'
+        || (statusFilter === 'active' ? isOperational : !isOperational);
+      if (!cumpleEstado) return false;
+      if (!term) return true;
       const haystack = `${d.name || ''} ${d.username || ''} ${d.email || ''}`.toLowerCase();
       return haystack.includes(term);
     });
-  }, [drivers, searchTerm]);
+  }, [drivers, searchTerm, statusFilter]);
 
   // Lógica para generar números de página con elipsis (...)
   const getPageNumbers = useMemo(() => {
@@ -408,8 +416,6 @@ const ConductoresPage = () => {
     return pages;
   }, [totalPages, currentPage]);
 
-  const handleCerrarSesion = logout || cerrarSesion;
-
   return (
     <>
       <Toaster position="top-right" />
@@ -432,10 +438,7 @@ const ConductoresPage = () => {
                 if (e.target.value && selectedLetter) setSelectedLetter('');
               }}
             />
-            <button className="btn-search-header" onClick={loadDrivers}>
-              Buscar
-            </button>
-            <div className="search-status-indicator" style={{ right: '85px' }}>
+            <div className="search-status-indicator" style={{ right: '12px' }}>
               {loading && <div className="spinner-mini" />}
             </div>
           </div>
@@ -451,17 +454,27 @@ const ConductoresPage = () => {
             </select>
           </div>
 
-          <button
-            className={`btn-doc-filter ${showOnlyWithDocIssues ? 'is-active' : ''}`}
-            onClick={() => setShowOnlyWithDocIssues(v => !v)}
-            title="Mostrar solo conductores con documentos pendientes o rechazados"
+          <div className="ordenamientoContainer">
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="ordenamientoSelect"
+              aria-label="Filtrar por estado"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="active">Operativos</option>
+              <option value="inactive">Pendientes</option>
+            </select>
+          </div>
+
+          <div
+            className="btn-doc-filter doc-info-block"
+            title="Conductores con documentos incompletos"
           >
             <FileCheck size={16} />
-            Docs pendientes
-            {Object.keys(docFlagsByDriver).length > 0 && (
-              <span className="btn-doc-filter-count">{Object.keys(docFlagsByDriver).length}</span>
-            )}
-          </button>
+            Conductores pendientes
+            <span className="btn-doc-filter-count">{pendingDocsCount}</span>
+          </div>
 
           <button className="btn-add-passenger" onClick={() => handleOpenModal(null)}>
             <Plus size={18} /> Registrar Conductor
@@ -496,7 +509,7 @@ const ConductoresPage = () => {
         <div className="tarjetaEstadistica">
           <div className="estadisticaHeader">
             <div className="estadisticaIcono color-purple"><Users size={20} /></div>
-            <div className="estadisticaValor">{loading ? '—' : stats.total}</div>
+            <div className="estadisticaValor">{loading && stats.total == null ? '—' : stats.total}</div>
           </div>
           <div className="estadisticaTitulo">Total Conductores</div>
           <div className="estadisticaFooter">
@@ -507,9 +520,9 @@ const ConductoresPage = () => {
         <div className="tarjetaEstadistica">
           <div className="estadisticaHeader">
             <div className="estadisticaIcono color-green"><Zap size={20} /></div>
-            <div className="estadisticaValor">{loading ? '—' : stats.activeNow}</div>
+            <div className="estadisticaValor">{loading && stats.activeNow == null ? '—' : stats.activeNow}</div>
           </div>
-          <div className="estadisticaTitulo">Activos Ahora</div>
+          <div className="estadisticaTitulo">Operativos</div>
           <div className="estadisticaFooter">
             <span className="estadisticaSubtitulo">Monitoreo en vivo</span>
           </div>
@@ -518,7 +531,7 @@ const ConductoresPage = () => {
         <div className="tarjetaEstadistica">
           <div className="estadisticaHeader">
             <div className="estadisticaIcono color-yellow"><Star size={20} /></div>
-            <div className="estadisticaValor">{loading ? '—' : stats.avgRating}</div>
+            <div className="estadisticaValor">{loading && stats.avgRating == null ? '—' : stats.avgRating}</div>
           </div>
           <div className="estadisticaTitulo">Rating Promedio</div>
           <div className="estadisticaFooter">
@@ -534,13 +547,12 @@ const ConductoresPage = () => {
             Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={`sk-${i}`} />)
           ) : filteredDrivers.length > 0 ? (
             filteredDrivers
-              .filter(d => !showOnlyWithDocIssues || docFlagsByDriver[d._id])
               .map((driver, index) => (
                 <DriverCard
                   key={driver._id}
                   driver={driver}
                   index={index}
-                  docFlag={docFlagsByDriver[driver._id]}
+                  docFlag={documentService.getDriverDocFlag(driver.documents)}
                   onEdit={handleOpenModal}
                   onDelete={handleDelete}
                   onActivate={handleActivate}
@@ -619,6 +631,8 @@ const ConductoresPage = () => {
         driver={selectedDriver}
         onSaved={handleSaved}
         initialTab={modalTab}
+        readOnly={modalReadOnly}
+        onDocumentReviewed={handleDocumentReviewed}
       />
     </>
   );

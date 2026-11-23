@@ -2,12 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import {
     ShieldCheck, Palette, Mail, Phone,
     RefreshCcw, Wrench, Bell, BellOff, Trash2, Globe,
-    Server, Cpu, Clock, Activity, Check
+    Server, Cpu, Clock, Activity, Check, Target
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../services/api';
+import { useMonthlyGoal } from '../../hooks/useMonthlyGoal';
 import SupportImage from '../../imgs/SupportConfig.png';
 import './Configuracion.css';
 
@@ -41,6 +42,30 @@ const TEMAS = [
 
 const Configuracion = () => {
     const { theme, setTheme } = useTheme();
+    const { goal: metaMensual, loading: cargandoMeta, saving: guardandoMeta, updateGoal } = useMonthlyGoal();
+    const [metaInput, setMetaInput] = useState(null);
+    const metaVisible = metaInput ?? String(metaMensual);
+
+    const handleGuardarMeta = async () => {
+        const numero = Number(metaVisible);
+        if (!Number.isFinite(numero) || numero <= 0) {
+            Swal.fire({ icon: 'error', title: 'Meta inválida', text: 'Escribe un número mayor a 0.' });
+            return;
+        }
+        try {
+            const guardado = await updateGoal(numero);
+            setMetaInput(null);
+            Swal.fire({
+                icon: 'success',
+                title: 'Meta actualizada',
+                text: `La meta mensual de CO₂ ahora es ${guardado} kg.`,
+                timer: 1800,
+                showConfirmButton: false,
+            });
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'No se pudo guardar', text: err.message });
+        }
+    };
 
     // ── Estado del sistema (real, vía /health) ──
     const [healthState, setHealthState] = useState({
@@ -237,6 +262,43 @@ const Configuracion = () => {
                                 <span className="valorInfo">{timezone}</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {/* ── Meta Mensual de CO₂ ── */}
+                <div className="tarjetaConfiguracion">
+                    <div className="tarjetaTitulo">
+                        <div className="iconoTituloWrap bg-verdeClaro">
+                            <Target size={20} className="iconoVerde" />
+                        </div>
+                        <h3>Meta Mensual de CO₂</h3>
+                    </div>
+                    <div className="tarjetaCuerpo flexCol">
+                        <p className="textoDescriptivo">Define cuántos kilogramos de CO₂ quiere ahorrar SafeRide en el mes. La meta se guarda en el servidor y se aplica al Panel Principal.</p>
+                        <div className="metaGoalForm mT-16">
+                            <div className="grupoInput">
+                                <label htmlFor="metaCarbonoInput">Meta mensual (kg de CO₂)</label>
+                                <input
+                                    id="metaCarbonoInput"
+                                    className="inputEstilizado"
+                                    type="number"
+                                    min="1"
+                                    step="0.1"
+                                    value={metaVisible}
+                                    onChange={(e) => setMetaInput(e.target.value)}
+                                    disabled={cargandoMeta || guardandoMeta}
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                className="botonGuardarPrimario"
+                                onClick={handleGuardarMeta}
+                                disabled={cargandoMeta || guardandoMeta}
+                            >
+                                {guardandoMeta ? 'Guardando…' : 'Guardar meta'}
+                            </button>
+                        </div>
+                        <p className="metaGoalAyuda">Valor actual guardado: <strong>{metaMensual} kg</strong>.</p>
                     </div>
                 </div>
 

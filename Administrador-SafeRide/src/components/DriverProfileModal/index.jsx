@@ -136,6 +136,13 @@ const FieldError = ({ msg }) => msg ? (
   </span>
 ) : null;
 
+const ReadOnlyField = ({ label, value }) => (
+  <div className="read-only-field">
+    <span className="read-only-label">{label}</span>
+    <span className="read-only-value">{value || '—'}</span>
+  </div>
+);
+
 // ─── Iconos SVG inline para usar dentro de Swal.fire({ html: ... }) ──
 const svgIcon = (paths, { size = 14, color = '#EF4444' } = {}) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" `
@@ -190,9 +197,10 @@ const TripItem = memo(({ trip, idx, isLast }) => (
 ));
 
 
-const DriverProfileModal = ({ isOpen, onClose, driver, onSaved, userType = 'conductor', initialTab = 'info' }) => {
+const DriverProfileModal = ({ isOpen, onClose, driver, onSaved, userType = 'conductor', initialTab = 'info', readOnly = false, onDocumentReviewed }) => {
   const isEditMode = Boolean(driver);
   const isPassenger = userType === 'pasajero';
+  const soloLectura = Boolean(readOnly && isEditMode);
   const [form, setForm] = useState({
     name: '', username: '', email: '', phone: '',
     company: COMPANIES[0] || '', work_schedule: SCHEDULES[0] || '',
@@ -831,7 +839,9 @@ const DriverProfileModal = ({ isOpen, onClose, driver, onSaved, userType = 'cond
               ? `Historial de Viajes: ${driver?.name || ''}`
               : activeTab === 'documents'
                 ? `Documentos: ${driver?.name || ''}`
-                : (isEditMode ? `Editar Perfil ${isPassenger ? 'Pasajero' : 'Conductor'}` : 'Nuevo Registro')}
+                : soloLectura
+                  ? `Ver ${isPassenger ? 'Pasajero' : 'Conductor'}: ${driver?.name || ''}`
+                  : (isEditMode ? `Editar Perfil ${isPassenger ? 'Pasajero' : 'Conductor'}` : 'Nuevo Registro')}
           </h2>
           <button className="close-btn" onClick={onClose}><X size={20} /></button>
         </header>
@@ -865,16 +875,54 @@ const DriverProfileModal = ({ isOpen, onClose, driver, onSaved, userType = 'cond
         )}
 
         {activeTab === 'info' ? (
+          soloLectura ? (
+            <div className="modal-body read-only-body">
+              <div className="avatar-section">
+                <img src={previewUrl || 'https://via.placeholder.com/150'} alt="Avatar" className="avatar-preview" />
+              </div>
+
+              <div className="section-title"><Mail size={14} /> Datos de Cuenta</div>
+              <ReadOnlyField label="Correo Electrónico" value={form.email} />
+              <ReadOnlyField label="Nombre de Usuario" value={form.username} />
+
+              <div className="section-title"><User size={14} /> Información Personal</div>
+              <ReadOnlyField label="Nombre Completo" value={form.name} />
+              <ReadOnlyField label="Teléfono" value={form.phone} />
+              <ReadOnlyField label="Empresa" value={form.company} />
+              <ReadOnlyField label="Horario" value={form.work_schedule} />
+              {!isPassenger && (
+                <ReadOnlyField label="Puntaje de Confianza" value={`${trustScore} / 4`} />
+              )}
+
+              {!isPassenger && (
+                <>
+                  <div className="section-title"><Truck size={14} /> Información del Vehículo</div>
+                  <ReadOnlyField label="Marca" value={form.vehicle.brand} />
+                  <ReadOnlyField label="Modelo" value={form.vehicle.model} />
+                  <ReadOnlyField label="Placa" value={form.vehicle.license_plate} />
+                  <ReadOnlyField label="Color" value={form.vehicle.color} />
+                  <ReadOnlyField label="Año" value={form.vehicle.year} />
+                  <ReadOnlyField label="Capacidad" value={form.vehicle.capacity} />
+                </>
+              )}
+
+              <div className="modal-footer">
+                <button type="button" className="save-btn read-only-close" onClick={onClose}>Cerrar</button>
+              </div>
+            </div>
+          ) : (
           <form className="modal-body" onSubmit={handleSubmit}>
             <div className="avatar-section">
               <img src={previewUrl || 'https://via.placeholder.com/150'} alt="Avatar" className="avatar-preview" />
-              <label className="file-label">
-                <Upload size={16} /> <span>{isEditMode ? 'Cambiar foto' : 'Subir foto (opcional)'}</span>
-                <input type="file" accept="image/*" onChange={e => {
-                  const file = e.target.files[0];
-                  if (file) { setAvatarFile(file); setPreviewUrl(URL.createObjectURL(file)); }
-                }} />
-              </label>
+              {!soloLectura && (
+                <label className="file-label">
+                  <Upload size={16} /> <span>{isEditMode ? 'Cambiar foto' : 'Subir foto (opcional)'}</span>
+                  <input type="file" accept="image/*" onChange={e => {
+                    const file = e.target.files[0];
+                    if (file) { setAvatarFile(file); setPreviewUrl(URL.createObjectURL(file)); }
+                  }} />
+                </label>
+              )}
             </div>
 
             <div className="section-title"><Mail size={14} /> Datos de Cuenta</div>
@@ -930,7 +978,8 @@ const DriverProfileModal = ({ isOpen, onClose, driver, onSaved, userType = 'cond
                 value={form.name}
                 onChange={handleChange}
                 required
-                className={fieldErrors.name ? 'has-error' : ''}
+                readOnly={soloLectura}
+                className={`${soloLectura ? 'input-readonly' : ''} ${fieldErrors.name ? 'has-error' : ''}`}
               />
               <FieldError msg={fieldErrors.name} />
             </div>
@@ -943,19 +992,20 @@ const DriverProfileModal = ({ isOpen, onClose, driver, onSaved, userType = 'cond
                 required
                 maxLength={8}
                 inputMode="numeric"
-                className={fieldErrors.phone ? 'has-error' : ''}
+                readOnly={soloLectura}
+                className={`${soloLectura ? 'input-readonly' : ''} ${fieldErrors.phone ? 'has-error' : ''}`}
               />
               <FieldError msg={fieldErrors.phone} />
             </div>
             <div className="field-group">
               <label>Empresa *</label>
-              <select name="company" value={form.company} onChange={handleChange}>
+              <select name="company" value={form.company} onChange={handleChange} disabled={soloLectura}>
                 {COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="field-group">
               <label>Horario *</label>
-              <select name="work_schedule" value={form.work_schedule} onChange={handleChange}>
+              <select name="work_schedule" value={form.work_schedule} onChange={handleChange} disabled={soloLectura}>
                 {SCHEDULES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
@@ -965,13 +1015,13 @@ const DriverProfileModal = ({ isOpen, onClose, driver, onSaved, userType = 'cond
                 <div className="section-title"><Truck size={14} /> Información del Vehículo</div>
                 <div className="field-group">
                   <label>Marca *</label>
-                  <select name="v-brand" value={form.vehicle.brand} onChange={handleChange}>
+                  <select name="v-brand" value={form.vehicle.brand} onChange={handleChange} disabled={soloLectura}>
                     {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
                   </select>
                 </div>
                 <div className="field-group">
                   <label>Modelo *</label>
-                  <select name="v-model" value={form.vehicle.model} onChange={handleChange}>
+                  <select name="v-model" value={form.vehicle.model} onChange={handleChange} disabled={soloLectura}>
                     {currentModels.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
@@ -982,6 +1032,7 @@ const DriverProfileModal = ({ isOpen, onClose, driver, onSaved, userType = 'cond
                     value={form.vehicle.license_plate}
                     onChange={handleChange}
                     maxLength={6}
+                    readOnly={soloLectura}
                     style={{ textTransform: 'uppercase' }}
                     className={fieldErrors['v-license_plate'] ? 'has-error' : ''}
                   />
@@ -989,24 +1040,24 @@ const DriverProfileModal = ({ isOpen, onClose, driver, onSaved, userType = 'cond
                 </div>
                 <div className="field-group">
                   <label>Color *</label>
-                  <select name="v-color" value={form.vehicle.color} onChange={handleChange}>
+                  <select name="v-color" value={form.vehicle.color} onChange={handleChange} disabled={soloLectura}>
                     {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="field-group">
                   <label><Calendar size={12} /> Año *</label>
-                  <select name="v-year" value={form.vehicle.year} onChange={handleChange}>
+                  <select name="v-year" value={form.vehicle.year} onChange={handleChange} disabled={soloLectura}>
                     {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </div>
                 <div className="field-group">
                   <label><Users size={12} /> Capacidad *</label>
-                  <input type="number" name="v-capacity" value={form.vehicle.capacity} onChange={handleChange} min="1" max="7" />
+                  <input type="number" name="v-capacity" value={form.vehicle.capacity} onChange={handleChange} min="1" max="7" readOnly={soloLectura} />
                 </div>
               </>
             )}
 
-            {isEditMode && (
+            {isEditMode && !soloLectura && (
               <>
                 <div className="section-title"><ShieldCheck size={14} /> Puntaje de Confianza</div>
                 <div className="trust-section">
@@ -1085,6 +1136,7 @@ const DriverProfileModal = ({ isOpen, onClose, driver, onSaved, userType = 'cond
 
             <div className="modal-footer">
               <button
+                key="btn-guardar-perfil"
                 type="submit"
                 className="save-btn"
                 disabled={
@@ -1099,7 +1151,7 @@ const DriverProfileModal = ({ isOpen, onClose, driver, onSaved, userType = 'cond
                 {submitting ? step : (isEditMode ? 'Actualizar Perfil' : 'Completar Registro')}
               </button>
 
-              {isEditMode && (
+              {isEditMode && !soloLectura && (
                 <div className="danger-zone">
                   <div className="danger-zone-title">
                     <AlertTriangle size={14} /> Zona de Riesgo
@@ -1137,11 +1189,13 @@ const DriverProfileModal = ({ isOpen, onClose, driver, onSaved, userType = 'cond
               )}
             </div>
           </form>
+          )
         ) : activeTab === 'documents' ? (
           <div className="modal-body documents-body">
             <DocumentReviewPanel
               driver={driver}
               vehicle={driver?.vehicle}
+              onReviewed={onDocumentReviewed}
             />
           </div>
         ) : (

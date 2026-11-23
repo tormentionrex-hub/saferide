@@ -1,5 +1,37 @@
-const { Vehicle, User } = require("../models");
-const { uploadToBlob, deleteFromBlob } = require("../services/blobService");
+const mongoose = require('mongoose');
+const { Vehicle, Ride, Booking } = require('../models');
+const { uploadToBlob, deleteFromBlob } = require('../services/blobService');
+const { getDocumentApproval, syncVehicleApproval } = require('../services/vehicleApprovalService');
+
+const PLATE_REGEX = /^(?=.*[0-9])[A-Z0-9]{6}$/;
+const ACTIVE_BOOKING_STATUSES = ['pending', 'confirmed'];
+const ACTIVE_RIDE_STATUSES = ['scheduled', 'in progress', 'awaiting_payment_verification'];
+
+const normalizePlate = (value) => String(value || '').replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 6);
+
+const idsMatch = (a, b) => {
+    if (!a || !b) return false;
+    return a.toString() === b.toString();
+};
+
+const canAccessDriverVehicle = async (req, driverId) => {
+    if (!req.user || !driverId || !mongoose.Types.ObjectId.isValid(String(driverId))) return false;
+    if (req.user.type === 'admin' || idsMatch(req.user._id, driverId)) return true;
+    if (req.user.type !== 'passenger') return false;
+
+    const rideIds = await Booking.find({
+        passenger_id: req.user._id,
+        status: { $in: ACTIVE_BOOKING_STATUSES },
+    }).distinct('ride_id');
+
+    if (rideIds.length === 0) return false;
+
+    return Boolean(await Ride.exists({
+        _id: { $in: rideIds },
+        driver_id: driverId,
+        status: { $in: ACTIVE_RIDE_STATUSES },
+    }));
+};
 
 // @desc Create a Vehicle
 // @route POST /api/v1/vehicles
@@ -11,6 +43,14 @@ exports.createVehicle = async (req, res, next) => {
         const { brand, model, license_plate, color, year, capacity } = req.body;
         const { driver_id } = req.body;
         const targetDriverId = req.user.type === 'admin' && driver_id ? driver_id : req.user._id;
+        const plate = normalizePlate(license_plate);
+
+        if (!PLATE_REGEX.test(plate)) {
+            return res.status(400).json({
+                success: false,
+                message: 'La placa debe tener 6 caracteres alfanuméricos e incluir al menos un número',
+            });
+        }
 
         // Desactivar TODOS los vehículos activos previos del driver.
         // En condiciones normales habrá 0 o 1, pero defensivamente cubrimos
@@ -25,16 +65,20 @@ exports.createVehicle = async (req, res, next) => {
             driver_id: targetDriverId,
             brand,
             model,
-            license_plate: license_plate.toUpperCase(),
+            license_plate: plate,
             capacity,
             color,
             year,
+            isActive: false,
         });
+
+        await syncVehicleApproval(targetDriverId, vehicle._id);
+        const updatedVehicle = await Vehicle.findById(vehicle._id);
 
         res.status(201).json({
             success: true,
             message: 'Vehicle created successfully',
-            data: vehicle,
+            data: updatedVehicle,
         });
     } catch (error) {
         next(error);
@@ -48,6 +92,13 @@ exports.createVehicle = async (req, res, next) => {
 //Function to get vehicle by driver ID
 exports.getVehicleByDriver = async (req, res, next) => {
     try {
+        if (!await canAccessDriverVehicle(req, req.params.driverId)) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access Denied',
+            });
+        }
+
         const vehicle = await Vehicle.findOne({
             driver_id: req.params.driverId,
             isActive: true,
@@ -86,6 +137,15 @@ exports.getVehicleById = async (req, res, next) => {
                 message: 'Vehicle not found',
             });
         }
+
+        const driverId = vehicle.driver_id?._id || vehicle.driver_id;
+        if (!await canAccessDriverVehicle(req, driverId)) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access Denied',
+            });
+        }
+
         res.status(200).json({
             success: true,
             data: vehicle,
@@ -128,6 +188,17 @@ exports.updateVehicle = async (req, res, next) => {
                 updates[field] = req.body[field];
             }
         });
+
+        if (updates.license_plate !== undefined) {
+            updates.license_plate = normalizePlate(updates.license_plate);
+            if (!PLATE_REGEX.test(updates.license_plate)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'La placa debe tener 6 caracteres alfanuméricos e incluir al menos un número',
+                });
+            }
+        }
+
         Object.assign(vehicle, updates);
         await vehicle.save();
 
@@ -209,7 +280,7 @@ exports.deleteVehicle = async (req, res, next) => {
         }
 
         // Check if user owns the vehicle or is admin
-        if (vehicle.driver_id.toString() !== req.user.id.toString() &&
+        if (vehicle.driver_id.toString() !== req.user._id.toString() &&
     req.user.type !== 'admin') {
             return res.status(403).json({
                 success: false,
@@ -238,32 +309,39 @@ exports.deleteVehicle = async (req, res, next) => {
 exports.getAllVehicles = async (req, res, next) => {
     try {
         const { page = 1, limit = 10, status, search } = req.query;
-        const query = {};
-
-        // Filtro por estado: pendings (isActive: false) o active (isActive: true)
-        if (status === 'active') query.isActive = true;
-        if (status === 'pending') query.isActive = false;
+        const baseQuery = {};
 
         // Búsqueda por placa o marca
         if (search) {
-            query.$or = [
+            baseQuery.$or = [
                 { license_plate: { $regex: search, $options: 'i' } },
                 { brand: { $regex: search, $options: 'i' } },
                 { model: { $regex: search, $options: 'i' } }
             ];
         }
 
-        const vehicles = await Vehicle.find(query)
-            .populate('driver_id', 'name username email phone profileImage')
-            .limit(limit * 1)
-            .skip((page - 1) * limit)
-            .sort({ createdAt: -1, _id: 1 });
+        const query = { ...baseQuery };
 
-        const count = await Vehicle.countDocuments(query);
+        // Filtro por estado: pendings (isActive: false) o active (isActive: true)
+        if (status === 'active') query.isActive = true;
+        if (status === 'pending') query.isActive = false;
+
+        const [vehicles, count, total, active, pending] = await Promise.all([
+            Vehicle.find(query)
+                .populate('driver_id', 'name username email phone profileImage')
+                .limit(limit * 1)
+                .skip((page - 1) * limit)
+                .sort({ createdAt: -1, _id: 1 }),
+            Vehicle.countDocuments(query),
+            Vehicle.countDocuments(baseQuery),
+            Vehicle.countDocuments({ ...baseQuery, isActive: true }),
+            Vehicle.countDocuments({ ...baseQuery, isActive: false }),
+        ]);
 
         res.status(200).json({
             success: true,
             data: vehicles,
+            stats: { total, active, pending },
             pagination: {
                 total: count,
                 page: parseInt(page),
@@ -315,12 +393,31 @@ exports.updateVehicleStatus = async (req, res, next) => {
             });
         }
 
-        vehicle.isActive = isActive;
+        if (isActive) {
+            const approval = await getDocumentApproval(vehicle.driver_id);
+            if (!approval.approved) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'No se puede activar el vehículo hasta que los 6 documentos estén aprobados',
+                    pending: approval.pending,
+                });
+            }
+
+            await syncVehicleApproval(vehicle.driver_id, vehicle._id);
+            const updatedVehicle = await Vehicle.findById(vehicle._id);
+            return res.status(200).json({
+                success: true,
+                message: 'Vehicle approved successfully',
+                data: updatedVehicle,
+            });
+        }
+
+        vehicle.isActive = false;
         await vehicle.save();
 
         res.status(200).json({
             success: true,
-            message: `Vehicle ${isActive ? 'approved' : 'deactivated'} successfully`,
+            message: 'Vehicle deactivated successfully',
             data: vehicle,
         });
     } catch (error) {

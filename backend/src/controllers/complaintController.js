@@ -1,4 +1,4 @@
-const { Complaint, AuditLog } = require('../models');
+const { Complaint, AuditLog, Ride, Booking } = require('../models');
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -11,6 +11,50 @@ const recordAudit = async (req, action, targetType, details) => {
     details,
     userAgent: req.get('user-agent') || 'N/A',
   });
+};
+
+exports.createComplaint = async (req, res, next) => {
+  try {
+    const { subject, fullMessage, category, rideId, bookingId } = req.body;
+
+    const [ride, booking] = await Promise.all([
+      Ride.findById(rideId).populate('driver_id', 'name email'),
+      Booking.findById(bookingId).populate('passenger_id', 'name email'),
+    ]);
+
+    if (!ride || !booking) {
+      return res.status(404).json({ success: false, message: 'Viaje o reserva no encontrada' });
+    }
+    if (String(booking.ride_id) !== String(ride._id)) {
+      return res.status(400).json({ success: false, message: 'La reserva no pertenece al viaje indicado' });
+    }
+
+    const passenger = booking.passenger_id;
+    const complaint = await Complaint.create({
+      user: passenger?.name || 'Pasajero',
+      email: passenger?.email || 'desconocido@saferide.cr',
+      subject,
+      fullMessage,
+      message: fullMessage,
+      category,
+      tripId: String(ride._id),
+      ride_id: ride._id,
+      booking_id: booking._id,
+      passenger_id: passenger?._id || booking.passenger_id || null,
+      driver_id: ride.driver_id?._id || ride.driver_id || null,
+      tripOrigin: ride.origin?.name || '',
+      tripDestination: ride.destination?.name || '',
+      tripDate: `${ride.fecha || ''} ${ride.hora || ''}`.trim(),
+      tripPrice: Number(booking.charged_amount || booking.offered_amount || ride.suggested_price || 0),
+      source: 'api',
+    });
+
+    await recordAudit(req, 'COMPLAINT_CREATED', 'complaint', `Registró la queja ${complaint._id} del viaje ${ride._id}`);
+
+    res.status(201).json({ success: true, message: 'Queja registrada', data: complaint });
+  } catch (error) {
+    next(error);
+  }
 };
 
 exports.getComplaints = async (req, res, next) => {
@@ -31,7 +75,14 @@ exports.getComplaints = async (req, res, next) => {
     }
 
     const [complaints, count] = await Promise.all([
-      Complaint.find(query).sort({ createdAt: -1 }).limit(Number(limit)).skip((Number(page) - 1) * Number(limit)),
+      Complaint.find(query)
+        .populate('ride_id', 'origin destination fecha hora suggested_price status')
+        .populate('booking_id', 'charged_amount offered_amount payment_status status')
+        .populate('passenger_id', 'name email')
+        .populate('driver_id', 'name email')
+        .sort({ createdAt: -1 })
+        .limit(Number(limit))
+        .skip((Number(page) - 1) * Number(limit)),
       Complaint.countDocuments(query),
     ]);
 

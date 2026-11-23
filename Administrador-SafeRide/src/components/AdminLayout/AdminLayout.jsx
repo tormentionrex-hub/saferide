@@ -43,9 +43,8 @@ const AdminLayout = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   // Monitoreo en tiempo real (controlado por toggle en PerfilAdmin → localStorage).
-  // El hook polea /rides/in-progress cada 8 s y dispara toast por cada viaje nuevo.
   const monitoringEnabled = useMonitoringEnabled();
-  useInProgressRides({ enabled: monitoringEnabled, intervalMs: 8000, notify: true });
+  useInProgressRides({ enabled: monitoringEnabled, intervalMs: 5000, notify: true });
 
   const loadUnreadCount = useCallback(async () => {
     try {

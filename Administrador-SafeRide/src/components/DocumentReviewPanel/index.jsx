@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   FileText, IdCard, Car, ShieldCheck, Receipt, ClipboardCheck,
   CheckCircle2, XCircle, AlertCircle, Clock, RefreshCcw,
-  ChevronLeft, ChevronRight, Loader2, Eye
+  Loader2, Eye
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Swal from 'sweetalert2';
@@ -19,11 +19,11 @@ const TYPE_META = {
 };
 
 const STATUS_META = {
-  pending:      { label: 'En cola',      color: '#64748B', icon: Clock,        bg: '#F1F5F9' },
-  processing:   { label: 'Verificando',  color: '#F59E0B', icon: Loader2,      bg: '#FEF3C7' },
-  approved:     { label: 'Aprobado',     color: '#10B981', icon: CheckCircle2, bg: '#D1FAE5' },
-  rejected:     { label: 'Rechazado',    color: '#EF4444', icon: XCircle,      bg: '#FEE2E2' },
-  needs_review: { label: 'Revisar',      color: '#F59E0B', icon: AlertCircle,  bg: '#FEF3C7' },
+  pending:      { label: 'En cola',        color: '#EF4444', icon: Clock,        bg: '#FEE2E2' },
+  processing:   { label: 'Verificando',    color: '#F59E0B', icon: Loader2,      bg: '#FEF3C7' },
+  approved:     { label: 'Aprobado',       color: '#10B981', icon: CheckCircle2, bg: '#D1FAE5' },
+  rejected:     { label: 'Rechazado',      color: '#EF4444', icon: XCircle,      bg: '#FEE2E2' },
+  needs_review: { label: 'Revisión manual', color: '#F59E0B', icon: AlertCircle,  bg: '#FEF3C7' },
 };
 
 const NOT_UPLOADED = { label: 'Sin subir', color: '#94A3B8', bg: '#F8FAFC', icon: FileText };
@@ -159,7 +159,7 @@ const DetailView = ({ doc, driver, vehicle, onAction, busy }) => {
             Subido el {fmtDate(doc.createdAt)} ·{' '}
             <span style={{ color: statusMeta.color, fontWeight: 700 }}>{statusMeta.label}</span>
             {doc.validation?.confidence != null && (
-              <> · confianza {(doc.validation.confidence * 100).toFixed(0)}%</>
+              <> · certeza de reglas {(doc.validation.confidence * 100).toFixed(0)}%</>
             )}
           </div>
         </div>
@@ -183,7 +183,7 @@ const DetailView = ({ doc, driver, vehicle, onAction, busy }) => {
       <div className="doc-section-title">Datos extraídos vs datos del sistema</div>
       <div className="cmp-header">
         <span>Campo</span>
-        <span>OCR / Agente</span>
+        <span>Dato del documento</span>
         <span></span>
         <span>Sistema</span>
       </div>
@@ -217,7 +217,7 @@ const DetailView = ({ doc, driver, vehicle, onAction, busy }) => {
       {doc.ocrText && (
         <>
           <button type="button" className="doc-ocr-toggle" onClick={() => setShowOcr(s => !s)}>
-            {showOcr ? 'Ocultar OCR crudo' : 'Ver OCR crudo'}
+            {showOcr ? 'Ocultar texto del documento' : 'Ver texto del documento'}
           </button>
           {showOcr && <pre className="doc-ocr-text">{doc.ocrText}</pre>}
         </>
@@ -254,14 +254,14 @@ const DetailView = ({ doc, driver, vehicle, onAction, busy }) => {
           disabled={busy}
           onClick={() => onAction('reprocess')}
         >
-          <RefreshCcw size={14} /> Reprocesar
+          <RefreshCcw size={14} /> Validar
         </button>
       </div>
     </div>
   );
 };
 
-const DocumentReviewPanel = ({ driver, vehicle, filterTypes }) => {
+const DocumentReviewPanel = ({ driver, vehicle, filterTypes, onReviewed }) => {
   const driverId = driver?._id;
   const visibleTypes = useMemo(
     () => (Array.isArray(filterTypes) && filterTypes.length > 0
@@ -271,13 +271,9 @@ const DocumentReviewPanel = ({ driver, vehicle, filterTypes }) => {
   );
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeType, setActiveType] = useState(visibleTypes[0]);
+  const [requestedType, setRequestedType] = useState(visibleTypes[0]);
   const [busy, setBusy] = useState(false);
-
-  // Si el subset visible cambia y el tab activo ya no aplica, saltar al primero.
-  useEffect(() => {
-    if (!visibleTypes.includes(activeType)) setActiveType(visibleTypes[0]);
-  }, [visibleTypes, activeType]);
+  const activeType = visibleTypes.includes(requestedType) ? requestedType : visibleTypes[0];
 
   const load = useCallback(async () => {
     if (!driverId) return;
@@ -329,15 +325,15 @@ const DocumentReviewPanel = ({ driver, vehicle, filterTypes }) => {
     }
     setBusy(true);
     try {
-      let updated;
       if (action === 'reprocess') {
-        updated = await documentService.reprocessDocument(activeDoc._id);
-        toast.success('Reprocesando…');
+        await documentService.reprocessDocument(activeDoc._id);
+        toast.success('Validación completada');
       } else {
-        updated = await documentService.reviewDocument(activeDoc._id, { action, reason });
+        await documentService.reviewDocument(activeDoc._id, { action, reason });
         toast.success('Documento actualizado');
       }
-      setDocs(prev => prev.map(d => d._id === updated._id ? { ...d, ...updated } : d));
+      await load();
+      onReviewed?.();
     } catch (err) {
       console.error('[DocumentReviewPanel] action error:', err);
       toast.error('No se pudo completar la acción');
@@ -347,13 +343,13 @@ const DocumentReviewPanel = ({ driver, vehicle, filterTypes }) => {
   };
 
   const summary = useMemo(() => {
-    const stats = { total: visibleTypes.length, approved: 0, pending: 0, issues: 0, missing: 0 };
+    const stats = { total: visibleTypes.length, reviewed: 0, partial: 0, unseen: 0, missing: 0 };
     for (const t of visibleTypes) {
-      const d = docsByType[t];
-      if (!d) stats.missing++;
-      else if (d.status === 'approved') stats.approved++;
-      else if (['pending', 'processing'].includes(d.status)) stats.pending++;
-      else stats.issues++;
+      const group = documentService.getDocGroup(docsByType[t]);
+      if (group === 'reviewed') stats.reviewed++;
+      else if (group === 'partial') stats.partial++;
+      else if (group === 'unseen') stats.unseen++;
+      else stats.missing++;
     }
     return stats;
   }, [docsByType, visibleTypes]);
@@ -361,9 +357,9 @@ const DocumentReviewPanel = ({ driver, vehicle, filterTypes }) => {
   return (
     <div className="doc-panel">
       <div className="doc-panel-summary">
-        <span className="sum approved">{summary.approved} aprobados</span>
-        <span className="sum issues">{summary.issues} con observación</span>
-        <span className="sum pending">{summary.pending} en cola</span>
+        <span className="sum reviewed">{summary.reviewed} revisados</span>
+        <span className="sum partial">{summary.partial} parciales</span>
+        <span className="sum unseen">{summary.unseen} sin ver</span>
         <span className="sum missing">{summary.missing} sin subir</span>
       </div>
 
@@ -377,7 +373,7 @@ const DocumentReviewPanel = ({ driver, vehicle, filterTypes }) => {
                   type={type}
                   doc={docsByType[type]}
                   selected={activeType === type}
-                  onSelect={setActiveType}
+                  onSelect={setRequestedType}
                 />
               ))
           }
