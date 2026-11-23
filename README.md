@@ -55,6 +55,46 @@ credenciales que no deben publicarse.
 
 ---
 
+## Progreso del proyecto
+
+Estado al 23 de noviembre de 2026.
+
+<p align="center">
+  <img src="docs/progreso-proyecto.png" alt="Progreso del proyecto: aplicación móvil 92 %, backend 93 %, panel de administrador 90 %" width="900">
+</p>
+
+| Parte | Progreso |
+|---|---|
+| Aplicación móvil (frontend) | **92 %** |
+| Backend | **93 %** |
+| Panel de administrador | **90 %** |
+
+### Qué falta para llegar al 100 %
+
+**Aplicación móvil (92 %)**
+1. Pantalla para que el conductor suba sus 6 documentos (cédula, licencia, póliza, marchamo, RTV y tarjeta
+   de circulación). El panel exige los 6 aprobados para activar el vehículo y hoy la app solo envía la póliza.
+2. Generar la app instalable y probarla en teléfonos reales; hasta ahora se probó en Expo Go.
+3. Activar los pagos en línea: PayPal y tarjeta están listos en beta, falta la cuenta de comercio.
+4. Clave de Google Maps de producción para el mapa nativo.
+5. Publicar en Google Play y App Store.
+
+**Backend (93 %)**
+1. Publicarlo en la nube con dominio HTTPS y la base de producción.
+2. Almacenamiento privado de archivos (Azure Blob) para guardar los documentos que suben los conductores.
+3. Lectura automática de las fotos de los documentos; hoy se validan los datos con reglas.
+4. Actualizar 6 dependencias con vulnerabilidades conocidas, ninguna crítica.
+5. Reparar una prueba vieja de inicio de sesión que apunta a la base real.
+
+**Panel de administrador (90 %)**
+1. Publicarlo en un hosting con dominio propio.
+2. Ver las imágenes reales de los documentos; depende del almacenamiento del backend.
+3. Cambiar las claves de Gmail y Gemini que quedaron públicas en el repositorio original del panel (urgente).
+4. Corregir 36 avisos del revisor de código, casi todos de estilo en hooks de React.
+5. Probar a mano dos flujos: el borrado con anonimización y «Añadir vehículo».
+
+---
+
 ## Capturas de la app móvil
 
 Tomadas en un Samsung Galaxy A34 real con Expo Go durante las pruebas de la entrega.
