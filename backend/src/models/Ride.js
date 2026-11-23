@@ -61,6 +61,10 @@ const rideSchema = new mongoose.Schema({
         min: [1, 'At least one seat must be available'],
         max: [7, 'Available seats cannot exceed 7'],
     },
+    startedAt: {
+        type: Date,
+        default: null,
+    },
     status: {
         type: String,
         enum: {

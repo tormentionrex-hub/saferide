@@ -14,4 +14,5 @@ module.exports = {
   Complaint: require('./Complaint'),
   AuditLog: require('./AuditLog'),
   Document: require('./Document'),
+  Setting: require('./Setting'),
 };

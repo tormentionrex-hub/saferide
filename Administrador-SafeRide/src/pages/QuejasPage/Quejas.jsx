@@ -20,7 +20,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
   AlertCircle, Search, Filter, Mail, User, Clock,
-  ChevronRight, MessageSquare, Flag,
+  ChevronRight, MessageSquare, Flag, Car, MapPin, CalendarDays, CreditCard,
   CheckCircle, Copy, RefreshCw, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { toast, Toaster } from 'react-hot-toast';
@@ -236,6 +236,12 @@ const QuejasPage = () => {
                       <span className="n-badge-category correo">
                         {q.category}
                       </span>
+                      {(q.ride_id || q.tripOrigin) && (
+                        <span className="n-trip-line">
+                          <Car size={12} />
+                          {q.ride_id?.origin?.name || q.tripOrigin} → {q.ride_id?.destination?.name || q.tripDestination}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -312,6 +318,32 @@ const QuejasPage = () => {
                         </button>
                       )}
                     </div>
+                    {(selectedQueja.ride_id || selectedQueja.tripOrigin) && (
+                      <>
+                        <div className="q-info-item">
+                          <MapPin size={16} />
+                          <span>
+                            {selectedQueja.ride_id?.origin?.name || selectedQueja.tripOrigin} →{' '}
+                            {selectedQueja.ride_id?.destination?.name || selectedQueja.tripDestination}
+                          </span>
+                        </div>
+                        <div className="q-info-item">
+                          <CalendarDays size={16} />
+                          <span>{selectedQueja.tripDate || `${selectedQueja.ride_id?.fecha || ''} ${selectedQueja.ride_id?.hora || ''}`.trim()}</span>
+                        </div>
+                        <div className="q-info-item">
+                          <Car size={16} />
+                          <span>Conductor: {selectedQueja.driver_id?.name || 'No disponible'}</span>
+                        </div>
+                        <div className="q-info-item">
+                          <CreditCard size={16} />
+                          <span>
+                            Monto: ₡{selectedQueja.tripPrice ?? selectedQueja.booking_id?.charged_amount ?? selectedQueja.ride_id?.suggested_price ?? 0}
+                            {selectedQueja.booking_id?.payment_status ? ` (${selectedQueja.booking_id.payment_status})` : ''}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 

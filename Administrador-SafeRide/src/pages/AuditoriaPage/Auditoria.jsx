@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
-  ShieldAlert, Search, Calendar, ShieldCheck, 
+  ShieldAlert, Search, ShieldCheck, 
   AlertTriangle, Info, Clock, Monitor, RefreshCw 
 } from 'lucide-react';
 import api from '../../services/api';
@@ -9,6 +9,7 @@ import './Auditoria.css';
 
 const Auditoria = () => {
   const [logs, setLogs] = useState([]);
+  const [totalLogs, setTotalLogs] = useState(0);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [severityFilter, setSeverityFilter] = useState('ALL'); // ALL, CRITICAL, WARNING, INFO
@@ -16,12 +17,14 @@ const Auditoria = () => {
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await api.get('/audit-logs');
+      const response = await api.get('/audit-logs', { params: { limit: 200 } });
       setLogs(response.data?.data || []);
+      setTotalLogs(response.data?.pagination?.total ?? response.data?.data?.length ?? 0);
     } catch (error) {
       console.error('Error fetching audit logs:', error);
       toast.error('No se pudo conectar con el servidor de auditorías');
       setLogs([]);
+      setTotalLogs(0);
     } finally {
       setLoading(false);
     }
@@ -66,7 +69,12 @@ const Auditoria = () => {
       case 'DRIVER_REJECTED': return 'Conductor Rechazado';
       case 'VEHICLE_APPROVED': return 'Auto Aprobado';
       case 'VEHICLE_REJECTED': return 'Auto Rechazado';
+      case 'COMPLAINT_CREATED': return 'Queja Registrada';
       case 'COMPLAINT_RESOLVED': return 'Queja Resuelta';
+      case 'DOCUMENT_APPROVED': return 'Documento Aprobado';
+      case 'DOCUMENT_REJECTED': return 'Documento Rechazado';
+      case 'DOCUMENT_RESEND_REQUESTED': return 'Devolución de Documento Solicitada';
+      case 'DOCUMENT_REPROCESSED': return 'Documento Reprocesado';
       case 'TRIP_CANCELLED_MANUALLY': return 'Viaje Cancelado Manual';
       default: return action;
     }
@@ -142,7 +150,7 @@ const Auditoria = () => {
             className={`filter-btn-audit all ${severityFilter === 'ALL' ? 'active' : ''}`}
             onClick={() => setSeverityFilter('ALL')}
           >
-            Todos ({logs.length})
+            Todos ({totalLogs})
           </button>
           <button 
             className={`filter-btn-audit info ${severityFilter === 'INFO' ? 'active' : ''}`}

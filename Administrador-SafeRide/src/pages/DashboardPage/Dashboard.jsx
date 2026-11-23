@@ -14,6 +14,7 @@ import {
 import './Dashboard.css';
 import DefaultImageUser from '../../imgs/DefaultImageUser.png';
 import { useAdminPref } from '../../hooks/useAdminPref';
+import { useMonthlyGoal } from '../../hooks/useMonthlyGoal';
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 // ──────────────────────────────────────────────────────────────────────────────────────────────────
@@ -21,6 +22,40 @@ import { useAdminPref } from '../../hooks/useAdminPref';
 
 // ────────────── Función para imagen por defecto de Cloudinary ────────────────────────
 const getDefaultImagen = (url) => (url && url.trim() !== '') ? url : DefaultImageUser;
+const formatearFecha = (valor) => (valor ? new Date(valor).toLocaleDateString('es-CR') : '—');
+
+const CACHE_METRICAS = 'saferide.dashboard.metricas';
+const CACHE_RESERVAS = 'saferide.dashboard.reservas';
+const CACHE_ALERTAS = 'saferide.dashboard.alertas';
+
+const leerCache = (clave, fallback) => {
+    if (typeof window === 'undefined') return fallback;
+    try {
+        const raw = window.localStorage.getItem(clave);
+        return raw ? JSON.parse(raw) : fallback;
+    } catch {
+        return fallback;
+    }
+};
+
+const guardarCache = (clave, valor) => {
+    if (typeof window === 'undefined') return;
+    try {
+        window.localStorage.setItem(clave, JSON.stringify(valor));
+    } catch {
+        return;
+    }
+};
+
+const ETIQUETAS_METODO_PAGO = {
+    cash: 'Efectivo',
+    sinpe: 'SINPE',
+    paypal: 'PayPal',
+    card: 'Tarjeta',
+    google_pay: 'Google Pay',
+    apple_pay: 'Apple Pay',
+    sin_method: 'Sin método',
+};
 
 // ────────────── Tarjeta de estadísticas con iconos ───────────────────────────────────
 const TarjetaEstadistica = React.memo(({ icon, title, value, change, isPositive, subtitle, loading }) => (
@@ -53,55 +88,51 @@ const TarjetaEstadistica = React.memo(({ icon, title, value, change, isPositive,
 
 const Dashboard = () => {
     const navigate = useNavigate();
-    const [metricas, setMetricas] = useState({});
+    const [metricas, setMetricas] = useState(() => leerCache(CACHE_METRICAS, {}));
     const [vehiculos, setVehiculos] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
-    const [totalAdmins, setTotalAdmins] = useState(0);
-    const [payments, setPayments] = useState({ paid: 0, pending: 0, waived: 0 });
-    const [bookingsList, setBookingsList] = useState([]);
+    const [reservasPorDia, setReservasPorDia] = useState(() => leerCache(CACHE_RESERVAS, {}));
+    const [rangoReservas, setRangoReservas] = useState(7);
     const [loading, setLoading] = useState(true);
-    const [alertasSOS, setAlertasSOS] = useState([]);
+    const [alertasSOS, setAlertasSOS] = useState(() => leerCache(CACHE_ALERTAS, []));
     const alertasEnabled = useAdminPref('alertasEmergencia', true);
+    const { goal: metaCarbono } = useMonthlyGoal();
 
     useEffect(() => {
         const CargarDatos = async () => {
             try {
-                const [metricasRes, vehiculosRes, usuariosRes, adminsRes, bookingsRes, quejasRes] = await Promise.all([
-                    api.get('/metrics/global').catch(() => ({ data: { data: {} } })),
+                const [metricasRes, vehiculosRes, usuariosRes, quejasRes] = await Promise.all([
+                    api.get('/metrics/global').catch(() => ({ data: { data: null } })),
                     api.get('/vehicles?limit=5').catch(() => ({ data: { data: [] } })),
                     api.get('/users?limit=5').catch(() => ({ data: { data: [] } })),
-                    api.get('/users?type=admin&limit=1').catch(() => ({ data: { pagination: { total: 0 } } })),
-                    api.get('/bookings?limit=1000').catch(() => ({ data: { data: [] } })),
-                    api.get('/complaints?status=Pendiente&limit=5').catch(() => ({ data: { data: [] } })),
+                    api.get('/complaints?status=Pendiente&category=Seguridad&limit=5').catch(() => ({ data: { data: null } })),
                 ]);
 
-                setMetricas(metricasRes.data?.data || {});
+                const datosGlobales = metricasRes.data?.data;
+                if (datosGlobales) {
+                    setMetricas(datosGlobales);
+                    guardarCache(CACHE_METRICAS, datosGlobales);
+                }
                 setVehiculos(vehiculosRes.data?.data?.docs || vehiculosRes.data?.data || []);
                 setUsuarios(usuariosRes.data?.data || usuariosRes.data?.data?.docs || []);
-                setTotalAdmins(adminsRes.data?.pagination?.total || 0);
 
-                const bookings = bookingsRes.data?.data?.docs || bookingsRes.data?.data || [];
-                setBookingsList(bookings);
-                const paymentCounts = bookings.reduce((acc, b) => {
-                    const s = b.payment_status;
-                    if (s === 'paid' || s === 'pending' || s === 'waived') acc[s] += 1;
-                    return acc;
-                }, { paid: 0, pending: 0, waived: 0 });
-                setPayments(paymentCounts);
-
-                const quejas = quejasRes.data?.data || [];
-                setAlertasSOS(quejas.map((q) => {
-                    const minutes = Math.max(0, Math.floor((Date.now() - new Date(q.createdAt).getTime()) / 60000));
-                    const tiempo = minutes < 60 ? `Hace ${minutes} min` : `Hace ${Math.floor(minutes / 60)} hr`;
-                    return {
-                        id: q._id,
-                        tipo: q.category === 'Seguridad' ? 'critica' : 'advertencia',
-                        titulo: q.subject,
-                        descripcion: q.fullMessage || q.message || '',
-                        tiempo,
-                        atendida: false,
-                    };
-                }));
+                const quejas = quejasRes.data?.data;
+                if (Array.isArray(quejas)) {
+                    const alertas = quejas.map((q) => {
+                        const minutos = Math.max(0, Math.floor((Date.now() - new Date(q.createdAt).getTime()) / 60000));
+                        const tiempo = minutos < 60 ? `Hace ${minutos} min` : `Hace ${Math.floor(minutos / 60)} hr`;
+                        return {
+                            id: q._id,
+                            tipo: q.category === 'Seguridad' ? 'critica' : 'advertencia',
+                            titulo: q.subject,
+                            descripcion: q.fullMessage || q.message || '',
+                            tiempo,
+                            atendida: false,
+                        };
+                    });
+                    guardarCache(CACHE_ALERTAS, alertas);
+                    setAlertasSOS(alertas);
+                }
 
                 setLoading(false);
             } catch (error) {
@@ -111,6 +142,23 @@ const Dashboard = () => {
         };
         CargarDatos();
     }, []);
+
+    useEffect(() => {
+        let activo = true;
+        api.get(`/metrics/bookings-by-day?days=${rangoReservas}`)
+            .then((res) => {
+                const datos = res.data?.data;
+                if (!activo || !Array.isArray(datos)) return;
+                const anterior = leerCache(CACHE_RESERVAS, {});
+                const siguiente = { ...anterior, [rangoReservas]: datos };
+                guardarCache(CACHE_RESERVAS, siguiente);
+                setReservasPorDia(siguiente);
+            })
+            .catch(() => {});
+        return () => { activo = false; };
+    }, [rangoReservas]);
+
+    const datosReservas = reservasPorDia[rangoReservas] || [];
 
     const handleAtenderAlerta = async (alerta) => {
         const result = await Swal.fire({
@@ -130,7 +178,11 @@ const Dashboard = () => {
         if (result.isConfirmed) {
             try {
                 await api.patch(`/complaints/${alerta.id}/resolve`);
-                setAlertasSOS(prev => prev.filter(a => a.id !== alerta.id));
+                setAlertasSOS(prev => {
+                    const restantes = prev.filter(a => a.id !== alerta.id);
+                    guardarCache(CACHE_ALERTAS, restantes);
+                    return restantes;
+                });
                 toast.success(`Alerta "${alerta.titulo}" marcada como atendida`, {
                     duration: 3000,
                     icon: '✅',
@@ -147,16 +199,8 @@ const Dashboard = () => {
 
     const totalUsuarios = Number(metricas.totalUsers) || 0;
     const totalConductores = Number(metricas.totalDrivers) || 0;
-    // Los pasajeros son el residuo: total activos − conductores − admins.
-    // Antes se calculaba como total − conductores, lo que metía a los admins
-    // dentro de "Pasajeros" y dejaba "Moderadores" siempre en 0 → caía al
-    // fallback hardcodeado de 14.
-    const totalPasajeros = Math.max(0, totalUsuarios - totalConductores - totalAdmins);
-    const totalViajes = Number(metricas.totalRides) || 0;
-    // Denominador real para el gráfico de roles: usa la suma de los tres
-    // segmentos (no metricas.totalUsers) para garantizar que los % siempre
-    // sumen 100, incluso si totalUsers viene con un valor inconsistente
-    // (p.ej. drivers+admins+pasajeros calculado da 0 → evita NaN%).
+    const totalAdmins = Number(metricas.totalAdmins) || 0;
+    const totalPasajeros = Number(metricas.totalPassengers) || 0;
     const totalRoles = totalPasajeros + totalConductores + totalAdmins;
 
     const pieDataRoles = useMemo(() => [
@@ -165,42 +209,25 @@ const Dashboard = () => {
         { name: 'Moderadores', value: totalAdmins,      color: '#8B5CF6' },
     ], [totalPasajeros, totalConductores, totalAdmins]);
 
-    // Backend usa payment_status ∈ {paid, pending, waived}. No existe 'failed'
-    // como tal; mapeamos 'waived' (cortesía/exonerado) al slot rojo "Eximidos".
-    const pieDataPagos = useMemo(() => [
-        { name: 'Pagados',    value: payments.paid,    color: '#10B981' },
-        { name: 'Pendientes', value: payments.pending, color: '#F59E0B' },
-        { name: 'Eximidos',   value: payments.waived,  color: '#EF4444' },
-    ], [payments]);
+    const pagos = useMemo(() => metricas.payments || {}, [metricas.payments]);
+    const metodosPago = useMemo(() => metricas.paymentMethods || {}, [metricas.paymentMethods]);
+    const pieDataPagos = useMemo(() => {
+        const datos = [
+            { name: 'Pagados',    value: Number(pagos.paid) || 0,    color: '#10B981' },
+            { name: 'Pendientes', value: Number(pagos.pending) || 0, color: '#F59E0B' },
+            { name: 'Eximidos',   value: Number(pagos.waived) || 0,  color: '#EF4444' },
+        ];
+        if (Number(pagos.other) > 0) datos.push({ name: 'Otros', value: Number(pagos.other), color: '#94A3B8' });
+        return datos;
+    }, [pagos]);
+    const totalPagos = Number(pagos.total) || pieDataPagos.reduce((suma, item) => suma + item.value, 0);
 
-    const totalPagos = payments.paid + payments.pending + payments.waived;
-
-    const lineData = useMemo(() => {
-        const days = Array.from({ length: 7 }, (_, i) => {
-            const d = new Date();
-            d.setHours(0, 0, 0, 0);
-            d.setDate(d.getDate() - (6 - i));
-            return d;
-        });
-        const keyFor = (d) => d.toISOString().slice(0, 10);
-        const counts = new Map(days.map((d) => [keyFor(d), 0]));
-        bookingsList.forEach((b) => {
-            const raw = b.createdAt || b.timestamp;
-            if (!raw) return;
-            const key = new Date(raw).toISOString().slice(0, 10);
-            if (counts.has(key)) counts.set(key, counts.get(key) + 1);
-        });
-        return days.map((d) => ({
-            name: d.toLocaleDateString('es-CR', { day: '2-digit', month: 'short' }).replace('.', ''),
-            value: counts.get(keyFor(d)),
-        }));
-    }, [bookingsList]);
 
     const fechaActual = new Date().toLocaleDateString('es-CR', { day: 'numeric', month: 'long', year: 'numeric' });
-    const metaCarbono = 50;
-    const carbonoActual = Number(metricas.totalCarbonSaved) || 0;
-    const progresoCarbono = Math.min(100, Math.round((carbonoActual / metaCarbono) * 100));
-    const carbonoFaltante = Math.max(0, metaCarbono - carbonoActual).toFixed(1);
+    const carbonoActual = Number(metricas.monthlyCarbonSaved) || 0;
+    const metaCarbonoNumero = Number(metaCarbono) > 0 ? Number(metaCarbono) : 200;
+    const progresoCarbono = Math.min(100, Math.round((carbonoActual / metaCarbonoNumero) * 100));
+    const carbonoFaltante = Math.max(0, metaCarbonoNumero - carbonoActual).toFixed(1);
 
 
 
@@ -242,14 +269,21 @@ const Dashboard = () => {
 
                             <h3>Reservas por día</h3>
 
-                            <div className="selectorMini">Últimos 7 días <ChevronDown size={14} /></div>
+                            <div className="selectorMini">
+                                <select value={rangoReservas} onChange={(e) => setRangoReservas(Number(e.target.value))} aria-label="Periodo de reservas por día">
+                                    <option value={7}>Últimos 7 días</option>
+                                    <option value={14}>Últimas 2 semanas</option>
+                                    <option value={21}>Últimas 3 semanas</option>
+                                </select>
+                                <ChevronDown size={14} />
+                            </div>
                         </div>
 
                         <div className="graficoBody">
 
                             <ResponsiveContainer width="100%" height={250} minWidth={0} minHeight={0}>
 
-                                <LineChart data={lineData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <LineChart data={datosReservas} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
 
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
 
@@ -309,6 +343,13 @@ const Dashboard = () => {
                                             <span className="valorLeyenda" style={{ color: '#0F172A' }}>{item.value.toLocaleString()} <span className="porcentajeLeyenda" style={{ color: '#94A3B8' }}>({totalPagos > 0 ? ((item.value / totalPagos) * 100).toFixed(1) : '0.0'}%)</span></span>
                                         </div>
                                     </div>
+                                ))}
+                            </div>
+
+                            <div className="metodosPago">
+                                <span className="etiquetaMetodos">Formas de pago</span>
+                                {Object.entries(metodosPago).map(([metodo, cantidad]) => (
+                                    <span key={metodo} className="metodoPagoItem">{ETIQUETAS_METODO_PAGO[metodo] || metodo}: {cantidad.toLocaleString()}</span>
                                 ))}
                             </div>
                         </div>
@@ -372,6 +413,7 @@ const Dashboard = () => {
                             <div className="tituloConIcono">
                                 <AlertCircle size={20} className="color-red" />
                                 <h3>Alertas de Seguridad (SOS)</h3>
+                                <span className="contadorAlertas">{alertasSOS.length}</span>
                             </div>
                             <Link to="/quejas" className="botonVerTodos" style={{fontSize:'12px'}}>Ver quejas</Link>
                         </div>
@@ -427,7 +469,7 @@ const Dashboard = () => {
                                 </div>
                                 <span className="porcentajeMeta">{progresoCarbono}%</span>
                             </div>
-                            <p className="descripcionMeta">Faltan <strong>{carbonoFaltante} kg</strong> de CO₂ para alcanzar la meta de sostenibilidad institucional.</p>
+                            <p className="descripcionMeta">Este mes: <strong>{carbonoActual.toFixed(1)} kg</strong> de {metaCarbonoNumero} kg. {Number(carbonoFaltante) > 0 ? `Faltan ${carbonoFaltante} kg de CO₂.` : '¡Meta alcanzada!'}</p>
                         </div>
                     </div>
                 </div>
@@ -469,7 +511,7 @@ const Dashboard = () => {
 
                                     <div className="precioElemento">
                                         <div className="valorPrecio">{item.capacity} <span className="textoGris" style={{fontSize:'11px'}}>asientos</span></div>
-                                        <div className="tiempoPrecio">{new Date(item.createdAt || Date.now()).toLocaleDateString()}</div>
+                                        <div className="tiempoPrecio">{formatearFecha(item.createdAt)}</div>
                                     </div>
                                 </div>
                             ))}
@@ -508,7 +550,7 @@ const Dashboard = () => {
 
                                     <div className="tiempoElemento textoGris textoChico">
 
-                                        {new Date(item.createdAt || Date.now()).toLocaleDateString()}
+                                        {formatearFecha(item.createdAt)}
                                     </div>
                                 </div>
                             ))}

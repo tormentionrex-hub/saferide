@@ -23,6 +23,8 @@ const notificationValidation = [
     'system',
     'trust_score_updated',
   ]),
+  body('source').optional().isIn(['real', 'seed', 'api']),
+  body('date').optional().isISO8601(),
 ];
 
 // All routes require authentication

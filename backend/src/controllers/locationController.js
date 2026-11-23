@@ -1,7 +1,7 @@
 const { User, Ride, Booking } = require('../models');
 
 exports.updateLocation = async (req, res) => {
-    const { lat, lng, inTrip } = req.body;
+    const { lat, lng } = req.body;
     try {
         if (!lat || !lng) {
             return res.status(400).json({ success: false, message: 'Coordinates are required' });
@@ -10,21 +10,12 @@ exports.updateLocation = async (req, res) => {
         if (typeof lat !== 'number' || typeof lng !== 'number' || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
             return res.status(400).json({ success: false, message: 'Invalid coordinates' });
         }
-        // Solo un conductor con un viaje en curso publica su posición: así un
-        // pasajero (o un conductor sin viaje) no puede escribir una ubicación
-        // que después leen los demás.
         if (req.user.type !== 'conductor') {
             return res.status(403).json({ success: false, message: 'Only drivers share their location' });
         }
-        if (inTrip) {
-            const active = await Ride.exists({ driver_id: req.user._id, status: 'in progress' });
-            if (!active) {
-                return res.status(403).json({ success: false, message: 'No ride in progress' });
-            }
-            await User.findByIdAndUpdate(req.user._id, {
-                currentLocation: { lat, lng, updatedAt: new Date() }
-            });
-        }
+        await User.findByIdAndUpdate(req.user._id, {
+            currentLocation: { lat, lng, updatedAt: new Date() }
+        });
         res.status(200).json({ success: true, message: 'Location updated' });
     } catch (error) {
         console.error('Error updating location:', error);

@@ -52,6 +52,12 @@
   border-color: #FDE68A;
 }
 
+.monitor-status.is-error {
+  background: #FEE2E2;
+  color: #991B1B;
+  border-color: #FECACA;
+}
+
 .monitor-refresh {
   display: inline-flex;
   align-items: center;

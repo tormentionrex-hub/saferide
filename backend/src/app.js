@@ -18,6 +18,12 @@ const app = express();
 
 // Trust proxy (important for Azure App Service)
 app.set('trust proxy', 1);
+app.set('etag', false);
+
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
 
 // Security middleware
 app.use(helmet());

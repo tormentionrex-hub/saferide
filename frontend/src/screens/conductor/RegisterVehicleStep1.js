@@ -172,14 +172,8 @@ export default function RegisterVehicleStep1({ navigation }) {
             return;
         }
 
-        if (plate.length !== 6) {
-            setPlateErrorMessage('La placa debe tener exactamente 6 caracteres (ej: ABC123).');
-            setShowPlateError(true);
-            return;
-        }
-
-        if (/^[A-Z]+$/.test(plate)) {
-            setPlateErrorMessage('La placa no puede contener solo letras. Agregue al menos un número (ej: ABC123).');
+        if (!/^(?=.*[0-9])[A-Z0-9]{6}$/.test(plate)) {
+            setPlateErrorMessage('La placa debe tener 6 caracteres alfanuméricos e incluir al menos un número (ej: ABC123).');
             setShowPlateError(true);
             return;
         }

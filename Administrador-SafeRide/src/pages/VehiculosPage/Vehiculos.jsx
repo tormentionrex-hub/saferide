@@ -2,9 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Plus, Search, Truck,
   CheckCircle, AlertCircle, Clock, ShieldCheck,
-  Eye, Check, X, Upload,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  Bot
+  FileCheck2, Check, X, Upload,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from 'lucide-react';
 import vehicleService from '../../services/vehicleService';
 import driverService from '../../services/driverService';
@@ -16,12 +15,23 @@ import Swal from 'sweetalert2';
 import { CAR_DATA, BRANDS, COLORS, YEARS } from '../../constants/carData';
 import './Vehiculos.css';
 
-// Todos los documentos relevantes que verifica el Agente
-// (4 del vehículo + 2 del conductor que opera ese vehículo).
 const VEHICLE_DOC_TYPES = [
   'cedula', 'licencia',
   'poliza', 'marchamo', 'rtv', 'tarjeta_circulacion',
 ];
+
+const normalizePlate = (value) => String(value || '').replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 6);
+
+const STATS_CACHE_KEY = 'saferide_vehicle_stats';
+
+const readCachedStats = () => {
+  try {
+    const cached = JSON.parse(localStorage.getItem(STATS_CACHE_KEY));
+    return cached && typeof cached === 'object' ? cached : null;
+  } catch {
+    return null;
+  }
+};
 
 // ─────────────────────────────────────────────────────────────
 // COMPONENTE: Skeleton para carga de vehículos
@@ -53,11 +63,15 @@ const VehiculosPage = () => {
   const [filterStatus, setFilterStatus] = useState('all'); // all, active, pending
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState(readCachedStats() || {
     total: 0,
     active: 0,
     pending: 0
   });
+
+  useEffect(() => {
+    localStorage.setItem(STATS_CACHE_KEY, JSON.stringify(stats));
+  }, [stats]);
 
   // Formulario de añadir vehículo
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -124,8 +138,8 @@ const VehiculosPage = () => {
     if (!form.brand) return 'La marca es obligatoria';
     if (!form.model) return 'El modelo es obligatorio';
     if (!form.license_plate) return 'La placa es obligatoria';
-    if (!/^[A-Z0-9]{6}$/.test(form.license_plate.toUpperCase())) {
-      return 'La placa debe tener exactamente 6 caracteres alfanuméricos';
+    if (!/^(?=.*[0-9])[A-Z0-9]{6}$/.test(normalizePlate(form.license_plate))) {
+      return 'La placa debe tener 6 caracteres alfanuméricos e incluir al menos un número';
     }
     if (!form.color) return 'El color es obligatorio';
     if (!form.year) return 'El año es obligatorio';
@@ -145,7 +159,7 @@ const VehiculosPage = () => {
       const payload = {
         brand: form.brand,
         model: form.model,
-        license_plate: form.license_plate.toUpperCase(),
+        license_plate: normalizePlate(form.license_plate),
         color: form.color,
         year: parseInt(form.year),
         capacity: parseInt(form.capacity),
@@ -178,21 +192,14 @@ const VehiculosPage = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
     }, 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
   const [selectedDoc, setSelectedDoc] = useState(null);
 
-  // Conteos del agente: { [driverId]: { approved: N, total: M } }
-  const [agentDocCounts, setAgentDocCounts] = useState({});
-
-  const getDocumentCount = (vehicle) => {
-    let count = 0;
-    if (vehicle.polizaUrl) count++;
-    if (vehicle.rtvUrl) count++;
-    return count;
-  };
+  const [docCounts, setDocCounts] = useState({});
 
   const loadVehicles = useCallback(async () => {
     setLoading(true);
@@ -210,10 +217,9 @@ const VehiculosPage = () => {
           setTotalPages(response.pagination.pages || 1);
         }
 
-        // Calcular stats (usamos los totales del backend si vienen)
-        const total = response.pagination?.total || response.data.length;
-        const active = response.stats?.active || response.data.filter(v => v.isActive).length;
-        const pending = response.stats?.pending || response.data.filter(v => !v.isActive).length;
+        const total = response.stats?.total ?? response.pagination?.total ?? response.data.length;
+        const active = response.stats?.active ?? response.data.filter(v => v.isActive).length;
+        const pending = response.stats?.pending ?? response.data.filter(v => !v.isActive).length;
 
         setStats({ total, active, pending });
       }
@@ -228,10 +234,8 @@ const VehiculosPage = () => {
   useEffect(() => {
     loadVehicles();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [currentPage]);
+  }, [loadVehicles]);
 
-  // Cuando cambian los vehículos visibles, traemos en paralelo los docs vehiculares
-  // del agente para alimentar el badge "X/N aprobados".
   useEffect(() => {
     if (!vehicles?.length) return;
     let cancelled = false;
@@ -239,32 +243,21 @@ const VehiculosPage = () => {
       const driverIds = [...new Set(
         vehicles.map(v => (typeof v.driver_id === 'object' ? v.driver_id?._id : v.driver_id)).filter(Boolean)
       )];
-      const pending = driverIds.filter(id => !(id in agentDocCounts));
-      if (pending.length === 0) return;
       const results = await Promise.all(
-        pending.map(id => documentService.getDocumentsByDriver(id).catch(() => []))
+        driverIds.map(id => documentService.getDocumentsByDriver(id).catch(() => []))
       );
       if (cancelled) return;
-      const next = { ...agentDocCounts };
-      pending.forEach((id, i) => {
-        const docs = results[i] || [];
-        const vehDocs = docs.filter(d => VEHICLE_DOC_TYPES.includes(d.type));
-        const approved = vehDocs.filter(d => d.status === 'approved').length;
+      const next = {};
+      driverIds.forEach((id, i) => {
+        const docs = (results[i] || []).filter(d => VEHICLE_DOC_TYPES.includes(d.type));
+        const latestByType = documentService.getLatestDocumentsByType(docs);
+        const approved = VEHICLE_DOC_TYPES.filter((type) => latestByType[type]?.status === 'approved').length;
         next[id] = { approved, total: VEHICLE_DOC_TYPES.length };
       });
-      setAgentDocCounts(next);
+      setDocCounts(next);
     })();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicles]);
-
-  useEffect(() => {
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    } else {
-      loadVehicles();
-    }
-  }, [filterStatus, debouncedSearch]);
 
   // Filtrado local sobre los vehículos ya cargados. Hace que la barra de
   // búsqueda responda al instante (placa, marca, modelo o nombre del conductor)
@@ -305,7 +298,8 @@ const VehiculosPage = () => {
       toast.success('Vehículo aprobado con éxito');
       loadVehicles();
     } catch (error) {
-      toast.error('Error al aprobar el vehículo');
+      const pending = error.response?.data?.pending;
+      toast.error(pending?.length ? `Faltan documentos: ${pending.join(', ')}` : 'Error al aprobar el vehículo');
     }
   };
 
@@ -343,7 +337,7 @@ const VehiculosPage = () => {
       await vehicleService.updateVehicleStatus(vehicle._id, false);
       toast.success('Vehículo desactivado');
       loadVehicles();
-    } catch (error) {
+    } catch {
       toast.error('Error al desactivar el vehículo');
     }
   };
@@ -415,19 +409,19 @@ const VehiculosPage = () => {
         <div className="filter-group">
           <button
             className={`filter-btn ${filterStatus === 'all' ? 'active' : ''}`}
-            onClick={() => setFilterStatus('all')}
+            onClick={() => { setFilterStatus('all'); setCurrentPage(1); }}
           >
             Todos
           </button>
           <button
             className={`filter-btn ${filterStatus === 'active' ? 'active' : ''}`}
-            onClick={() => setFilterStatus('active')}
+            onClick={() => { setFilterStatus('active'); setCurrentPage(1); }}
           >
             Operativos
           </button>
           <button
             className={`filter-btn ${filterStatus === 'pending' ? 'active' : ''}`}
-            onClick={() => setFilterStatus('pending')}
+            onClick={() => { setFilterStatus('pending'); setCurrentPage(1); }}
           >
             Pendientes
           </button>
@@ -473,14 +467,13 @@ const VehiculosPage = () => {
                   </span>
                 </div>
 
-                {/* Badge de completitud de documentos (Agente IA) */}
                 <div className="doc-status-row" style={{ marginTop: '8px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: '600' }}>
                   {(() => {
                     const driverId = typeof vehicle.driver_id === 'object' ? vehicle.driver_id?._id : vehicle.driver_id;
-                    const agentInfo = driverId ? agentDocCounts[driverId] : null;
-                    const approved = agentInfo?.approved ?? 0;
-                    const total = agentInfo?.total ?? VEHICLE_DOC_TYPES.length;
-                    const ready = !!agentInfo;
+                    const docInfo = driverId ? docCounts[driverId] : null;
+                    const approved = docInfo?.approved ?? 0;
+                    const total = docInfo?.total ?? VEHICLE_DOC_TYPES.length;
+                    const ready = !!docInfo;
 
                     let color = '#94A3B8';
                     let label = ready ? `${approved}/${total}` : 'Cargando…';
@@ -498,12 +491,11 @@ const VehiculosPage = () => {
                     }
                     return (
                       <span
-                        title="Conteo provisto por el Agente de verificación"
+                        title="Documentos aprobados por el validador contra la base de datos"
                         style={{ color, display: 'flex', alignItems: 'center', gap: '6px', background: `${color}10`, padding: '4px 10px', borderRadius: '20px', border: `1px solid ${color}25` }}
                       >
                         <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: color }}></span>
-                        Docs IA: {label} {suffix}
-                        {ready && <Bot size={12} style={{ marginLeft: 2, opacity: 0.7 }} />}
+                        Docs: {label} {suffix}
                       </span>
                     );
                   })()}
@@ -544,7 +536,7 @@ const VehiculosPage = () => {
                     title="Ver Papeles Completos"
                     onClick={() => setSelectedDoc(vehicle)}
                   >
-                    <Eye size={18} />
+                    <FileCheck2 size={18} />
                   </button>
                 </div>
               </div>
@@ -625,8 +617,8 @@ const VehiculosPage = () => {
             <div className="doc-modal-body doc-modal-body--agent">
               <div className="doc-agent-header">
                 <div className="doc-agent-title">
-                  <Bot size={18} />
-                  <span>Verificación por Agente IA</span>
+                  <ShieldCheck size={18} />
+                  <span>Verificación con reglas contra la base de datos</span>
                 </div>
                 <span className="doc-agent-hint">
                   Cédula y licencia corresponden al conductor; póliza, marchamo, RTV y tarjeta al vehículo.
@@ -637,6 +629,7 @@ const VehiculosPage = () => {
                 driver={typeof selectedDoc.driver_id === 'object' ? selectedDoc.driver_id : { _id: selectedDoc.driver_id }}
                 vehicle={selectedDoc}
                 filterTypes={VEHICLE_DOC_TYPES}
+                onReviewed={loadVehicles}
               />
 
               <div className="doc-modal-footer doc-modal-footer--standalone">

@@ -141,13 +141,15 @@ exports.deleteNotification = async (req, res, next) => {
 //Function to create notification
 exports.createNotification = async (req, res, next) => {
   try {
-    const { user_id, message, type, relatedEntity } = req.body;
+    const { user_id, message, type, relatedEntity, source = 'real', date } = req.body;
     // Create notification
     const notification = await Notification.create({
       user_id,
       message,
       type,
       relatedEntity,
+      source,
+      date: date || Date.now(),
     });
     // Respond successfully
     res.status(201).json({

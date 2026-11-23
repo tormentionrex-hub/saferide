@@ -3,6 +3,7 @@ const { User, Vehicle, TrustHistory } = require("../models");
 const { uploadToBlob, deleteFromBlob } = require("../services/blobService");
 const trustService = require("../services/trustService");
 const notificationService = require("../services/notificationService");
+const vehicleApprovalService = require("../services/vehicleApprovalService");
 
 // @desc Get all users (admin only)
 // @route GET /api/v1/users
@@ -11,12 +12,15 @@ const notificationService = require("../services/notificationService");
 //Function to get all users
 exports.getAllUsers = async (req, res, next) => {
     try {
-        const { page = 1, limit = 9, type, company, search, initial } = req.query;
+        const { page = 1, limit = 9, type, company, search, initial, sort = 'desc', isActive } = req.query;
         // Build query object
         const query = {};
         // Add filters if provided
         if (type) query.type = type;
         if (company) query.company = company;
+        if (isActive === 'true' || isActive === 'false') {
+            query.isActive = isActive === 'true';
+        }
         if (initial) {
             query.name = { $regex: `^${initial}`, $options: "i" };
         }
@@ -27,18 +31,26 @@ exports.getAllUsers = async (req, res, next) => {
                 { email: { $regex: search, $options: "i" } },
             ];
         }
+        const sortDirection = sort === 'asc' ? 1 : -1;
+
         // Fetch users with pagination
         const users = await User.find(query)
             .select("-password -refreshToken")
             .limit(limit * 1)
             .skip((page - 1) * limit)
-            .sort({ createdAt: -1, _id: 1 });
+            .sort({ createdAt: sortDirection, _id: sortDirection });
         const count = await User.countDocuments(query);
         
         // Get global stats (ignoring pagination and search filters, just by type)
+        const [totalUsers, activeUsers, operationalDrivers] = await Promise.all([
+            User.countDocuments({ type: query.type || 'pasajero' }),
+            User.countDocuments({ type: query.type || 'pasajero', isActive: true }),
+            Vehicle.countDocuments({ isActive: true }),
+        ]);
         const globalStats = {
-            total: await User.countDocuments({ type: query.type || 'pasajero' }),
-            active: await User.countDocuments({ type: query.type || 'pasajero', isActive: true })
+            total: totalUsers,
+            active: activeUsers,
+            operational: operationalDrivers,
         };
 
         // Respond with users and pagination info
@@ -270,6 +282,10 @@ exports.deleteUser = async ( req, res, next) => {
         // Soft delete: set active to false
         user.isActive = false;
         await user.save();
+        await Vehicle.updateMany(
+            { driver_id: user._id },
+            { $set: { isActive: false } }
+        );
         
         res.status(200).json({
             success: true,
@@ -372,6 +388,20 @@ exports.activateUser = async (req, res, next) => {
                 success: false,
                 message: 'User not found',
             });
+        }
+
+        if (user.type === 'conductor') {
+            const approval = await vehicleApprovalService.getDocumentApproval(user._id);
+
+            if (!approval.approved) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'El conductor no puede operar hasta que los 6 documentos estén aprobados',
+                    pending: approval.pending,
+                });
+            }
+
+            await vehicleApprovalService.syncVehicleApproval(user._id);
         }
 
         user.isActive = true;

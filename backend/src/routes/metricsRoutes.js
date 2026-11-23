@@ -170,5 +170,6 @@ router.get('/passenger/:passengerId', metricsController.getPassengerMetrics);
 router.get('/user/:userId', metricsController.getUserMetrics);
 router.post('/calculate/:userId', authorize('admin'), metricsController.calculateMetrics);
 router.get('/global', authorize('admin'), metricsController.getGlobalMetrics);
+router.get('/bookings-by-day', authorize('admin'), metricsController.getBookingsByDay);
 
 module.exports = router;
